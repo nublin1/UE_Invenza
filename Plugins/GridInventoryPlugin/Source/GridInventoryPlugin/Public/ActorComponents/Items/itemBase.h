@@ -1,42 +1,36 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
+#include "UObject/Object.h"
+#include "itemBase.generated.h"
 
-#include "Pickup.generated.h"
-
-class UPickupComponent;
-class UBoxComponent;
-
+/**
+ * 
+ */
 UCLASS()
-class GRIDINVENTORYPLUGIN_API APickup : public AActor
+class GRIDINVENTORYPLUGIN_API UItemBase : public UObject
 {
 	GENERATED_BODY()
-	
-public:	
+
+public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-
+	UPROPERTY(VisibleAnywhere, Category = "Item Data")
+	int32 Quantity;
+	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	APickup();
-
 
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	
-
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	virtual void PostInitializeComponents() override;
-
-	UStaticMeshComponent* PickupMesh;
-	UBoxComponent* BoxCollider;
 };

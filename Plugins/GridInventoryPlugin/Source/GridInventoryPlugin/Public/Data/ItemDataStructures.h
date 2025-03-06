@@ -3,6 +3,13 @@
 #include "CoreMinimal.h"
 #include "ItemDataStructures.generated.h"
 
+UENUM()
+enum class EOrientationType : uint8
+{
+	Vertical UMETA(DisplayName = "Vertical"),
+	Hotizontal UMETA(DisplayName = "Hotizontal"),
+};
+
 USTRUCT()
 struct FItemTextData
 {

@@ -3,15 +3,16 @@
 #include "ActorComponents/InteractionComponent.h"
 
 #include "EnhancedInputComponent.h"
+#include "ActorComponents/InteractableComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/Character.h"
-#include "Interfaces/InteractionInterface.h"
 
-UInteractionComponent::UInteractionComponent(): TraceChannel()
+
+UInteractionComponent::UInteractionComponent(): TraceChannel(), TargetInteractableComponent(nullptr)
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	InteractionCheckInterval = 0.1f;
-	InteractionCheckDistance = 325.0f;
+	InteractionCheckDistance = 500.0f;
 	BaseEyeHeight = 74.0f;
 
 	ComponentTags.Add(FName("InteractionComponent"));
@@ -72,11 +73,13 @@ void UInteractionComponent::PerformInteractionCheck()
 	{
 		AActor* HitActor = TraceHit.GetActor();
 
-		if (HitActor && HitActor->Implements<UInteractionInterface>())
+		if (HitActor)
 		{
-			if (HitActor != InteractionData.CurrentInteractable)
+			UInteractableComponent* InteractableComp = HitActor->FindComponentByClass<UInteractableComponent>();
+			
+			if (InteractableComp && InteractableComp != InteractionData.CurrentInteractable)
 			{
-				FoundInteractable(HitActor);
+				FoundInteractable(HitActor, InteractableComp);
 			}
 			return;
 		}
@@ -85,7 +88,7 @@ void UInteractionComponent::PerformInteractionCheck()
 	NotFoundInteractable();
 }
 
-void UInteractionComponent::FoundInteractable(AActor* NewInteractable)
+void UInteractionComponent::FoundInteractable(AActor* NewInteractable, UInteractableComponent* NewInteractableComp )
 {
 	if (InteractionData.CurrentInteractable)
 	{
@@ -94,21 +97,20 @@ void UInteractionComponent::FoundInteractable(AActor* NewInteractable)
 			InteractionData.LastInteractable = InteractionData.CurrentInteractable;
 		}
 
-		TargetInteractable = InteractionData.CurrentInteractable;
-		TargetInteractable->EndFocus();
+		TargetInteractableComponent = InteractionData.CurrentInteractable;
+		TargetInteractableComponent->EndFocus();
 	}
 
-	InteractionData.CurrentInteractable = NewInteractable;
-	TargetInteractable = NewInteractable;
+	InteractionData.CurrentInteractable = NewInteractableComp;
+	TargetInteractableComponent = NewInteractableComp;
 
 	//if (TargetInteractable)
 	//	InventoryHUDComponent->UpdateInteractionWidget(TargetInteractable->InteractableData);
 
-	TargetInteractable->BeginFocus();
+	TargetInteractableComponent->BeginFocus();
 	if (BeginFocusDelegate.IsBound())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("BeginFocusDelegate вызван!"));
-		BeginFocusDelegate.Broadcast(InteractionData);
+		BeginFocusDelegate.Broadcast(TargetInteractableComponent->InteractableData);
 	}
 }
 
@@ -121,31 +123,70 @@ void UInteractionComponent::NotFoundInteractable()
 
 	if (InteractionData.CurrentInteractable)
 	{
-		if (IsValid(TargetInteractable.GetObject()))
+		if (IsValid(TargetInteractableComponent))
 		{
-			TargetInteractable->EndFocus();
+			TargetInteractableComponent->EndFocus();
 		}
 
 		//InventoryHUDComponent->HideInteractionWidget();
-		InteractionData.CurrentInteractable = nullptr;
-		InteractionData.LastInteractable = InteractionData.CurrentInteractable;
-		TargetInteractable = nullptr;
-	}
 
-	if (EndFocusDelegate.IsBound())
-		EndFocusDelegate.Broadcast(InteractionData);
+		if (EndFocusDelegate.IsBound() && InteractionData.CurrentInteractable)
+		{
+			EndFocusDelegate.Broadcast(InteractionData.CurrentInteractable->InteractableData);
+		}
+		InteractionData.CurrentInteractable = nullptr;		
+		
+		InteractionData.LastInteractable = InteractionData.CurrentInteractable;
+		TargetInteractableComponent = nullptr;
+	}
 }
 
 void UInteractionComponent::BeginInteract()
 {
+	// verify nothing has changed with the iteractable state since beginning interaction
+	PerformInteractionCheck();
+
+	if (!InteractionData.CurrentInteractable)
+	{
+		return;
+	}
+
+	if (IsValid(TargetInteractableComponent))
+	{
+		TargetInteractableComponent->BeginInteract(this);
+
+		if (FMath::IsNearlyZero(TargetInteractableComponent->InteractableData.InteractableDuration, 0.1f))
+		{
+			Interact();
+		}
+		else
+		{
+			GetOwner()->GetWorldTimerManager().SetTimer(TimerHandle_Interaction,
+											this, &UInteractionComponent::Interact,
+											TargetInteractableComponent->InteractableData.InteractableDuration,
+											false);
+		}
+	}
 }
 
 void UInteractionComponent::EndInteract()
 {
+	GetOwner()->GetWorldTimerManager().ClearTimer(TimerHandle_Interaction);	
+	
+	if (IsValid(TargetInteractableComponent))
+	{
+		TargetInteractableComponent->EndInteract(this);
+	}
 }
 
 void UInteractionComponent::Interact()
 {
+	GetOwner()->GetWorldTimerManager().ClearTimer(TimerHandle_Interaction);
+
+	if (IsValid(TargetInteractableComponent))
+	{
+		TargetInteractableComponent->Interact(this);
+	}
 }
 
 void UInteractionComponent::TickComponent(float DeltaTime, ELevelTick TickType,

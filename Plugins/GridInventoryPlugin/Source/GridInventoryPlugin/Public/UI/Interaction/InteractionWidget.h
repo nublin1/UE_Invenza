@@ -3,11 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
 #include "UI/BaseUserWidget.h"
 #include "InteractionWidget.generated.h"
 
 
+struct FInteractableData;
 class UProgressBar;
 class UTextBlock;
 struct FInteractionData;
@@ -45,12 +45,12 @@ public:
 	UInteractionWidget();
 
 	UFUNCTION(BlueprintNativeEvent)
-	void OnFoundInteractable(FInteractionData& NewInteractableData);
-	virtual void OnFoundInteractable_Implementation( FInteractionData& NewInteractableData);
+	void OnFoundInteractable(FInteractableData& NewInteractableData);
+	virtual void OnFoundInteractable_Implementation( FInteractableData& NewInteractableData);
 
 	UFUNCTION(BlueprintNativeEvent)
-	void OnLostInteractable(FInteractionData& NewInteractableData);
-	virtual void OnLostInteractable_Implementation(FInteractionData& NewInteractableData);
+	void OnLostInteractable(FInteractableData& NewInteractableData);
+	virtual void OnLostInteractable_Implementation(FInteractableData& NewInteractableData);
 
 protected:
 	//====================================================================
@@ -61,5 +61,5 @@ protected:
 	// FUNCTIONS
 	//====================================================================
 	UFUNCTION()
-	void UpdateText(FInteractionData& NewInteractableData);
+	void UpdateText(FInteractableData& NewInteractableData);
 };

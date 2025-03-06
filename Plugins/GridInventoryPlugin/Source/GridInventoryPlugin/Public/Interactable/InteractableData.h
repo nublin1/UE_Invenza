@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Interface.h"
-#include "InteractionInterface.generated.h"
+#include "InteractableData.generated.h"
 
 /**
  * 
@@ -15,11 +15,11 @@ class UInteractionComponent;
 UENUM()
 enum class EInteractableType: uint8 
 {
-	Pickup UMETA(DisplayName = "Pickup"),
-	NPC UMETA(DisplayName = "NPC"),
-	Device UMETA(DisplayName = "Device"),
-	Toggle UMETA(DisplayName = "Toggle"),
-	Container UMETA(DisplayName = "Container")
+	Pickup		UMETA(DisplayName = "Pickup"),
+	NPC			UMETA(DisplayName = "NPC"),
+	Toggle		UMETA(DisplayName = "Toggle"),
+	Container	UMETA(DisplayName = "Container"),
+	InfoOnly    UMETA(DisplayName = "Informational") 
 };
 
 USTRUCT(Blueprintable, BlueprintType)
@@ -49,22 +49,3 @@ struct FInteractableData
 	float InteractableDuration;	
 };
 
-// This class does not need to be modified.
-UINTERFACE(MinimalAPI)
-class UInteractionInterface : public UInterface
-{
-	GENERATED_BODY()
-};
-
-class GRIDINVENTORYPLUGIN_API IInteractionInterface
-{
-	GENERATED_BODY()
-	
-public:
-	virtual void BeginFocus();
-	virtual void EndFocus();
-	virtual void BeginInteract(UInteractionComponent* InteractionComponent);
-	virtual void EndInteract(UInteractionComponent* InteractionComponent);
-	virtual void Interact(UInteractionComponent* InteractionComponent);
-	
-};

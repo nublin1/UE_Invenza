@@ -3,6 +3,8 @@
 #include "CoreMinimal.h"
 #include "InteractionData.generated.h"
 
+class UInteractableComponent;
+
 USTRUCT(BlueprintType)
 struct FInteractionData
 {
@@ -10,10 +12,14 @@ struct FInteractionData
 
 	FInteractionData() : CurrentInteractable(nullptr), LastInteractable(nullptr),LastInteractionCheckTime(0.0f){};
 
+	//UPROPERTY()
+	//TObjectPtr<AActor> CurrentInteractable;
+	//UPROPERTY()
+	//TObjectPtr<AActor> LastInteractable;
 	UPROPERTY()
-	TObjectPtr<AActor> CurrentInteractable;
+	TObjectPtr<UInteractableComponent> CurrentInteractable;
 	UPROPERTY()
-	TObjectPtr<AActor> LastInteractable;
+	TObjectPtr<UInteractableComponent> LastInteractable;
 
 	UPROPERTY()
 	float LastInteractionCheckTime;

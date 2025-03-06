@@ -4,24 +4,25 @@
 #include "UI/Interaction/InteractionWidget.h"
 
 #include "Components/TextBlock.h"
-#include "Interaction/InteractionData.h"
+#include "Interactable/InteractableData.h"
+
 
 UInteractionWidget::UInteractionWidget()
 {
 }
 
-void UInteractionWidget::OnFoundInteractable_Implementation( FInteractionData& NewInteractableData)
+void UInteractionWidget::OnFoundInteractable_Implementation( FInteractableData& NewInteractableData)
 {
 	UpdateText(NewInteractableData);
 	SetVisibility(ESlateVisibility::Visible);
 }
 
-void UInteractionWidget::OnLostInteractable_Implementation( FInteractionData& NewInteractableData)
+void UInteractionWidget::OnLostInteractable_Implementation( FInteractableData& NewInteractableData)
 {
 	SetVisibility(ESlateVisibility::Collapsed);
 }
 
-void UInteractionWidget::UpdateText(FInteractionData& NewInteractableData)
+void UInteractionWidget::UpdateText(FInteractableData& NewInteractableData)
 {
-	NameText->SetText(FText::FromString(NewInteractableData.CurrentInteractable.GetName()));
+	NameText->SetText(NewInteractableData.Name);
 }

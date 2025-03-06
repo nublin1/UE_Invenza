@@ -5,17 +5,17 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Interaction/InteractionData.h"
-#include "Interfaces/InteractionInterface.h"
 #include "InteractionComponent.generated.h"
 
 #pragma region delegates
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FBeginFocus,FInteractionData&, InteractableData);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FEndFocus, FInteractionData&, InteractableData);
+class UInteractableComponent;
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FBeginFocus, FInteractableData&, InteractableData);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FEndFocus, FInteractableData&, InteractableData);
 #pragma endregion
 
 
 class UInputAction;
-class IInteractionInterface;
+class IInteractableData;
 class UCameraComponent;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
@@ -59,9 +59,10 @@ protected:
 	TObjectPtr<UInputAction> InteractAction;
 	
 	//
+	FTimerHandle TimerHandle_Interaction;
 	FInteractionData InteractionData;
 	UPROPERTY(EditAnywhere, Category = "Character | Interaction")
-	TScriptInterface<IInteractionInterface> TargetInteractable;	
+	UInteractableComponent* TargetInteractableComponent;	
 	UPROPERTY()
 	TObjectPtr<UCameraComponent> CameraComponent;
 	
@@ -69,7 +70,7 @@ protected:
 	// FUNCTIONS
 	//====================================================================
 	void PerformInteractionCheck();
-	void FoundInteractable(AActor *NewInteractable);
+	void FoundInteractable(AActor *NewInteractable, UInteractableComponent* NewInteractableComp);
 	void NotFoundInteractable();
 	void BeginInteract();
 	void EndInteract();
