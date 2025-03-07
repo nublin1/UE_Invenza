@@ -4,7 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "BaseInventoryComponent.generated.h"
+#include "UI/BaseUserWidget.h"
+#include "BaseInventoryWidget.generated.h"
 
 #pragma region Delegates
 
@@ -16,8 +17,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUseItemDelegate, UBaseInventoryS
 #pragma endregion Delegates
 
 
-UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
-class GRIDINVENTORYPLUGIN_API UBaseInventoryComponent : public UActorComponent
+UCLASS()
+class GRIDINVENTORYPLUGIN_API UBaseInventoryWidget : public UBaseUserWidget
 {
 	GENERATED_BODY()
 
@@ -29,8 +30,7 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	// Sets default values for this component's properties
-	UBaseInventoryComponent();
+	UBaseInventoryWidget();
 
 protected:
 	//====================================================================

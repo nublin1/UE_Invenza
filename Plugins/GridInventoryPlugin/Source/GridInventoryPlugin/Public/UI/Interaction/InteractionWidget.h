@@ -60,6 +60,7 @@ protected:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+
 	UFUNCTION()
 	void UpdateText(FInteractableData& NewInteractableData);
 };
