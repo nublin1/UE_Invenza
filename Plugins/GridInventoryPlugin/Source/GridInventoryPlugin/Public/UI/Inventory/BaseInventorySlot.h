@@ -26,21 +26,30 @@ public:
 	//====================================================================
 	UBaseInventorySlot();
 
+	//Getters
+	FORCEINLINE FIntVector2 GetSlotPosition() const { return SlotPosition; }	
+	
+	//Setters	
+	FORCEINLINE void SetSlotPosition(const FIntVector2 InSlotPosition) { this->SlotPosition = InSlotPosition; }
+
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	// Widgets
     UPROPERTY(VisibleAnywhere, meta=(BindWidget))
-    UBorder* Left_Border;
+    TObjectPtr<UBorder> Left_Border;
     UPROPERTY(VisibleAnywhere, meta=(BindWidget))
-    UBorder* Right_Border;
+    TObjectPtr<UBorder>  Right_Border;
     UPROPERTY(VisibleAnywhere, meta=(BindWidget))
-    UBorder* Top_Border;
+    TObjectPtr<UBorder>  Top_Border;
     UPROPERTY(VisibleAnywhere, meta=(BindWidget))
-    UBorder* BottomBorder;
+    TObjectPtr<UBorder>  BottomBorder;
     UPROPERTY(VisibleAnywhere, meta=(BindWidget))
-    UTextBlock* Content_Text_Name;
+    TObjectPtr<UTextBlock> Content_Text_Name;
+
+	UPROPERTY()
+	FIntVector2 SlotPosition;
 	
 	//====================================================================
 	// FUNCTIONS

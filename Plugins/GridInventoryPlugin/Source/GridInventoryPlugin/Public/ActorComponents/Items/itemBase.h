@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Data/ItemDataStructures.h"
 #include "UObject/Object.h"
 #include "itemBase.generated.h"
 
@@ -18,18 +19,39 @@ public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(VisibleAnywhere, Category = "Item Data")
-	int32 Quantity;
+	
 	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+	UItemBase();
+
+	UFUNCTION(Category = "Item")
+	FORCEINLINE bool IsStackable() const { return ItemRef.ItemNumeraticData.MaxStackSize > 1; }
+	UFUNCTION(Category = "Item")
+	FORCEINLINE bool IsFullItemStack() const { return Quantity == ItemRef.ItemNumeraticData.MaxStackSize; }
+	UFUNCTION(Category = "Item")
+	FORCEINLINE float GetItemStackWeight() const { return Quantity * ItemRef.ItemNumeraticData.Weight; }
+	UFUNCTION(Category = "Item")
+	FORCEINLINE float GetItemSingleWeight() const { return ItemRef.ItemNumeraticData.Weight; }
+
+	//
+	FItemMetaData& GetItemRef()	{return ItemRef;}
+	int32& GetQuantity(){return Quantity;}
+
+	void SetItemRef(const FItemMetaData& newItemRef){this->ItemRef = newItemRef;}
+	void SetQuantity(int32 newQuantity){this->Quantity = newQuantity;	}
 
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	
+	UPROPERTY(VisibleAnywhere, Category = "Item Data")
+	FItemMetaData ItemRef;
+
+	UPROPERTY(VisibleAnywhere, Category = "Item Data")
+	int32 Quantity;
+
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================

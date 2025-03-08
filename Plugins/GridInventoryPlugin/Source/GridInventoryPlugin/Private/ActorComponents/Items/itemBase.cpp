@@ -2,3 +2,7 @@
 
 
 #include "ActorComponents/Items/itemBase.h"
+
+UItemBase::UItemBase(): Quantity(0)
+{
+}
