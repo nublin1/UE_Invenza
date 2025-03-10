@@ -26,6 +26,11 @@ public:
 	//====================================================================
 	UBaseInventorySlot();
 
+	bool operator==(const UBaseInventorySlot& other) const
+	{
+		return SlotPosition == other.GetSlotPosition();
+	}
+
 	//Getters
 	FORCEINLINE FIntVector2 GetSlotPosition() const { return SlotPosition; }	
 	

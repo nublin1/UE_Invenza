@@ -3,6 +3,6 @@
 
 #include "UI/Inventory/BaseInventorySlot.h"
 
-UBaseInventorySlot::UBaseInventorySlot()
+UBaseInventorySlot::UBaseInventorySlot(): SlotPosition()
 {
 }

@@ -38,6 +38,8 @@ protected:
 
 	UFUNCTION(BlueprintCallable)
 	void BindEvents(AActor* TargetActor);
+	UFUNCTION(BlueprintCallable)
+	void BindComponents();
 
 public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,

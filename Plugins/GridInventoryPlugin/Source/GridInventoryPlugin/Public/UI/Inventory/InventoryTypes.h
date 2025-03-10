@@ -8,12 +8,12 @@
 class UItemBase;
 class UBaseInventoryWidget;
 
-USTRUCT()
+USTRUCT(Blueprintable)
 struct FArrayItemSlots
 {
 	GENERATED_BODY()
 	UPROPERTY()
-	TArray<UBaseInventorySlot*> ItemSlots;
+	TArray<TObjectPtr<UBaseInventorySlot>> ItemSlots;
 };
 
 UENUM(BlueprintType)

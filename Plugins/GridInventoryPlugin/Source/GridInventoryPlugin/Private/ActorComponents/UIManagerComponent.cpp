@@ -52,6 +52,10 @@ void UUIManagerComponent::BindEvents(AActor* TargetActor)
 	
 }
 
+void UUIManagerComponent::BindComponents()
+{
+}
+
 
 void UUIManagerComponent::TickComponent(float DeltaTime, ELevelTick TickType,
                                         FActorComponentTickFunction* ThisTickFunction)

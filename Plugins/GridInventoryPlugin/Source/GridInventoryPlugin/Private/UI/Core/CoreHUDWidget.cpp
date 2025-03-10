@@ -3,3 +3,6 @@
 
 #include "UI/Core/CoreHUDWidget.h"
 
+UCoreHUDWidget::UCoreHUDWidget()
+{
+}

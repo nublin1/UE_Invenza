@@ -52,11 +52,13 @@ protected:
 	UPROPERTY(meta=(BindWidget))
 	UUniformGridPanel* SlotsGridPanel;
 	
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TArray<TObjectPtr<UBaseInventorySlot>> InventorySlots;
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
+	TMap<UItemBase*, FArrayItemSlots> InventoryItemsMap;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory || Settigs")
 	float InventoryWeightCapacity;
-	UPROPERTY(VisibleAnywhere, Category="Inventory")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
 	float InventoryTotalWeight = 0;
 	
 	//====================================================================
@@ -67,7 +69,23 @@ protected:
 
 	UFUNCTION()
 	virtual void InitSlots();
+
+	UFUNCTION()
+	FArrayItemSlots GetAllSlotsFromInventoryItemsMap();
 	
+	virtual bool bIsSlotEmpty(const FIntVector2 SlotPosition);
+	bool bIsSlotEmpty(const UBaseInventorySlot* SlotCheck);
+
 	UFUNCTION()
 	virtual FItemAddResult HandleNonStackableItems(FItemMoveData& ItemMoveData, bool bOnlyCheck = false);
+	UFUNCTION()
+	virtual int32 HandleStackableItems(FItemMoveData& ItemMoveData, int32 RequestedAddAmount,
+												bool bOnlyCheck);
+	UFUNCTION()
+	virtual void AddNewItem(FItemMoveData& ItemMoveData, FArrayItemSlots OccupiedSlots);
+	
+	void NotifyAddItem(FArrayItemSlots FromSlots, UItemBase* NewItem);
+	void NotifyUpdateItem(FArrayItemSlots FromSlots, UItemBase* NewItem);
+	void NotifyRemoveItem(FArrayItemSlots FromSlots, UItemBase* RemovedItem) const;
+	//void NotifyUseSlot(UBaseInventorySlot* FromSlot);
 };

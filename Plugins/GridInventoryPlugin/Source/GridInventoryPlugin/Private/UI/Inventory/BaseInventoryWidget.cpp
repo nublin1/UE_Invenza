@@ -57,29 +57,56 @@ void UBaseInventoryWidget::InitSlots()
 			NewInvSlots[i]->SetSlotPosition(FIntVector2( UniSlot->GetColumn(), UniSlot->GetRow()));
 		}
 	}
+
+	InventorySlots = NewInvSlots;
 }
 
-FItemAddResult UBaseInventoryWidget::HandleNonStackableItems(FItemMoveData& ItemMoveData, bool bOnlyCheck)
+FArrayItemSlots UBaseInventoryWidget::GetAllSlotsFromInventoryItemsMap()
 {
-	if (!ItemMoveData.TargetSlot)
+	FArrayItemSlots AllPositions;
+
+	for (auto& Elem : InventoryItemsMap)
 	{
-		return FItemAddResult::AddedNone(FText::Format(FText::FromString("Can't be added {0} of {1} to inventory"),
-												   1, ItemMoveData.SourceItem->GetItemRef().ItemTextData.Name));
+		for (const auto& ItemSlot : Elem.Value.ItemSlots)
+		{
+			AllPositions.ItemSlots.Add(ItemSlot);
+		}
 	}
 
-	return FItemAddResult::AddedNone(FText::Format(FText::FromString("Can't be added {0} of {1} to inventory"),
-												   1, ItemMoveData.SourceItem->GetItemRef().ItemTextData.Name));
+	return AllPositions;
+}
+
+bool UBaseInventoryWidget::bIsSlotEmpty(const FIntVector2 SlotPosition)
+{
+	FArrayItemSlots BusySlots = GetAllSlotsFromInventoryItemsMap();
+	for (const auto InvSlot : BusySlots.ItemSlots)
+	{
+		if (InvSlot->GetSlotPosition() == SlotPosition)
+			return false;
+	}
+	
+	return true;
+}
+
+bool UBaseInventoryWidget::bIsSlotEmpty(const UBaseInventorySlot* SlotCheck)
+{
+	FArrayItemSlots BusySlots = GetAllSlotsFromInventoryItemsMap();
+	for (auto InvSlot : BusySlots.ItemSlots)
+	{
+		if (InvSlot == SlotCheck)
+			return false;
+	}
+	return true;
 }
 
 FItemAddResult UBaseInventoryWidget::HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck)
 {
-	const int32 InitialRequestedAddAmount = ItemMoveData.SourceItem->GetQuantity();
-
+	// non-stack
 	if (!ItemMoveData.SourceItem->IsStackable())
 	{
 		// Check if input item has valid weight
-		if (FMath::IsNearlyZero(ItemMoveData.SourceItem->GetItemStackWeight()) || ItemMoveData.SourceItem->
-			GetItemStackWeight() < 0)
+		if (FMath::IsNearlyZero(ItemMoveData.SourceItem->GetItemSingleWeight()) || ItemMoveData.SourceItem->
+			GetItemSingleWeight() < 0)
 		{
 			return FItemAddResult::AddedNone(FText::Format(FText::FromString("Item {0} has invalid weight"),
 														   ItemMoveData.SourceItem->GetItemRef().ItemTextData.Name));
@@ -99,7 +126,121 @@ FItemAddResult UBaseInventoryWidget::HandleAddItem(FItemMoveData ItemMoveData, b
 		return HandleNonStackableItems(ItemMoveData, bOnlyCheck);
 	}
 
+	// stack
+	const int32 InitialRequestedAddAmount = ItemMoveData.SourceItem->GetQuantity();
+	const int32 StackableAmountAdded = HandleStackableItems(ItemMoveData, InitialRequestedAddAmount,
+																bOnlyCheck);
+
+	if (StackableAmountAdded == InitialRequestedAddAmount)
+	{
+		return FItemAddResult::AddedAll(StackableAmountAdded, false, FText::Format(
+												FText::FromString("Successfully added {0} of {1} to inventory"),
+												InitialRequestedAddAmount,ItemMoveData.SourceItem->GetItemRef().ItemTextData.Name));
+	}
+	else if (StackableAmountAdded < InitialRequestedAddAmount && StackableAmountAdded > 0)
+	{
+		return FItemAddResult::AddedPartial(StackableAmountAdded, false, FText::Format(
+													FText::FromString(
+														"Partial amount of {0} added to inventory. number added {1}"),
+													ItemMoveData.SourceItem->GetItemRef().ItemTextData.Name, StackableAmountAdded));
+	}
+	else if (StackableAmountAdded <= 0)
+	{
+		return FItemAddResult::AddedNone(FText::Format(FText::FromString("Couldn't add {0} to inventory."),
+														   ItemMoveData.SourceItem->GetItemRef().ItemTextData.Name));
+	}
+
 	return FItemAddResult::AddedNone(FText::Format(
 		FText::FromString("Could not add {0} to inventory. No remaining slots or weight."),
 		ItemMoveData.SourceItem->GetItemRef().ItemTextData.Name));
 }
+
+
+FItemAddResult UBaseInventoryWidget::HandleNonStackableItems(FItemMoveData& ItemMoveData, bool bOnlyCheck)
+{
+	if (!ItemMoveData.TargetSlot)
+	{
+		TObjectPtr<UBaseInventorySlot> EmptySlot = nullptr;
+		for (const auto InventorySlot : InventorySlots)
+		{
+			if (bool IsEmptySlot = bIsSlotEmpty(InventorySlot))
+			{
+				EmptySlot = InventorySlot;
+				break;
+			}
+		}
+
+		if (EmptySlot == nullptr)
+			return FItemAddResult::AddedNone(FText::Format(FText::FromString("Can't be added {0} of {1} to inventory. No Empty slots"),
+												   1, ItemMoveData.SourceItem->GetItemRef().ItemTextData.Name));
+
+		if (!bOnlyCheck)
+		{
+			FArrayItemSlots Slots;
+			Slots.ItemSlots.Add(EmptySlot);
+			AddNewItem(ItemMoveData, Slots);
+		}
+		
+		return FItemAddResult::AddedAll(1, false, FText::Format(
+												FText::FromString("Successfully added {0} of {1} to inventory"),
+												1, ItemMoveData.SourceItem->GetItemRef().ItemTextData.Name));
+	}
+
+	if (bIsSlotEmpty(ItemMoveData.TargetSlot->GetSlotPosition()))
+	{
+		if (!bOnlyCheck)
+		{
+			FArrayItemSlots Slots;
+			Slots.ItemSlots.Add(ItemMoveData.TargetSlot);
+			AddNewItem(ItemMoveData, Slots);
+		}
+
+		return FItemAddResult::AddedAll(1, false, FText::Format(
+											FText::FromString("Successfully added {0} of {1} to inventory"),
+											1, ItemMoveData.SourceItem->GetItemRef().ItemTextData.Name));
+	}
+
+	return FItemAddResult::AddedNone(FText::Format(FText::FromString("Can't be added {0} of {1} to inventory"),
+												   1, ItemMoveData.SourceItem->GetItemRef().ItemTextData.Name));
+}
+
+int32 UBaseInventoryWidget::HandleStackableItems(FItemMoveData& ItemMoveData, int32 RequestedAddAmount, bool bOnlyCheck)
+{
+	int32 AmountToDistribute = RequestedAddAmount;
+	return  0;
+}
+
+void UBaseInventoryWidget::AddNewItem(FItemMoveData& ItemMoveData, FArrayItemSlots OccupiedSlots)
+{
+	TObjectPtr<UItemBase> NewItem = ItemMoveData.SourceItem;
+	NewItem->SetQuantity(ItemMoveData.SourceItem->GetQuantity());
+
+	InventoryItemsMap.Add(NewItem, OccupiedSlots);
+	if (InventoryWeightCapacity > 0)
+		InventoryTotalWeight += NewItem->GetItemStackWeight();
+
+	NotifyAddItem(OccupiedSlots, NewItem);
+}
+
+void UBaseInventoryWidget::NotifyAddItem(FArrayItemSlots FromSlots, UItemBase* NewItem)
+{
+	OnAddItemDelegate.Broadcast(FromSlots, NewItem);
+}
+
+void UBaseInventoryWidget::NotifyUpdateItem(FArrayItemSlots FromSlots, UItemBase* NewItem)
+{
+	OnItemUpdateDelegate.Broadcast(FromSlots, NewItem);
+}
+
+void UBaseInventoryWidget::NotifyRemoveItem(FArrayItemSlots FromSlots, UItemBase* RemovedItem) const
+{
+	OnRemoveItemDelegate.Broadcast(FromSlots, RemovedItem);
+}
+
+/*void UBaseInventoryWidget::NotifyUseSlot(UBaseInventorySlot* FromSlot)
+{
+	//auto Item = FindItemBySlot(FromSlot);
+
+	//OnUseItemDelegate.Broadcast(FromSlot, Item);
+}*/
+

@@ -3,17 +3,16 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Components/CanvasPanel.h"
 #include "UI/BaseUserWidget.h"
-#include "CoreHUDWidget.generated.h"
+#include "InventorySystemLayout.generated.h"
 
-class UInventorySystemLayout;
-class UInteractionWidget;
+class UBaseInventoryWidget;
+class UCanvasPanel;
 /**
  * 
  */
 UCLASS()
-class GRIDINVENTORYPLUGIN_API UCoreHUDWidget : public UBaseUserWidget
+class GRIDINVENTORYPLUGIN_API UInventorySystemLayout : public UBaseUserWidget
 {
 	GENERATED_BODY()
 
@@ -26,25 +25,28 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UCoreHUDWidget();
-	
-	//Getters
-	UInteractionWidget* GetInteractionWidget() {return InteractionWidget;}
-	UInventorySystemLayout* GetInventorySystemLayout() {return InventorySystemLayout;} 
+	UInventorySystemLayout();
+
+	UBaseInventoryWidget* GetMainInventory() {return MainInventory;}
 
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	//Widgets
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
+	// Widgets
+	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UCanvasPanel> ContentPanel;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidgetOptional))
-	TObjectPtr<UInteractionWidget> InteractionWidget;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidgetOptional))
-	TObjectPtr<UInventorySystemLayout> InventorySystemLayout;
+
+	//
+	TArray<TObjectPtr<UBaseInventoryWidget>> InventoryWidgets;
+	UPROPERTY()
+	TObjectPtr<UBaseInventoryWidget> MainInventory;
 	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+	virtual void NativeConstruct() override;
+	
+	UFUNCTION()
+	virtual void Init();
 };
