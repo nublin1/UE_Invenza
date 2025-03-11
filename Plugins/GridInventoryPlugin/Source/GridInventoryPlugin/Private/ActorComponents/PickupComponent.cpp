@@ -3,15 +3,15 @@
 
 #include "ActorComponents/PickupComponent.h"
 
+#include "ActorComponents/Items/itemBase.h"
 #include "Data/ItemData.h"
 
-UPickupComponent::UPickupComponent(): ItemQuantity(0)
+UPickupComponent::UPickupComponent()
 {
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
 
-	// ...
 }
 
 void UPickupComponent::BeginFocus()
@@ -47,11 +47,11 @@ void UPickupComponent::InitializePickup()
 	if (!ItemData)
 		return;
 
-	ItemRef = ItemData->ItemMetaData;
-
-	if (ItemQuantity <= 0)
+	ItemBase = NewObject<UItemBase>();
+	ItemBase->SetItemRef(ItemData->ItemMetaData);
+	if (ItemBase->GetQuantity() <= 0)
 	{
-		ItemQuantity = 1;
+		ItemBase->SetQuantity(1);
 	}
 }
 
@@ -63,5 +63,6 @@ void UPickupComponent::TakePickup(const UInteractionComponent* Taker)
 void UPickupComponent::UpdateInteractableData()
 {
 	Super::UpdateInteractableData();
+	InteractableData.DefaultInteractableType = EInteractableType::Pickup;
 	
 }

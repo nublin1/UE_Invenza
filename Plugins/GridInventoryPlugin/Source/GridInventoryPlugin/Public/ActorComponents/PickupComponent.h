@@ -9,6 +9,7 @@
 #include "PickupComponent.generated.h"
 
 
+class UItemBase;
 class UBoxComponent;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
@@ -31,6 +32,9 @@ public:
 	UFUNCTION()
 	virtual void Interact(UInteractionComponent* InteractionComponent) override;
 
+	//Getters
+	UItemBase* GetItemBase() {return ItemBase;}
+
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
@@ -45,9 +49,7 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Pickup | Item Initialization")
 	FName DesiredItemID;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Pickup | Item Reference")
-	FItemMetaData ItemRef;
-	UPROPERTY(EditInstanceOnly, Category = "Pickup | Item Initialization")
-	int32 ItemQuantity;
+	TObjectPtr<UItemBase> ItemBase;
 
 
 	UPROPERTY()

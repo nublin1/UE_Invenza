@@ -8,12 +8,13 @@
 #include "InteractionComponent.generated.h"
 
 #pragma region delegates
-class UInteractableComponent;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FBeginFocus, FInteractableData&, InteractableData);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FEndFocus, FInteractableData&, InteractableData);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FIteract, UInteractableComponent*, TargetInteractableComponent);
 #pragma endregion
 
-
+enum class EInteractableType : uint8;
+class UInteractableComponent;
 class UInputAction;
 class IInteractableData;
 class UCameraComponent;
@@ -32,6 +33,8 @@ public:
 	FBeginFocus BeginFocusDelegate;
 	UPROPERTY(BlueprintAssignable, Category="Interaction")
 	FEndFocus EndFocusDelegate;
+	UPROPERTY(BlueprintAssignable, Category="Interaction")
+	FIteract IteractableDataDelegate;
 	
 	//====================================================================
 	// FUNCTIONS
@@ -75,6 +78,8 @@ protected:
 	void BeginInteract();
 	void EndInteract();
 	void Interact();
+
+	void IteractNotify();
 	
 	//Overrides
 	virtual void BeginPlay() override;

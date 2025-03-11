@@ -14,7 +14,7 @@ UBaseInventoryWidget::UBaseInventoryWidget(): SlotsGridPanel(nullptr), Inventory
 void UBaseInventoryWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
-
+	
 	GetWorld()->GetTimerManager().SetTimerForNextTick(this, &UBaseInventoryWidget::InitSlots);
 }
 
@@ -58,6 +58,14 @@ void UBaseInventoryWidget::InitSlots()
 		}
 	}
 
+	if (NewInvSlots.Num() > 0)
+	{
+		FTimerHandle LayoutTimer;
+		GetWorld()->GetTimerManager().SetTimer(LayoutTimer, [this, NewInvSlots]()
+		{
+			SlotSize = NewInvSlots[0]->GetCachedGeometry().GetAbsoluteSize();
+		}, 0.25f, false);
+	}
 	InventorySlots = NewInvSlots;
 }
 
@@ -220,6 +228,21 @@ void UBaseInventoryWidget::AddNewItem(FItemMoveData& ItemMoveData, FArrayItemSlo
 		InventoryTotalWeight += NewItem->GetItemStackWeight();
 
 	NotifyAddItem(OccupiedSlots, NewItem);
+}
+
+FVector2D UBaseInventoryWidget::CalculateItemVisualPosition(FIntVector2 SlotPosition, FIntVector2 ItemSize)
+{
+	float X = SlotPosition.X * SlotSize.X;
+	float Y = SlotPosition.Y * SlotSize.Y;
+
+	return FVector2D(X, Y);
+}
+
+void UBaseInventoryWidget::AddItemToPanel(FArrayItemSlots FromSlots, UItemBase* Item)
+{
+	UBaseInventorySlot* ItemPivotSlot = Cast<UBaseInventorySlot>(FromSlots.ItemSlots[0]);
+
+	FVector2D VisualPosition = CalculateItemVisualPosition(ItemPivotSlot->GetSlotPosition(), Item->GetOccupiedSlots());
 }
 
 void UBaseInventoryWidget::NotifyAddItem(FArrayItemSlots FromSlots, UItemBase* NewItem)

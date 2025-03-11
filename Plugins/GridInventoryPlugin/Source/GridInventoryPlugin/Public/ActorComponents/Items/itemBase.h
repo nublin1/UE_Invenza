@@ -34,6 +34,8 @@ public:
 	FORCEINLINE float GetItemStackWeight() const { return Quantity * ItemRef.ItemNumeraticData.Weight; }
 	UFUNCTION(Category = "Item")
 	FORCEINLINE float GetItemSingleWeight() const { return ItemRef.ItemNumeraticData.Weight; }
+	UFUNCTION(Category = "Item")
+	FORCEINLINE FIntVector2 GetOccupiedSlots() const { return FIntVector2 (ItemRef.ItemNumeraticData.NumHorizontalSlots, ItemRef.ItemNumeraticData.NumVerticalSlots); }
 
 	//
 	FItemMetaData& GetItemRef()	{return ItemRef;}

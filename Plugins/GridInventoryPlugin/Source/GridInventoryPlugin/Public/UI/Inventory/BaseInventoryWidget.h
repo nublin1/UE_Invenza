@@ -51,7 +51,10 @@ protected:
 	// Widgets
 	UPROPERTY(meta=(BindWidget))
 	UUniformGridPanel* SlotsGridPanel;
-	
+	UPROPERTY(meta=(BindWidget))
+	TObjectPtr<UPanelWidget> ItemsVisualsPanel;
+
+	//
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TArray<TObjectPtr<UBaseInventorySlot>> InventorySlots;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
@@ -60,6 +63,9 @@ protected:
 	float InventoryWeightCapacity;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
 	float InventoryTotalWeight = 0;
+
+	//
+	FVector2D SlotSize = FVector2D(0.f);
 	
 	//====================================================================
 	// FUNCTIONS
@@ -83,6 +89,11 @@ protected:
 												bool bOnlyCheck);
 	UFUNCTION()
 	virtual void AddNewItem(FItemMoveData& ItemMoveData, FArrayItemSlots OccupiedSlots);
+
+	UFUNCTION()
+	FVector2D CalculateItemVisualPosition(FIntVector2 SlotPosition, FIntVector2 ItemSize);
+	UFUNCTION()
+	virtual void AddItemToPanel(FArrayItemSlots FromSlots, UItemBase* Item);
 	
 	void NotifyAddItem(FArrayItemSlots FromSlots, UItemBase* NewItem);
 	void NotifyUpdateItem(FArrayItemSlots FromSlots, UItemBase* NewItem);

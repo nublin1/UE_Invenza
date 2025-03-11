@@ -89,7 +89,7 @@ struct FItemMoveData
 	UPROPERTY()
 	TObjectPtr<UBaseInventorySlot> SourceItemPivotSlot;
 	UPROPERTY()
-	TObjectPtr<UBaseInventorySlot> TargetInventory;
+	TObjectPtr<UBaseInventoryWidget> TargetInventory;
 	UPROPERTY()
 	UBaseInventorySlot* TargetSlot;
 	UPROPERTY()

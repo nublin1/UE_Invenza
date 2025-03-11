@@ -186,7 +186,14 @@ void UInteractionComponent::Interact()
 	if (IsValid(TargetInteractableComponent))
 	{
 		TargetInteractableComponent->Interact(this);
+		IteractNotify();
 	}
+}
+
+void UInteractionComponent::IteractNotify()
+{
+	if (IteractableDataDelegate.IsBound())
+		IteractableDataDelegate.Broadcast(TargetInteractableComponent);
 }
 
 void UInteractionComponent::TickComponent(float DeltaTime, ELevelTick TickType,

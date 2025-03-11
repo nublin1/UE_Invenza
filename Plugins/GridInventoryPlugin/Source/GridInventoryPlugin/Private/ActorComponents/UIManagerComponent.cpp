@@ -4,8 +4,11 @@
 #include "ActorComponents/UIManagerComponent.h"
 
 #include "ActorComponents/InteractionComponent.h"
+#include "ActorComponents/PickupComponent.h"
 #include "UI/Core/CoreHUDWidget.h"
 #include "UI/Interaction/InteractionWidget.h"
+#include "UI/Inventory/BaseInventoryWidget.h"
+#include "UI/Layers/InventorySystemLayout.h"
 
 
 // Sets default values for this component's properties
@@ -49,11 +52,26 @@ void UUIManagerComponent::BindEvents(AActor* TargetActor)
 	//
 	InteractionComponent->BeginFocusDelegate.AddDynamic(InteractionWidget, &UInteractionWidget::OnFoundInteractable);
 	InteractionComponent->EndFocusDelegate.AddDynamic(InteractionWidget, &UInteractionWidget::OnLostInteractable);
+	InteractionComponent->IteractableDataDelegate.AddDynamic(this, &UUIManagerComponent::UIIteract);
 	
 }
 
-void UUIManagerComponent::BindComponents()
+void UUIManagerComponent::UIIteract( UInteractableComponent* TargetInteractableComponent)
 {
+	if (!TargetInteractableComponent) return;
+
+	if (auto* PickupComp = Cast<UPickupComponent>(TargetInteractableComponent))
+	{
+		auto Inv = CoreHUDWidget->GetInventorySystemLayout()->GetMainInventory();
+		auto Item =  PickupComp->GetItemBase();
+
+		FItemMoveData Data;
+		Data.SourceItem = Item;
+		Data.TargetInventory = Inv;
+		
+		FItemAddResult Result = Inv->HandleAddItem(Data);
+		//UE_LOG(LogTemp, Warning, TEXT("USpecialInteractableComponent"));
+	}
 }
 
 

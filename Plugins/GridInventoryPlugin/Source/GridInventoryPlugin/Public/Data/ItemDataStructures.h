@@ -51,6 +51,12 @@ struct FItemNumeraticData
 	UPROPERTY(EditAnywhere)
 	int32 MaxStackSize;
 
+	UPROPERTY(EditAnywhere, meta = (ToolTip = "Number of horizontal slots occupied by the item"))
+	int32 NumHorizontalSlots = 1;
+
+	UPROPERTY(EditAnywhere, meta = (ToolTip = "Number of vertical slots occupied by the item"))
+	int32 NumVerticalSlots = 1;
+
 	FItemNumeraticData()
 		: Weight(1), MaxStackSize(1)
 	{

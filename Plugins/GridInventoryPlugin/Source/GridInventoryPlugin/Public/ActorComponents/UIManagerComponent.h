@@ -7,6 +7,7 @@
 #include "UIManagerComponent.generated.h"
 
 
+class UInteractableComponent;
 class UCoreHUDWidget;
 
 UCLASS(ClassGroup=(Custom), Blueprintable, meta=(BlueprintSpawnableComponent))
@@ -39,7 +40,7 @@ protected:
 	UFUNCTION(BlueprintCallable)
 	void BindEvents(AActor* TargetActor);
 	UFUNCTION(BlueprintCallable)
-	void BindComponents();
+	void UIIteract(UInteractableComponent* TargetInteractableComponent);
 
 public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
