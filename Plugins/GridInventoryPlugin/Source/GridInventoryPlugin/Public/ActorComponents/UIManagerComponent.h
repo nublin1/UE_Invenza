@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Settings/Settings.h"
 #include "UIManagerComponent.generated.h"
 
 
@@ -29,6 +30,7 @@ protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
+	// Widgets
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = UI)
 	TObjectPtr<UCoreHUDWidget> CoreHUDWidget;
 

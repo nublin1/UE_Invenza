@@ -6,8 +6,7 @@
 #include "UI/BaseUserWidget.h"
 #include "BaseInventorySlot.generated.h"
 
-class UBorder;
-class UTextBlock;
+class UCoreCellWidget;
 /**
  * 
  */
@@ -41,18 +40,11 @@ protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	// Widgets
-    UPROPERTY(VisibleAnywhere, meta=(BindWidget))
-    TObjectPtr<UBorder> Left_Border;
-    UPROPERTY(VisibleAnywhere, meta=(BindWidget))
-    TObjectPtr<UBorder>  Right_Border;
-    UPROPERTY(VisibleAnywhere, meta=(BindWidget))
-    TObjectPtr<UBorder>  Top_Border;
-    UPROPERTY(VisibleAnywhere, meta=(BindWidget))
-    TObjectPtr<UBorder>  BottomBorder;
-    UPROPERTY(VisibleAnywhere, meta=(BindWidget))
-    TObjectPtr<UTextBlock> Content_Text_Name;
-
+	//Widgets
+	UPROPERTY(meta=(BindWidget))
+	TObjectPtr<UCoreCellWidget> CoreCellWidget;
+	
+	//
 	UPROPERTY()
 	FIntVector2 SlotPosition;
 	

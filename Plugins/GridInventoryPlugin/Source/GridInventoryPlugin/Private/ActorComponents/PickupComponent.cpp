@@ -14,6 +14,12 @@ UPickupComponent::UPickupComponent()
 
 }
 
+void UPickupComponent::BeginPlay()
+{
+	Super::BeginPlay();
+	InitializePickupComponent();
+}
+
 void UPickupComponent::BeginFocus()
 {
 	if (PickupMesh)
@@ -37,7 +43,7 @@ void UPickupComponent::Interact(UInteractionComponent* InteractionComponent)
 	TakePickup(InteractionComponent);
 }
 
-void UPickupComponent::InitializePickup()
+void UPickupComponent::InitializePickupComponent()
 {
 	if (!ItemDataTable || DesiredItemID.IsNone())
 		return;
@@ -49,10 +55,9 @@ void UPickupComponent::InitializePickup()
 
 	ItemBase = NewObject<UItemBase>();
 	ItemBase->SetItemRef(ItemData->ItemMetaData);
-	if (ItemBase->GetQuantity() <= 0)
-	{
-		ItemBase->SetQuantity(1);
-	}
+	
+	ItemBase->SetQuantity(InitQuantity);
+	
 }
 
 void UPickupComponent::TakePickup(const UInteractionComponent* Taker)

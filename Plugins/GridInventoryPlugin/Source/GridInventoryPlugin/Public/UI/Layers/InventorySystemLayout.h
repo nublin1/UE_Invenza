@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Settings/Settings.h"
 #include "UI/BaseUserWidget.h"
 #include "InventorySystemLayout.generated.h"
 
@@ -41,6 +42,9 @@ protected:
 	TArray<TObjectPtr<UBaseInventoryWidget>> InventoryWidgets;
 	UPROPERTY()
 	TObjectPtr<UBaseInventoryWidget> MainInventory;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = UI)
+	FUISettings UISettings;
 	
 	//====================================================================
 	// FUNCTIONS

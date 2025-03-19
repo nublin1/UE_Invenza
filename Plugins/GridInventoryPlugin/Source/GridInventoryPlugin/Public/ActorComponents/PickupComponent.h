@@ -50,6 +50,8 @@ protected:
 	FName DesiredItemID;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Pickup | Item Reference")
 	TObjectPtr<UItemBase> ItemBase;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Pickup | Item Reference")
+	int InitQuantity = 1;
 
 
 	UPROPERTY()
@@ -58,8 +60,10 @@ protected:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+	virtual void BeginPlay() override;
+	
 	UFUNCTION()
-	void InitializePickup();
+	void InitializePickupComponent();
 
 	UFUNCTION()
 	virtual void TakePickup(const UInteractionComponent *Taker);

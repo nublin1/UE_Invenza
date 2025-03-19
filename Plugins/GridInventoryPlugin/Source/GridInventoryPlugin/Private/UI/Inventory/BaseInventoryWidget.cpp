@@ -4,8 +4,12 @@
 #include "UI/Inventory/BaseInventoryWidget.h"
 
 #include "ActorComponents/Items/itemBase.h"
+#include "Components/CanvasPanel.h"
+#include "Components/CanvasPanelSlot.h"
+#include "Components/TextBlock.h"
 #include "Components/UniformGridPanel.h"
 #include "Components/UniformGridSlot.h"
+#include "UI/Item/InventoryItemWidget.h"
 
 UBaseInventoryWidget::UBaseInventoryWidget(): SlotsGridPanel(nullptr), InventoryWeightCapacity(0)
 {
@@ -16,6 +20,8 @@ void UBaseInventoryWidget::NativeConstruct()
 	Super::NativeConstruct();
 	
 	GetWorld()->GetTimerManager().SetTimerForNextTick(this, &UBaseInventoryWidget::InitSlots);
+	
+	UpdateWeightInfo();
 }
 
 void UBaseInventoryWidget::InitSlots()
@@ -63,7 +69,7 @@ void UBaseInventoryWidget::InitSlots()
 		FTimerHandle LayoutTimer;
 		GetWorld()->GetTimerManager().SetTimer(LayoutTimer, [this, NewInvSlots]()
 		{
-			SlotSize = NewInvSlots[0]->GetCachedGeometry().GetAbsoluteSize();
+			SlotSize = NewInvSlots[0]->GetCachedGeometry().GetLocalSize();
 		}, 0.25f, false);
 	}
 	InventorySlots = NewInvSlots;
@@ -82,6 +88,55 @@ FArrayItemSlots UBaseInventoryWidget::GetAllSlotsFromInventoryItemsMap()
 	}
 
 	return AllPositions;
+}
+
+FArrayItemSlots UBaseInventoryWidget::GetOccupiedSlots(UItemBase* Item)
+{
+	if (!Item)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GetItemSlots: Item is null!"));
+		return FArrayItemSlots();
+	}
+
+	FArrayItemSlots* FoundSlots = InventoryItemsMap.Find(Item);
+	if (!FoundSlots)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GetItemSlots: No slots found for item %s"), *Item->GetName());
+		return FArrayItemSlots();
+	}
+	
+	return FArrayItemSlots();
+}
+
+TArray<UItemBase*> UBaseInventoryWidget::GetAllSameItems(UItemBase* TestItem)
+{
+	TArray<UItemBase*> AllItems;
+
+	for (auto& Elem : InventoryItemsMap)
+	{
+		if (Elem.Key == TestItem)
+			AllItems.Add(Elem.Key);
+	}
+
+	return AllItems;
+}
+
+UItemBase* UBaseInventoryWidget::GetItemFromSlot(UBaseInventorySlot* TargetSlot)
+{
+	if (!TargetSlot)
+		return nullptr;
+
+	for (auto Pair  : InventoryItemsMap)
+	{
+		for (auto Element : Pair.Value.ItemSlots)
+		{
+			if (Element == TargetSlot)
+				return Pair.Key;
+		}
+	}
+
+	return nullptr;
+		
 }
 
 bool UBaseInventoryWidget::bIsSlotEmpty(const FIntVector2 SlotPosition)
@@ -135,6 +190,13 @@ FItemAddResult UBaseInventoryWidget::HandleAddItem(FItemMoveData ItemMoveData, b
 	}
 
 	// stack
+	// will the item weight overflow the weight capacity?
+	if (InventoryTotalWeight + ItemMoveData.SourceItem->GetItemSingleWeight() * ItemMoveData.SourceItem->GetQuantity() > InventoryWeightCapacity)
+	{
+		return FItemAddResult::AddedNone(FText::Format(FText::FromString("Couldn't add {0} to inventory."),
+														   ItemMoveData.SourceItem->GetItemRef().ItemTextData.Name));
+	}
+	
 	const int32 InitialRequestedAddAmount = ItemMoveData.SourceItem->GetQuantity();
 	const int32 StackableAmountAdded = HandleStackableItems(ItemMoveData, InitialRequestedAddAmount,
 																bOnlyCheck);
@@ -215,7 +277,113 @@ FItemAddResult UBaseInventoryWidget::HandleNonStackableItems(FItemMoveData& Item
 int32 UBaseInventoryWidget::HandleStackableItems(FItemMoveData& ItemMoveData, int32 RequestedAddAmount, bool bOnlyCheck)
 {
 	int32 AmountToDistribute = RequestedAddAmount;
-	return  0;
+	
+	auto CalculateActualAmountToAdd = [&](int32 InAmountToAdd) -> int32
+	{
+		const int32 WeightLimitAddAmount = InventoryWeightCapacity - InventoryTotalWeight;
+		int32 MaxItemsThatFit = WeightLimitAddAmount / ItemMoveData.SourceItem->GetItemSingleWeight();
+		UE_LOG(LogTemp, Warning, TEXT("WeightLimitAddAmount: %f, SingleItemWeight: %f, MaxItemsThatFit: %d"), 
+			static_cast<float>(WeightLimitAddAmount), 
+			static_cast<float>(ItemMoveData.SourceItem->GetItemSingleWeight()), 
+			MaxItemsThatFit);
+		return FMath::Min(MaxItemsThatFit, InAmountToAdd);
+	};
+
+	if (!ItemMoveData.TargetSlot)
+	{
+		auto Sameitems = GetAllSameItems(ItemMoveData.SourceItem);
+		if (Sameitems.Num()> 0)
+		{
+			for (auto& Item : Sameitems)
+			{
+				if(AmountToDistribute<=0)
+					break;
+				
+				if (Item->IsFullItemStack())
+					continue;
+
+				const int32 AmountToAddToStack = FMath::Min(AmountToDistribute,
+					Item->GetItemRef().ItemNumeraticData.MaxStackSize - Item->GetQuantity());
+				int32 ActualAmountToAdd = CalculateActualAmountToAdd(AmountToAddToStack);
+
+				Item->SetQuantity(Item->GetQuantity() + ActualAmountToAdd);
+				AmountToDistribute -= ActualAmountToAdd;
+
+				auto Slots = GetOccupiedSlots(Item);
+				NotifyUpdateItem(Slots, Item);
+			}
+		}
+
+		
+		TObjectPtr<UBaseInventorySlot> TargetSlot = nullptr;
+		for (const auto InventorySlot : InventorySlots)
+		{
+			if (bool IsEmptySlot = bIsSlotEmpty(InventorySlot))
+			{
+				TargetSlot = InventorySlot;
+				break;
+			}
+		}
+
+		if (TargetSlot == nullptr)
+			return RequestedAddAmount - AmountToDistribute;
+
+		const int32 AmountToAddToStack = FMath::Min(AmountToDistribute, ItemMoveData.SourceItem->GetQuantity());
+		int32 ActualAmountToAdd = CalculateActualAmountToAdd(AmountToAddToStack);
+		
+		if (bOnlyCheck)
+			return AmountToDistribute;
+
+		FArrayItemSlots Slots;
+		Slots.ItemSlots.Add(TargetSlot);
+		FItemMoveData NewItemMoveData;
+		NewItemMoveData.SourceItem = ItemMoveData.SourceItem;
+		NewItemMoveData.SourceItem->SetQuantity(ActualAmountToAdd);
+		
+		AddNewItem(NewItemMoveData, Slots);
+		ItemMoveData.SourceItem->SetQuantity(ItemMoveData.SourceItem->GetQuantity() - ActualAmountToAdd);
+		return RequestedAddAmount - AmountToDistribute;
+	}
+
+	if (bIsSlotEmpty(ItemMoveData.TargetSlot))
+	{
+		const int32 AmountToAddToStack = FMath::Min(AmountToDistribute,
+		   ItemMoveData.SourceItem->GetItemRef().ItemNumeraticData.MaxStackSize -
+		   ItemMoveData.SourceItem->GetQuantity());
+
+		int32 ActualAmountToAdd = CalculateActualAmountToAdd(AmountToAddToStack);
+
+		FArrayItemSlots Slots;
+		Slots.ItemSlots.Add(ItemMoveData.TargetSlot);
+		FItemMoveData NewItemMoveData;
+		NewItemMoveData.SourceItem = ItemMoveData.SourceItem;
+		NewItemMoveData.SourceItem->SetQuantity(ActualAmountToAdd);
+		
+		AddNewItem(NewItemMoveData, Slots);
+		ItemMoveData.SourceItem->SetQuantity(ItemMoveData.SourceItem->GetQuantity() - ActualAmountToAdd);
+		return RequestedAddAmount - AmountToDistribute;
+	}
+	else
+	{
+		UItemBase* ItemFromSlot= GetItemFromSlot(ItemMoveData.TargetSlot);
+		
+		if (ItemFromSlot && ItemFromSlot != ItemMoveData.SourceItem)
+			return 0;
+
+		const int32 AmountToAddToStack = FMath::Min(AmountToDistribute,
+				ItemMoveData.SourceItem->GetItemRef().ItemNumeraticData.MaxStackSize -
+				ItemMoveData.SourceItem->GetQuantity());
+
+		int32 WeightLimitAddAmount = InventoryWeightCapacity - InventoryTotalWeight;
+		int32 MaxItemsThatFit = WeightLimitAddAmount / ItemMoveData.SourceItem->GetItemSingleWeight();
+		int32 ActualAmountToAdd = FMath::Min(MaxItemsThatFit, AmountToDistribute);
+
+		ItemFromSlot->SetQuantity(ItemFromSlot->GetQuantity() + ActualAmountToAdd);
+		AmountToDistribute -= ActualAmountToAdd;
+
+		//NotifyUpdateItem(Slots, ItemInPivot);
+		return RequestedAddAmount - AmountToDistribute;
+	}
 }
 
 void UBaseInventoryWidget::AddNewItem(FItemMoveData& ItemMoveData, FArrayItemSlots OccupiedSlots)
@@ -241,12 +409,43 @@ FVector2D UBaseInventoryWidget::CalculateItemVisualPosition(FIntVector2 SlotPosi
 void UBaseInventoryWidget::AddItemToPanel(FArrayItemSlots FromSlots, UItemBase* Item)
 {
 	UBaseInventorySlot* ItemPivotSlot = Cast<UBaseInventorySlot>(FromSlots.ItemSlots[0]);
-
 	FVector2D VisualPosition = CalculateItemVisualPosition(ItemPivotSlot->GetSlotPosition(), Item->GetOccupiedSlots());
+
+	if (!UISettings.InventoryItemVisualClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("InventoryItemVisualClass is not set in UISettings!"));
+		return;
+	}
+	
+	TObjectPtr<UInventoryItemWidget> ItemVisual = CreateWidget<UInventoryItemWidget>(this, UISettings.InventoryItemVisualClass);
+	auto SlotInCanvas = ItemsVisualsPanel->AddChildToCanvas(ItemVisual);
+	if (SlotInCanvas)
+		SlotInCanvas->SetSize(FVector2D(SlotSize.X * 1, SlotSize.Y *  1));
+
+	ItemVisual->UpdateVisualSize(SlotSize, FIntVector2(1, 1));
+	ItemVisual->UpdateItemName(Item->GetItemRef().ItemTextData.Name);
+	ItemVisual->UpdateQuantityText(Item->GetQuantity());
+	ItemVisual->UpdateVisual(Item);
+	
+	//ItemVisual->SetPivotSlot(ItemPivotSlot);			
+	SlotInCanvas->SetPosition(VisualPosition);
+
+	UpdateWeightInfo();
+}
+
+void UBaseInventoryWidget::UpdateWeightInfo()
+{
+	if (!WeightInfo)
+		return;
+
+	const FString Text_WeightInfo = {" " + FString::SanitizeFloat(InventoryTotalWeight) + "/" + FString::SanitizeFloat(InventoryWeightCapacity)};
+	
+	WeightInfo->SetText(FText::FromString(Text_WeightInfo));
 }
 
 void UBaseInventoryWidget::NotifyAddItem(FArrayItemSlots FromSlots, UItemBase* NewItem)
 {
+	AddItemToPanel(FromSlots, NewItem);
 	OnAddItemDelegate.Broadcast(FromSlots, NewItem);
 }
 

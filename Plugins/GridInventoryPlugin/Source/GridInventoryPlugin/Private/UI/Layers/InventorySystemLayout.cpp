@@ -43,5 +43,8 @@ void UInventorySystemLayout::Init()
 
 	InventoryWidgets = InventoryWidgets_temp;
 	if (!InventoryWidgets_temp.IsEmpty())
+	{
 		MainInventory = InventoryWidgets[0];
+		MainInventory->SetUISettings(UISettings);
+	}
 }
