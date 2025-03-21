@@ -3,8 +3,10 @@
 
 #include "ActorComponents/UIManagerComponent.h"
 
+#include "EnhancedInputComponent.h"
 #include "ActorComponents/InteractionComponent.h"
 #include "ActorComponents/PickupComponent.h"
+#include "GameFramework/Character.h"
 #include "UI/Core/CoreHUDWidget.h"
 #include "UI/Interaction/InteractionWidget.h"
 #include "UI/Inventory/BaseInventoryWidget.h"
@@ -12,19 +14,16 @@
 
 
 // Sets default values for this component's properties
-UUIManagerComponent::UUIManagerComponent()
+UUIManagerComponent::UUIManagerComponent(): ToggleMenuAction(nullptr)
 {
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
-
-	// ...
 }
 
 void UUIManagerComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	
 }
 
 void UUIManagerComponent::BindEvents(AActor* TargetActor)
@@ -82,6 +81,18 @@ void UUIManagerComponent::UIIteract( UInteractableComponent* TargetInteractableC
 		
 		FItemAddResult Result = Inv->HandleAddItem(Data);
 		//UE_LOG(LogTemp, Warning, TEXT("USpecialInteractableComponent"));
+	}
+}
+
+void UUIManagerComponent::InitializeMenuBindings()
+{
+	if (ToggleMenuAction)
+	{
+		UEnhancedInputComponent* Input = Cast<UEnhancedInputComponent>(GetOwner()->InputComponent);
+		if (!Input)
+			return;
+
+		Input->BindAction(ToggleMenuAction, ETriggerEvent::Started, CoreHUDWidget.Get(), &UCoreHUDWidget::ToggleInventoryMenu);
 	}
 }
 

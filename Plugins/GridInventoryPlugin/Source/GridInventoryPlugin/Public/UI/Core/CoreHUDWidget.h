@@ -8,6 +8,7 @@
 #include "UI/BaseUserWidget.h"
 #include "CoreHUDWidget.generated.h"
 
+class UInputAction;
 class UInventorySystemLayout;
 class UInteractionWidget;
 /**
@@ -28,6 +29,13 @@ public:
 	// FUNCTIONS
 	//====================================================================
 	UCoreHUDWidget();
+
+	//Inventory
+	UFUNCTION()
+	void ToggleInventoryMenu();
+	void DisplayInventoryMenu();
+	void HideInventoryMenu();
+	
 	
 	//Getters
 	UInteractionWidget* GetInteractionWidget() {return InteractionWidget;}
@@ -45,8 +53,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidgetOptional))
 	TObjectPtr<UInventorySystemLayout> InventorySystemLayout;
 
-
+	//
+	bool bIsShowingInventoryMenu = false;
+	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+
+	virtual bool NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 };

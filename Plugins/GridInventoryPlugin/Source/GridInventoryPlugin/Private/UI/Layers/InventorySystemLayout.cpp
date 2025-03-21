@@ -3,6 +3,7 @@
 
 #include "UI/Layers/InventorySystemLayout.h"
 
+#include "ActorComponents/UIManagerComponent.h"
 #include "Components/CanvasPanel.h"
 #include "UI/Inventory/BaseInventoryWidget.h"
 
@@ -45,6 +46,13 @@ void UInventorySystemLayout::Init()
 	if (!InventoryWidgets_temp.IsEmpty())
 	{
 		MainInventory = InventoryWidgets[0];
-		MainInventory->SetUISettings(UISettings);
+
+		auto Manager = GetOwningPlayerPawn()->FindComponentByClass<UUIManagerComponent>();
+		if (!Manager)
+			return;
+		
+		MainInventory->SetUISettings(Manager->GetUISettings());
+
+		
 	}
 }

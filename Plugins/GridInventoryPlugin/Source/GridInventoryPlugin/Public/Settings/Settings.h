@@ -13,5 +13,7 @@ struct FUISettings
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TSubclassOf<UInventoryItemWidget> InventoryItemVisualClass;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TSubclassOf<UInventoryItemWidget> DraggedWidgetClass;
 	
 };

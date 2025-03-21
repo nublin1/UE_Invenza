@@ -3,17 +3,15 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Settings/Settings.h"
-#include "UI/BaseUserWidget.h"
-#include "InventorySystemLayout.generated.h"
+#include "Blueprint/DragDropOperation.h"
+#include "UI/Inventory/InventoryTypes.h"
+#include "ItemDragDropOperation.generated.h"
 
-class UBaseInventoryWidget;
-class UCanvasPanel;
 /**
  * 
  */
 UCLASS()
-class GRIDINVENTORYPLUGIN_API UInventorySystemLayout : public UBaseUserWidget
+class GRIDINVENTORYPLUGIN_API UItemDragDropOperation : public UDragDropOperation
 {
 	GENERATED_BODY()
 
@@ -21,33 +19,23 @@ public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	
+	FItemMoveData ItemMoveData;
 	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UInventorySystemLayout();
-
-	UBaseInventoryWidget* GetMainInventory() {return MainInventory;}
 
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	// Widgets
-	UPROPERTY(meta=(BindWidget))
-	TObjectPtr<UCanvasPanel> ContentPanel;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	TObjectPtr<UUserWidget> WidgetReference;
 
-	//
-	TArray<TObjectPtr<UBaseInventoryWidget>> InventoryWidgets;
-	UPROPERTY()
-	TObjectPtr<UBaseInventoryWidget> MainInventory;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	FVector2D DragOffset;
 	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	virtual void NativeConstruct() override;
-	
-	UFUNCTION()
-	virtual void Init();
 };

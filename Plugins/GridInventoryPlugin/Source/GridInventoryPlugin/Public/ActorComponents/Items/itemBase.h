@@ -38,9 +38,11 @@ public:
 	FORCEINLINE FIntVector2 GetOccupiedSlots() const { return FIntVector2 (ItemRef.ItemNumeraticData.NumHorizontalSlots, ItemRef.ItemNumeraticData.NumVerticalSlots); }
 
 	//
+	FName& GetItemName(){return ID;}
 	FItemMetaData& GetItemRef()	{return ItemRef;}
-	int32& GetQuantity(){return Quantity;}
+	int GetQuantity(){return Quantity;}
 
+	void SetItemName(FName NewName){this->ID = NewName;	}
 	void SetItemRef(const FItemMetaData& newItemRef){this->ItemRef = newItemRef;}
 	void SetQuantity(int32 newQuantity){this->Quantity = newQuantity;	}
 
@@ -49,8 +51,9 @@ protected:
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	UPROPERTY(VisibleAnywhere, Category = "Item Data")
+	FName ID;
+	UPROPERTY(VisibleAnywhere, Category = "Item Data")
 	FItemMetaData ItemRef;
-
 	UPROPERTY(VisibleAnywhere, Category = "Item Data")
 	int32 Quantity;
 

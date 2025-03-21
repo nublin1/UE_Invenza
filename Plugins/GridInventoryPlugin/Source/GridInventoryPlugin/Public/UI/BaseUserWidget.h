@@ -13,5 +13,12 @@ UCLASS()
 class GRIDINVENTORYPLUGIN_API UBaseUserWidget : public UUserWidget
 {
 	GENERATED_BODY()
+
+protected:
+	UPROPERTY()
+	TObjectPtr<UUserWidget> ParentWidget;
+
+
+	virtual void NativeConstruct() override;
 	
 };

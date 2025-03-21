@@ -8,6 +8,7 @@
 #include "UIManagerComponent.generated.h"
 
 
+class UInputAction;
 class UInteractableComponent;
 class UCoreHUDWidget;
 
@@ -26,6 +27,8 @@ public:
 	//====================================================================
 	UUIManagerComponent();
 
+	FUISettings GetUISettings() {return UISettings;}
+
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
@@ -33,7 +36,14 @@ protected:
 	// Widgets
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = UI)
 	TObjectPtr<UCoreHUDWidget> CoreHUDWidget;
+	
+	//
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Settings")
+	UInputAction* ToggleMenuAction;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = UI)
+	FUISettings UISettings;
+	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
@@ -43,6 +53,8 @@ protected:
 	void BindEvents(AActor* TargetActor);
 	UFUNCTION(BlueprintCallable)
 	void UIIteract(UInteractableComponent* TargetInteractableComponent);
+	UFUNCTION(BlueprintCallable)
+	void InitializeMenuBindings();
 
 public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,

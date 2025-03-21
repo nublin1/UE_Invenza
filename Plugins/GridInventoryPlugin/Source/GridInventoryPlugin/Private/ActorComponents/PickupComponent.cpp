@@ -54,8 +54,8 @@ void UPickupComponent::InitializePickupComponent()
 		return;
 
 	ItemBase = NewObject<UItemBase>();
-	ItemBase->SetItemRef(ItemData->ItemMetaData);
-	
+	ItemBase->SetItemName(DesiredItemID);
+	ItemBase->SetItemRef(ItemData->ItemMetaData);	
 	ItemBase->SetQuantity(InitQuantity);
 	
 }

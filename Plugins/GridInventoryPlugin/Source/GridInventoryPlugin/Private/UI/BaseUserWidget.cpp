@@ -3,3 +3,9 @@
 
 #include "UI/BaseUserWidget.h"
 
+void UBaseUserWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+
+	ParentWidget = this;
+}

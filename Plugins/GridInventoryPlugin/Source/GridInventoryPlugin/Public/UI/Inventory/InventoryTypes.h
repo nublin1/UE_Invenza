@@ -5,15 +5,19 @@
 #include "Data/ItemDataStructures.h"
 #include "InventoryTypes.generated.h"
 
+class UInventoryItemWidget;
 class UItemBase;
 class UBaseInventoryWidget;
 
 USTRUCT(Blueprintable)
-struct FArrayItemSlots
+struct FItemSlotMapping
 {
 	GENERATED_BODY()
+	
 	UPROPERTY()
 	TArray<TObjectPtr<UBaseInventorySlot>> ItemSlots;
+	UPROPERTY()
+	TObjectPtr<UInventoryItemWidget> ItemVisualLinked;
 };
 
 UENUM(BlueprintType)
