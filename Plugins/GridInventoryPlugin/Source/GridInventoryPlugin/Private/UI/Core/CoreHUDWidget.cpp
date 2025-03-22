@@ -3,6 +3,7 @@
 
 #include "UI/Core/CoreHUDWidget.h"
 
+#include "ActorComponents/ItemCollection.h"
 #include "DragDrop/ItemDragDropOperation.h"
 #include "UI/Inventory/BaseInventoryWidget.h"
 #include "UI/Layers/InventorySystemLayout.h"
@@ -59,7 +60,7 @@ bool UCoreHUDWidget::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEv
 	if (!InOperation) return false;
 
 	auto DragOp = Cast<UItemDragDropOperation>(InOperation);
-	DragOp->ItemMoveData.SourceInventory->HandleRemoveItem(DragOp->ItemMoveData.SourceItem);
+	DragOp->ItemMoveData.SourceInventory->GetItemCollection()->RemoveItemFromAllContainers(DragOp->ItemMoveData.SourceItem);
 	return true;
 	
 	//UE_LOG(LogTemp, Log, TEXT("CoreHUDWidget"));

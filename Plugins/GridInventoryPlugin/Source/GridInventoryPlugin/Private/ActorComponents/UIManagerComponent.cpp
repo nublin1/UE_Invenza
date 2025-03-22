@@ -94,6 +94,8 @@ void UUIManagerComponent::InitializeMenuBindings()
 
 		Input->BindAction(ToggleMenuAction, ETriggerEvent::Started, CoreHUDWidget.Get(), &UCoreHUDWidget::ToggleInventoryMenu);
 	}
+
+	
 }
 
 

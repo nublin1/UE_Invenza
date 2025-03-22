@@ -18,14 +18,24 @@ struct FItemSlotMapping
 	TArray<TObjectPtr<UBaseInventorySlot>> ItemSlots;
 	UPROPERTY()
 	TObjectPtr<UInventoryItemWidget> ItemVisualLinked;
+
+	FItemSlotMapping() {}
+	explicit FItemSlotMapping(UBaseInventorySlot* Slot)
+	{
+		if (Slot)
+		{
+			ItemSlots.Add(Slot);
+		}
+	}
 };
 
 UENUM(BlueprintType)
-enum class EItemAddResult :uint8
+enum class EItemAddResult : uint8
 {
 	IAR_NoItemAdded UMETA(DisplayName = "No item added"),
 	IAR_PartialAmountItemAdded UMETA(DisplayName = "Partial amount of item added"),
-	IAR_AllItemAdded UMETA(DisplayName = "All of item added")
+	IAR_AllItemAdded UMETA(DisplayName = "All of item added"),
+	IAR_ItemSwapped UMETA(DisplayName = "Item swapped") 
 };
 
 USTRUCT(BlueprintType, meta=(ScriptName="FItemAddResult"))
@@ -76,6 +86,15 @@ struct FItemAddResult
 		AddedAllResult.ActualAmountAdded = AmountAdded;
 		AddedAllResult.bIsUsedReferences = bIsUsedReferences;
 		AddedAllResult.OperationResult = EItemAddResult::IAR_AllItemAdded;
+		AddedAllResult.ResultMessage = Message;
+		return AddedAllResult;
+	};
+	static FItemAddResult Swapped(const int32 AmountAdded, const bool bIsUsedReferences, const FText& Message)
+	{
+		FItemAddResult AddedAllResult;
+		AddedAllResult.ActualAmountAdded = AmountAdded;
+		AddedAllResult.bIsUsedReferences = bIsUsedReferences;
+		AddedAllResult.OperationResult = EItemAddResult::IAR_ItemSwapped;
 		AddedAllResult.ResultMessage = Message;
 		return AddedAllResult;
 	};	

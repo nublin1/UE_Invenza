@@ -55,7 +55,11 @@ void UPickupComponent::InitializePickupComponent()
 
 	ItemBase = NewObject<UItemBase>();
 	ItemBase->SetItemName(DesiredItemID);
-	ItemBase->SetItemRef(ItemData->ItemMetaData);	
+	ItemBase->SetItemRef(ItemData->ItemMetaData);
+	if (InitQuantity>ItemData->ItemMetaData.ItemNumeraticData.MaxStackSize )
+	{
+		InitQuantity = ItemData->ItemMetaData.ItemNumeraticData.MaxStackSize;
+	}
 	ItemBase->SetQuantity(InitQuantity);
 	
 }
