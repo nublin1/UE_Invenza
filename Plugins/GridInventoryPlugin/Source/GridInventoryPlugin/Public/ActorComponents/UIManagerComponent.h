@@ -43,6 +43,8 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = UI)
 	FUISettings UISettings;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Settings")
+	FRegularSettings RegularSettings;
 	
 	//====================================================================
 	// FUNCTIONS

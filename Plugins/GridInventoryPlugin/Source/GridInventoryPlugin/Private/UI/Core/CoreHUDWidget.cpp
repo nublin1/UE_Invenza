@@ -3,7 +3,9 @@
 
 #include "UI/Core/CoreHUDWidget.h"
 
+#include "ActorComponents/InteractionComponent.h"
 #include "ActorComponents/ItemCollection.h"
+#include "ActorComponents/Items/itemBase.h"
 #include "DragDrop/ItemDragDropOperation.h"
 #include "UI/Inventory/BaseInventoryWidget.h"
 #include "UI/Layers/InventorySystemLayout.h"
@@ -57,13 +59,22 @@ void UCoreHUDWidget::HideInventoryMenu()
 bool UCoreHUDWidget::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent,
 	UDragDropOperation* InOperation)
 {
+	Super::NativeOnDrop(InGeometry, InDragDropEvent, InOperation);
+	
 	if (!InOperation) return false;
 
 	auto DragOp = Cast<UItemDragDropOperation>(InOperation);
 	DragOp->ItemMoveData.SourceInventory->GetItemCollection()->RemoveItemFromAllContainers(DragOp->ItemMoveData.SourceItem);
-	return true;
+
+	if (auto Pawn = GetOwningPlayerPawn())
+	{
+		auto Interaction = Pawn->FindComponentByClass<UInteractionComponent>();
+		if (!Interaction) return true;
+
+		Interaction->DropItem(DragOp->ItemMoveData.SourceItem);
+	}
 	
-	//UE_LOG(LogTemp, Log, TEXT("CoreHUDWidget"));
+	return true;
 	
 	//return Super::NativeOnDrop(InGeometry, InDragDropEvent, InOperation);
 }

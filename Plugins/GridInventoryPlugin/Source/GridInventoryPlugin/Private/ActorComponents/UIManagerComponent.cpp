@@ -5,7 +5,9 @@
 
 #include "EnhancedInputComponent.h"
 #include "ActorComponents/InteractionComponent.h"
+#include "ActorComponents/ItemCollection.h"
 #include "ActorComponents/PickupComponent.h"
+#include "ActorComponents/Items/itemBase.h"
 #include "GameFramework/Character.h"
 #include "UI/Core/CoreHUDWidget.h"
 #include "UI/Interaction/InteractionWidget.h"
@@ -49,10 +51,21 @@ void UUIManagerComponent::BindEvents(AActor* TargetActor)
 	}
 	
 	//
+	InteractionComponent->RegularSettings = this->RegularSettings;
 	InteractionComponent->BeginFocusDelegate.AddDynamic(InteractionWidget, &UInteractionWidget::OnFoundInteractable);
 	InteractionComponent->EndFocusDelegate.AddDynamic(InteractionWidget, &UInteractionWidget::OnLostInteractable);
 	InteractionComponent->IteractableDataDelegate.AddDynamic(this, &UUIManagerComponent::UIIteract);
-	
+
+	UItemCollection* ItemCollection = TargetActor->FindComponentByClass<UItemCollection>();
+	if (!ItemCollection) return;
+
+	auto MainInv = CoreHUDWidget->GetInventorySystemLayout()->GetMainInventory();
+	for (auto Item : ItemCollection->InitItems)
+	{
+		FItemMoveData ItemMoveData;
+		ItemMoveData.SourceItem = UItemBase::CreateFromDataTable(ItemCollection->ItemDataTable, Item.Key, Item.Value);
+		MainInv->HandleAddItem(ItemMoveData);
+	}
 }
 
 void UUIManagerComponent::UIIteract( UInteractableComponent* TargetInteractableComponent)

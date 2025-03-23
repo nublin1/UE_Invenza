@@ -31,6 +31,8 @@ public:
 
 	UFUNCTION()
 	virtual void Interact(UInteractionComponent* InteractionComponent) override;
+	UFUNCTION()
+	virtual void InitializeDrop(UItemBase* ItemToDrop);
 
 	//Getters
 	UItemBase* GetItemBase() {return ItemBase;}
@@ -60,7 +62,9 @@ protected:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+	virtual void OnRegister() override;
 	virtual void BeginPlay() override;
+	
 	
 	UFUNCTION()
 	void InitializePickupComponent();

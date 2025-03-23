@@ -13,7 +13,6 @@
 #include "Components/UniformGridPanel.h"
 #include "Components/UniformGridSlot.h"
 #include "DragDrop/ItemDragDropOperation.h"
-#include "EntitySystem/MovieSceneEntitySystemRunner.h"
 #include "Slate/SObjectWidget.h"
 #include "UI/Item/InventoryItemWidget.h"
 
@@ -400,6 +399,8 @@ int32 UBaseInventoryWidget::HandleStackableItems(FItemMoveData& ItemMoveData, in
 				}
 			}
 		}
+
+		if (AmountToDistribute<=0) return RequestedAddAmount;
 		
 		TObjectPtr<UBaseInventorySlot> TargetSlot = nullptr;
 		for (const auto InventorySlot : InventorySlots)

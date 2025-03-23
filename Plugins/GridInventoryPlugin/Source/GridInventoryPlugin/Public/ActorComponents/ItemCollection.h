@@ -19,22 +19,31 @@ public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	
+	/** Data table containing item information */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item Collection|Config")
+	TObjectPtr<UDataTable> ItemDataTable;
+
+	/** Map of initial items with their quantities */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item Collection|Config")
+	TMap<FName, int32> InitItems;
 	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
 	UItemCollection();
-
+	
+	UFUNCTION(BlueprintCallable, Category = "Item Collection|Item Management")
 	void AddItem(UItemBase* NewItem, UBaseInventoryWidget* Container);
+	UFUNCTION(BlueprintCallable, Category = "Item Collection|Item Management")
 	void RemoveItem(UItemBase* Item, UBaseInventoryWidget* Container);
+	UFUNCTION(BlueprintCallable, Category = "Item Collection|Item Management")
 	void RemoveItemFromAllContainers(UItemBase* Item);
 
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-
+	
 	TMap<UItemBase*, TArray<UBaseInventoryWidget*>> ItemContainers;
 	
 	//====================================================================

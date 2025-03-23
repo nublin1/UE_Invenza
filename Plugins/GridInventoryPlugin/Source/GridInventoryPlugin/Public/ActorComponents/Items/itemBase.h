@@ -8,7 +8,7 @@
 #include "itemBase.generated.h"
 
 /**
- * 
+ * Base class for inventory items
  */
 UCLASS()
 class GRIDINVENTORYPLUGIN_API UItemBase : public UObject
@@ -17,47 +17,58 @@ class GRIDINVENTORYPLUGIN_API UItemBase : public UObject
 
 public:
 	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-	
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
-	UItemBase();
+    // CONSTRUCTOR
+    //====================================================================
+    UItemBase();
 
-	UFUNCTION(Category = "Item")
-	FORCEINLINE bool IsStackable() const { return ItemRef.ItemNumeraticData.MaxStackSize > 1; }
-	UFUNCTION(Category = "Item")
-	FORCEINLINE bool IsFullItemStack() const { return Quantity == ItemRef.ItemNumeraticData.MaxStackSize; }
-	UFUNCTION(Category = "Item")
-	FORCEINLINE float GetItemStackWeight() const { return Quantity * ItemRef.ItemNumeraticData.Weight; }
-	UFUNCTION(Category = "Item")
-	FORCEINLINE float GetItemSingleWeight() const { return ItemRef.ItemNumeraticData.Weight; }
-	UFUNCTION(Category = "Item")
-	FORCEINLINE FIntVector2 GetOccupiedSlots() const { return FIntVector2 (ItemRef.ItemNumeraticData.NumHorizontalSlots, ItemRef.ItemNumeraticData.NumVerticalSlots); }
+    //====================================================================
+    // STATIC METHODS
+    //====================================================================
+    /** Creates an item from the data table */
+    UFUNCTION(BlueprintCallable, Category = "Item|Factory")
+    static UItemBase* CreateFromDataTable(UDataTable* ItemDataTable, const FName& DesiredItemID, int32 InitQuantity);
 
-	//
-	FName& GetItemName(){return ID;}
-	FItemMetaData& GetItemRef()	{return ItemRef;}
-	int GetQuantity(){return Quantity;}
+    //====================================================================
+    // FUNCTIONS
+    //====================================================================
+    /** Returns whether the item is stackable */
+    UFUNCTION(BlueprintCallable, Category = "Item|Properties")
+    FORCEINLINE bool IsStackable() const { return ItemRef.ItemNumeraticData.MaxStackSize > 1; }
 
-	void SetItemName(FName NewName){this->ID = NewName;	}
-	void SetItemRef(const FItemMetaData& newItemRef){this->ItemRef = newItemRef;}
-	void SetQuantity(int32 newQuantity){this->Quantity = newQuantity;	}
+    /** Checks if the item stack is full */
+    UFUNCTION(BlueprintCallable, Category = "Item|Properties")
+    FORCEINLINE bool IsFullItemStack() const { return Quantity == ItemRef.ItemNumeraticData.MaxStackSize; }
+
+    /** Calculates the total weight of the item stack */
+    UFUNCTION(BlueprintCallable, Category = "Item|Properties")
+    FORCEINLINE float GetItemStackWeight() const { return Quantity * ItemRef.ItemNumeraticData.Weight; }
+
+    /** Returns the weight of a single item */
+    UFUNCTION(BlueprintCallable, Category = "Item|Properties")
+    FORCEINLINE float GetItemSingleWeight() const { return ItemRef.ItemNumeraticData.Weight; }
+
+    /** Gets the number of slots occupied by the item */
+    UFUNCTION(Category = "Item|Properties")
+    FORCEINLINE FIntVector2 GetOccupiedSlots() const { return FIntVector2(ItemRef.ItemNumeraticData.NumHorizontalSlots, ItemRef.ItemNumeraticData.NumVerticalSlots); }
+
+    /** Get and set methods */
+    FName& GetItemName() { return ID; }
+    FItemMetaData& GetItemRef() { return ItemRef; }
+    int32 GetQuantity() { return Quantity; }
+    void SetItemName(const FName NewName) { this->ID = NewName; }
+    void SetItemRef(const FItemMetaData& NewItemRef) { this->ItemRef = NewItemRef; }
+    void SetQuantity(int32 NewQuantity) { this->Quantity = NewQuantity; }
 
 protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-	UPROPERTY(VisibleAnywhere, Category = "Item Data")
-	FName ID;
-	UPROPERTY(VisibleAnywhere, Category = "Item Data")
-	FItemMetaData ItemRef;
-	UPROPERTY(VisibleAnywhere, Category = "Item Data")
-	int32 Quantity;
+    //====================================================================
+    // PROPERTIES AND VARIABLES
+    //====================================================================
+    UPROPERTY(VisibleAnywhere, Category = "Item|Data")
+    FName ID;
 
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
+    UPROPERTY(VisibleAnywhere, Category = "Item|Data")
+    FItemMetaData ItemRef;
+
+    UPROPERTY(VisibleAnywhere, Category = "Item|Data")
+    int32 Quantity;
 };

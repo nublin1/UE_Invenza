@@ -4,6 +4,7 @@
 #include "ActorComponents/PickupComponent.h"
 
 #include "ActorComponents/Items/itemBase.h"
+#include "Components/BoxComponent.h"
 #include "Data/ItemData.h"
 
 UPickupComponent::UPickupComponent()
@@ -14,10 +15,15 @@ UPickupComponent::UPickupComponent()
 
 }
 
+void UPickupComponent::OnRegister()
+{
+	Super::OnRegister();
+	InitializePickupComponent();
+}
+
 void UPickupComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	InitializePickupComponent();
 }
 
 void UPickupComponent::BeginFocus()
@@ -43,6 +49,17 @@ void UPickupComponent::Interact(UInteractionComponent* InteractionComponent)
 	TakePickup(InteractionComponent);
 }
 
+void UPickupComponent::InitializeDrop(UItemBase* ItemToDrop)
+{
+	ItemBase = ItemToDrop;
+	if (auto StaticMesh = GetOwner()->FindComponentByClass<UStaticMeshComponent>())
+	{
+		StaticMesh->SetStaticMesh(ItemBase->GetItemRef().ItemAssetData.Mesh);
+	}
+
+	UpdateInteractableData();
+}
+
 void UPickupComponent::InitializePickupComponent()
 {
 	if (!ItemDataTable || DesiredItemID.IsNone())
@@ -61,6 +78,11 @@ void UPickupComponent::InitializePickupComponent()
 		InitQuantity = ItemData->ItemMetaData.ItemNumeraticData.MaxStackSize;
 	}
 	ItemBase->SetQuantity(InitQuantity);
+
+	if (auto StaticMesh = GetOwner()->FindComponentByClass<UStaticMeshComponent>())
+	{
+		StaticMesh->SetStaticMesh(ItemData->ItemMetaData.ItemAssetData.Mesh);
+	}
 	
 }
 

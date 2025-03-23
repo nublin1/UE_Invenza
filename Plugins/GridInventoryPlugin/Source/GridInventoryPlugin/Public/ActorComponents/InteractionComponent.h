@@ -5,9 +5,11 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Interaction/InteractionData.h"
+#include "Settings/Settings.h"
 #include "InteractionComponent.generated.h"
 
 #pragma region delegates
+class UItemBase;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FBeginFocus, FInteractableData&, InteractableData);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FEndFocus, FInteractableData&, InteractableData);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FIteract, UInteractableComponent*, TargetInteractableComponent);
@@ -35,6 +37,9 @@ public:
 	FEndFocus EndFocusDelegate;
 	UPROPERTY(BlueprintAssignable, Category="Interaction")
 	FIteract IteractableDataDelegate;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Settings")
+	FRegularSettings RegularSettings;
 	
 	//====================================================================
 	// FUNCTIONS
@@ -43,6 +48,8 @@ public:
 
 	UFUNCTION()
 	void InitInteractionComponent();
+	UFUNCTION()
+	void DropItem(UItemBase* ItemToDrop);
 
 protected:
 	//====================================================================

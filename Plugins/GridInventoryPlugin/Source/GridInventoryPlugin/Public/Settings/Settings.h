@@ -4,6 +4,7 @@
 #include "CoreMinimal.h"
 #include "Settings.generated.h"
 
+class APickup;
 class UInventoryItemWidget;
 
 USTRUCT(Blueprintable)
@@ -16,4 +17,13 @@ struct FUISettings
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TSubclassOf<UInventoryItemWidget> DraggedWidgetClass;
 	
+};
+
+USTRUCT(Blueprintable)
+struct FRegularSettings
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TSubclassOf<AActor> PickupClass;
 };
