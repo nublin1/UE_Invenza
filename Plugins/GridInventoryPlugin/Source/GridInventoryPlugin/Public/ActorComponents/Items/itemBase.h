@@ -27,6 +27,8 @@ public:
     /** Creates an item from the data table */
     UFUNCTION(BlueprintCallable, Category = "Item|Factory")
     static UItemBase* CreateFromDataTable(UDataTable* ItemDataTable, const FName& DesiredItemID, int32 InitQuantity);
+	UFUNCTION(BlueprintCallable, Category = "Item")
+	static bool bIsSameitems(UItemBase* FirstItem, UItemBase* SecondItem);
 
     //====================================================================
     // FUNCTIONS
@@ -52,10 +54,8 @@ public:
     FORCEINLINE FIntVector2 GetOccupiedSlots() const { return FIntVector2(ItemRef.ItemNumeraticData.NumHorizontalSlots, ItemRef.ItemNumeraticData.NumVerticalSlots); }
 
     /** Get and set methods */
-    FName& GetItemName() { return ID; }
     FItemMetaData& GetItemRef() { return ItemRef; }
     int32 GetQuantity() { return Quantity; }
-    void SetItemName(const FName NewName) { this->ID = NewName; }
     void SetItemRef(const FItemMetaData& NewItemRef) { this->ItemRef = NewItemRef; }
     void SetQuantity(int32 NewQuantity) { this->Quantity = NewQuantity; }
 
@@ -63,9 +63,6 @@ protected:
     //====================================================================
     // PROPERTIES AND VARIABLES
     //====================================================================
-    UPROPERTY(VisibleAnywhere, Category = "Item|Data")
-    FName ID;
-
     UPROPERTY(VisibleAnywhere, Category = "Item|Data")
     FItemMetaData ItemRef;
 

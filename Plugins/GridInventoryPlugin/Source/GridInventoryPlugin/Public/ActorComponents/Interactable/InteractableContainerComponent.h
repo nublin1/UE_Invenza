@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+//  Nublin Studio 2025 All Rights Reserved.
 
 #pragma once
 
@@ -35,7 +35,7 @@ protected:
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FName TargetWidgetName;
+	FName ContainerWidgetName;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UItemCollection> ItemCollection;
 

@@ -1,5 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
+﻿//  Nublin Studio 2025 All Rights Reserved.
 
 #include "ActorComponents/Interactable/PickupComponent.h"
 
@@ -69,7 +68,6 @@ void UPickupComponent::InitializePickupComponent()
 		return;
 
 	ItemBase = NewObject<UItemBase>();
-	ItemBase->SetItemName(DesiredItemID);
 	ItemBase->SetItemRef(ItemData->ItemMetaData);
 	if (InitQuantity>ItemData->ItemMetaData.ItemNumeraticData.MaxStackSize )
 	{

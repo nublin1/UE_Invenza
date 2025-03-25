@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+//  Nublin Studio 2025 All Rights Reserved.
 
 #pragma once
 
@@ -82,15 +82,15 @@ protected:
 	UPROPERTY(meta=(BindWidgetOptional))
 	TObjectPtr<UTextBlock> WeightInfo;
 
-	//
+	// Data
 	UPROPERTY()
 	TObjectPtr<UItemCollection> ItemCollectionLink;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TArray<TObjectPtr<UBaseInventorySlot>> InventorySlots;
-	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
-	//TMap<UItemBase*, FItemSlotMapping> InventoryItemsMap;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
 	float InventoryTotalWeight = 0;
+	int NumberOfRows = 0;
+	int NumberOfColumns = 0;
 
 	//Settings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
@@ -122,12 +122,14 @@ protected:
 	UFUNCTION()
 	virtual FItemAddResult HandleNonStackableItems(FItemMoveData& ItemMoveData, bool bOnlyCheck = false);
 	UFUNCTION()
+	virtual FItemAddResult TryAddStackableItem(FItemMoveData& ItemMoveData, bool bOnlyCheck);
+	UFUNCTION()
 	virtual int32 HandleStackableItems(FItemMoveData& ItemMoveData, int32 RequestedAddAmount,
 												bool bOnlyCheck);
 	UFUNCTION()
 	virtual FItemAddResult HandleAddReferenceItem(FItemMoveData& ItemMoveData);
 	UFUNCTION()
-	virtual FItemAddResult HandleSwapItems(FItemMoveData& ItemMoveData);
+	virtual FItemAddResult HandleSwapOrAddItems(FItemMoveData& ItemMoveData);
 	UFUNCTION()
 	virtual void AddNewItem(FItemMoveData& ItemMoveData, FItemMapping OccupiedSlots);
 	UFUNCTION()

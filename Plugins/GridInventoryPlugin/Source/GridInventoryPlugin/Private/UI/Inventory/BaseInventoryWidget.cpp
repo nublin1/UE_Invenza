@@ -1,5 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
+//  Nublin Studio 2025 All Rights Reserved.
 
 #include "UI/Inventory/BaseInventoryWidget.h"
 
@@ -71,18 +70,15 @@ void UBaseInventoryWidget::InitSlots()
 		}
 	}
 
-	int Temp_NumberOfRows = 0;
-	int Temp_NumberOfColumns = 0;
-
 	for (int32 i = 0; i < NewInvSlots.Num(); ++i)
 	{
 		if (const UWidget* ChildWidget = SlotsGridPanel->GetChildAt(i))
 		{
 			const UUniformGridSlot* UniSlot = Cast<UUniformGridSlot>(ChildWidget->Slot);
-			if (UniSlot->GetRow() > Temp_NumberOfRows)
-				Temp_NumberOfRows = UniSlot->GetRow();
-			if (UniSlot->GetColumn() > Temp_NumberOfColumns)
-				Temp_NumberOfColumns = UniSlot->GetColumn();
+			if (UniSlot->GetRow() > NumberOfRows)
+				NumberOfRows = UniSlot->GetRow();
+			if (UniSlot->GetColumn() > NumberOfColumns)
+				NumberOfColumns = UniSlot->GetColumn();
 
 			NewInvSlots[i]->SetSlotPosition(FIntVector2( UniSlot->GetColumn(), UniSlot->GetRow()));
 		}
@@ -171,7 +167,7 @@ FItemAddResult UBaseInventoryWidget::HandleAddItem(FItemMoveData ItemMoveData, b
 		&& ItemMoveData.SourceInventory->GetIsUseReference()
 		&& ItemCollectionLink->HasItemInContainer(ItemMoveData.SourceItem, this))
 	{
-		return HandleSwapItems(ItemMoveData);
+		return HandleSwapOrAddItems(ItemMoveData);
 	}
 	
 	if (ItemMoveData.SourceInventory
@@ -179,22 +175,22 @@ FItemAddResult UBaseInventoryWidget::HandleAddItem(FItemMoveData ItemMoveData, b
 		&& ItemMoveData.SourceInventory == this
 		&& ItemMoveData.SourceItemPivotSlot)
 	{
-		return HandleSwapItems(ItemMoveData);
+		return HandleSwapOrAddItems(ItemMoveData);
 	}
 	
 	// non-stack
 	if (!ItemMoveData.SourceItem->IsStackable())
 	{
 		// Check if input item has valid weight
-		if (FMath::IsNearlyZero(ItemMoveData.SourceItem->GetItemSingleWeight()) || ItemMoveData.SourceItem->
+		/*if (FMath::IsNearlyZero(ItemMoveData.SourceItem->GetItemSingleWeight()) || ItemMoveData.SourceItem->
 			GetItemSingleWeight() < 0)
 		{
 			return FItemAddResult::AddedNone(FText::Format(FText::FromString("Item {0} has invalid weight"),
 														   ItemMoveData.SourceItem->GetItemRef().ItemTextData.Name));
-		}
+		}*/
 
 		// will the item weight overflow the weight capacity?
-		if (InventoryWeightCapacity > 0)
+		if (InventoryWeightCapacity >= 0)
 		{
 			if (InventoryTotalWeight + ItemMoveData.SourceItem->GetItemSingleWeight() > InventoryWeightCapacity)
 			{
@@ -208,39 +204,7 @@ FItemAddResult UBaseInventoryWidget::HandleAddItem(FItemMoveData ItemMoveData, b
 	}
 
 	// stack
-	// will the item weight overflow the weight capacity?
-	if (InventoryTotalWeight + ItemMoveData.SourceItem->GetItemSingleWeight() * ItemMoveData.SourceItem->GetQuantity() > InventoryWeightCapacity)
-	{
-		return FItemAddResult::AddedNone(FText::Format(FText::FromString("Couldn't add {0} to inventory."),
-														   ItemMoveData.SourceItem->GetItemRef().ItemTextData.Name));
-	}
-	
-	const int32 InitialRequestedAddAmount = ItemMoveData.SourceItem->GetQuantity();
-	const int32 StackableAmountAdded = HandleStackableItems(ItemMoveData, InitialRequestedAddAmount,
-																bOnlyCheck);
-
-	if (StackableAmountAdded == InitialRequestedAddAmount)
-	{
-		return FItemAddResult::AddedAll(StackableAmountAdded, false, FText::Format(
-												FText::FromString("Successfully added {0} of {1} to inventory"),
-												InitialRequestedAddAmount,ItemMoveData.SourceItem->GetItemRef().ItemTextData.Name));
-	}
-	else if (StackableAmountAdded < InitialRequestedAddAmount && StackableAmountAdded > 0)
-	{
-		return FItemAddResult::AddedPartial(StackableAmountAdded, false, FText::Format(
-													FText::FromString(
-														"Partial amount of {0} added to inventory. number added {1}"),
-													ItemMoveData.SourceItem->GetItemRef().ItemTextData.Name, StackableAmountAdded));
-	}
-	else if (StackableAmountAdded <= 0)
-	{
-		return FItemAddResult::AddedNone(FText::Format(FText::FromString("Couldn't add {0} to inventory."),
-														   ItemMoveData.SourceItem->GetItemRef().ItemTextData.Name));
-	}
-
-	return FItemAddResult::AddedNone(FText::Format(
-		FText::FromString("Could not add {0} to inventory. No remaining slots or weight."),
-		ItemMoveData.SourceItem->GetItemRef().ItemTextData.Name));
+	return TryAddStackableItem(ItemMoveData, bOnlyCheck);
 }
 
 
@@ -290,15 +254,51 @@ FItemAddResult UBaseInventoryWidget::HandleNonStackableItems(FItemMoveData& Item
 												   1, ItemMoveData.SourceItem->GetItemRef().ItemTextData.Name));
 }
 
+FItemAddResult UBaseInventoryWidget::TryAddStackableItem(FItemMoveData& ItemMoveData, bool bOnlyCheck)
+{
+	// will the item weight overflow the weight capacity?
+	if (InventoryWeightCapacity >= 0)
+	{
+		if (InventoryTotalWeight + ItemMoveData.SourceItem->GetItemSingleWeight() * ItemMoveData.SourceItem->GetQuantity() > InventoryWeightCapacity)
+		{
+			return FItemAddResult::AddedNone(FText::Format(FText::FromString("Couldn't add {0} to inventory."),
+														   ItemMoveData.SourceItem->GetItemRef().ItemTextData.Name));
+		}
+	}
+	
+	const int32 InitialRequestedAddAmount = ItemMoveData.SourceItem->GetQuantity();
+	const int32 StackableAmountAdded = HandleStackableItems(ItemMoveData, InitialRequestedAddAmount, bOnlyCheck);
+
+	if (StackableAmountAdded == InitialRequestedAddAmount)
+	{
+		return FItemAddResult::AddedAll(StackableAmountAdded, false, FText::Format(
+			FText::FromString("Successfully added {0} of {1} to inventory"),
+			InitialRequestedAddAmount, ItemMoveData.SourceItem->GetItemRef().ItemTextData.Name));
+	}
+	else if (StackableAmountAdded < InitialRequestedAddAmount && StackableAmountAdded > 0)
+	{
+		return FItemAddResult::AddedPartial(StackableAmountAdded, false, FText::Format(
+			FText::FromString("Partial amount of {0} added to inventory. Number added: {1}"),
+			ItemMoveData.SourceItem->GetItemRef().ItemTextData.Name, StackableAmountAdded));
+	}
+    
+	return FItemAddResult::AddedNone(FText::Format(FText::FromString("Couldn't add {0} to inventory."),
+												   ItemMoveData.SourceItem->GetItemRef().ItemTextData.Name));
+}
+
 int32 UBaseInventoryWidget::HandleStackableItems(FItemMoveData& ItemMoveData, int32 RequestedAddAmount, bool bOnlyCheck)
 {
 	int32 AmountToDistribute = RequestedAddAmount;
 	
 	auto CalculateActualAmountToAdd = [&](int32 InAmountToAdd) -> int32
 	{
-		const int32 WeightLimitAddAmount = InventoryWeightCapacity - InventoryTotalWeight;
-		int32 MaxItemsThatFit = WeightLimitAddAmount / ItemMoveData.SourceItem->GetItemSingleWeight();
-		return FMath::Min(MaxItemsThatFit, InAmountToAdd);
+		if (InventoryWeightCapacity >= 0)
+		{
+			const int32 WeightLimitAddAmount = InventoryWeightCapacity - InventoryTotalWeight;
+			int32 MaxItemsThatFit = WeightLimitAddAmount / ItemMoveData.SourceItem->GetItemSingleWeight();
+			return FMath::Min(MaxItemsThatFit, InAmountToAdd);
+		}
+		return InAmountToAdd;
 	};
 
 	if (!ItemMoveData.TargetSlot)
@@ -379,23 +379,25 @@ int32 UBaseInventoryWidget::HandleStackableItems(FItemMoveData& ItemMoveData, in
 	}
 	else
 	{
-		auto ItemFromSlot= ItemCollectionLink->GetItemFromSlot(ItemMoveData.TargetSlot, this);
+		auto ItemFromSlot = ItemCollectionLink->GetItemFromSlot(ItemMoveData.TargetSlot, this);
 		
-		if (ItemFromSlot && ItemFromSlot != ItemMoveData.SourceItem)
+		if (ItemFromSlot && ItemFromSlot == ItemMoveData.SourceItem)
 			return 0;
 
-		const int32 AmountToAddToStack = FMath::Min(AmountToDistribute,
-				ItemMoveData.SourceItem->GetItemRef().ItemNumeraticData.MaxStackSize -
-				ItemMoveData.SourceItem->GetQuantity());
+		int32 AmountToAddToStack = FMath::Min(AmountToDistribute,
+					ItemFromSlot->GetItemRef().ItemNumeraticData.MaxStackSize - ItemFromSlot->GetQuantity());
+		int32 ActualAmountToAdd = CalculateActualAmountToAdd(AmountToAddToStack);
 
-		int32 WeightLimitAddAmount = InventoryWeightCapacity - InventoryTotalWeight;
-		int32 MaxItemsThatFit = WeightLimitAddAmount / ItemMoveData.SourceItem->GetItemSingleWeight();
-		int32 ActualAmountToAdd = FMath::Min(MaxItemsThatFit, AmountToDistribute);
+		if (bOnlyCheck && ActualAmountToAdd > 0)
+			return ActualAmountToAdd;
 
 		ItemFromSlot->SetQuantity(ItemFromSlot->GetQuantity() + ActualAmountToAdd);
 		AmountToDistribute -= ActualAmountToAdd;
 
-		//NotifyUpdateItem(Slots, ItemInPivot);
+		ItemMoveData.SourceItem->SetQuantity(ItemMoveData.SourceItem->GetQuantity() - ActualAmountToAdd);
+
+		auto Slots = GetItemMapping(ItemFromSlot);
+		NotifyUpdateItem(Slots, ItemFromSlot);
 		return RequestedAddAmount - AmountToDistribute;
 	}
 }
@@ -436,7 +438,7 @@ FItemAddResult UBaseInventoryWidget::HandleAddReferenceItem(FItemMoveData& ItemM
 												   1, ItemMoveData.SourceItem->GetItemRef().ItemTextData.Name));
 }
 
-FItemAddResult UBaseInventoryWidget::HandleSwapItems(FItemMoveData& ItemMoveData)
+FItemAddResult UBaseInventoryWidget::HandleSwapOrAddItems(FItemMoveData& ItemMoveData)
 {
 	if (bIsSlotEmpty(ItemMoveData.TargetSlot))
 	{
@@ -449,11 +451,16 @@ FItemAddResult UBaseInventoryWidget::HandleSwapItems(FItemMoveData& ItemMoveData
 											   ItemMoveData.SourceItem->GetItemRef().ItemTextData.Name));
 
 	auto TarItem =ItemCollectionLink->GetItemFromSlot(ItemMoveData.TargetSlot, this);
-	
-	ReplaceItem (ItemMoveData.SourceItem, ItemMoveData.TargetSlot);
-	ReplaceItem (TarItem, ItemMoveData.SourceItemPivotSlot);
 
-	return FItemAddResult::Swapped(0, false, FText::FromString("Items successfully swapped between slots."));;
+	if (!UItemBase::bIsSameitems(ItemMoveData.SourceItem, TarItem))
+	{
+		ReplaceItem (ItemMoveData.SourceItem, ItemMoveData.TargetSlot);
+		ReplaceItem (TarItem, ItemMoveData.SourceItemPivotSlot);
+
+		return FItemAddResult::Swapped(0, false, FText::FromString("Items successfully swapped between slots."));
+	}
+	
+	return TryAddStackableItem(ItemMoveData, false);
 }
 
 void UBaseInventoryWidget::AddNewItem(FItemMoveData& ItemMoveData, FItemMapping OccupiedSlots)
@@ -468,7 +475,6 @@ void UBaseInventoryWidget::AddNewItem(FItemMoveData& ItemMoveData, FItemMapping 
 		FinalItem = NewObject<UItemBase>(this);
 		FinalItem->SetQuantity(ItemMoveData.SourceItem->GetQuantity());
 		FinalItem->SetItemRef(ItemMoveData.SourceItem->GetItemRef());
-		FinalItem->SetItemName(ItemMoveData.SourceItem->GetItemName());
 	}
 	
 	if (ItemCollectionLink)
@@ -701,7 +707,7 @@ bool UBaseInventoryWidget::NativeOnDragOver(const FGeometry& InGeometry, const F
 	FVector2D ScreenCursorPos = InDragDropEvent.GetScreenSpacePosition();
 	FIntPoint GridPosition = CalculateGridPosition(InGeometry, ScreenCursorPos);
 	
-	if (GridPosition.X >= 0 && GridPosition.Y >= 0)
+	if (GridPosition.X >= 0 && GridPosition.Y >= 0 && GridPosition.X<NumberOfRows && GridPosition.Y<NumberOfColumns)
 	{
 		//UE_LOG(LogTemp, Log, TEXT("Column: %d, Row: %d"), GridPosition.X, GridPosition.Y);
 	}
@@ -717,7 +723,7 @@ bool UBaseInventoryWidget::NativeOnDrop(const FGeometry& InGeometry, const FDrag
 	FVector2D ScreenCursorPos = InDragDropEvent.GetScreenSpacePosition();
 	FIntPoint GridPosition = CalculateGridPosition(InGeometry, ScreenCursorPos);
 	
-	if (GridPosition.X >= 0 && GridPosition.Y >= 0)
+	if (GridPosition.X >= 0 && GridPosition.Y >= 0 && GridPosition.X<NumberOfRows && GridPosition.Y<NumberOfColumns)
 	{
 		auto DragOp = Cast<UItemDragDropOperation>(InOperation);
 		auto TargetSlot = GetSlotByPosition(FIntVector2(GridPosition.X, GridPosition.Y));
@@ -735,6 +741,12 @@ bool UBaseInventoryWidget::NativeOnDrop(const FGeometry& InGeometry, const FDrag
 			if (DragOp->ItemMoveData.SourceInventory->GetItemCollection() == DragOp->ItemMoveData.TargetInventory->GetItemCollection())
 			{
 				DragOp->ItemMoveData.SourceInventory->HandleRemoveItem(DragOp->ItemMoveData.SourceItem);
+				break;
+			}
+			if (DragOp->ItemMoveData.SourceItem->GetQuantity()<= 0)
+			{
+				DragOp->ItemMoveData.SourceInventory->HandleRemoveItem(DragOp->ItemMoveData.SourceItem);
+				break;
 			}
 			
 			break;

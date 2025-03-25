@@ -1,11 +1,9 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
+//  Nublin Studio 2025 All Rights Reserved.
 
 #include "UI/Core/CoreHUDWidget.h"
 
 #include "ActorComponents/InteractionComponent.h"
 #include "ActorComponents/ItemCollection.h"
-#include "ActorComponents/Items/itemBase.h"
 #include "DragDrop/ItemDragDropOperation.h"
 #include "UI/Inventory/BaseInventoryWidget.h"
 #include "UI/Layers/InventorySystemLayout.h"

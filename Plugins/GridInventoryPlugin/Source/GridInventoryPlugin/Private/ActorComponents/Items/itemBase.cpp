@@ -31,10 +31,17 @@ UItemBase* UItemBase::CreateFromDataTable(UDataTable* ItemDataTable, const FName
 		return nullptr;
 	}
 	
-	NewItem->SetItemName(DesiredItemID);
 	NewItem->SetItemRef(ItemData->ItemMetaData);
 	int32 ClampedQuantity = FMath::Clamp(InitQuantity, 1, ItemData->ItemMetaData.ItemNumeraticData.MaxStackSize);
 	NewItem->SetQuantity(ClampedQuantity);
 
 	return NewItem;
+}
+
+bool UItemBase::bIsSameitems(UItemBase* FirstItem, UItemBase* SecondItem)
+{
+	if (FirstItem->GetItemRef().ItemTextData.Name.EqualTo(SecondItem->GetItemRef().ItemTextData.Name))
+		return true;
+
+	return false;
 }

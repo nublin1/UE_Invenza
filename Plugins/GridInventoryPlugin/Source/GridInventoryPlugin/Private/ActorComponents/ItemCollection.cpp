@@ -1,5 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
+﻿//  Nublin Studio 2025 All Rights Reserved.
 
 #include "ActorComponents/ItemCollection.h"
 
@@ -217,11 +216,11 @@ TArray<UItemBase*> UItemCollection::GetAllSameItemsInContainer(UBaseInventoryWid
 		return SameItems;
 	}
 
-	const FName RefName = ReferenceItem->GetItemName();
+	auto RefName = ReferenceItem->GetItemRef().ItemTextData.Name;
 	for (const auto& Pair : ItemLocations)
 	{
 		UItemBase* Item = Pair.Key;
-		if (Item && Item->GetItemName() == RefName)
+		if (Item && Item->GetItemRef().ItemTextData.Name.EqualTo(RefName))
 		{
 			for (const FItemMapping& Mapping : Pair.Value)
 			{
