@@ -1,7 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "ActorComponents/InteractableComponent.h"
+#include "ActorComponents/Interactable/InteractableComponent.h"
 
 UInteractableComponent::UInteractableComponent()
 {

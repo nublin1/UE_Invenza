@@ -16,6 +16,8 @@ struct FUISettings
 	TSubclassOf<UInventoryItemWidget> InventoryItemVisualClass;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TSubclassOf<UInventoryItemWidget> DraggedWidgetClass;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	FVector2D SlotSize = FVector2D(0.f);
 	
 };
 

@@ -20,24 +20,32 @@ UBaseInventoryWidget::UBaseInventoryWidget(): SlotsGridPanel(nullptr), Inventory
 {
 }
 
+void UBaseInventoryWidget::InitializeInventory()
+{
+	UpdateWeightInfo();
+}
+
+void UBaseInventoryWidget::ReDrawAllItems()
+{
+	if (!ItemCollectionLink || !ItemsVisualsPanel)
+		return;
+
+	ItemsVisualsPanel->ClearChildren();
+
+	auto AllItems =ItemCollectionLink->GetAllItemsByContainer(this);
+	for (auto Item : AllItems)
+	{
+		AddItemToPanel(Item);
+	}
+}
+
 void UBaseInventoryWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 	
-	GetWorld()->GetTimerManager().SetTimerForNextTick(this, &UBaseInventoryWidget::InitSlots);
+	OnVisibilityChanged.AddDynamic(this, &UBaseInventoryWidget::HandleVisibilityChanged);
 	
-	UpdateWeightInfo();
-
-	auto Manager = GetOwningPlayerPawn()->FindComponentByClass<UUIManagerComponent>();
-	if (!Manager)
-		return;
-
-	if (auto ItemCollection = GetOwningPlayerPawn()->FindComponentByClass<UItemCollection>())
-	{
-		ItemCollectionLink = ItemCollection;
-	}
-
-	UISettings = Manager->GetUISettings();
+	GetWorld()->GetTimerManager().SetTimerForNextTick(this, &UBaseInventoryWidget::InitSlots);
 }
 
 void UBaseInventoryWidget::InitSlots()
@@ -83,60 +91,22 @@ void UBaseInventoryWidget::InitSlots()
 	InventorySlots = NewInvSlots;
 }
 
-UUserWidget* UBaseInventoryWidget::GetItemLinkedWidget(UBaseInventorySlot* _ItemSlot)
+void UBaseInventoryWidget::HandleVisibilityChanged(ESlateVisibility NewVisibility)
 {
-	for (auto& Elem : InventoryItemsMap)
+	if (NewVisibility == ESlateVisibility::Visible)
 	{
-		for (const auto& ItemSlot : Elem.Value.ItemSlots)
-		{
-			if (ItemSlot == _ItemSlot)
-				return Elem.Value.ItemVisualLinked;
-		}
+		
 	}
-	
-	return nullptr;
 }
 
-FItemSlotMapping UBaseInventoryWidget::GetAllSlotsFromInventoryItemsMap()
-{
-	FItemSlotMapping AllPositions;
-
-	for (auto& Elem : InventoryItemsMap)
-	{
-		for (const auto& ItemSlot : Elem.Value.ItemSlots)
-		{
-			AllPositions.ItemSlots.Add(ItemSlot);
-		}
-	}
-
-	return AllPositions;
-}
-
-FItemSlotMapping* UBaseInventoryWidget::GetItemMapping(UItemBase* Item)
+FItemMapping* UBaseInventoryWidget::GetItemMapping(UItemBase* Item)
 {	
 	if (!Item)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GetItemSlots: Item is null!"));
 		return nullptr;
 	}
-
-	return InventoryItemsMap.Find(Item);
-}
-
-FItemSlotMapping* UBaseInventoryWidget::GetItemMapping(UBaseInventorySlot* _ItemSlot)
-{
-	if (!_ItemSlot) return nullptr;
-
-	for (auto& Pair : InventoryItemsMap)
-	{
-		for (auto ItemSlot : Pair.Value.ItemSlots)
-		{
-			if (ItemSlot == _ItemSlot)
-				return &Pair.Value;
-		}
-	}
-
-	return nullptr;
+	auto Mapping = ItemCollectionLink->FindItemMappingForItemInContainer(Item, this);
+	return Mapping;
 }
 
 UBaseInventorySlot* UBaseInventoryWidget::GetSlotByPosition(FIntVector2 SlotPosition)
@@ -151,48 +121,10 @@ UBaseInventorySlot* UBaseInventoryWidget::GetSlotByPosition(FIntVector2 SlotPosi
 	return nullptr;
 }
 
-TArray<UItemBase*> UBaseInventoryWidget::GetAllItems()
-{
-	TArray<UItemBase*> AllItems;
-	InventoryItemsMap.GetKeys(AllItems);
-	return AllItems;
-}
-
-TArray<UItemBase*> UBaseInventoryWidget::GetAllSameItems(UItemBase* TestItem)
-{
-	TArray<UItemBase*> AllItems;
-
-	for (auto& Elem : InventoryItemsMap)
-	{
-		if (Elem.Key->GetItemName() == TestItem->GetItemName())
-			AllItems.Add(Elem.Key);
-	}
-
-	return AllItems;
-}
-
-UItemBase* UBaseInventoryWidget::GetItemFromSlot(UBaseInventorySlot* TargetSlot)
-{
-	if (!TargetSlot)
-		return nullptr;
-
-	for (auto Pair  : InventoryItemsMap)
-	{
-		for (auto Element : Pair.Value.ItemSlots)
-		{
-			if (Element == TargetSlot)
-				return Pair.Key;
-		}
-	}
-
-	return nullptr;
-		
-}
-
 bool UBaseInventoryWidget::bIsSlotEmpty(const FIntVector2 SlotPosition)
 {
-	FItemSlotMapping BusySlots = GetAllSlotsFromInventoryItemsMap();
-	for (const auto InvSlot : BusySlots.ItemSlots)
+	auto BusySlots = ItemCollectionLink->CollectOccupiedSlotsByContainer(this);
+	for (const auto InvSlot : BusySlots)
 	{
 		if (InvSlot->GetSlotPosition() == SlotPosition)
 			return false;
@@ -203,8 +135,8 @@ bool UBaseInventoryWidget::bIsSlotEmpty(const FIntVector2 SlotPosition)
 
 bool UBaseInventoryWidget::bIsSlotEmpty(const UBaseInventorySlot* SlotCheck)
 {
-	FItemSlotMapping BusySlots = GetAllSlotsFromInventoryItemsMap();
-	for (auto InvSlot : BusySlots.ItemSlots)
+	auto BusySlots = ItemCollectionLink->CollectOccupiedSlotsByContainer(this);
+	for (auto InvSlot : BusySlots)
 	{
 		if (InvSlot == SlotCheck)
 			return false;
@@ -222,7 +154,6 @@ void UBaseInventoryWidget::HandleRemoveItem(UItemBase* Item)
 	NotifyRemoveItem(*Mapping, Item);
 
 	Mapping->ItemVisualLinked->RemoveFromParent();
-	InventoryItemsMap.Remove(Item);
 	if (ItemCollectionLink)
 	{
 		ItemCollectionLink->RemoveItem(Item, this);
@@ -237,8 +168,8 @@ FItemAddResult UBaseInventoryWidget::HandleAddItem(FItemMoveData ItemMoveData, b
 		return HandleAddReferenceItem(ItemMoveData);
 
 	if (ItemMoveData.SourceInventory
-		&&ItemMoveData.SourceInventory->GetIsUseReference()
-		&& InventoryItemsMap.Find(ItemMoveData.SourceItem))
+		&& ItemMoveData.SourceInventory->GetIsUseReference()
+		&& ItemCollectionLink->HasItemInContainer(ItemMoveData.SourceItem, this))
 	{
 		return HandleSwapItems(ItemMoveData);
 	}
@@ -333,7 +264,7 @@ FItemAddResult UBaseInventoryWidget::HandleNonStackableItems(FItemMoveData& Item
 
 		if (!bOnlyCheck)
 		{
-			FItemSlotMapping Slots (EmptySlot);
+			FItemMapping Slots (EmptySlot);
 			AddNewItem(ItemMoveData, Slots);
 		}
 		
@@ -346,7 +277,7 @@ FItemAddResult UBaseInventoryWidget::HandleNonStackableItems(FItemMoveData& Item
 	{
 		if (!bOnlyCheck)
 		{
-			FItemSlotMapping Slots (ItemMoveData.TargetSlot);
+			FItemMapping Slots (ItemMoveData.TargetSlot);
 			AddNewItem(ItemMoveData, Slots);
 		}
 
@@ -372,7 +303,7 @@ int32 UBaseInventoryWidget::HandleStackableItems(FItemMoveData& ItemMoveData, in
 
 	if (!ItemMoveData.TargetSlot)
 	{
-		auto Sameitems = GetAllSameItems(ItemMoveData.SourceItem);
+		auto Sameitems = ItemCollectionLink->GetAllSameItemsInContainer(this, ItemMoveData.SourceItem);
 		if (Sameitems.Num()> 0)
 		{
 			for (auto& Item : Sameitems)
@@ -421,7 +352,7 @@ int32 UBaseInventoryWidget::HandleStackableItems(FItemMoveData& ItemMoveData, in
 		if (bOnlyCheck)
 			return AmountToDistribute;
 
-		FItemSlotMapping Slots(TargetSlot);
+		FItemMapping Slots(TargetSlot);
 		FItemMoveData NewItemMoveData;
 		NewItemMoveData.SourceItem = ItemMoveData.SourceItem;
 		NewItemMoveData.SourceItem->SetQuantity(ActualAmountToAdd);
@@ -437,7 +368,7 @@ int32 UBaseInventoryWidget::HandleStackableItems(FItemMoveData& ItemMoveData, in
 
 		int32 ActualAmountToAdd = CalculateActualAmountToAdd(AmountToAddToStack);
 
-		FItemSlotMapping Slots(ItemMoveData.TargetSlot);
+		FItemMapping Slots(ItemMoveData.TargetSlot);
 		FItemMoveData NewItemMoveData;
 		NewItemMoveData.SourceItem = ItemMoveData.SourceItem;
 		NewItemMoveData.SourceItem->SetQuantity(ActualAmountToAdd);
@@ -448,7 +379,7 @@ int32 UBaseInventoryWidget::HandleStackableItems(FItemMoveData& ItemMoveData, in
 	}
 	else
 	{
-		UItemBase* ItemFromSlot= GetItemFromSlot(ItemMoveData.TargetSlot);
+		auto ItemFromSlot= ItemCollectionLink->GetItemFromSlot(ItemMoveData.TargetSlot, this);
 		
 		if (ItemFromSlot && ItemFromSlot != ItemMoveData.SourceItem)
 			return 0;
@@ -477,7 +408,7 @@ FItemAddResult UBaseInventoryWidget::HandleAddReferenceItem(FItemMoveData& ItemM
 
 	if (bIsSlotEmpty(ItemMoveData.TargetSlot))
 	{
-		if (InventoryItemsMap.Find(ItemMoveData.SourceItem))
+		if (ItemCollectionLink->FindItemMappingForItemInContainer(ItemMoveData.SourceItem, this))
 		{
 			ReplaceItem(ItemMoveData.SourceItem, ItemMoveData.TargetSlot);
 			return FItemAddResult::Swapped(0, false, FText::FromString("Item successfully moved to an empty slot."));
@@ -485,13 +416,12 @@ FItemAddResult UBaseInventoryWidget::HandleAddReferenceItem(FItemMoveData& ItemM
 		
 		if (ItemMoveData.SourceInventory == this)
 		{
-			
 			return FItemAddResult::AddedAll(1, true, FText::Format(
 			FText::FromString("Successfully added {0} to inventory as a reference"),
 			ItemMoveData.SourceItem->GetItemRef().ItemTextData.Name));
 		}
 		
-		FItemSlotMapping Slots;
+		FItemMapping Slots;
 		Slots.ItemSlots.Add(ItemMoveData.TargetSlot);
 		AddNewItem(ItemMoveData, Slots);
 
@@ -518,7 +448,7 @@ FItemAddResult UBaseInventoryWidget::HandleSwapItems(FItemMoveData& ItemMoveData
 		return FItemAddResult::AddedNone(FText::Format(FText::FromString("Cannot add '{0}' to the inventory as references are enabled."),
 											   ItemMoveData.SourceItem->GetItemRef().ItemTextData.Name));
 
-	auto TarItem =GetItemFromSlot(ItemMoveData.TargetSlot);
+	auto TarItem =ItemCollectionLink->GetItemFromSlot(ItemMoveData.TargetSlot, this);
 	
 	ReplaceItem (ItemMoveData.SourceItem, ItemMoveData.TargetSlot);
 	ReplaceItem (TarItem, ItemMoveData.SourceItemPivotSlot);
@@ -526,7 +456,7 @@ FItemAddResult UBaseInventoryWidget::HandleSwapItems(FItemMoveData& ItemMoveData
 	return FItemAddResult::Swapped(0, false, FText::FromString("Items successfully swapped between slots."));;
 }
 
-void UBaseInventoryWidget::AddNewItem(FItemMoveData& ItemMoveData, FItemSlotMapping OccupiedSlots)
+void UBaseInventoryWidget::AddNewItem(FItemMoveData& ItemMoveData, FItemMapping OccupiedSlots)
 {
 	TObjectPtr<UItemBase> FinalItem;
 	if (bUseReferences)
@@ -541,10 +471,10 @@ void UBaseInventoryWidget::AddNewItem(FItemMoveData& ItemMoveData, FItemSlotMapp
 		FinalItem->SetItemName(ItemMoveData.SourceItem->GetItemName());
 	}
 	
-	InventoryItemsMap.Add(FinalItem, OccupiedSlots);
 	if (ItemCollectionLink)
 	{
-		ItemCollectionLink->AddItem(FinalItem, this);
+		OccupiedSlots.BaseInventoryWidgetLink = this;
+		ItemCollectionLink->AddItem(FinalItem, OccupiedSlots);
 	}
 
 	NotifyAddItem(OccupiedSlots, FinalItem);
@@ -552,7 +482,15 @@ void UBaseInventoryWidget::AddNewItem(FItemMoveData& ItemMoveData, FItemSlotMapp
 
 void UBaseInventoryWidget::ReplaceItem(UItemBase* Item, UBaseInventorySlot* NewSlot)
 {
-	auto Mapping = InventoryItemsMap.Find(Item);
+	if (!ItemCollectionLink)
+	{
+		return;
+	}
+	
+	auto Mapping = ItemCollectionLink->FindItemMappingForItemInContainer(Item, this);
+	if (!Mapping)
+		return;
+	
 	Mapping->ItemSlots[0] = NewSlot;
 
 	//UE_LOG(LogTemp, Warning, TEXT("ReplaceItem done!"))
@@ -562,13 +500,13 @@ void UBaseInventoryWidget::ReplaceItem(UItemBase* Item, UBaseInventorySlot* NewS
 
 FVector2D UBaseInventoryWidget::CalculateItemVisualPosition(FIntVector2 SlotPosition, FIntVector2 ItemSize) const
 {
-	float X = SlotPosition.X * SlotSize.X;
-	float Y = SlotPosition.Y * SlotSize.Y;
+	float X = SlotPosition.X * UISettings.SlotSize.X;
+	float Y = SlotPosition.Y * UISettings.SlotSize.Y;
 
 	return FVector2D(X, Y);
 }
 
-void UBaseInventoryWidget::AddItemToPanel(FItemSlotMapping& FromSlots, UItemBase* Item)
+void UBaseInventoryWidget::AddItemToPanel( UItemBase* Item)
 {
 	auto Slots = GetItemMapping(Item);
 
@@ -584,11 +522,11 @@ void UBaseInventoryWidget::AddItemToPanel(FItemSlotMapping& FromSlots, UItemBase
 	TObjectPtr<UInventoryItemWidget> ItemVisual = CreateWidget<UInventoryItemWidget>(this, UISettings.InventoryItemVisualClass);
 	auto SlotInCanvas = ItemsVisualsPanel->AddChildToCanvas(ItemVisual);
 	if (SlotInCanvas)
-		SlotInCanvas->SetSize(FVector2D(SlotSize.X * 1, SlotSize.Y *  1));
+		SlotInCanvas->SetSize(FVector2D(UISettings.SlotSize.X * 1, UISettings.SlotSize.Y *  1));
 
 	Slots->ItemVisualLinked = ItemVisual;
 
-	ItemVisual->UpdateVisualSize(SlotSize, FIntVector2(1, 1));
+	ItemVisual->UpdateVisualSize(UISettings.SlotSize, FIntVector2(1, 1));
 	ItemVisual->UpdateItemName(Item->GetItemRef().ItemTextData.Name);
 	ItemVisual->UpdateQuantityText(Item->GetQuantity());
 	ItemVisual->UpdateVisual(Item);
@@ -597,7 +535,7 @@ void UBaseInventoryWidget::AddItemToPanel(FItemSlotMapping& FromSlots, UItemBase
 	SlotInCanvas->SetPosition(VisualPosition);
 }
 
-void UBaseInventoryWidget::ReplaceItemInPanel(FItemSlotMapping& FromSlots, UItemBase* Item)
+void UBaseInventoryWidget::ReplaceItemInPanel(FItemMapping& FromSlots, UItemBase* Item)
 {
 	if (!FromSlots.ItemVisualLinked) return;
 
@@ -610,7 +548,7 @@ void UBaseInventoryWidget::ReplaceItemInPanel(FItemSlotMapping& FromSlots, UItem
 	CanvasSlot->SetPosition(VisualPosition);
 }
 
-void UBaseInventoryWidget::UpdateSlotInPanel(FItemSlotMapping* FromSlots, UItemBase* Item)
+void UBaseInventoryWidget::UpdateSlotInPanel(FItemMapping* FromSlots, UItemBase* Item)
 {
 	if (!FromSlots->ItemVisualLinked || !Item)
 		return;
@@ -618,7 +556,7 @@ void UBaseInventoryWidget::UpdateSlotInPanel(FItemSlotMapping* FromSlots, UItemB
 	FromSlots->ItemVisualLinked->UpdateQuantityText(Item->GetQuantity());
 }
 
-void UBaseInventoryWidget::RemoveItemFromPanel(FItemSlotMapping* FromSlots, UItemBase* Item)
+void UBaseInventoryWidget::RemoveItemFromPanel(FItemMapping* FromSlots, UItemBase* Item)
 {
 	if (!FromSlots->ItemVisualLinked || !Item)
 		return;
@@ -633,7 +571,7 @@ void UBaseInventoryWidget::UpdateWeightInfo()
 
 	FString Text_WeightInfo;
 	InventoryTotalWeight = 0;
-	auto AllItems = GetAllItems();
+	auto AllItems = ItemCollectionLink->GetAllItemsByContainer(this);
 	if (AllItems.IsEmpty())
 	{
 		Text_WeightInfo = {" " + FString::SanitizeFloat(0) + "/" + FString::SanitizeFloat(InventoryWeightCapacity)};
@@ -652,14 +590,14 @@ void UBaseInventoryWidget::UpdateWeightInfo()
 	WeightInfo->SetText(FText::FromString(Text_WeightInfo));
 }
 
-void UBaseInventoryWidget::NotifyAddItem(FItemSlotMapping& FromSlots, UItemBase* NewItem)
+void UBaseInventoryWidget::NotifyAddItem(FItemMapping& FromSlots, UItemBase* NewItem)
 {
-	AddItemToPanel(FromSlots, NewItem);
+	AddItemToPanel(NewItem);
 	UpdateWeightInfo();
 	OnAddItemDelegate.Broadcast(FromSlots, NewItem);
 }
 
-void UBaseInventoryWidget::NotifyUpdateItem(FItemSlotMapping* FromSlots, UItemBase* NewItem)
+void UBaseInventoryWidget::NotifyUpdateItem(FItemMapping* FromSlots, UItemBase* NewItem)
 {
 	UpdateSlotInPanel(FromSlots, NewItem);
 	UpdateWeightInfo();
@@ -673,7 +611,7 @@ void UBaseInventoryWidget::NotifyUpdateItem(FItemSlotMapping* FromSlots, UItemBa
 	//OnUseItemDelegate.Broadcast(FromSlot, Item);
 }*/
 
-void UBaseInventoryWidget::NotifyRemoveItem(FItemSlotMapping& FromSlots, UItemBase* RemovedItem) 
+void UBaseInventoryWidget::NotifyRemoveItem(FItemMapping& FromSlots, UItemBase* RemovedItem) 
 {
 	RemoveItemFromPanel(&FromSlots, RemovedItem);
 	OnRemoveItemDelegate.Broadcast(FromSlots, RemovedItem);
@@ -690,8 +628,8 @@ FIntPoint UBaseInventoryWidget::CalculateGridPosition(const FGeometry& Geometry,
 		LocalCursorPos.Y += ScrollBox->GetScrollOffsetOfEnd();
 	}
 
-	int32 Column = FMath::FloorToInt(LocalCursorPos.X / SlotSize.X);
-	int32 Row = FMath::FloorToInt(LocalCursorPos.Y / SlotSize.Y);
+	int32 Column = FMath::FloorToInt(LocalCursorPos.X / UISettings.SlotSize.X);
+	int32 Row = FMath::FloorToInt(LocalCursorPos.Y / UISettings.SlotSize.Y);
 	
 	return FIntPoint(Column, Row);
 }
@@ -712,7 +650,7 @@ FReply UBaseInventoryWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry
 			SelectedSlot = GetSlotByPosition(FIntVector2(GridPosition.X, GridPosition.Y));
 			if (!SelectedSlot) return FReply::Unhandled();
 
-			auto Linked= GetItemLinkedWidget(SelectedSlot);
+			auto Linked= ItemCollectionLink-> GetItemLinkedWidgetForSlot(SelectedSlot);
 			if (!Linked) return FReply::Unhandled();
 			
 			return Reply.Handled().DetectDrag(TakeWidget(), EKeys::LeftMouseButton);
@@ -739,7 +677,7 @@ void UBaseInventoryWidget::NativeOnDragDetected(const FGeometry& InGeometry, con
 	DragItemDragDropOperation->DefaultDragVisual = DraggedWidget;
 	DragItemDragDropOperation->Pivot = EDragPivot::CenterCenter;
 
-	DragItemDragDropOperation->ItemMoveData.SourceItem = GetItemFromSlot(SelectedSlot);
+	DragItemDragDropOperation->ItemMoveData.SourceItem = ItemCollectionLink->GetItemFromSlot(SelectedSlot, this);
 	DragItemDragDropOperation->ItemMoveData.SourceInventory = this;
 	DragItemDragDropOperation->ItemMoveData.SourceItemPivotSlot = SelectedSlot;
 

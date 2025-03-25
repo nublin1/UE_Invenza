@@ -10,17 +10,19 @@ class UItemBase;
 class UBaseInventoryWidget;
 
 USTRUCT(Blueprintable)
-struct FItemSlotMapping
+struct FItemMapping
 {
 	GENERATED_BODY()
-	
+
+	UPROPERTY()
+	TObjectPtr<UBaseInventoryWidget> BaseInventoryWidgetLink;
 	UPROPERTY()
 	TArray<TObjectPtr<UBaseInventorySlot>> ItemSlots;
 	UPROPERTY()
 	TObjectPtr<UInventoryItemWidget> ItemVisualLinked;
 
-	FItemSlotMapping() {}
-	explicit FItemSlotMapping(UBaseInventorySlot* Slot)
+	FItemMapping() {}
+	explicit FItemMapping(UBaseInventorySlot* Slot)
 	{
 		if (Slot)
 		{

@@ -3,8 +3,8 @@
 #include "ActorComponents/InteractionComponent.h"
 
 #include "EnhancedInputComponent.h"
-#include "ActorComponents/InteractableComponent.h"
-#include "ActorComponents/PickupComponent.h"
+#include "ActorComponents/Interactable/InteractableComponent.h"
+#include "ActorComponents/Interactable/PickupComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/Character.h"
 

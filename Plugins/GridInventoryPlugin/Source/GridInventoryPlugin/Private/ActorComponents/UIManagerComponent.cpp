@@ -6,9 +6,9 @@
 #include "EnhancedInputComponent.h"
 #include "ActorComponents/InteractionComponent.h"
 #include "ActorComponents/ItemCollection.h"
-#include "ActorComponents/PickupComponent.h"
+#include "ActorComponents/Interactable/PickupComponent.h"
 #include "ActorComponents/Items/itemBase.h"
-#include "GameFramework/Character.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
 #include "UI/Core/CoreHUDWidget.h"
 #include "UI/Interaction/InteractionWidget.h"
 #include "UI/Inventory/BaseInventoryWidget.h"
@@ -58,6 +58,16 @@ void UUIManagerComponent::BindEvents(AActor* TargetActor)
 
 	UItemCollection* ItemCollection = TargetActor->FindComponentByClass<UItemCollection>();
 	if (!ItemCollection) return;
+
+	TArray<UUserWidget*> FoundWidgets;
+	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(GetWorld(), FoundWidgets, UBaseInventoryWidget::StaticClass(), false);
+	for (auto Widget : FoundWidgets)
+	{
+		auto Container = Cast<UBaseInventoryWidget>(Widget);
+		Container->SetItemCollection(ItemCollection);
+		Container->SetUISettings(UISettings);
+		Container->InitializeInventory();
+	}
 
 	auto MainInv = CoreHUDWidget->GetInventorySystemLayout()->GetMainInventory();
 	for (auto Item : ItemCollection->InitItems)

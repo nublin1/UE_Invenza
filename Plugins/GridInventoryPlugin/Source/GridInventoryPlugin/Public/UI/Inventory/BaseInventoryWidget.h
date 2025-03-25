@@ -11,17 +11,16 @@
 
 #pragma region Delegates
 class UItemCollection;
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnItemUpdateDelegate, const FItemSlotMapping&, ItemSlots, UItemBase*,
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnItemUpdateDelegate, const FItemMapping&, ItemSlots, UItemBase*,
                                              Item);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAddItemDelegate, FItemSlotMapping, ItemSlots, UItemBase*, Item);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnRemoveItemDelegate, FItemSlotMapping, ItemSlots, UItemBase*, Item);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAddItemDelegate, FItemMapping, ItemSlots, UItemBase*, Item);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnRemoveItemDelegate, FItemMapping, ItemSlots, UItemBase*, Item);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUseItemDelegate, UBaseInventorySlot*, ItemSlot, UItemBase*, Item);
 #pragma endregion Delegates
 
 class UScrollBox;
 class UTextBlock;
 class UCanvasPanel;
-class UInventoryItemWidget;
 class UUniformGridPanel;
 class UBaseInventorySlot;
 
@@ -44,6 +43,11 @@ public:
 	// FUNCTIONS
 	//====================================================================
 	UBaseInventoryWidget();
+	
+	UFUNCTION(Category="Inventory")
+	void InitializeInventory();
+	UFUNCTION(Category="Inventory")
+	virtual void ReDrawAllItems();
 
 	UFUNCTION(Category="Inventory")
 	virtual void HandleRemoveItem(UItemBase* Item);
@@ -61,6 +65,7 @@ public:
 	FORCEINLINE bool GetIsUseReference() const {return bUseReferences;}
 
 	//Setters
+	FORCEINLINE void SetItemCollection(UItemCollection* _ItemCollection) {ItemCollectionLink = _ItemCollection;}
 	virtual void SetUISettings(FUISettings NewSettings) {UISettings = NewSettings;}
 
 protected:
@@ -82,8 +87,8 @@ protected:
 	TObjectPtr<UItemCollection> ItemCollectionLink;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TArray<TObjectPtr<UBaseInventorySlot>> InventorySlots;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
-	TMap<UItemBase*, FItemSlotMapping> InventoryItemsMap;
+	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
+	//TMap<UItemBase*, FItemSlotMapping> InventoryItemsMap;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
 	float InventoryTotalWeight = 0;
 
@@ -93,11 +98,7 @@ protected:
 	UPROPERTY()
 	FUISettings UISettings;
 	UPROPERTY(EditAnywhere)
-	bool bUseReferences = false;
-
-	//
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory")
-	FVector2D SlotSize = FVector2D(0.f);
+	bool bUseReferences = false;	
 
 	// DragDrop
 	TObjectPtr<UBaseInventorySlot> SelectedSlot = nullptr;
@@ -106,21 +107,15 @@ protected:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-
 	virtual void NativeConstruct() override;
-
+	
 	UFUNCTION()
 	virtual void InitSlots();
-
+	UFUNCTION()
+	virtual void HandleVisibilityChanged(ESlateVisibility NewVisibility);
 	
-	virtual UUserWidget* GetItemLinkedWidget(UBaseInventorySlot* _ItemSlot);
-	FItemSlotMapping GetAllSlotsFromInventoryItemsMap();
-	virtual FItemSlotMapping* GetItemMapping(UItemBase* Item);
-	virtual FItemSlotMapping* GetItemMapping(UBaseInventorySlot* _ItemSlot);
+	virtual FItemMapping* GetItemMapping(UItemBase* Item);
 	virtual UBaseInventorySlot* GetSlotByPosition(FIntVector2 SlotPosition);
-	virtual TArray<UItemBase*> GetAllItems();
-	virtual TArray<UItemBase*> GetAllSameItems(UItemBase* TestItem);
-	virtual UItemBase* GetItemFromSlot(UBaseInventorySlot* TargetSlot );
 	virtual bool bIsSlotEmpty(const FIntVector2 SlotPosition);
 	virtual bool bIsSlotEmpty(const UBaseInventorySlot* SlotCheck);
 
@@ -134,24 +129,24 @@ protected:
 	UFUNCTION()
 	virtual FItemAddResult HandleSwapItems(FItemMoveData& ItemMoveData);
 	UFUNCTION()
-	virtual void AddNewItem(FItemMoveData& ItemMoveData, FItemSlotMapping OccupiedSlots);
+	virtual void AddNewItem(FItemMoveData& ItemMoveData, FItemMapping OccupiedSlots);
 	UFUNCTION()
 	virtual void ReplaceItem(UItemBase* Item, UBaseInventorySlot* NewSlot);
 
 	UFUNCTION()
 	FVector2D CalculateItemVisualPosition(FIntVector2 SlotPosition, FIntVector2 ItemSize) const;
 	
-	virtual void AddItemToPanel(FItemSlotMapping& FromSlots, UItemBase* Item);
-	virtual void ReplaceItemInPanel(FItemSlotMapping& FromSlots, UItemBase* Item);	
-	virtual void UpdateSlotInPanel(FItemSlotMapping* FromSlots, UItemBase* Item);
-	virtual void RemoveItemFromPanel(FItemSlotMapping* FromSlots, UItemBase* Item);
+	virtual void AddItemToPanel(UItemBase* Item);
+	virtual void ReplaceItemInPanel(FItemMapping& FromSlots, UItemBase* Item);	
+	virtual void UpdateSlotInPanel(FItemMapping* FromSlots, UItemBase* Item);
+	virtual void RemoveItemFromPanel(FItemMapping* FromSlots, UItemBase* Item);
 
 	UFUNCTION()
 	virtual void UpdateWeightInfo();
 	
-	void NotifyAddItem(FItemSlotMapping& FromSlots, UItemBase* NewItem);
-	void NotifyUpdateItem(FItemSlotMapping* FromSlots, UItemBase* NewItem);
-	void NotifyRemoveItem(FItemSlotMapping& FromSlots, UItemBase* RemovedItem);
+	void NotifyAddItem(FItemMapping& FromSlots, UItemBase* NewItem);
+	void NotifyUpdateItem(FItemMapping* FromSlots, UItemBase* NewItem);
+	void NotifyRemoveItem(FItemMapping& FromSlots, UItemBase* RemovedItem);
 	//void NotifyUseSlot(UBaseInventorySlot* FromSlot);
 
 	UFUNCTION()

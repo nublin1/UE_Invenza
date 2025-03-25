@@ -38,11 +38,11 @@ struct FInteractableData
 
 	UPROPERTY(EditDefaultsOnly)
 	EInteractableType DefaultInteractableType;
-	UPROPERTY(EditInstanceOnly)
+	UPROPERTY(EditDefaultsOnly)
 	FText Name;	
-	UPROPERTY(EditInstanceOnly)
+	UPROPERTY(EditDefaultsOnly)
 	FText Action;	
-	UPROPERTY(EditInstanceOnly)
+	UPROPERTY(EditDefaultsOnly)
 	float InteractableDuration;	
 };
 

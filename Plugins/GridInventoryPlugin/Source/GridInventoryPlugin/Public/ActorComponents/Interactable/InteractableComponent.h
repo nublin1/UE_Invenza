@@ -28,7 +28,8 @@ public:
 	virtual void BeginInteract(UInteractionComponent* InteractionComponent);
 	virtual void EndInteract(UInteractionComponent* InteractionComponent);
 	virtual void Interact(UInteractionComponent* InteractionComponent);
-	
+
+	UPROPERTY(EditAnywhere,BlueprintReadWrite)
 	FInteractableData InteractableData;
 
 protected:

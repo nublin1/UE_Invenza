@@ -25,4 +25,5 @@ void UInteractionWidget::OnLostInteractable_Implementation( FInteractableData& N
 void UInteractionWidget::UpdateText(FInteractableData& NewInteractableData)
 {
 	NameText->SetText(NewInteractableData.Name);
+	ActionText->SetText(NewInteractableData.Action);
 }

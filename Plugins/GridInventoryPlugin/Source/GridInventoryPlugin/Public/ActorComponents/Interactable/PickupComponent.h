@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "InteractableComponent.h"
 #include "Components/ActorComponent.h"
-#include "Data/ItemDataStructures.h"
 #include "PickupComponent.generated.h"
 
 
@@ -40,12 +39,7 @@ public:
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
-	//====================================================================
-	UPROPERTY(VisibleAnywhere, Category = "Pickup | Components")
-	TObjectPtr<UStaticMeshComponent> PickupMesh;
-	UPROPERTY(VisibleAnywhere, Category = "Pickup | Components")
-	TObjectPtr<UBoxComponent> BoxCollider;
-	
+	//====================================================================	
 	UPROPERTY(EditAnywhere, Category = "Pickup | Item Initialization")
 	TObjectPtr<UDataTable>ItemDataTable;
 	UPROPERTY(EditAnywhere, Category = "Pickup | Item Initialization")
@@ -54,8 +48,7 @@ protected:
 	TObjectPtr<UItemBase> ItemBase;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Pickup | Item Reference")
 	int InitQuantity = 1;
-
-
+	
 	UPROPERTY()
 	bool bIsDebug = false;
 
@@ -64,8 +57,7 @@ protected:
 	//====================================================================
 	virtual void OnRegister() override;
 	virtual void BeginPlay() override;
-	
-	
+		
 	UFUNCTION()
 	void InitializePickupComponent();
 

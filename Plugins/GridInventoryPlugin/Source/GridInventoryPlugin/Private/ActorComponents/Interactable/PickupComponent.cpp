@@ -1,7 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "ActorComponents/PickupComponent.h"
+#include "ActorComponents/Interactable/PickupComponent.h"
 
 #include "ActorComponents/Items/itemBase.h"
 #include "Components/BoxComponent.h"
@@ -9,16 +9,14 @@
 
 UPickupComponent::UPickupComponent()
 {
-	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
-	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
-
 }
 
 void UPickupComponent::OnRegister()
 {
 	Super::OnRegister();
 	InitializePickupComponent();
+	UpdateInteractableData();
 }
 
 void UPickupComponent::BeginPlay()
@@ -28,17 +26,17 @@ void UPickupComponent::BeginPlay()
 
 void UPickupComponent::BeginFocus()
 {
-	if (PickupMesh)
+	if (auto StaticMesh = GetOwner()->FindComponentByClass<UStaticMeshComponent>())
 	{		
-		PickupMesh->SetRenderCustomDepth(true);
+		StaticMesh->SetRenderCustomDepth(true);
 	}
 }
 
 void UPickupComponent::EndFocus()
 {
-	if (PickupMesh)
+	if (auto StaticMesh = GetOwner()->FindComponentByClass<UStaticMeshComponent>())
 	{
-		PickupMesh->SetRenderCustomDepth(false);
+		StaticMesh->SetRenderCustomDepth(false);
 	}
 }
 
@@ -95,5 +93,6 @@ void UPickupComponent::UpdateInteractableData()
 {
 	Super::UpdateInteractableData();
 	InteractableData.DefaultInteractableType = EInteractableType::Pickup;
+	InteractableData.Action =  FText::FromString(TEXT("Pickup"));
 	
 }
