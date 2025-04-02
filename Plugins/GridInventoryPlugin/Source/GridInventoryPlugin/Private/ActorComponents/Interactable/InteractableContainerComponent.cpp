@@ -40,7 +40,6 @@ void UInteractableContainerComponent::Interact(UInteractionComponent* Interactio
 	if (ItemCollection->InitItems.Num()>0)
 	{
 		InitializeItemCollection();
-		return;
 	}
 
 	TArray<UUserWidget*> FoundWidgets;
@@ -52,9 +51,18 @@ void UInteractableContainerComponent::Interact(UInteractionComponent* Interactio
 			continue;
 		}
 
-		if (UBaseInventoryWidget* Container = Cast<UBaseInventoryWidget>(Widget))
+		UBaseInventoryWidget* Container = Cast<UBaseInventoryWidget>(Widget);
+		if (!Container)
+			continue;
+
+		if (Container->GetVisibility() == ESlateVisibility::Collapsed)
 		{
+			Container->SetVisibility(ESlateVisibility::Visible);
 			Container->ReDrawAllItems();
+		}
+		else
+		{
+			Container->SetVisibility(ESlateVisibility::Collapsed);
 		}
 	}
 }

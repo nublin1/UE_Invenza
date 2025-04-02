@@ -75,10 +75,10 @@ void UBaseInventoryWidget::InitSlots()
 		if (const UWidget* ChildWidget = SlotsGridPanel->GetChildAt(i))
 		{
 			const UUniformGridSlot* UniSlot = Cast<UUniformGridSlot>(ChildWidget->Slot);
-			if (UniSlot->GetRow() > NumberOfRows)
-				NumberOfRows = UniSlot->GetRow();
-			if (UniSlot->GetColumn() > NumberOfColumns)
-				NumberOfColumns = UniSlot->GetColumn();
+			if (UniSlot->GetRow() >= NumberOfRows)
+				NumberOfRows = UniSlot->GetRow() + 1;
+			if (UniSlot->GetColumn() >= NumberOfColumns)
+				NumberOfColumns = UniSlot->GetColumn() + 1;
 
 			NewInvSlots[i]->SetSlotPosition(FIntVector2( UniSlot->GetColumn(), UniSlot->GetRow()));
 		}
@@ -140,7 +140,22 @@ bool UBaseInventoryWidget::bIsSlotEmpty(const UBaseInventorySlot* SlotCheck)
 	return true;
 }
 
-void UBaseInventoryWidget::HandleRemoveItem(UItemBase* Item)
+void UBaseInventoryWidget::HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity)
+{
+	if (!Item) return;
+
+	Item->SetQuantity(Item->GetQuantity() - RemoveQuantity);
+	
+	auto Slots = GetItemMapping(Item);
+	if (Slots)
+		NotifyUpdateItem(Slots, Item);
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Unable to find occupied slots for item %s"), *Item->GetName());
+	}
+}
+
+void UBaseInventoryWidget::HandleRemoveItemFromContainer(UItemBase* Item)
 {
 	if (!Item) return;
 
@@ -160,6 +175,12 @@ void UBaseInventoryWidget::HandleRemoveItem(UItemBase* Item)
 
 FItemAddResult UBaseInventoryWidget::HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck)
 {
+	if(ItemMoveData.SourceInventory && !ItemMoveData.SourceInventory->GetCanReferenceItems() && bUseReferences)
+	{
+		return FItemAddResult::AddedNone(FText::Format(FText::FromString("Can't be added {0} of {1} to inventory"),
+												   0, ItemMoveData.SourceItem->GetItemRef().ItemTextData.Name));
+	}
+	
 	if (bUseReferences)
 		return HandleAddReferenceItem(ItemMoveData);
 
@@ -167,15 +188,39 @@ FItemAddResult UBaseInventoryWidget::HandleAddItem(FItemMoveData ItemMoveData, b
 		&& ItemMoveData.SourceInventory->GetIsUseReference()
 		&& ItemCollectionLink->HasItemInContainer(ItemMoveData.SourceItem, this))
 	{
-		return HandleSwapOrAddItems(ItemMoveData);
+		return HandleSwapOrAddItems(ItemMoveData, bOnlyCheck);
 	}
 	
-	if (ItemMoveData.SourceInventory
+	if (ItemMoveData.SourceInventory 
 		&& ItemMoveData.TargetInventory
-		&& ItemMoveData.SourceInventory == this
 		&& ItemMoveData.SourceItemPivotSlot)
 	{
-		return HandleSwapOrAddItems(ItemMoveData);
+		auto TargetItem = ItemCollectionLink->GetItemFromSlot(ItemMoveData.TargetSlot, this);
+		if (ItemMoveData.SourceInventory == ItemMoveData.TargetInventory)
+		{
+			if (TargetItem && TargetItem->IsStackable() && UItemBase::bIsSameitems(TargetItem, ItemMoveData.SourceItem))
+			{
+				return TryAddStackableItem(ItemMoveData, false);
+			}
+            
+			if (bIsSlotEmpty(ItemMoveData.TargetSlot))
+			{
+				ReplaceItem(ItemMoveData.SourceItem, ItemMoveData.TargetSlot);
+				return FItemAddResult::Swapped(0, false, FText::FromString("Item successfully moved to an empty slot."));
+			}
+            
+			ReplaceItem(ItemMoveData.SourceItem, ItemMoveData.TargetSlot);
+			ReplaceItem(TargetItem, ItemMoveData.SourceItemPivotSlot);
+            
+			return FItemAddResult::Swapped(0, false, FText::FromString("Items successfully swapped between slots."));
+		}
+		
+		if (TargetItem && TargetItem->IsStackable() && UItemBase::bIsSameitems(TargetItem, ItemMoveData.SourceItem))
+		{
+			return TryAddStackableItem(ItemMoveData, false);
+		}
+        
+		return HandleSwapOrAddItems(ItemMoveData, bOnlyCheck);
 	}
 	
 	// non-stack
@@ -206,7 +251,6 @@ FItemAddResult UBaseInventoryWidget::HandleAddItem(FItemMoveData ItemMoveData, b
 	// stack
 	return TryAddStackableItem(ItemMoveData, bOnlyCheck);
 }
-
 
 FItemAddResult UBaseInventoryWidget::HandleNonStackableItems(FItemMoveData& ItemMoveData, bool bOnlyCheck)
 {
@@ -318,16 +362,8 @@ int32 UBaseInventoryWidget::HandleStackableItems(FItemMoveData& ItemMoveData, in
 					Item->GetItemRef().ItemNumeraticData.MaxStackSize - Item->GetQuantity());
 				int32 ActualAmountToAdd = CalculateActualAmountToAdd(AmountToAddToStack);
 
-				Item->SetQuantity(Item->GetQuantity() + ActualAmountToAdd);
+				InsertToStackItem(Item, ActualAmountToAdd);
 				AmountToDistribute -= ActualAmountToAdd;
-
-				auto Slots = GetItemMapping(Item);
-				if (Slots)
-					NotifyUpdateItem(Slots, Item);
-				else
-				{
-					UE_LOG(LogTemp, Warning, TEXT("Unable to find occupied slots for item %s"), *Item->GetName());
-				}
 			}
 		}
 
@@ -390,14 +426,10 @@ int32 UBaseInventoryWidget::HandleStackableItems(FItemMoveData& ItemMoveData, in
 
 		if (bOnlyCheck && ActualAmountToAdd > 0)
 			return ActualAmountToAdd;
-
-		ItemFromSlot->SetQuantity(ItemFromSlot->GetQuantity() + ActualAmountToAdd);
+		
+		InsertToStackItem(ItemFromSlot, ActualAmountToAdd);
 		AmountToDistribute -= ActualAmountToAdd;
-
-		ItemMoveData.SourceItem->SetQuantity(ItemMoveData.SourceItem->GetQuantity() - ActualAmountToAdd);
-
-		auto Slots = GetItemMapping(ItemFromSlot);
-		NotifyUpdateItem(Slots, ItemFromSlot);
+		ItemMoveData.SourceInventory->HandleRemoveItem(ItemMoveData.SourceItem, ActualAmountToAdd);
 		return RequestedAddAmount - AmountToDistribute;
 	}
 }
@@ -433,33 +465,45 @@ FItemAddResult UBaseInventoryWidget::HandleAddReferenceItem(FItemMoveData& ItemM
 	}
 
 	
-	
 	return FItemAddResult::AddedNone(FText::Format(FText::FromString("Can't be added {0} of {1} to inventory"),
 												   1, ItemMoveData.SourceItem->GetItemRef().ItemTextData.Name));
 }
 
-FItemAddResult UBaseInventoryWidget::HandleSwapOrAddItems(FItemMoveData& ItemMoveData)
+FItemAddResult UBaseInventoryWidget::HandleSwapOrAddItems(FItemMoveData& ItemMoveData, bool bOnlyCheck)
 {
-	if (bIsSlotEmpty(ItemMoveData.TargetSlot))
-	{
-		ReplaceItem (ItemMoveData.SourceItem, ItemMoveData.TargetSlot);
-		return FItemAddResult::Swapped(0, false, FText::FromString("Item successfully moved to an empty slot."));
-	}
-
 	if (ItemMoveData.SourceInventory->bUseReferences)
 		return FItemAddResult::AddedNone(FText::Format(FText::FromString("Cannot add '{0}' to the inventory as references are enabled."),
 											   ItemMoveData.SourceItem->GetItemRef().ItemTextData.Name));
 
 	auto TarItem =ItemCollectionLink->GetItemFromSlot(ItemMoveData.TargetSlot, this);
-
-	if (!UItemBase::bIsSameitems(ItemMoveData.SourceItem, TarItem))
+	if (ItemMoveData.SourceInventory != this && TarItem)
 	{
-		ReplaceItem (ItemMoveData.SourceItem, ItemMoveData.TargetSlot);
-		ReplaceItem (TarItem, ItemMoveData.SourceItemPivotSlot);
+		if (bOnlyCheck)
+			return FItemAddResult::AddedAll(0, false, 
+			FText::FromString("Successfully added to inventory"));
+		
+		FItemMoveData ItemMoveData2;
+		ItemMoveData2.SourceInventory = this;
+		ItemMoveData2.TargetInventory = ItemMoveData.SourceInventory;
+		ItemMoveData2.SourceItem = TarItem;
+		ItemMoveData2.SourceItemPivotSlot = ItemMoveData.TargetSlot;
+		ItemMoveData2.TargetSlot = ItemMoveData.SourceItemPivotSlot;
+		
+		auto Result1 = HandleAddItem(ItemMoveData, true);
+		auto Result2 = ItemMoveData2.TargetInventory->HandleAddItem(ItemMoveData2, true);
+		if (Result1.OperationResult == EItemAddResult::IAR_AllItemAdded && Result2.OperationResult == EItemAddResult::IAR_AllItemAdded)
+		{
+			ItemMoveData.SourceInventory->HandleRemoveItemFromContainer(ItemMoveData.SourceItem);
+			HandleRemoveItemFromContainer(TarItem);
 
-		return FItemAddResult::Swapped(0, false, FText::FromString("Items successfully swapped between slots."));
+			HandleAddItem(ItemMoveData);
+			ItemMoveData2.TargetInventory->HandleAddItem(ItemMoveData2);
+			return FItemAddResult::Swapped(0, false, FText::FromString("Items successfully swapped between containers."));
+		}
+		return FItemAddResult::AddedNone(FText::FromString("Cannot be swapped between containers."));
 	}
-	
+
+
 	return TryAddStackableItem(ItemMoveData, false);
 }
 
@@ -502,6 +546,18 @@ void UBaseInventoryWidget::ReplaceItem(UItemBase* Item, UBaseInventorySlot* NewS
 	//UE_LOG(LogTemp, Warning, TEXT("ReplaceItem done!"))
 
 	ReplaceItemInPanel(*Mapping, Item);
+}
+
+void UBaseInventoryWidget::InsertToStackItem(UItemBase* Item, int32 AddQuantity)
+{
+	Item->SetQuantity(Item->GetQuantity() + AddQuantity);
+	auto Slots = GetItemMapping(Item);
+	if (Slots)
+		NotifyUpdateItem(Slots, Item);
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Unable to find occupied slots for item %s"), *Item->GetName());
+	}
 }
 
 FVector2D UBaseInventoryWidget::CalculateItemVisualPosition(FIntVector2 SlotPosition, FIntVector2 ItemSize) const
@@ -560,6 +616,8 @@ void UBaseInventoryWidget::UpdateSlotInPanel(FItemMapping* FromSlots, UItemBase*
 		return;
 
 	FromSlots->ItemVisualLinked->UpdateQuantityText(Item->GetQuantity());
+	FromSlots->ItemVisualLinked->UpdateItemName(Item->GetItemRef().ItemTextData.Name);
+	FromSlots->ItemVisualLinked->UpdateVisual(Item);
 }
 
 void UBaseInventoryWidget::RemoveItemFromPanel(FItemMapping* FromSlots, UItemBase* Item)
@@ -707,7 +765,7 @@ bool UBaseInventoryWidget::NativeOnDragOver(const FGeometry& InGeometry, const F
 	FVector2D ScreenCursorPos = InDragDropEvent.GetScreenSpacePosition();
 	FIntPoint GridPosition = CalculateGridPosition(InGeometry, ScreenCursorPos);
 	
-	if (GridPosition.X >= 0 && GridPosition.Y >= 0 && GridPosition.X<NumberOfRows && GridPosition.Y<NumberOfColumns)
+	if (GridPosition.X >= 0 && GridPosition.Y >= 0 && GridPosition.X<=NumberOfRows && GridPosition.Y<=NumberOfColumns)
 	{
 		//UE_LOG(LogTemp, Log, TEXT("Column: %d, Row: %d"), GridPosition.X, GridPosition.Y);
 	}
@@ -723,7 +781,7 @@ bool UBaseInventoryWidget::NativeOnDrop(const FGeometry& InGeometry, const FDrag
 	FVector2D ScreenCursorPos = InDragDropEvent.GetScreenSpacePosition();
 	FIntPoint GridPosition = CalculateGridPosition(InGeometry, ScreenCursorPos);
 	
-	if (GridPosition.X >= 0 && GridPosition.Y >= 0 && GridPosition.X<NumberOfRows && GridPosition.Y<NumberOfColumns)
+	if (GridPosition.X >= 0 && GridPosition.Y >= 0 && GridPosition.X<=NumberOfRows && GridPosition.Y<=NumberOfColumns)
 	{
 		auto DragOp = Cast<UItemDragDropOperation>(InOperation);
 		auto TargetSlot = GetSlotByPosition(FIntVector2(GridPosition.X, GridPosition.Y));
@@ -740,12 +798,12 @@ bool UBaseInventoryWidget::NativeOnDrop(const FGeometry& InGeometry, const FDrag
 			}
 			if (DragOp->ItemMoveData.SourceInventory->GetItemCollection() == DragOp->ItemMoveData.TargetInventory->GetItemCollection())
 			{
-				DragOp->ItemMoveData.SourceInventory->HandleRemoveItem(DragOp->ItemMoveData.SourceItem);
+				DragOp->ItemMoveData.SourceInventory->HandleRemoveItemFromContainer(DragOp->ItemMoveData.SourceItem);
 				break;
 			}
 			if (DragOp->ItemMoveData.SourceItem->GetQuantity()<= 0)
 			{
-				DragOp->ItemMoveData.SourceInventory->HandleRemoveItem(DragOp->ItemMoveData.SourceItem);
+				DragOp->ItemMoveData.SourceInventory->HandleRemoveItemFromContainer(DragOp->ItemMoveData.SourceItem);
 				break;
 			}
 			
@@ -757,7 +815,7 @@ bool UBaseInventoryWidget::NativeOnDrop(const FGeometry& InGeometry, const FDrag
 		case EItemAddResult::IAR_ItemSwapped:
 			if (DragOp->ItemMoveData.SourceInventory->bUseReferences && DragOp->ItemMoveData.SourceInventory != this)
 			{
-				DragOp->ItemMoveData.SourceInventory->HandleRemoveItem(DragOp->ItemMoveData.SourceItem);
+				DragOp->ItemMoveData.SourceInventory->HandleRemoveItemFromContainer(DragOp->ItemMoveData.SourceItem);
 			}
 			break;
 		}

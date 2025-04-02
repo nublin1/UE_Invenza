@@ -33,6 +33,9 @@ public:
     //====================================================================
     // FUNCTIONS
     //====================================================================
+	UFUNCTION(BlueprintCallable, Category = "Item|Factory")
+	UItemBase* DuplicateItem();
+	
     /** Returns whether the item is stackable */
     UFUNCTION(BlueprintCallable, Category = "Item|Properties")
     FORCEINLINE bool IsStackable() const { return ItemRef.ItemNumeraticData.MaxStackSize > 1; }
@@ -55,7 +58,7 @@ public:
 
     /** Get and set methods */
     FItemMetaData& GetItemRef() { return ItemRef; }
-    int32 GetQuantity() { return Quantity; }
+    int32 GetQuantity() const { return Quantity; }
     void SetItemRef(const FItemMetaData& NewItemRef) { this->ItemRef = NewItemRef; }
     void SetQuantity(int32 NewQuantity) { this->Quantity = NewQuantity; }
 

@@ -63,7 +63,7 @@ void UItemCollection::RemoveItemFromAllContainers(UItemBase* Item)
 	{
 		if (Mapping.BaseInventoryWidgetLink)
 		{
-			Mapping.BaseInventoryWidgetLink->HandleRemoveItem(Item);
+			Mapping.BaseInventoryWidgetLink->HandleRemoveItemFromContainer(Item);
 		}
 		else
 		{
@@ -141,7 +141,7 @@ TArray<TObjectPtr<UBaseInventorySlot>> UItemCollection::CollectOccupiedSlotsByCo
 	{
 		for (const FItemMapping& Mapping : Pair.Value)
 		{
-			if (Mapping.BaseInventoryWidgetLink == InContainer)
+			if (Mapping.BaseInventoryWidgetLink == InContainer && !Mapping.ItemSlots.IsEmpty())
 			{
 				OccupiedSlots.Append(Mapping.ItemSlots);
 			}

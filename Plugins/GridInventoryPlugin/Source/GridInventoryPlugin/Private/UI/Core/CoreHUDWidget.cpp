@@ -4,6 +4,7 @@
 
 #include "ActorComponents/InteractionComponent.h"
 #include "ActorComponents/ItemCollection.h"
+#include "ActorComponents/Items/itemBase.h"
 #include "DragDrop/ItemDragDropOperation.h"
 #include "UI/Inventory/BaseInventoryWidget.h"
 #include "UI/Layers/InventorySystemLayout.h"
@@ -27,13 +28,11 @@ void UCoreHUDWidget::ToggleInventoryMenu()
 		PlayerController->SetShowMouseCursor(true);
 		return;
 	}
-	else
-	{
-		HideInventoryMenu();
-		const FInputModeGameOnly InputMode;
-		PlayerController->SetInputMode(InputMode);
-		PlayerController->SetShowMouseCursor(false);
-	}	
+	
+	HideInventoryMenu();
+	const FInputModeGameOnly InputMode;
+	PlayerController->SetInputMode(InputMode);
+	PlayerController->SetShowMouseCursor(false);
 }
 
 void UCoreHUDWidget::DisplayInventoryMenu()
@@ -64,12 +63,14 @@ bool UCoreHUDWidget::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEv
 	auto DragOp = Cast<UItemDragDropOperation>(InOperation);
 	DragOp->ItemMoveData.SourceInventory->GetItemCollection()->RemoveItemFromAllContainers(DragOp->ItemMoveData.SourceItem);
 
+	auto Item = DragOp->ItemMoveData.SourceItem->DuplicateItem();
+
 	if (auto Pawn = GetOwningPlayerPawn())
 	{
 		auto Interaction = Pawn->FindComponentByClass<UInteractionComponent>();
 		if (!Interaction) return true;
 
-		Interaction->DropItem(DragOp->ItemMoveData.SourceItem);
+		Interaction->DropItem(Item);
 	}
 	
 	return true;

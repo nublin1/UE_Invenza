@@ -45,3 +45,14 @@ bool UItemBase::bIsSameitems(UItemBase* FirstItem, UItemBase* SecondItem)
 
 	return false;
 }
+
+UItemBase* UItemBase::DuplicateItem()
+{
+	UItemBase* NewItem = NewObject<UItemBase>();
+	if (NewItem)
+	{
+		NewItem->ItemRef = this->ItemRef;
+		NewItem->Quantity = this->Quantity;
+	}
+	return NewItem;
+}

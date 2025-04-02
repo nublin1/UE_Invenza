@@ -50,7 +50,9 @@ public:
 	virtual void ReDrawAllItems();
 
 	UFUNCTION(Category="Inventory")
-	virtual void HandleRemoveItem(UItemBase* Item);
+	virtual void HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity);
+	UFUNCTION(Category="Inventory")
+	virtual void HandleRemoveItemFromContainer(UItemBase* Item);
 	UFUNCTION(Category="Inventory")
 	virtual FItemAddResult HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck = false);
 
@@ -63,6 +65,8 @@ public:
 	FORCEINLINE float GetInventoryTotalWeight() const {return InventoryTotalWeight;}
 	UFUNCTION(Category="Inventory")
 	FORCEINLINE bool GetIsUseReference() const {return bUseReferences;}
+	UFUNCTION(Category="Inventory")
+	FORCEINLINE bool GetCanReferenceItems() const {return bCanReferenceItems;}
 
 	//Setters
 	FORCEINLINE void SetItemCollection(UItemCollection* _ItemCollection) {ItemCollectionLink = _ItemCollection;}
@@ -97,8 +101,10 @@ protected:
 	float InventoryWeightCapacity;
 	UPROPERTY()
 	FUISettings UISettings;
-	UPROPERTY(EditAnywhere)
-	bool bUseReferences = false;	
+	UPROPERTY(EditAnywhere, meta=(tooltip="If true this container will be used as reference."))
+	bool bUseReferences = false;
+	UPROPERTY(EditAnywhere, meta=(tooltip="Can the items be referenced from this container"))
+	bool bCanReferenceItems = false;
 
 	// DragDrop
 	TObjectPtr<UBaseInventorySlot> SelectedSlot = nullptr;
@@ -129,11 +135,13 @@ protected:
 	UFUNCTION()
 	virtual FItemAddResult HandleAddReferenceItem(FItemMoveData& ItemMoveData);
 	UFUNCTION()
-	virtual FItemAddResult HandleSwapOrAddItems(FItemMoveData& ItemMoveData);
+	virtual FItemAddResult HandleSwapOrAddItems(FItemMoveData& ItemMoveData,bool bOnlyCheck );
 	UFUNCTION()
 	virtual void AddNewItem(FItemMoveData& ItemMoveData, FItemMapping OccupiedSlots);
 	UFUNCTION()
 	virtual void ReplaceItem(UItemBase* Item, UBaseInventorySlot* NewSlot);
+	UFUNCTION()
+	virtual void InsertToStackItem(UItemBase* Item, int32 AddQuantity);
 
 	UFUNCTION()
 	FVector2D CalculateItemVisualPosition(FIntVector2 SlotPosition, FIntVector2 ItemSize) const;

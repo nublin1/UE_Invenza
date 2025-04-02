@@ -16,9 +16,7 @@ APickup::APickup()
 	BoxCollider = CreateDefaultSubobject<UBoxComponent>("BoxCollider");	
 	BoxCollider->SetHiddenInGame(false);
 	BoxCollider->AttachToComponent(PickupMesh, FAttachmentTransformRules::KeepRelativeTransform);
-
 }
-
 
 void APickup::PostInitializeComponents()
 {

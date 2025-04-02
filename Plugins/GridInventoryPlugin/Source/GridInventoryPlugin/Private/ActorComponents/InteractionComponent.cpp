@@ -37,12 +37,12 @@ void UInteractionComponent::InitInteractionComponent()
 		return;
 
 	CameraComponent = PlayerCharacter->FindComponentByClass<UCameraComponent>();
-
+	
 	UEnhancedInputComponent* Input = Cast<UEnhancedInputComponent>(GetOwner()->InputComponent);
 	if (!Input)
 		return;
 
-	Input->BindAction(InteractAction, ETriggerEvent::Triggered, this, &UInteractionComponent::BeginInteract);
+	Input->BindAction(InteractAction, ETriggerEvent::Started, this, &UInteractionComponent::BeginInteract);
 	Input->BindAction(InteractAction, ETriggerEvent::Completed, this, &UInteractionComponent::EndInteract);
 }
 
@@ -56,7 +56,7 @@ void UInteractionComponent::DropItem(UItemBase* ItemToDrop)
 
 	if (!RegularSettings.PickupClass)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Item to drop was somehow null"));
+		UE_LOG(LogTemp, Warning, TEXT("PickupClass was null"));
 		return;
 	}
 

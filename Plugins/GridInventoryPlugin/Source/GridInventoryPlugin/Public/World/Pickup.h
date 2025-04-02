@@ -37,6 +37,8 @@ protected:
 	//====================================================================
 	virtual void PostInitializeComponents() override;
 
+	UPROPERTY()
 	UStaticMeshComponent* PickupMesh;
+	UPROPERTY()
 	UBoxComponent* BoxCollider;
 };
