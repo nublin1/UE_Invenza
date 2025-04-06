@@ -43,6 +43,8 @@ struct FInteractableData
 	UPROPERTY(EditDefaultsOnly)
 	FText Action;	
 	UPROPERTY(EditDefaultsOnly)
-	float InteractableDuration;	
+	float InteractableDuration;
+	UPROPERTY(EditDefaultsOnly)
+	int32 Quantity;
 };
 

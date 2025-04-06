@@ -1,19 +1,17 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+//  Nublin Studio 2025 All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Settings/Settings.h"
 #include "UI/BaseUserWidget.h"
-#include "InventorySystemLayout.generated.h"
+#include "InvBaseContainerWidget.generated.h"
 
 class UBaseInventoryWidget;
-class UCanvasPanel;
 /**
  * 
  */
 UCLASS()
-class GRIDINVENTORYPLUGIN_API UInventorySystemLayout : public UBaseUserWidget
+class GRIDINVENTORYPLUGIN_API UInvBaseContainerWidget : public UBaseUserWidget
 {
 	GENERATED_BODY()
 
@@ -21,33 +19,27 @@ public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	
-	
+
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UInventorySystemLayout();
+	UInvBaseContainerWidget();
 
-	UBaseInventoryWidget* GetMainInventory() {return MainInventory;}
+	UFUNCTION(BlueprintCallable)
+	virtual UBaseInventoryWidget* GetInventoryFromContainerSlot();
 
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	// Widgets
-	UPROPERTY(meta=(BindWidget))
-	TObjectPtr<UCanvasPanel> ContentPanel;
-
-	//
-	TArray<TObjectPtr<UBaseInventoryWidget>> InventoryWidgets;
-	UPROPERTY()
-	TObjectPtr<UBaseInventoryWidget> MainInventory;
+	//Widgets
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = UI, meta=(BindWidgetOptional))
+	TObjectPtr<UNamedSlot> ContainerSlot;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = UI, meta=(BindWidgetOptional))
+	TObjectPtr<UNamedSlot> BottomSlot;
 	
+
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	virtual void NativeConstruct() override;
-	
-	UFUNCTION()
-	virtual void Init();
 };

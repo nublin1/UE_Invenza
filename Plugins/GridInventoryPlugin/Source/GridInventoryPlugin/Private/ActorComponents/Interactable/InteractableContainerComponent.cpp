@@ -7,6 +7,7 @@
 #include "ActorComponents/Items/itemBase.h"
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
+#include "UI/Container/InvBaseContainerWidget.h"
 #include "UI/Inventory/BaseInventoryWidget.h"
 
 UInteractableContainerComponent::UInteractableContainerComponent()
@@ -17,7 +18,7 @@ void UInteractableContainerComponent::BeginFocus()
 {
 	Super::BeginFocus();
 	if (auto StaticMesh = GetOwner()->FindComponentByClass<UStaticMeshComponent>())
-	{		
+	{
 		StaticMesh->SetRenderCustomDepth(true);
 	}
 }
@@ -34,36 +35,26 @@ void UInteractableContainerComponent::EndFocus()
 void UInteractableContainerComponent::Interact(UInteractionComponent* InteractionComponent)
 {
 	Super::Interact(InteractionComponent);
-	
-	if (!ItemCollection) return;
 
-	if (ItemCollection->InitItems.Num()>0)
+	if (!ItemCollection) return;
+	if (ItemCollection->InitItems.Num() > 0)
 	{
 		InitializeItemCollection();
 	}
 
-	TArray<UUserWidget*> FoundWidgets;
-	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(GetWorld(), FoundWidgets, UUserWidget::StaticClass(), false);
-	for (UUserWidget* Widget : FoundWidgets)
+	InventoryWidget = FindContainerWidget();
+	if (!InventoryWidget) return;
+	
+	if (bContainerIsOpen == false)
 	{
-		if (Widget->GetFName() != ContainerWidgetName)
-		{
-			continue;
-		}
-
-		UBaseInventoryWidget* Container = Cast<UBaseInventoryWidget>(Widget);
-		if (!Container)
-			continue;
-
-		if (Container->GetVisibility() == ESlateVisibility::Collapsed)
-		{
-			Container->SetVisibility(ESlateVisibility::Visible);
-			Container->ReDrawAllItems();
-		}
-		else
-		{
-			Container->SetVisibility(ESlateVisibility::Collapsed);
-		}
+		ContainerWidget->SetVisibility(ESlateVisibility::Visible);
+		InventoryWidget->ReDrawAllItems();
+		bContainerIsOpen = true;
+	}
+	else
+	{
+		ContainerWidget->SetVisibility(ESlateVisibility::Collapsed);
+		bContainerIsOpen = false;
 	}
 }
 
@@ -79,31 +70,24 @@ void UInteractableContainerComponent::InitializeContainerComponent()
 	UpdateInteractableData();
 }
 
-void UInteractableContainerComponent::InitializeItemCollection()
+void UInteractableContainerComponent::InitializeItemCollection() 
 {
 	if (!ItemCollection)
 	{
 		return;
 	}
 
-	TArray<UUserWidget*> FoundWidgets;
-	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(GetWorld(), FoundWidgets, UUserWidget::StaticClass(), false);
-	for (UUserWidget* Widget : FoundWidgets)
+	InventoryWidget = FindContainerWidget();
+	if (!InventoryWidget) return;
+	InventoryWidget->SetItemCollection(ItemCollection);
+	
+	for (const auto& Item : ItemCollection->InitItems)
 	{
-		if (Widget->GetFName() != ContainerWidgetName)
+		FItemMoveData ItemMoveData;
+		ItemMoveData.SourceItem = UItemBase::CreateFromDataTable(ItemCollection->ItemDataTable, Item.Key, Item.Value);
+		if (ItemMoveData.SourceItem)
 		{
-			continue;
-		}
-
-		if (UBaseInventoryWidget* Container = Cast<UBaseInventoryWidget>(Widget))
-		{
-			Container->SetItemCollection(ItemCollection);
-			for (const auto& Item : ItemCollection->InitItems)
-			{
-				FItemMoveData ItemMoveData;
-				ItemMoveData.SourceItem = UItemBase::CreateFromDataTable(ItemCollection->ItemDataTable, Item.Key, Item.Value);
-				Container->HandleAddItem(ItemMoveData);
-			}
+			InventoryWidget->HandleAddItem(ItemMoveData);
 		}
 	}
 	
@@ -113,7 +97,26 @@ void UInteractableContainerComponent::InitializeItemCollection()
 void UInteractableContainerComponent::UpdateInteractableData()
 {
 	Super::UpdateInteractableData();
-	
+
 	InteractableData.DefaultInteractableType = EInteractableType::Container;
-	InteractableData.Action =  FText::FromString(TEXT("Open"));
+	InteractableData.Action = FText::FromString(TEXT("Open"));
+	InteractableData.Quantity = -1;
+}
+
+UBaseInventoryWidget* UInteractableContainerComponent::FindContainerWidget()
+{
+	TArray<UUserWidget*> FoundWidgets;
+	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(GetWorld(), FoundWidgets, UInvBaseContainerWidget::StaticClass(), false);
+
+	for (UUserWidget* Widget : FoundWidgets)
+	{
+		if (Widget->GetFName() == ContainerWidgetName)
+		{
+			auto InvBaseContainerWidget = Cast<UInvBaseContainerWidget>(Widget);
+			ContainerWidget = InvBaseContainerWidget;
+			return InvBaseContainerWidget->GetInventoryFromContainerSlot();
+		}
+	}
+
+	return nullptr;
 }

@@ -10,6 +10,7 @@
 #include "BaseInventoryWidget.generated.h"
 
 #pragma region Delegates
+class UButton;
 class UItemCollection;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnItemUpdateDelegate, const FItemMapping&, ItemSlots, UItemBase*,
                                              Item);
@@ -80,11 +81,14 @@ protected:
 	UPROPERTY(meta=(BindWidgetOptional))
 	TObjectPtr<UScrollBox> ScrollBox;
 	UPROPERTY(meta=(BindWidget))
-	UUniformGridPanel* SlotsGridPanel;
+	TObjectPtr<UUniformGridPanel> SlotsGridPanel;
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UCanvasPanel> ItemsVisualsPanel;
 	UPROPERTY(meta=(BindWidgetOptional))
 	TObjectPtr<UTextBlock> WeightInfo;
+
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UButton> Button_TakeAll;
 
 	// Data
 	UPROPERTY()

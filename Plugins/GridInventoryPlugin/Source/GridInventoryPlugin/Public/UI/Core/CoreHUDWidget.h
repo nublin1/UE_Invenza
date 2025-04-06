@@ -8,6 +8,7 @@
 #include "UI/BaseUserWidget.h"
 #include "CoreHUDWidget.generated.h"
 
+class UInvBaseContainerWidget;
 class UInputAction;
 class UInventorySystemLayout;
 class UInteractionWidget;
@@ -30,16 +31,21 @@ public:
 	//====================================================================
 	UCoreHUDWidget();
 
+	UFUNCTION(BlueprintCallable)
+	void InitializeWidget();
+
 	//Inventory
 	UFUNCTION()
 	void ToggleInventoryMenu();
 	void DisplayInventoryMenu();
 	void HideInventoryMenu();
 	
-	
 	//Getters
 	UInteractionWidget* GetInteractionWidget() {return InteractionWidget;}
-	UInventorySystemLayout* GetInventorySystemLayout() {return InventorySystemLayout;} 
+	UInvBaseContainerWidget* GetMainInvWidget() {return MainInvWidget;}
+
+	//Setters
+	void SetUISettings(FUISettings NewUISettings) {UISettings = NewUISettings;}
 
 protected:
 	//====================================================================
@@ -50,11 +56,15 @@ protected:
 	TObjectPtr<UCanvasPanel> ContentPanel;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidgetOptional))
 	TObjectPtr<UInteractionWidget> InteractionWidget;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidgetOptional))
-	TObjectPtr<UInventorySystemLayout> InventorySystemLayout;
-
+	
+	//
+	UPROPERTY()
+	TObjectPtr<UInvBaseContainerWidget> MainInvWidget;
+	
 	//
 	bool bIsShowingInventoryMenu = false;
+	UPROPERTY(BlueprintReadWrite)
+	FUISettings UISettings;
 	
 	//====================================================================
 	// FUNCTIONS

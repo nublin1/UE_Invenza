@@ -30,15 +30,15 @@ protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	
+	UPROPERTY()
+	UStaticMeshComponent* PickupMesh;
+	UPROPERTY()
+	UBoxComponent* BoxCollider;
 
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
 	virtual void PostInitializeComponents() override;
 
-	UPROPERTY()
-	UStaticMeshComponent* PickupMesh;
-	UPROPERTY()
-	UBoxComponent* BoxCollider;
+
 };

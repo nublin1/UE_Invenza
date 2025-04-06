@@ -74,6 +74,8 @@ void UPickupComponent::InitializePickupComponent()
 		InitQuantity = ItemData->ItemMetaData.ItemNumeraticData.MaxStackSize;
 	}
 	ItemBase->SetQuantity(InitQuantity);
+	InteractableData.Quantity = InitQuantity;
+	InteractableData.Name = ItemBase->GetItemRef().ItemTextData.Name;
 
 	if (auto StaticMesh = GetOwner()->FindComponentByClass<UStaticMeshComponent>())
 	{

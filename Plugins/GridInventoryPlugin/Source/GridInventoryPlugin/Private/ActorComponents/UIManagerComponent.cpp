@@ -8,10 +8,10 @@
 #include "ActorComponents/Interactable/PickupComponent.h"
 #include "ActorComponents/Items/itemBase.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
+#include "UI/Container/InvBaseContainerWidget.h"
 #include "UI/Core/CoreHUDWidget.h"
 #include "UI/Interaction/InteractionWidget.h"
 #include "UI/Inventory/BaseInventoryWidget.h"
-#include "UI/Layers/InventorySystemLayout.h"
 
 
 // Sets default values for this component's properties
@@ -25,12 +25,12 @@ UUIManagerComponent::UUIManagerComponent(): ToggleMenuAction(nullptr)
 void UUIManagerComponent::BeginPlay()
 {
 	Super::BeginPlay();
+	
 }
 
 void UUIManagerComponent::BindEvents(AActor* TargetActor)
 {
 	if (!TargetActor) return;
-
 	
 	UInteractionComponent* InteractionComponent = TargetActor->FindComponentByClass<UInteractionComponent>();
 
@@ -57,23 +57,18 @@ void UUIManagerComponent::BindEvents(AActor* TargetActor)
 
 	UItemCollection* ItemCollection = TargetActor->FindComponentByClass<UItemCollection>();
 	if (!ItemCollection) return;
-
-	TArray<UUserWidget*> FoundWidgets;
-	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(GetWorld(), FoundWidgets, UBaseInventoryWidget::StaticClass(), false);
-	for (auto Widget : FoundWidgets)
+		
+	if (!CoreHUDWidget->GetMainInvWidget())
 	{
-		auto Container = Cast<UBaseInventoryWidget>(Widget);
-		Container->SetItemCollection(ItemCollection);
-		Container->SetUISettings(UISettings);
-		Container->InitializeInventory();
+		UE_LOG(LogTemp, Warning, TEXT("MainInv is not Found!"));
+		return;
 	}
-
-	auto MainInv = CoreHUDWidget->GetInventorySystemLayout()->GetMainInventory();
+	CoreHUDWidget->GetMainInvWidget()->GetInventoryFromContainerSlot()->SetItemCollection(ItemCollection);
 	for (auto Item : ItemCollection->InitItems)
 	{
 		FItemMoveData ItemMoveData;
 		ItemMoveData.SourceItem = UItemBase::CreateFromDataTable(ItemCollection->ItemDataTable, Item.Key, Item.Value);
-		MainInv->HandleAddItem(ItemMoveData);
+		CoreHUDWidget->GetMainInvWidget()->GetInventoryFromContainerSlot()->HandleAddItem(ItemMoveData);
 	}
 }
 
@@ -83,8 +78,8 @@ void UUIManagerComponent::UIIteract( UInteractableComponent* TargetInteractableC
 
 	if (auto* PickupComp = Cast<UPickupComponent>(TargetInteractableComponent))
 	{
-		auto Inv = CoreHUDWidget->GetInventorySystemLayout()->GetMainInventory();
-		auto Item =  PickupComp->GetItemBase();
+		auto Inv = CoreHUDWidget->GetMainInvWidget()->GetInventoryFromContainerSlot();
+		auto Item = PickupComp->GetItemBase();
 
 		if (!Inv)
 		{

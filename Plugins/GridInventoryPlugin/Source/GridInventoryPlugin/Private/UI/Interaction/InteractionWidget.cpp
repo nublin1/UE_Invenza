@@ -24,6 +24,25 @@ void UInteractionWidget::OnLostInteractable_Implementation( FInteractableData& N
 
 void UInteractionWidget::UpdateText(FInteractableData& NewInteractableData)
 {
-	NameText->SetText(NewInteractableData.Name);
 	ActionText->SetText(NewInteractableData.Action);
+	
+	if (NewInteractableData.Quantity >= 0)
+	{
+		QuantityText->SetText(FText::AsNumber(NewInteractableData.Quantity));
+		QuantityText->SetVisibility(ESlateVisibility::Visible );
+	}
+	else
+	{
+		QuantityText->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
+	if (!NewInteractableData.Name.IsEmpty())
+	{
+		NameText->SetText(NewInteractableData.Name);
+		NameText->SetVisibility(ESlateVisibility::Visible);
+	}
+	else
+	{
+		NameText->SetVisibility(ESlateVisibility::Collapsed);
+	}
 }

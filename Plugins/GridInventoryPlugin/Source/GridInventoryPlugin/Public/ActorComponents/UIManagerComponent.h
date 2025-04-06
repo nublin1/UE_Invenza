@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Settings/Settings.h"
+#include "UI/Container/InvBaseContainerWidget.h"
 #include "UIManagerComponent.generated.h"
 
 
@@ -45,6 +46,8 @@ protected:
 	FUISettings UISettings;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Settings")
 	FRegularSettings RegularSettings;
+
+	
 	
 	//====================================================================
 	// FUNCTIONS

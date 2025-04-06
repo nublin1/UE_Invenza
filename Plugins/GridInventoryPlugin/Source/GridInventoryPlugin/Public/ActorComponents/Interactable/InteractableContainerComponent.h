@@ -7,6 +7,7 @@
 #include "ActorComponents/Interactable/InteractableComponent.h"
 #include "InteractableContainerComponent.generated.h"
 
+class UInvBaseContainerWidget;
 /**
  * 
  */
@@ -39,6 +40,13 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UItemCollection> ItemCollection;
 
+	UPROPERTY()
+	TObjectPtr<UBaseInventoryWidget> InventoryWidget;
+	UPROPERTY()
+	TObjectPtr<UInvBaseContainerWidget> ContainerWidget;
+	UPROPERTY()
+	bool bContainerIsOpen = false;
+
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
@@ -46,8 +54,14 @@ protected:
 
 	UFUNCTION()
 	void InitializeContainerComponent();
+	UFUNCTION()
 	void InitializeItemCollection();
 
+	
 	virtual void UpdateInteractableData() override;
+	UFUNCTION()
+	virtual UBaseInventoryWidget* FindContainerWidget();
+
+	
 	
 };

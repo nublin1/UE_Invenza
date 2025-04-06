@@ -5,12 +5,32 @@
 #include "ActorComponents/InteractionComponent.h"
 #include "ActorComponents/ItemCollection.h"
 #include "ActorComponents/Items/itemBase.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
 #include "DragDrop/ItemDragDropOperation.h"
+#include "UI/Container/InvBaseContainerWidget.h"
 #include "UI/Inventory/BaseInventoryWidget.h"
-#include "UI/Layers/InventorySystemLayout.h"
 
 UCoreHUDWidget::UCoreHUDWidget()
 {
+}
+
+void UCoreHUDWidget::InitializeWidget()
+{
+	TArray<UUserWidget*> FoundWidgets;
+	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(GetWorld(), FoundWidgets, UInvBaseContainerWidget::StaticClass(), false);
+	for (auto Widget : FoundWidgets)
+	{
+		auto Inventory = Cast<UInvBaseContainerWidget>(Widget)->GetInventoryFromContainerSlot();
+		if (!Inventory) return;
+		
+		Inventory->SetUISettings(UISettings);
+		Inventory->InitializeInventory();
+
+		if (Widget->GetName() == UISettings.MainInvWidgetName)
+		{
+			MainInvWidget = Cast<UInvBaseContainerWidget>(Widget);
+		}
+	}
 }
 
 void UCoreHUDWidget::ToggleInventoryMenu()
@@ -37,19 +57,19 @@ void UCoreHUDWidget::ToggleInventoryMenu()
 
 void UCoreHUDWidget::DisplayInventoryMenu()
 {
-	if (!InventorySystemLayout)
+	if (!MainInvWidget)
 		return;
 
-	InventorySystemLayout->SetVisibility(ESlateVisibility::Visible);
+	MainInvWidget->SetVisibility(ESlateVisibility::Visible);
 	bIsShowingInventoryMenu = true;
 }
 
 void UCoreHUDWidget::HideInventoryMenu()
 {
-	if (!InventorySystemLayout)
+	if (!MainInvWidget)
 		return;
 
-	InventorySystemLayout->SetVisibility(ESlateVisibility::Collapsed);
+	MainInvWidget->SetVisibility(ESlateVisibility::Collapsed);
 	bIsShowingInventoryMenu = false;
 }
 
