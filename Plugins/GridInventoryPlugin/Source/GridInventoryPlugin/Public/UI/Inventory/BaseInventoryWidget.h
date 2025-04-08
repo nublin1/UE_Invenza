@@ -10,15 +10,16 @@
 #include "BaseInventoryWidget.generated.h"
 
 #pragma region Delegates
-class UButton;
-class UItemCollection;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnItemUpdateDelegate, const FItemMapping&, ItemSlots, UItemBase*,
                                              Item);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAddItemDelegate, FItemMapping, ItemSlots, UItemBase*, Item);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnRemoveItemDelegate, FItemMapping, ItemSlots, UItemBase*, Item);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUseItemDelegate, UBaseInventorySlot*, ItemSlot, UItemBase*, Item);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnWightUpdatedDelegate, float, InventoryTotalWeight, float, InventoryWeightCapacity);
 #pragma endregion Delegates
 
+class UButton;
+class UItemCollection;
 class UScrollBox;
 class UTextBlock;
 class UCanvasPanel;
@@ -38,6 +39,7 @@ public:
 	FOnAddItemDelegate OnAddItemDelegate;	
 	FOnRemoveItemDelegate OnRemoveItemDelegate;
 	FOnUseItemDelegate OnUseItemDelegate;
+	FOnWightUpdatedDelegate OnWightUpdatedDelegate;
 
 	
 	//====================================================================
@@ -84,8 +86,6 @@ protected:
 	TObjectPtr<UUniformGridPanel> SlotsGridPanel;
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UCanvasPanel> ItemsVisualsPanel;
-	UPROPERTY(meta=(BindWidgetOptional))
-	TObjectPtr<UTextBlock> WeightInfo;
 
 	UPROPERTY(meta=(BindWidgetOptional))
 	TObjectPtr<UButton> Button_TakeAll;

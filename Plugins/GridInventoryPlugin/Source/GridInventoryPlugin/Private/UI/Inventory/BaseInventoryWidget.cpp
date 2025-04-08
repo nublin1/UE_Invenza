@@ -630,28 +630,24 @@ void UBaseInventoryWidget::RemoveItemFromPanel(FItemMapping* FromSlots, UItemBas
 
 void UBaseInventoryWidget::UpdateWeightInfo()
 {
-	if (!WeightInfo)
-		return;
-
-	FString Text_WeightInfo;
-	InventoryTotalWeight = 0;
-	auto AllItems = ItemCollectionLink->GetAllItemsByContainer(this);
-	if (AllItems.IsEmpty())
+	if (OnWightUpdatedDelegate.IsBound() && ItemCollectionLink)
 	{
-		Text_WeightInfo = {" " + FString::SanitizeFloat(0) + "/" + FString::SanitizeFloat(InventoryWeightCapacity)};
-	}
-	else
-	{
-		for (auto Item : AllItems)
+		InventoryTotalWeight = 0;
+		auto AllItems = ItemCollectionLink->GetAllItemsByContainer(this);
+		if (AllItems.IsEmpty())
 		{
-			InventoryTotalWeight += Item->GetQuantity() * Item->GetItemSingleWeight();
+			OnWightUpdatedDelegate.Broadcast(0, InventoryWeightCapacity);
+		}
+		else
+		{
+			for (auto Item : AllItems)
+			{
+				InventoryTotalWeight += Item->GetQuantity() * Item->GetItemSingleWeight();
+			}
+
+			OnWightUpdatedDelegate.Broadcast(InventoryTotalWeight, InventoryWeightCapacity);
 		}
 	}
-
-	if (InventoryTotalWeight > 0)
-		Text_WeightInfo = {" " + FString::SanitizeFloat(InventoryTotalWeight) + "/" + FString::SanitizeFloat(InventoryWeightCapacity)};
-	
-	WeightInfo->SetText(FText::FromString(Text_WeightInfo));
 }
 
 void UBaseInventoryWidget::NotifyAddItem(FItemMapping& FromSlots, UItemBase* NewItem)

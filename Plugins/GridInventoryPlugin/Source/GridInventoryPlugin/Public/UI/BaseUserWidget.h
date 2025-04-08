@@ -13,6 +13,10 @@ UCLASS()
 class GRIDINVENTORYPLUGIN_API UBaseUserWidget : public UUserWidget
 {
 	GENERATED_BODY()
+	
+public:
+	UFUNCTION()
+	virtual void SetParentWidget(UBaseUserWidget* Parent) {ParentWidget = Parent;}
 
 protected:
 	UPROPERTY()

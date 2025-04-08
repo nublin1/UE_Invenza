@@ -8,6 +8,7 @@
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "DragDrop/ItemDragDropOperation.h"
 #include "UI/Container/InvBaseContainerWidget.h"
+#include "UI/Inrefaces/UDraggableWidgetInterface.h"
 #include "UI/Inventory/BaseInventoryWidget.h"
 
 UCoreHUDWidget::UCoreHUDWidget()
@@ -81,6 +82,13 @@ bool UCoreHUDWidget::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEv
 	if (!InOperation) return false;
 
 	auto DragOp = Cast<UItemDragDropOperation>(InOperation);
+	if (DragOp->Payload && DragOp->Payload->GetClass()->ImplementsInterface(UUDraggableWidgetInterface::StaticClass()))
+	{
+		return IUDraggableWidgetInterface::Execute_OnDropped(DragOp->Payload, InGeometry, DragOp->DragOffset);
+	}
+
+
+	
 	DragOp->ItemMoveData.SourceInventory->GetItemCollection()->RemoveItemFromAllContainers(DragOp->ItemMoveData.SourceItem);
 
 	auto Item = DragOp->ItemMoveData.SourceItem->DuplicateItem();

@@ -4,49 +4,47 @@
 
 #include "CoreMinimal.h"
 #include "UI/BaseUserWidget.h"
-#include "InvBaseContainerWidget.generated.h"
+#include "UI/Inrefaces/UDraggableWidgetInterface.h"
+#include "MovableTitleBar.generated.h"
 
-class UInvWeightWidget;
-class UBaseInventoryWidget;
+class UTextBlock;
 /**
  * 
  */
 UCLASS()
-class GRIDINVENTORYPLUGIN_API UInvBaseContainerWidget : public UBaseUserWidget
+class GRIDINVENTORYPLUGIN_API UMovableTitleBar : public UBaseUserWidget, public IUDraggableWidgetInterface
 {
 	GENERATED_BODY()
-
+	
 public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
+	//Widgets
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
+	TObjectPtr<UTextBlock> TitleName;
 
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UInvBaseContainerWidget();
-
-	UFUNCTION(BlueprintCallable)
-	virtual UBaseInventoryWidget* GetInventoryFromContainerSlot();
-
+	UMovableTitleBar();
+	
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	//Widgets
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = UI, meta=(BindWidgetOptional))
-	TObjectPtr<UNamedSlot> HeaderSlot;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = UI, meta=(BindWidgetOptional))
-	TObjectPtr<UNamedSlot> ContainerSlot;
-	UPROPERTY(meta=(BindWidgetOptional))
-	TObjectPtr<UInvWeightWidget> InvWeight;
-	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FText Title;
+
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+	virtual void NativePreConstruct() override;
 	virtual void NativeConstruct() override;
-	
-	UFUNCTION()
-	virtual void UpdateWeightInfo(float InventoryTotalWeight, float InventoryWeightCapacity);
+
+	virtual bool OnDropped_Implementation(const FGeometry& DropGeometry, FVector2D DragOffset) override;
+
+	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+	virtual void NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation) override;
 	
 };

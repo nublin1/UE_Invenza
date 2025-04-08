@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+//  Nublin Studio 2025 All Rights Reserved.
 
 #pragma once
 
@@ -19,7 +19,11 @@ public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
+	UPROPERTY(BlueprintReadWrite)
 	FItemMoveData ItemMoveData;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	FVector2D DragOffset;
 	
 	//====================================================================
 	// FUNCTIONS
@@ -31,9 +35,7 @@ protected:
 	//====================================================================
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TObjectPtr<UUserWidget> WidgetReference;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	FVector2D DragOffset;
+	
 	
 	//====================================================================
 	// FUNCTIONS

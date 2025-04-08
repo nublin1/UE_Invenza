@@ -4,49 +4,38 @@
 
 #include "CoreMinimal.h"
 #include "UI/BaseUserWidget.h"
-#include "InvBaseContainerWidget.generated.h"
+#include "InvWeightWidget.generated.h"
 
-class UInvWeightWidget;
-class UBaseInventoryWidget;
+class UTextBlock;
 /**
  * 
  */
 UCLASS()
-class GRIDINVENTORYPLUGIN_API UInvBaseContainerWidget : public UBaseUserWidget
+class GRIDINVENTORYPLUGIN_API UInvWeightWidget : public UBaseUserWidget
 {
 	GENERATED_BODY()
-
+	
 public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
+	// Widgets
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UTextBlock> WeightText;
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UTextBlock> WeightInfo;
 
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UInvBaseContainerWidget();
-
-	UFUNCTION(BlueprintCallable)
-	virtual UBaseInventoryWidget* GetInventoryFromContainerSlot();
-
+	UInvWeightWidget();
+	
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	//Widgets
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = UI, meta=(BindWidgetOptional))
-	TObjectPtr<UNamedSlot> HeaderSlot;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = UI, meta=(BindWidgetOptional))
-	TObjectPtr<UNamedSlot> ContainerSlot;
-	UPROPERTY(meta=(BindWidgetOptional))
-	TObjectPtr<UInvWeightWidget> InvWeight;
-	
+
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	virtual void NativeConstruct() override;
-	
-	UFUNCTION()
-	virtual void UpdateWeightInfo(float InventoryTotalWeight, float InventoryWeightCapacity);
-	
 };
