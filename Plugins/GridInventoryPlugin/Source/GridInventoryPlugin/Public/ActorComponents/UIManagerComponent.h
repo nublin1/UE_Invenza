@@ -29,6 +29,7 @@ public:
 	UUIManagerComponent();
 
 	FUISettings GetUISettings() {return UISettings;}
+	UCoreHUDWidget* GetCoreHUDWidget() {return CoreHUDWidget;}
 
 protected:
 	//====================================================================
@@ -36,7 +37,7 @@ protected:
 	//====================================================================
 	// Widgets
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = UI)
-	TObjectPtr<UCoreHUDWidget> CoreHUDWidget;
+	UCoreHUDWidget* CoreHUDWidget;
 	
 	//
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Settings")

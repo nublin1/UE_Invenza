@@ -6,6 +6,7 @@
 #include "UI/BaseUserWidget.h"
 #include "InvBaseContainerWidget.generated.h"
 
+class UUIManagerComponent;
 class UInvWeightWidget;
 class UBaseInventoryWidget;
 /**
@@ -20,6 +21,7 @@ public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
+	
 
 	//====================================================================
 	// FUNCTIONS
@@ -38,6 +40,8 @@ protected:
 	TObjectPtr<UNamedSlot> HeaderSlot;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = UI, meta=(BindWidgetOptional))
 	TObjectPtr<UNamedSlot> ContainerSlot;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = UI, meta=(BindWidgetOptional))
+	TObjectPtr<UNamedSlot> OperationsSlot;
 	UPROPERTY(meta=(BindWidgetOptional))
 	TObjectPtr<UInvWeightWidget> InvWeight;
 	
@@ -48,5 +52,14 @@ protected:
 	
 	UFUNCTION()
 	virtual void UpdateWeightInfo(float InventoryTotalWeight, float InventoryWeightCapacity);
+
+	UFUNCTION()
+	virtual void TakeAll();
+	UFUNCTION()
+	virtual void PlaceAll();
+	UFUNCTION()
+	void TransferAllItems(UBaseInventoryWidget* SourceInv, UBaseInventoryWidget* TargetInv);
+	UFUNCTION()
+	virtual void SortItems();
 	
 };

@@ -33,7 +33,7 @@ void UItemCollection::RemoveItem(UItemBase* Item, UBaseInventoryWidget* Containe
 		UE_LOG(LogTemp, Warning, TEXT("RemoveItem: Container is null."));
 		return;
 	}
-	TArray<FItemMapping>* Mappings = ItemLocations.Find(Item);
+	auto Mappings = ItemLocations.Find(Item);
 	if (!Mappings)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("RemoveItem: Item %s not found in ItemContainers."), *Item->GetName());
@@ -44,6 +44,10 @@ void UItemCollection::RemoveItem(UItemBase* Item, UBaseInventoryWidget* Containe
 	{
 		return Mapping.BaseInventoryWidgetLink == Container;
 	});
+
+	auto MappingsTwo = ItemLocations.Find(Item);
+	if (!MappingsTwo)
+		ItemLocations.Remove(Item);
 }
 
 void UItemCollection::RemoveItemFromAllContainers(UItemBase* Item)
@@ -59,8 +63,9 @@ void UItemCollection::RemoveItemFromAllContainers(UItemBase* Item)
 		UE_LOG(LogTemp, Warning, TEXT("RemoveItemFromAllContainers: Item %s not found in ItemLocations."), *Item->GetName());
 		return;
 	}
-	for (const FItemMapping& Mapping : *Mappings)
+	for (int32 i = 0; i < Mappings->Num(); ++i)
 	{
+		const FItemMapping& Mapping = (*Mappings)[i];
 		if (Mapping.BaseInventoryWidgetLink)
 		{
 			Mapping.BaseInventoryWidgetLink->HandleRemoveItemFromContainer(Item);
@@ -136,6 +141,9 @@ TArray<TObjectPtr<UBaseInventorySlot>> UItemCollection::CollectOccupiedSlotsByCo
 		UE_LOG(LogTemp, Warning, TEXT("GetOccupiedSlotsForContainer: TargetContainer is null."));
 		return OccupiedSlots;
 	}
+	
+	if (ItemLocations.IsEmpty())
+		return OccupiedSlots;
 
 	for (const auto& Pair : ItemLocations)
 	{

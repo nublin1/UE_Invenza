@@ -42,7 +42,7 @@ public:
 	
 	//Getters
 	UInteractionWidget* GetInteractionWidget() {return InteractionWidget;}
-	UInvBaseContainerWidget* GetMainInvWidget() {return MainInvWidget;}
+	UInvBaseContainerWidget* GetMainInvWidget() {return MainInvWidget.Get();}
 
 	//Setters
 	void SetUISettings(FUISettings NewUISettings) {UISettings = NewUISettings;}

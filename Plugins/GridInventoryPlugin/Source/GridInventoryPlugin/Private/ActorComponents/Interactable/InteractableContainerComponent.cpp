@@ -37,10 +37,7 @@ void UInteractableContainerComponent::Interact(UInteractionComponent* Interactio
 	Super::Interact(InteractionComponent);
 
 	if (!ItemCollection) return;
-	if (ItemCollection->InitItems.Num() > 0)
-	{
-		InitializeItemCollection();
-	}
+	InitializeItemCollection();	
 
 	InventoryWidget = FindContainerWidget();
 	if (!InventoryWidget) return;
@@ -72,19 +69,17 @@ void UInteractableContainerComponent::InitializeContainerComponent()
 
 void UInteractableContainerComponent::InitializeItemCollection() 
 {
-	if (!ItemCollection)
-	{
-		return;
-	}
-
 	InventoryWidget = FindContainerWidget();
 	if (!InventoryWidget) return;
 	InventoryWidget->SetItemCollection(ItemCollection);
+
+	if (ItemCollection->InitItems.IsEmpty())
+		return;
 	
 	for (const auto& Item : ItemCollection->InitItems)
 	{
 		FItemMoveData ItemMoveData;
-		ItemMoveData.SourceItem = UItemBase::CreateFromDataTable(ItemCollection->ItemDataTable, Item.Key, Item.Value);
+		ItemMoveData.SourceItem = UItemBase::CreateFromDataTable(ItemCollection->ItemDataTable, Item.ItemName, Item.ItemCount);
 		if (ItemMoveData.SourceItem)
 		{
 			InventoryWidget->HandleAddItem(ItemMoveData);

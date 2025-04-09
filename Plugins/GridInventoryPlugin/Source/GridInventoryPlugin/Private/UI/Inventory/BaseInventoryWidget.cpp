@@ -153,6 +153,10 @@ void UBaseInventoryWidget::HandleRemoveItem(UItemBase* Item, int32 RemoveQuantit
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Unable to find occupied slots for item %s"), *Item->GetName());
 	}
+	
+
+	if (Item->GetQuantity() <=0)
+		ItemCollectionLink->RemoveItemFromAllContainers(Item);
 }
 
 void UBaseInventoryWidget::HandleRemoveItemFromContainer(UItemBase* Item)
@@ -175,6 +179,12 @@ void UBaseInventoryWidget::HandleRemoveItemFromContainer(UItemBase* Item)
 
 FItemAddResult UBaseInventoryWidget::HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck)
 {
+	//UE_LOG(LogTemp, Warning, TEXT("item Name is %s"), *ItemMoveData.SourceItem->GetName());
+	//UE_LOG(LogTemp, Warning, TEXT("ItemCollectionLink number is %i"), ItemCollectionLink->GetItemLocations().Num());
+	
+	if (ItemMoveData.SourceItem->GetQuantity() <= 0)
+		UE_LOG(LogTemp, Warning, TEXT("item Quantity is %i"), ItemMoveData.SourceItem->GetQuantity());
+	
 	if(ItemMoveData.SourceInventory && !ItemMoveData.SourceInventory->GetCanReferenceItems() && bUseReferences)
 	{
 		return FItemAddResult::AddedNone(FText::Format(FText::FromString("Can't be added {0} of {1} to inventory"),
@@ -394,8 +404,7 @@ int32 UBaseInventoryWidget::HandleStackableItems(FItemMoveData& ItemMoveData, in
 		NewItemMoveData.SourceItem->SetQuantity(ActualAmountToAdd);
 		
 		AddNewItem(NewItemMoveData, Slots);
-		ItemMoveData.SourceItem->SetQuantity(ItemMoveData.SourceItem->GetQuantity() - ActualAmountToAdd);
-		return RequestedAddAmount - AmountToDistribute;
+		return ActualAmountToAdd;
 	}
 
 	if (bIsSlotEmpty(ItemMoveData.TargetSlot))
@@ -410,7 +419,6 @@ int32 UBaseInventoryWidget::HandleStackableItems(FItemMoveData& ItemMoveData, in
 		NewItemMoveData.SourceItem->SetQuantity(ActualAmountToAdd);
 		
 		AddNewItem(NewItemMoveData, Slots);
-		ItemMoveData.SourceItem->SetQuantity(ItemMoveData.SourceItem->GetQuantity() - ActualAmountToAdd);
 		return ActualAmountToAdd;
 	}
 	else

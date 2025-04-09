@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Containers/Map.h"
+#include "Items/itemBase.h"
 #include "ItemCollection.generated.h"
 
 
@@ -28,7 +30,7 @@ public:
 
 	/** Map of initial items with their quantities */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item Collection|Config")
-	TMap<FName, int32> InitItems;
+	TArray<FItemEntry> InitItems;
 	
 	//====================================================================
 	// FUNCTIONS

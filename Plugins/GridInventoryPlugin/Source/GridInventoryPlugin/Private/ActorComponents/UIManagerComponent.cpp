@@ -7,7 +7,6 @@
 #include "ActorComponents/ItemCollection.h"
 #include "ActorComponents/Interactable/PickupComponent.h"
 #include "ActorComponents/Items/itemBase.h"
-#include "Blueprint/WidgetBlueprintLibrary.h"
 #include "UI/Container/InvBaseContainerWidget.h"
 #include "UI/Core/CoreHUDWidget.h"
 #include "UI/Interaction/InteractionWidget.h"
@@ -15,7 +14,7 @@
 
 
 // Sets default values for this component's properties
-UUIManagerComponent::UUIManagerComponent(): ToggleMenuAction(nullptr)
+UUIManagerComponent::UUIManagerComponent(): CoreHUDWidget(nullptr), ToggleMenuAction(nullptr)
 {
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
@@ -67,7 +66,7 @@ void UUIManagerComponent::BindEvents(AActor* TargetActor)
 	for (auto Item : ItemCollection->InitItems)
 	{
 		FItemMoveData ItemMoveData;
-		ItemMoveData.SourceItem = UItemBase::CreateFromDataTable(ItemCollection->ItemDataTable, Item.Key, Item.Value);
+		ItemMoveData.SourceItem = UItemBase::CreateFromDataTable(ItemCollection->ItemDataTable, Item.ItemName, Item.ItemCount);
 		CoreHUDWidget->GetMainInvWidget()->GetInventoryFromContainerSlot()->HandleAddItem(ItemMoveData);
 	}
 }
@@ -109,7 +108,7 @@ void UUIManagerComponent::InitializeMenuBindings()
 		if (!Input)
 			return;
 
-		Input->BindAction(ToggleMenuAction, ETriggerEvent::Started, CoreHUDWidget.Get(), &UCoreHUDWidget::ToggleInventoryMenu);
+		Input->BindAction(ToggleMenuAction, ETriggerEvent::Started, CoreHUDWidget, &UCoreHUDWidget::ToggleInventoryMenu);
 	}
 
 	

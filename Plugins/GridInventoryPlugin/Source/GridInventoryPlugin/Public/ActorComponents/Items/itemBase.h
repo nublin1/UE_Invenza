@@ -7,6 +7,18 @@
 #include "UObject/Object.h"
 #include "itemBase.generated.h"
 
+USTRUCT(BlueprintType)
+struct FItemEntry
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName ItemName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 ItemCount;
+};
+
 /**
  * Base class for inventory items
  */
