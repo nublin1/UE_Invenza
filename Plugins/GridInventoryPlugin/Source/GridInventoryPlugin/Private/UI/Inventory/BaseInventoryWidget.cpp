@@ -568,7 +568,7 @@ void UBaseInventoryWidget::InsertToStackItem(UItemBase* Item, int32 AddQuantity)
 	}
 }
 
-FVector2D UBaseInventoryWidget::CalculateItemVisualPosition(FIntVector2 SlotPosition, FIntVector2 ItemSize) const
+FVector2D UBaseInventoryWidget::CalculateItemVisualPosition(FIntVector2 SlotPosition) const
 {
 	float X = SlotPosition.X * UISettings.SlotSize.X;
 	float Y = SlotPosition.Y * UISettings.SlotSize.Y;
@@ -581,7 +581,7 @@ void UBaseInventoryWidget::AddItemToPanel( UItemBase* Item)
 	auto Slots = GetItemMapping(Item);
 
 	const UBaseInventorySlot* ItemPivotSlot =Slots->ItemSlots[0];
-	const FVector2D VisualPosition = CalculateItemVisualPosition(ItemPivotSlot->GetSlotPosition(), Item->GetOccupiedSlots());
+	const FVector2D VisualPosition = CalculateItemVisualPosition(ItemPivotSlot->GetSlotPosition());
 
 	if (!UISettings.InventoryItemVisualClass)
 	{
@@ -610,7 +610,7 @@ void UBaseInventoryWidget::ReplaceItemInPanel(FItemMapping& FromSlots, UItemBase
 	if (!FromSlots.ItemVisualLinked) return;
 
 	const UBaseInventorySlot* ItemPivotSlot =FromSlots.ItemSlots[0];
-	const FVector2D VisualPosition = CalculateItemVisualPosition(ItemPivotSlot->GetSlotPosition(), Item->GetOccupiedSlots());
+	const FVector2D VisualPosition = CalculateItemVisualPosition(ItemPivotSlot->GetSlotPosition());
 
 	UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(FromSlots.ItemVisualLinked->Slot);
 	if (!CanvasSlot) return;
@@ -683,6 +683,27 @@ void UBaseInventoryWidget::NotifyRemoveItem(FItemMapping& FromSlots, UItemBase* 
 {
 	RemoveItemFromPanel(&FromSlots, RemovedItem);
 	OnRemoveItemDelegate.Broadcast(FromSlots, RemovedItem);
+}
+
+void UBaseInventoryWidget::CreateHighlightWidget()
+{
+	if (!UISettings.HighlightSlotWidgetClass)
+	{
+		UE_LOG(LogTemp, Log, TEXT("HighlightSlotWidgetClass is null"));
+		return;
+	}
+
+	if (!HighlightVisualsPanel)
+		return;
+
+	HighlightWidgetPreview = CreateWidget<UInventoryItemWidget>(this, UISettings.HighlightSlotWidgetClass);
+	auto CanvasSlot = HighlightVisualsPanel->AddChild(HighlightWidgetPreview);
+	if (!CanvasSlot)
+	{
+		return;
+	}
+
+	HighlightWidgetPreview->SetVisibility(ESlateVisibility::Hidden);
 }
 
 FIntPoint UBaseInventoryWidget::CalculateGridPosition(const FGeometry& Geometry, const FVector2D& ScreenCursorPos) const
@@ -759,7 +780,30 @@ void UBaseInventoryWidget::NativeOnDragDetected(const FGeometry& InGeometry, con
 	TimerManager.SetTimer(TimerHandle, TimerDelegate, 0.125f, false);
 
 	OutOperation = DragItemDragDropOperation;
+
+	if (!HighlightWidgetPreview)
+		CreateHighlightWidget();
+	HighlightWidgetPreview->SetVisibility(ESlateVisibility::Visible);
 }
+
+void UBaseInventoryWidget::NativeOnDragEnter(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent,
+	UDragDropOperation* InOperation)
+{
+	Super::NativeOnDragEnter(InGeometry, InDragDropEvent, InOperation);
+
+	if (!HighlightWidgetPreview)
+		CreateHighlightWidget();
+	HighlightWidgetPreview->SetVisibility(ESlateVisibility::Visible);
+}
+
+void UBaseInventoryWidget::NativeOnDragLeave(const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
+{
+	Super::NativeOnDragLeave(InDragDropEvent, InOperation);
+
+	if (HighlightWidgetPreview)
+		HighlightWidgetPreview->SetVisibility(ESlateVisibility::Hidden);
+}
+
 
 bool UBaseInventoryWidget::NativeOnDragOver(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent,
                                             UDragDropOperation* InOperation)
@@ -772,6 +816,14 @@ bool UBaseInventoryWidget::NativeOnDragOver(const FGeometry& InGeometry, const F
 	if (GridPosition.X >= 0 && GridPosition.Y >= 0 && GridPosition.X<=NumberOfRows && GridPosition.Y<=NumberOfColumns)
 	{
 		//UE_LOG(LogTemp, Log, TEXT("Column: %d, Row: %d"), GridPosition.X, GridPosition.Y);
+
+		if (HighlightWidgetPreview)
+		{
+			const FVector2D VisualPosition = CalculateItemVisualPosition(FIntVector2(GridPosition.X, GridPosition.Y));
+			UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(HighlightWidgetPreview->Slot);
+			CanvasSlot->SetSize(FVector2D(UISettings.SlotSize.X * 1, UISettings.SlotSize.Y *  1));
+			CanvasSlot->SetPosition(VisualPosition);
+		}
 	}
 	
 	return Super::NativeOnDragOver(InGeometry, InDragDropEvent, InOperation);

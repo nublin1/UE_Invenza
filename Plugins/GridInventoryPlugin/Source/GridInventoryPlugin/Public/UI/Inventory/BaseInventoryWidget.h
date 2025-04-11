@@ -86,6 +86,8 @@ protected:
 	TObjectPtr<UUniformGridPanel> SlotsGridPanel;
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UCanvasPanel> ItemsVisualsPanel;
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UCanvasPanel> HighlightVisualsPanel;
 
 	UPROPERTY(meta=(BindWidgetOptional))
 	TObjectPtr<UButton> Button_TakeAll;
@@ -112,6 +114,7 @@ protected:
 
 	// DragDrop
 	TObjectPtr<UBaseInventorySlot> SelectedSlot = nullptr;
+	TObjectPtr<UInventoryItemWidget> HighlightWidgetPreview = nullptr;
 	
 	
 	//====================================================================
@@ -148,7 +151,7 @@ protected:
 	virtual void InsertToStackItem(UItemBase* Item, int32 AddQuantity);
 
 	UFUNCTION()
-	FVector2D CalculateItemVisualPosition(FIntVector2 SlotPosition, FIntVector2 ItemSize) const;
+	FVector2D CalculateItemVisualPosition(FIntVector2 SlotPosition) const;
 	
 	virtual void AddItemToPanel(UItemBase* Item);
 	virtual void ReplaceItemInPanel(FItemMapping& FromSlots, UItemBase* Item);	
@@ -164,9 +167,13 @@ protected:
 	//void NotifyUseSlot(UBaseInventorySlot* FromSlot);
 
 	UFUNCTION()
+	virtual void CreateHighlightWidget();
+	UFUNCTION()
 	virtual FIntPoint CalculateGridPosition(const FGeometry& Geometry, const FVector2D& ScreenCursorPos) const;
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	virtual void NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation) override;
+	virtual void NativeOnDragEnter(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
+	virtual void NativeOnDragLeave(const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 	virtual bool NativeOnDragOver(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 	virtual bool NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 	

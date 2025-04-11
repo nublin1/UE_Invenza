@@ -60,9 +60,9 @@ void UInvBaseContainerWidget::NativeConstruct()
 	{
 		if (auto OperationsWidget = Cast<UOperationPanelWidget>(OperationsSlot->GetChildAt(0)))
 		{
-			OperationsWidget->Button_TakeAll->OnClicked.AddDynamic(this, &UInvBaseContainerWidget::TakeAll);
-			OperationsWidget->Button_PlaceAll->OnClicked.AddDynamic(this, &UInvBaseContainerWidget::PlaceAll);
-			OperationsWidget->Button_Sort->OnClicked.AddDynamic(this, &UInvBaseContainerWidget::SortItems);
+			if (OperationsWidget->Button_TakeAll) OperationsWidget->Button_TakeAll->OnClicked.AddDynamic(this, &UInvBaseContainerWidget::TakeAll);
+			if (OperationsWidget->Button_PlaceAll) OperationsWidget->Button_PlaceAll->OnClicked.AddDynamic(this, &UInvBaseContainerWidget::PlaceAll);
+			if (OperationsWidget->Button_Sort) OperationsWidget->Button_Sort->OnClicked.AddDynamic(this, &UInvBaseContainerWidget::SortItems);
 		}
 	}
 }

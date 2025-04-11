@@ -16,6 +16,8 @@ struct FUISettings
 	TSubclassOf<UInventoryItemWidget> InventoryItemVisualClass;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TSubclassOf<UInventoryItemWidget> DraggedWidgetClass;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TSubclassOf<UInventoryItemWidget> HighlightSlotWidgetClass;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FName MainInvWidgetName;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
