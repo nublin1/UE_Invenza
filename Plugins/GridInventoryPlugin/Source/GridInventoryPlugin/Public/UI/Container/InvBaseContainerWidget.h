@@ -8,7 +8,7 @@
 
 class UUIManagerComponent;
 class UInvWeightWidget;
-class UBaseInventoryWidget;
+class USlotbasedInventoryWidget;
 /**
  * 
  */
@@ -29,7 +29,7 @@ public:
 	UInvBaseContainerWidget();
 
 	UFUNCTION(BlueprintCallable)
-	virtual UBaseInventoryWidget* GetInventoryFromContainerSlot();
+	virtual USlotbasedInventoryWidget* GetInventoryFromContainerSlot();
 
 protected:
 	//====================================================================
@@ -58,7 +58,7 @@ protected:
 	UFUNCTION()
 	virtual void PlaceAll();
 	UFUNCTION()
-	void TransferAllItems(UBaseInventoryWidget* SourceInv, UBaseInventoryWidget* TargetInv);
+	void TransferAllItems(USlotbasedInventoryWidget* SourceInv, USlotbasedInventoryWidget* TargetInv);
 	UFUNCTION()
 	virtual void SortItems();
 	

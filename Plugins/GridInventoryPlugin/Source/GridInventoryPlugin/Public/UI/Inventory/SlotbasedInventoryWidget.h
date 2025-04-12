@@ -4,19 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "InventoryTypes.h"
+#include "UInventoryWidgetBase.h"
 #include "Components/ActorComponent.h"
 #include "Settings/Settings.h"
 #include "UI/BaseUserWidget.h"
-#include "BaseInventoryWidget.generated.h"
-
-#pragma region Delegates
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnItemUpdateDelegate, const FItemMapping&, ItemSlots, UItemBase*,
-                                             Item);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAddItemDelegate, FItemMapping, ItemSlots, UItemBase*, Item);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnRemoveItemDelegate, FItemMapping, ItemSlots, UItemBase*, Item);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUseItemDelegate, UBaseInventorySlot*, ItemSlot, UItemBase*, Item);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnWightUpdatedDelegate, float, InventoryTotalWeight, float, InventoryWeightCapacity);
-#pragma endregion Delegates
+#include "SlotbasedInventoryWidget.generated.h"
 
 class UButton;
 class UItemCollection;
@@ -24,10 +16,11 @@ class UScrollBox;
 class UTextBlock;
 class UCanvasPanel;
 class UUniformGridPanel;
-class UBaseInventorySlot;
+class USlotbasedInventorySlot;
+class UHighlightSlotWidget;
 
 UCLASS()
-class GRIDINVENTORYPLUGIN_API UBaseInventoryWidget : public UBaseUserWidget
+class GRIDINVENTORYPLUGIN_API USlotbasedInventoryWidget : public UUInventoryWidgetBase
 {
 	GENERATED_BODY()
 
@@ -35,41 +28,30 @@ public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	FOnItemUpdateDelegate OnItemUpdateDelegate;
-	FOnAddItemDelegate OnAddItemDelegate;	
-	FOnRemoveItemDelegate OnRemoveItemDelegate;
-	FOnUseItemDelegate OnUseItemDelegate;
-	FOnWightUpdatedDelegate OnWightUpdatedDelegate;
-
+	
 	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UBaseInventoryWidget();
+	USlotbasedInventoryWidget();
 	
 	UFUNCTION(Category="Inventory")
 	void InitializeInventory();
 	UFUNCTION(Category="Inventory")
 	virtual void ReDrawAllItems();
 
-	UFUNCTION(Category="Inventory")
-	virtual void HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity);
-	UFUNCTION(Category="Inventory")
-	virtual void HandleRemoveItemFromContainer(UItemBase* Item);
-	UFUNCTION(Category="Inventory")
-	virtual FItemAddResult HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck = false);
+	
+	virtual void HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity) override;	
+	virtual void HandleRemoveItemFromContainer(UItemBase* Item) override;	
+	virtual FItemAddResult HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck = false) override;
 
 	//
-	UFUNCTION(Category="Inventory")
-	FORCEINLINE UItemCollection* GetItemCollection() {return ItemCollectionLink;}
 	UFUNCTION(Category="Inventory")
 	FORCEINLINE float GetWeightCapacity() const {return InventoryWeightCapacity;}
 	UFUNCTION(Category="Inventory")
 	FORCEINLINE float GetInventoryTotalWeight() const {return InventoryTotalWeight;}
 	UFUNCTION(Category="Inventory")
 	FORCEINLINE bool GetIsUseReference() const {return bUseReferences;}
-	UFUNCTION(Category="Inventory")
-	FORCEINLINE bool GetCanReferenceItems() const {return bCanReferenceItems;}
 
 	//Setters
 	FORCEINLINE void SetItemCollection(UItemCollection* _ItemCollection) {ItemCollectionLink = _ItemCollection;}
@@ -93,10 +75,8 @@ protected:
 	TObjectPtr<UButton> Button_TakeAll;
 
 	// Data
-	UPROPERTY()
-	TObjectPtr<UItemCollection> ItemCollectionLink;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	TArray<TObjectPtr<UBaseInventorySlot>> InventorySlots;
+	TArray<TObjectPtr<USlotbasedInventorySlot>> InventorySlots;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
 	float InventoryTotalWeight = 0;
 	int NumberOfRows = 0;
@@ -107,14 +87,11 @@ protected:
 	float InventoryWeightCapacity;
 	UPROPERTY()
 	FUISettings UISettings;
-	UPROPERTY(EditAnywhere, meta=(tooltip="If true this container will be used as reference."))
-	bool bUseReferences = false;
-	UPROPERTY(EditAnywhere, meta=(tooltip="Can the items be referenced from this container"))
-	bool bCanReferenceItems = false;
+	
 
 	// DragDrop
-	TObjectPtr<UBaseInventorySlot> SelectedSlot = nullptr;
-	TObjectPtr<UInventoryItemWidget> HighlightWidgetPreview = nullptr;
+	TObjectPtr<USlotbasedInventorySlot> SelectedSlot = nullptr;
+	TObjectPtr<UHighlightSlotWidget> HighlightWidgetPreview = nullptr;
 	
 	
 	//====================================================================
@@ -128,9 +105,9 @@ protected:
 	virtual void HandleVisibilityChanged(ESlateVisibility NewVisibility);
 	
 	virtual FItemMapping* GetItemMapping(UItemBase* Item);
-	virtual UBaseInventorySlot* GetSlotByPosition(FIntVector2 SlotPosition);
+	virtual USlotbasedInventorySlot* GetSlotByPosition(FIntVector2 SlotPosition);
 	virtual bool bIsSlotEmpty(const FIntVector2 SlotPosition);
-	virtual bool bIsSlotEmpty(const UBaseInventorySlot* SlotCheck);
+	virtual bool bIsSlotEmpty(const USlotbasedInventorySlot* SlotCheck);
 
 	UFUNCTION()
 	virtual FItemAddResult HandleNonStackableItems(FItemMoveData& ItemMoveData, bool bOnlyCheck = false);
@@ -146,7 +123,7 @@ protected:
 	UFUNCTION()
 	virtual void AddNewItem(FItemMoveData& ItemMoveData, FItemMapping OccupiedSlots);
 	UFUNCTION()
-	virtual void ReplaceItem(UItemBase* Item, UBaseInventorySlot* NewSlot);
+	virtual void ReplaceItem(UItemBase* Item, USlotbasedInventorySlot* NewSlot);
 	UFUNCTION()
 	virtual void InsertToStackItem(UItemBase* Item, int32 AddQuantity);
 

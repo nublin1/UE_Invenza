@@ -1,20 +1,18 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+//  Nublin Studio 2025 All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "UI/BaseUserWidget.h"
-#include "BaseInventorySlot.generated.h"
+#include "InventorySlot.generated.h"
 
-class UCoreCellWidget;
 /**
  * 
  */
 UCLASS()
-class GRIDINVENTORYPLUGIN_API UBaseInventorySlot : public UBaseUserWidget
+class GRIDINVENTORYPLUGIN_API UInventorySlot : public UBaseUserWidget
 {
 	GENERATED_BODY()
-
 public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
@@ -23,30 +21,20 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UBaseInventorySlot();
-
-	bool operator==(const UBaseInventorySlot& other) const
-	{
-		return SlotPosition == other.GetSlotPosition();
-	}
-
+	UInventorySlot();
+	
 	//Getters
 	FORCEINLINE FIntVector2 GetSlotPosition() const { return SlotPosition; }	
 	
 	//Setters	
 	FORCEINLINE void SetSlotPosition(const FIntVector2 InSlotPosition) { this->SlotPosition = InSlotPosition; }
-
+	
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	//Widgets
-	UPROPERTY(meta=(BindWidget))
-	TObjectPtr<UCoreCellWidget> CoreCellWidget;
-	
-	//
 	UPROPERTY()
-	FIntVector2 SlotPosition;
+	FIntVector2 SlotPosition{};
 	
 	//====================================================================
 	// FUNCTIONS

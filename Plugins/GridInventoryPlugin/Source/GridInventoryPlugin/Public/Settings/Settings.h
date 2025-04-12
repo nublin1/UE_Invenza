@@ -4,6 +4,7 @@
 #include "CoreMinimal.h"
 #include "Settings.generated.h"
 
+class UHighlightSlotWidget;
 class APickup;
 class UInventoryItemWidget;
 
@@ -17,7 +18,7 @@ struct FUISettings
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TSubclassOf<UInventoryItemWidget> DraggedWidgetClass;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TSubclassOf<UInventoryItemWidget> HighlightSlotWidgetClass;
+	TSubclassOf<UHighlightSlotWidget> HighlightSlotWidgetClass;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FName MainInvWidgetName;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)

@@ -10,7 +10,7 @@
 #include "UI/Container/InvBaseContainerWidget.h"
 #include "UI/Core/CoreHUDWidget.h"
 #include "UI/Interaction/InteractionWidget.h"
-#include "UI/Inventory/BaseInventoryWidget.h"
+#include "UI/Inventory/SlotbasedInventoryWidget.h"
 
 
 // Sets default values for this component's properties

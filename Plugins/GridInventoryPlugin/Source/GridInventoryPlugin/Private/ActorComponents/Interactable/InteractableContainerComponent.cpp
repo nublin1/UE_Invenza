@@ -8,7 +8,7 @@
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "UI/Container/InvBaseContainerWidget.h"
-#include "UI/Inventory/BaseInventoryWidget.h"
+#include "UI/Inventory/SlotbasedInventoryWidget.h"
 
 UInteractableContainerComponent::UInteractableContainerComponent()
 {
@@ -98,7 +98,7 @@ void UInteractableContainerComponent::UpdateInteractableData()
 	InteractableData.Quantity = -1;
 }
 
-UBaseInventoryWidget* UInteractableContainerComponent::FindContainerWidget()
+USlotbasedInventoryWidget* UInteractableContainerComponent::FindContainerWidget()
 {
 	TArray<UUserWidget*> FoundWidgets;
 	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(GetWorld(), FoundWidgets, UInvBaseContainerWidget::StaticClass(), false);

@@ -9,7 +9,7 @@
 #include "DragDrop/ItemDragDropOperation.h"
 #include "UI/Container/InvBaseContainerWidget.h"
 #include "UI/Inrefaces/UDraggableWidgetInterface.h"
-#include "UI/Inventory/BaseInventoryWidget.h"
+#include "UI/Inventory/SlotbasedInventoryWidget.h"
 
 UCoreHUDWidget::UCoreHUDWidget()
 {

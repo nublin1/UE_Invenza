@@ -11,7 +11,7 @@ class UTextBlock;
 class UHorizontalBox;
 class UCoreCellWidget;
 class USizeBox;
-class UBaseInventorySlot;
+class USlotbasedInventorySlot;
 /**
  * 
  */
@@ -57,11 +57,7 @@ protected:
 	TObjectPtr<UHorizontalBox> HBoxQuantity;
 	UPROPERTY(VisibleAnywhere, Category="Inventory Slot", meta=(BindWidgetOptional))
 	TObjectPtr<UTextBlock> ItemQuantity;
-
-	//
-	UPROPERTY()
-	FVector2D DragOffset = FVector2D::ZeroVector;
-	
+		
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================

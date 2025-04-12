@@ -60,7 +60,6 @@ FReply UInventoryItemWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry
 
 	if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
-		DragOffset = ParentWidget->GetCachedGeometry().AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition());
 		return Reply.Handled().DetectDrag(TakeWidget(), EKeys::LeftMouseButton);
 	}
 

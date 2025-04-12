@@ -11,20 +11,20 @@
 #include "UI/Core/CoreHUDWidget.h"
 #include "UI/Core/OperationsPanel/OperationPanelWidget.h"
 #include "UI/Core/Weight/InvWeightWidget.h"
-#include "UI/Inventory/BaseInventoryWidget.h"
+#include "UI/Inventory/SlotbasedInventoryWidget.h"
 
 UInvBaseContainerWidget::UInvBaseContainerWidget()
 {
 }
 
-UBaseInventoryWidget* UInvBaseContainerWidget::GetInventoryFromContainerSlot()
+USlotbasedInventoryWidget* UInvBaseContainerWidget::GetInventoryFromContainerSlot()
 {
 	if (!ContainerSlot || ContainerSlot->GetChildrenCount() == 0)
 	{
 		return nullptr;
 	}
 
-	if (UBaseInventoryWidget* BaseInventoryWidget = Cast<UBaseInventoryWidget>(ContainerSlot->GetChildAt(0)))
+	if (USlotbasedInventoryWidget* BaseInventoryWidget = Cast<USlotbasedInventoryWidget>(ContainerSlot->GetChildAt(0)))
 	{
 		return BaseInventoryWidget;
 	}
@@ -75,7 +75,7 @@ void UInvBaseContainerWidget::UpdateWeightInfo(float InventoryTotalWeight, float
 
 void UInvBaseContainerWidget::TakeAll()
 {
-	UBaseInventoryWidget* SourceInv = GetInventoryFromContainerSlot(); 
+	USlotbasedInventoryWidget* SourceInv = GetInventoryFromContainerSlot(); 
 	if (!SourceInv)
 		return;
 
@@ -83,7 +83,7 @@ void UInvBaseContainerWidget::TakeAll()
 	if (!ManagerComponent || !ManagerComponent->GetCoreHUDWidget())
 		return;
     
-	UBaseInventoryWidget* TargetInv = ManagerComponent->GetCoreHUDWidget()->GetMainInvWidget()->GetInventoryFromContainerSlot();
+	USlotbasedInventoryWidget* TargetInv = ManagerComponent->GetCoreHUDWidget()->GetMainInvWidget()->GetInventoryFromContainerSlot();
 	if (!TargetInv)
 		return;
     
@@ -92,7 +92,7 @@ void UInvBaseContainerWidget::TakeAll()
 
 void UInvBaseContainerWidget::PlaceAll()
 {
-	UBaseInventoryWidget* TargetInv = GetInventoryFromContainerSlot(); 
+	USlotbasedInventoryWidget* TargetInv = GetInventoryFromContainerSlot(); 
 	if (!TargetInv)
 		return;
 
@@ -100,14 +100,14 @@ void UInvBaseContainerWidget::PlaceAll()
 	if (!ManagerComponent || !ManagerComponent->GetCoreHUDWidget())
 		return;
 
-	UBaseInventoryWidget* SourceInv = ManagerComponent->GetCoreHUDWidget()->GetMainInvWidget()->GetInventoryFromContainerSlot();
+	USlotbasedInventoryWidget* SourceInv = ManagerComponent->GetCoreHUDWidget()->GetMainInvWidget()->GetInventoryFromContainerSlot();
 	if (!SourceInv)
 		return;
     
 	TransferAllItems(SourceInv, TargetInv);
 }
 
-void UInvBaseContainerWidget::TransferAllItems(UBaseInventoryWidget* SourceInv, UBaseInventoryWidget* TargetInv)
+void UInvBaseContainerWidget::TransferAllItems(USlotbasedInventoryWidget* SourceInv, USlotbasedInventoryWidget* TargetInv)
 {
 	if (!SourceInv || !TargetInv) return;
 	

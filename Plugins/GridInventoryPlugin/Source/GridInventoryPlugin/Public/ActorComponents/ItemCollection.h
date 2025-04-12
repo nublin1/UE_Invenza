@@ -9,10 +9,11 @@
 #include "ItemCollection.generated.h"
 
 
+class UInventorySlot;
 class UInventoryItemWidget;
-class UBaseInventorySlot;
+class USlotbasedInventorySlot;
 struct FItemMapping;
-class UBaseInventoryWidget;
+class USlotbasedInventoryWidget;
 class UItemBase;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
@@ -40,20 +41,20 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Item Collection|Item Management")
 	void AddItem(UItemBase* NewItem, FItemMapping ItemMapping);
 	UFUNCTION(BlueprintCallable, Category = "Item Collection|Item Management")
-	void RemoveItem(UItemBase* Item, UBaseInventoryWidget* Container);
+	void RemoveItem(UItemBase* Item, USlotbasedInventoryWidget* Container);
 	UFUNCTION(BlueprintCallable, Category = "Item Collection|Item Management")
 	void RemoveItemFromAllContainers(UItemBase* Item);
 	
-	FItemMapping* FindItemMappingForItemInContainer(UItemBase* TargetItem, UBaseInventoryWidget* InContainer);
-	bool HasItemInContainer(UItemBase* Item, UBaseInventoryWidget* Container) const;
+	FItemMapping* FindItemMappingForItemInContainer(UItemBase* TargetItem, USlotbasedInventoryWidget* InContainer);
+	bool HasItemInContainer(UItemBase* Item, USlotbasedInventoryWidget* Container) const;
 
 	
 	TMap<UItemBase*, TArray<FItemMapping>> GetItemLocations() const {return ItemLocations;}
-	TArray<TObjectPtr<UBaseInventorySlot>> CollectOccupiedSlotsByContainer(UBaseInventoryWidget* InContainer);
-	UItemBase* GetItemFromSlot(UBaseInventorySlot* TargetSlot, UBaseInventoryWidget* TargetContainer) const;
-	TArray<UItemBase*> GetAllItemsByContainer(UBaseInventoryWidget* TargetContainer) const;
-	TArray<UItemBase*> GetAllSameItemsInContainer(UBaseInventoryWidget* TargetContainer, UItemBase* ReferenceItem) const;
-	UInventoryItemWidget* GetItemLinkedWidgetForSlot(UBaseInventorySlot* _ItemSlot) const;
+	TArray<TObjectPtr<UInventorySlot>> CollectOccupiedSlotsByContainer(USlotbasedInventoryWidget* InContainer);
+	UItemBase* GetItemFromSlot(UInventorySlot* TargetSlot, USlotbasedInventoryWidget* TargetContainer) const;
+	TArray<UItemBase*> GetAllItemsByContainer(USlotbasedInventoryWidget* TargetContainer) const;
+	TArray<UItemBase*> GetAllSameItemsInContainer(USlotbasedInventoryWidget* TargetContainer, UItemBase* ReferenceItem) const;
+	UInventoryItemWidget* GetItemLinkedWidgetForSlot(USlotbasedInventorySlot* _ItemSlot) const;
 
 protected:
 	//====================================================================

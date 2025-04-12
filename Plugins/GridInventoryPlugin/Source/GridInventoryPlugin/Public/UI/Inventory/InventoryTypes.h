@@ -1,13 +1,15 @@
+//  Nublin Studio 2025 All Rights Reserved.
+
 #pragma once
 
-#include "BaseInventorySlot.h"
+#include "SlotbasedInventorySlot.h"
 #include "CoreMinimal.h"
 #include "Data/ItemDataStructures.h"
 #include "InventoryTypes.generated.h"
 
 class UInventoryItemWidget;
 class UItemBase;
-class UBaseInventoryWidget;
+class UUInventoryWidgetBase;
 
 USTRUCT(Blueprintable)
 struct FItemMapping
@@ -15,14 +17,14 @@ struct FItemMapping
 	GENERATED_BODY()
 
 	UPROPERTY()
-	TObjectPtr<UBaseInventoryWidget> BaseInventoryWidgetLink;
+	TObjectPtr<UUInventoryWidgetBase> InventoryWidgetBaseLink;
 	UPROPERTY()
-	TArray<TObjectPtr<UBaseInventorySlot>> ItemSlots;
+	TArray<TObjectPtr<UInventorySlot>> ItemSlots;
 	UPROPERTY()
 	TObjectPtr<UInventoryItemWidget> ItemVisualLinked;
 
 	FItemMapping() {}
-	explicit FItemMapping(UBaseInventorySlot* Slot)
+	explicit FItemMapping(UInventorySlot* Slot)
 	{
 		if (Slot)
 		{
@@ -110,13 +112,13 @@ struct FItemMoveData
 	UPROPERTY()
 	UItemBase* SourceItem;
 	UPROPERTY()
-	UBaseInventoryWidget* SourceInventory;
+	TObjectPtr<UUInventoryWidgetBase> SourceInventory;
 	UPROPERTY()
-	TObjectPtr<UBaseInventorySlot> SourceItemPivotSlot;
+	TObjectPtr<USlotbasedInventorySlot> SourceItemPivotSlot;
 	UPROPERTY()
-	TObjectPtr<UBaseInventoryWidget> TargetInventory;
+	TObjectPtr<UUInventoryWidgetBase> TargetInventory;
 	UPROPERTY()
-	UBaseInventorySlot* TargetSlot;
+	USlotbasedInventorySlot* TargetSlot;
 	UPROPERTY()
 	EOrientationType SavedOrientation;
 
@@ -127,4 +129,12 @@ struct FItemMoveData
 					   SavedOrientation(EOrientationType::Hotizontal)
 	{
 	}
+};
+
+UENUM(BlueprintType)
+enum class EHighlightState : uint8
+{
+	Allowed UMETA(DisplayName = "Allowed"),
+	NotAllowed UMETA(DisplayName = "Not Allowed"),
+	Partial UMETA(DisplayName = "Partial")
 };
