@@ -7,6 +7,7 @@
 #include "UI/BaseUserWidget.h"
 #include "ListInventoryWidget.generated.h"
 
+class UInventoryListEntry;
 class UListView;
 class UScrollBox;
 /**
@@ -27,6 +28,9 @@ public:
 	//====================================================================
 	UListInventoryWidget();
 
+	virtual void InitializeInventory() override;	
+	virtual void ReDrawAllItems() override;
+
 	virtual void HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity) override;	
 	virtual void HandleRemoveItemFromContainer(UItemBase* Item) override;	
 	virtual FItemAddResult HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck = false) override;
@@ -41,12 +45,29 @@ protected:
 	UPROPERTY(meta=(BindWidgetOptional))
 	TObjectPtr<UListView> ItemsList;
 
+	//
+	UPROPERTY(BlueprintReadOnly)
+	TArray<TObjectPtr<UInventoryListEntry>> ItemsArray;
+
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
 	virtual void NativeConstruct() override;
 
-	void AddNewItem(FItemMoveData& ItemMoveData);
+	virtual FItemAddResult HandleNonStackableItems(FItemMoveData& ItemMoveData, bool bOnlyCheck = false) override;
+	virtual int32 HandleStackableItems(FItemMoveData& ItemMoveData, int32 RequestedAddAmount,
+												bool bOnlyCheck) override;
+	virtual FItemAddResult HandleAddReferenceItem(FItemMoveData& ItemMoveData) override;
+	virtual void AddNewItem(FItemMoveData& ItemMoveData, FItemMapping OccupiedSlots) override;
+	virtual void InsertToStackItem(UItemBase* Item, int32 AddQuantity) override;
 
+	virtual void AddItemToPanel(UItemBase* Item) override;
+
+	//
+	virtual void NotifyAddItem(FItemMapping& FromSlots, UItemBase* NewItem) override;
+	virtual void NotifyUpdateItem(FItemMapping* FromSlots, UItemBase* NewItem) override;
+	virtual void NotifyRemoveItem(FItemMapping& FromSlots, UItemBase* RemovedItem) override;
+	
+	virtual void NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation) override;
 	virtual bool NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 };

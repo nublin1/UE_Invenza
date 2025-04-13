@@ -4,6 +4,7 @@
 #include "CoreMinimal.h"
 #include "Settings.generated.h"
 
+class UInventorySlot;
 class UHighlightSlotWidget;
 class APickup;
 class UInventoryItemWidget;

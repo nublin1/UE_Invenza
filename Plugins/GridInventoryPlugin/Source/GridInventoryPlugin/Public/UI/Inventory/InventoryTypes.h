@@ -114,11 +114,11 @@ struct FItemMoveData
 	UPROPERTY()
 	TObjectPtr<UUInventoryWidgetBase> SourceInventory;
 	UPROPERTY()
-	TObjectPtr<USlotbasedInventorySlot> SourceItemPivotSlot;
+	TObjectPtr<UInventorySlot> SourceItemPivotSlot;
 	UPROPERTY()
 	TObjectPtr<UUInventoryWidgetBase> TargetInventory;
 	UPROPERTY()
-	USlotbasedInventorySlot* TargetSlot;
+	TObjectPtr<UInventorySlot> TargetSlot;
 	UPROPERTY()
 	EOrientationType SavedOrientation;
 

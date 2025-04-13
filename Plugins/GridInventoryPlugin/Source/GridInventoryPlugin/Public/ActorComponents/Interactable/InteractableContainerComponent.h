@@ -41,7 +41,7 @@ protected:
 	TObjectPtr<UItemCollection> ItemCollection;
 
 	UPROPERTY()
-	TObjectPtr<USlotbasedInventoryWidget> InventoryWidget;
+	TObjectPtr<UUInventoryWidgetBase> InventoryWidget;
 	UPROPERTY()
 	TObjectPtr<UInvBaseContainerWidget> ContainerWidget;
 	UPROPERTY()
@@ -60,7 +60,7 @@ protected:
 	
 	virtual void UpdateInteractableData() override;
 	UFUNCTION()
-	virtual USlotbasedInventoryWidget* FindContainerWidget();
+	virtual UUInventoryWidgetBase* FindContainerWidget();
 
 	
 	

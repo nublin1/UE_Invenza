@@ -6,6 +6,7 @@
 #include "UI/BaseUserWidget.h"
 #include "InvBaseContainerWidget.generated.h"
 
+class UUInventoryWidgetBase;
 class UUIManagerComponent;
 class UInvWeightWidget;
 class USlotbasedInventoryWidget;
@@ -29,7 +30,7 @@ public:
 	UInvBaseContainerWidget();
 
 	UFUNCTION(BlueprintCallable)
-	virtual USlotbasedInventoryWidget* GetInventoryFromContainerSlot();
+	virtual UUInventoryWidgetBase* GetInventoryFromContainerSlot();
 
 protected:
 	//====================================================================
@@ -58,7 +59,7 @@ protected:
 	UFUNCTION()
 	virtual void PlaceAll();
 	UFUNCTION()
-	void TransferAllItems(USlotbasedInventoryWidget* SourceInv, USlotbasedInventoryWidget* TargetInv);
+	void TransferAllItems(UUInventoryWidgetBase* SourceInv, UUInventoryWidgetBase* TargetInv);
 	UFUNCTION()
 	virtual void SortItems();
 	

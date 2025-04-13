@@ -6,3 +6,7 @@
 UInventorySlot::UInventorySlot(): SlotPosition()
 {
 }
+
+void UInventorySlot::UpdateVisual(UItemBase* Item)
+{
+}

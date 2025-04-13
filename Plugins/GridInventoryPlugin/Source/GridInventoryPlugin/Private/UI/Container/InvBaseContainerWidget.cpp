@@ -17,14 +17,14 @@ UInvBaseContainerWidget::UInvBaseContainerWidget()
 {
 }
 
-USlotbasedInventoryWidget* UInvBaseContainerWidget::GetInventoryFromContainerSlot()
+UUInventoryWidgetBase* UInvBaseContainerWidget::GetInventoryFromContainerSlot()
 {
 	if (!ContainerSlot || ContainerSlot->GetChildrenCount() == 0)
 	{
 		return nullptr;
 	}
 
-	if (USlotbasedInventoryWidget* BaseInventoryWidget = Cast<USlotbasedInventoryWidget>(ContainerSlot->GetChildAt(0)))
+	if (UUInventoryWidgetBase* BaseInventoryWidget = Cast<UUInventoryWidgetBase>(ContainerSlot->GetChildAt(0)))
 	{
 		return BaseInventoryWidget;
 	}
@@ -52,7 +52,7 @@ void UInvBaseContainerWidget::NativeConstruct()
 			InvWeight->SetVisibility(ESlateVisibility::Collapsed);
 		else
 		{
-			Inv->OnWightUpdatedDelegate.AddDynamic(this, &UInvBaseContainerWidget::UInvBaseContainerWidget::UpdateWeightInfo);
+			Inv->OnWightUpdatedDelegate.AddDynamic(this, &UInvBaseContainerWidget::UpdateWeightInfo);
 		}
 	}
 	
@@ -75,7 +75,7 @@ void UInvBaseContainerWidget::UpdateWeightInfo(float InventoryTotalWeight, float
 
 void UInvBaseContainerWidget::TakeAll()
 {
-	USlotbasedInventoryWidget* SourceInv = GetInventoryFromContainerSlot(); 
+	UUInventoryWidgetBase* SourceInv = GetInventoryFromContainerSlot(); 
 	if (!SourceInv)
 		return;
 
@@ -83,7 +83,7 @@ void UInvBaseContainerWidget::TakeAll()
 	if (!ManagerComponent || !ManagerComponent->GetCoreHUDWidget())
 		return;
     
-	USlotbasedInventoryWidget* TargetInv = ManagerComponent->GetCoreHUDWidget()->GetMainInvWidget()->GetInventoryFromContainerSlot();
+	UUInventoryWidgetBase* TargetInv = ManagerComponent->GetCoreHUDWidget()->GetMainInvWidget()->GetInventoryFromContainerSlot();
 	if (!TargetInv)
 		return;
     
@@ -92,7 +92,7 @@ void UInvBaseContainerWidget::TakeAll()
 
 void UInvBaseContainerWidget::PlaceAll()
 {
-	USlotbasedInventoryWidget* TargetInv = GetInventoryFromContainerSlot(); 
+	UUInventoryWidgetBase* TargetInv = GetInventoryFromContainerSlot(); 
 	if (!TargetInv)
 		return;
 
@@ -100,14 +100,14 @@ void UInvBaseContainerWidget::PlaceAll()
 	if (!ManagerComponent || !ManagerComponent->GetCoreHUDWidget())
 		return;
 
-	USlotbasedInventoryWidget* SourceInv = ManagerComponent->GetCoreHUDWidget()->GetMainInvWidget()->GetInventoryFromContainerSlot();
+	UUInventoryWidgetBase* SourceInv = ManagerComponent->GetCoreHUDWidget()->GetMainInvWidget()->GetInventoryFromContainerSlot();
 	if (!SourceInv)
 		return;
     
 	TransferAllItems(SourceInv, TargetInv);
 }
 
-void UInvBaseContainerWidget::TransferAllItems(USlotbasedInventoryWidget* SourceInv, USlotbasedInventoryWidget* TargetInv)
+void UInvBaseContainerWidget::TransferAllItems(UUInventoryWidgetBase* SourceInv, UUInventoryWidgetBase* TargetInv)
 {
 	if (!SourceInv || !TargetInv) return;
 	

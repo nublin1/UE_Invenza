@@ -98,7 +98,7 @@ void UInteractableContainerComponent::UpdateInteractableData()
 	InteractableData.Quantity = -1;
 }
 
-USlotbasedInventoryWidget* UInteractableContainerComponent::FindContainerWidget()
+UUInventoryWidgetBase* UInteractableContainerComponent::FindContainerWidget()
 {
 	TArray<UUserWidget*> FoundWidgets;
 	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(GetWorld(), FoundWidgets, UInvBaseContainerWidget::StaticClass(), false);

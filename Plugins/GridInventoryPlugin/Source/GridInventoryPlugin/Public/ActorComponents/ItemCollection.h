@@ -9,6 +9,7 @@
 #include "ItemCollection.generated.h"
 
 
+class UUInventoryWidgetBase;
 class UInventorySlot;
 class UInventoryItemWidget;
 class USlotbasedInventorySlot;
@@ -41,19 +42,19 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Item Collection|Item Management")
 	void AddItem(UItemBase* NewItem, FItemMapping ItemMapping);
 	UFUNCTION(BlueprintCallable, Category = "Item Collection|Item Management")
-	void RemoveItem(UItemBase* Item, USlotbasedInventoryWidget* Container);
+	void RemoveItem(UItemBase* Item, UUInventoryWidgetBase* Container);
 	UFUNCTION(BlueprintCallable, Category = "Item Collection|Item Management")
 	void RemoveItemFromAllContainers(UItemBase* Item);
 	
-	FItemMapping* FindItemMappingForItemInContainer(UItemBase* TargetItem, USlotbasedInventoryWidget* InContainer);
+	FItemMapping* FindItemMappingForItemInContainer(UItemBase* TargetItem, UUInventoryWidgetBase* InContainer);
 	bool HasItemInContainer(UItemBase* Item, USlotbasedInventoryWidget* Container) const;
 
 	
 	TMap<UItemBase*, TArray<FItemMapping>> GetItemLocations() const {return ItemLocations;}
 	TArray<TObjectPtr<UInventorySlot>> CollectOccupiedSlotsByContainer(USlotbasedInventoryWidget* InContainer);
-	UItemBase* GetItemFromSlot(UInventorySlot* TargetSlot, USlotbasedInventoryWidget* TargetContainer) const;
-	TArray<UItemBase*> GetAllItemsByContainer(USlotbasedInventoryWidget* TargetContainer) const;
-	TArray<UItemBase*> GetAllSameItemsInContainer(USlotbasedInventoryWidget* TargetContainer, UItemBase* ReferenceItem) const;
+	UItemBase* GetItemFromSlot(UInventorySlot* TargetSlot, UUInventoryWidgetBase* TargetContainer) const;
+	TArray<UItemBase*> GetAllItemsByContainer(UUInventoryWidgetBase* TargetContainer) const;
+	TArray<UItemBase*> GetAllSameItemsInContainer(UUInventoryWidgetBase* TargetContainer, UItemBase* ReferenceItem) const;
 	UInventoryItemWidget* GetItemLinkedWidgetForSlot(USlotbasedInventorySlot* _ItemSlot) const;
 
 protected:

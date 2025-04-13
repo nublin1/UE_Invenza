@@ -87,10 +87,13 @@ bool UCoreHUDWidget::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEv
 		return IUDraggableWidgetInterface::Execute_OnDropped(DragOp->Payload, InGeometry, DragOp->DragOffset);
 	}
 
-
+	if (DragOp->ItemMoveData.SourceInventory->GetIsUseReferences())
+	{
+		DragOp->ItemMoveData.SourceInventory->HandleRemoveItemFromContainer(DragOp->ItemMoveData.SourceItem);
+		return true;
+	}
 	
 	DragOp->ItemMoveData.SourceInventory->GetItemCollection()->RemoveItemFromAllContainers(DragOp->ItemMoveData.SourceItem);
-
 	auto Item = DragOp->ItemMoveData.SourceItem->DuplicateItem();
 
 	if (auto Pawn = GetOwningPlayerPawn())

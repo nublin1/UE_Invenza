@@ -6,6 +6,7 @@
 #include "UI/BaseUserWidget.h"
 #include "InventorySlot.generated.h"
 
+class UItemBase;
 /**
  * 
  */
@@ -22,6 +23,9 @@ public:
 	// FUNCTIONS
 	//====================================================================
 	UInventorySlot();
+
+	UFUNCTION(BlueprintCallable)
+	virtual void UpdateVisual(UItemBase* Item);
 	
 	//Getters
 	FORCEINLINE FIntVector2 GetSlotPosition() const { return SlotPosition; }	
