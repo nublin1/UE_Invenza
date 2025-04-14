@@ -36,25 +36,28 @@ void UInvBaseContainerWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
+	UUInventoryWidgetBase* Inventory = GetInventoryFromContainerSlot();
+
 	if (HeaderSlot && HeaderSlot->GetChildrenCount()>0)
 	{
 		if (auto Widget = Cast<UBaseUserWidget>(HeaderSlot->GetChildAt(0)))
 			Widget->SetParentWidget(this);
-	}
+	}	
 
 	if (InvWeight)
 	{
-		auto Inv = GetInventoryFromContainerSlot();
-		if (!Inv)
+		if (!Inventory)
 			return;
 
-		if (Inv->GetWeightCapacity() <0)
+		if (Inventory->GetWeightCapacity() <0)
 			InvWeight->SetVisibility(ESlateVisibility::Collapsed);
 		else
 		{
-			Inv->OnWightUpdatedDelegate.AddDynamic(this, &UInvBaseContainerWidget::UpdateWeightInfo);
+			Inventory->OnWightUpdatedDelegate.AddDynamic(this, &UInvBaseContainerWidget::UpdateWeightInfo);
 		}
 	}
+
+	Inventory->OnMoneyUpdatedDelegate.AddDynamic(this, &UInvBaseContainerWidget::UpdateMoneyInfo);
 	
 	if (OperationsSlot && OperationsSlot->GetChildrenCount() > 0)
 	{
@@ -71,6 +74,10 @@ void UInvBaseContainerWidget::UpdateWeightInfo(float InventoryTotalWeight, float
 {
 	FString Text = {" " + FString::SanitizeFloat(InventoryTotalWeight) + "/" + FString::SanitizeFloat(InventoryWeightCapacity)};
 	InvWeight->WeightInfo->SetText(FText::FromString(Text));
+}
+
+void UInvBaseContainerWidget::UpdateMoneyInfo(int32 TotalMoney)
+{
 }
 
 void UInvBaseContainerWidget::TakeAll()

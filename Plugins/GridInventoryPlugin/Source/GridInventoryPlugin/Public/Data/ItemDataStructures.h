@@ -10,6 +10,14 @@ enum class EOrientationType : uint8
 	Hotizontal UMETA(DisplayName = "Hotizontal"),
 };
 
+UENUM(BlueprintType, meta = (Bitflags))
+enum class EItemCategory : uint8
+{
+	None			= 0 UMETA(DisplayName = "None"),
+	Consumable		= 1 << 0 UMETA(DisplayName = "Consumable"),
+	Money			= 1 << 1 UMETA(DisplayName = "Money"),
+};
+
 USTRUCT()
 struct FItemTextData
 {
@@ -76,4 +84,7 @@ struct FItemMetaData
 
 	UPROPERTY(EditAnywhere, Category = "Item Data")
 	FItemNumeraticData ItemNumeraticData;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (Bitmask, BitmaskEnum = "EItemCategory"))
+	int32 ItemCategory = static_cast<int32>(EItemCategory::None);
 };

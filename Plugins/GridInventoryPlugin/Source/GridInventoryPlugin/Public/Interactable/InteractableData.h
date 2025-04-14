@@ -19,7 +19,8 @@ enum class EInteractableType: uint8
 	NPC			UMETA(DisplayName = "NPC"),
 	Toggle		UMETA(DisplayName = "Toggle"),
 	Container	UMETA(DisplayName = "Container"),
-	InfoOnly    UMETA(DisplayName = "Informational") 
+	InfoOnly    UMETA(DisplayName = "Informational"),
+	Vendor		UMETA(DisplayName = "Vending machine"),
 };
 
 USTRUCT(Blueprintable, BlueprintType)

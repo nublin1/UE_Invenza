@@ -36,10 +36,15 @@ protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
+	UPROPERTY()
+	bool bIsInteracting = false;
 
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+
+	UFUNCTION()
+	virtual void InitializeInteractionComponent();
 	UFUNCTION()
 	virtual void UpdateInteractableData();
 

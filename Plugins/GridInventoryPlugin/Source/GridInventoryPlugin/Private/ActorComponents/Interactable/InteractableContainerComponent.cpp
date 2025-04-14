@@ -42,27 +42,28 @@ void UInteractableContainerComponent::Interact(UInteractionComponent* Interactio
 	InventoryWidget = FindContainerWidget();
 	if (!InventoryWidget) return;
 	
-	if (bContainerIsOpen == false)
+	if (bIsInteracting == false)
 	{
 		ContainerWidget->SetVisibility(ESlateVisibility::Visible);
 		InventoryWidget->ReDrawAllItems();
-		bContainerIsOpen = true;
+		bIsInteracting = true;
 	}
 	else
 	{
 		ContainerWidget->SetVisibility(ESlateVisibility::Collapsed);
-		bContainerIsOpen = false;
+		bIsInteracting = false;
 	}
 }
 
 void UInteractableContainerComponent::OnRegister()
 {
 	Super::OnRegister();
-	InitializeContainerComponent();
+	InitializeInteractionComponent();
 }
 
-void UInteractableContainerComponent::InitializeContainerComponent()
+void UInteractableContainerComponent::InitializeInteractionComponent()
 {
+	Super::InitializeInteractionComponent();
 	ItemCollection = GetOwner()->FindComponentByClass<UItemCollection>();
 	UpdateInteractableData();
 }

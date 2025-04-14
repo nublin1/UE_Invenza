@@ -6,6 +6,7 @@
 #include "Components/ActorComponent.h"
 #include "Containers/Map.h"
 #include "Items/itemBase.h"
+#include "UI/Inventory/InventoryTypes.h"
 #include "ItemCollection.generated.h"
 
 
@@ -13,7 +14,6 @@ class UUInventoryWidgetBase;
 class UInventorySlot;
 class UInventoryItemWidget;
 class USlotbasedInventorySlot;
-struct FItemMapping;
 class USlotbasedInventoryWidget;
 class UItemBase;
 
@@ -63,7 +63,6 @@ protected:
 	//====================================================================
 	
 	TMap<UItemBase*, TArray<FItemMapping>> ItemLocations; //ItemLocations
-	//TMap<UItemBase*, TArray<UBaseInventoryWidget*>> ItemContainers;
 	
 	//====================================================================
 	// FUNCTIONS

@@ -3,16 +3,20 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "ActorComponents/ItemCollection.h"
 #include "ActorComponents/Interactable/InteractableComponent.h"
-#include "InteractableContainerComponent.generated.h"
+#include "VendorComponent.generated.h"
 
 class UInvBaseContainerWidget;
+class UUInventoryWidgetBase;
+class UItemCollection;
+
+
+
 /**
  * 
  */
-UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class GRIDINVENTORYPLUGIN_API UInteractableContainerComponent : public UInteractableComponent
+UCLASS()
+class GRIDINVENTORYPLUGIN_API UVendorComponent : public UInteractableComponent
 {
 	GENERATED_BODY()
 
@@ -21,10 +25,12 @@ public:
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 
+
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UInteractableContainerComponent();
+	UVendorComponent();
+	
 	virtual void BeginFocus() override;
 	virtual void EndFocus() override;
 	
@@ -36,28 +42,31 @@ protected:
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FName ContainerWidgetName;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UItemCollection> ItemCollection;
-	
-	UPROPERTY()
-	TObjectPtr<UUInventoryWidgetBase> InventoryWidget;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName ContainerWidgetName;
 	UPROPERTY()
 	TObjectPtr<UInvBaseContainerWidget> ContainerWidget;
 
+	//Settings
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float BuyPriceFactor = 1.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float SellPriceFactor = 1.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool RemoveItemAfterPurchase = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bSellOnly = false;
+	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
 	virtual void OnRegister() override;
-	
+
 	virtual void InitializeInteractionComponent() override;
-	UFUNCTION()
-	void InitializeItemCollection();
-	
 	virtual void UpdateInteractableData() override;
+	
 	UFUNCTION(BlueprintCallable)
 	virtual UUInventoryWidgetBase* FindContainerWidget();
-
-	
-	
 };

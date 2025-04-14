@@ -60,6 +60,29 @@ void UUInventoryWidgetBase::UpdateWeightInfo()
 	}
 }
 
+void UUInventoryWidgetBase::UpdateMoneyInfo()
+{
+	if (OnMoneyUpdatedDelegate.IsBound() && ItemCollectionLink)
+	{
+		InventoryTotalMoney = 0;
+	}
+	auto AllItems = ItemCollectionLink->GetAllItemsByContainer(this);
+	if (AllItems.IsEmpty())
+	{
+		OnMoneyUpdatedDelegate.Broadcast(0);
+	}
+	else
+	{
+		for (auto Item : AllItems)
+		{
+			if (Item->GetItemRef().ItemCategory == static_cast<int32>(EItemCategory::Money))
+			InventoryTotalMoney += Item->GetQuantity();
+		}
+
+		OnMoneyUpdatedDelegate.Broadcast(InventoryTotalMoney);
+	}
+}
+
 void UUInventoryWidgetBase::NotifyAddItem(FItemMapping& FromSlots, UItemBase* NewItem)
 {
 }

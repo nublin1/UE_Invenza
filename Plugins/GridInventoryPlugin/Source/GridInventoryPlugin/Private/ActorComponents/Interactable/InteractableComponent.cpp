@@ -28,6 +28,10 @@ void UInteractableComponent::Interact(UInteractionComponent* InteractionComponen
 {
 }
 
+void UInteractableComponent::InitializeInteractionComponent()
+{
+}
+
 void UInteractableComponent::UpdateInteractableData()
 {
 	InteractableData.DefaultInteractableType = EInteractableType::InfoOnly;

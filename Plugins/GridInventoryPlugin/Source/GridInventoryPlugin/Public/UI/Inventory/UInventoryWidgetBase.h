@@ -9,14 +9,15 @@
 #include "UInventoryWidgetBase.generated.h"
 
 #pragma region Delegates
-class UItemCollection;
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnItemUpdateDelegate, const FItemMapping&, ItemSlots, UItemBase*,
-                                             Item);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnItemUpdateDelegate, const FItemMapping&, ItemSlots, UItemBase*, Item);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAddItemDelegate, FItemMapping, ItemSlots, UItemBase*, Item);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnRemoveItemDelegate, FItemMapping, ItemSlots, UItemBase*, Item);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUseItemDelegate, USlotbasedInventorySlot*, ItemSlot, UItemBase*, Item);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnWightUpdatedDelegate, float, InventoryTotalWeight, float, InventoryWeightCapacity);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMoneyUpdatedDelegate, int32, InventoryTotalMoney);
 #pragma endregion Delegates
+
+class UItemCollection;
 
 /**
  * 
@@ -34,6 +35,7 @@ public:
 	FOnRemoveItemDelegate OnRemoveItemDelegate;
 	FOnUseItemDelegate OnUseItemDelegate;
 	FOnWightUpdatedDelegate OnWightUpdatedDelegate;
+	FOnMoneyUpdatedDelegate OnMoneyUpdatedDelegate;
 	
 	//====================================================================
 	// FUNCTIONS
@@ -72,6 +74,8 @@ protected:
 	TObjectPtr<UItemCollection> ItemCollectionLink;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
 	float InventoryTotalWeight = 0;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
+	int32 InventoryTotalMoney = 0;
 
 	// Settings
 	UPROPERTY(visibleAnywhere, BlueprintReadWrite, Category="Inventory")
@@ -105,6 +109,8 @@ protected:
 
 	UFUNCTION()
 	virtual void UpdateWeightInfo();
+	UFUNCTION()
+	virtual void UpdateMoneyInfo();
 
 	// Notifications
 	virtual void NotifyAddItem(FItemMapping& FromSlots, UItemBase* NewItem);

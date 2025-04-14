@@ -53,6 +53,8 @@ protected:
 	
 	UFUNCTION()
 	virtual void UpdateWeightInfo(float InventoryTotalWeight, float InventoryWeightCapacity);
+	UFUNCTION()
+	virtual void UpdateMoneyInfo(int32 TotalMoney);
 
 	UFUNCTION()
 	virtual void TakeAll();
