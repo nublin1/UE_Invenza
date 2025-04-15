@@ -4,14 +4,16 @@
 #include "UI/Container/InvBaseContainerWidget.h"
 
 #include "ActorComponents/ItemCollection.h"
-#include "ActorComponents/UIManagerComponent.h"
 #include "Components/Button.h"
 #include "Components/NamedSlot.h"
 #include "Components/TextBlock.h"
+#include "Kismet/GameplayStatics.h"
 #include "UI/Core/CoreHUDWidget.h"
+#include "UI/Core/MovableTitleBar/MovableTitleBar.h"
 #include "UI/Core/OperationsPanel/OperationPanelWidget.h"
 #include "UI/Core/Weight/InvWeightWidget.h"
 #include "UI/Inventory/SlotbasedInventoryWidget.h"
+#include "World/AUIManagerActor.h"
 
 UInvBaseContainerWidget::UInvBaseContainerWidget()
 {
@@ -38,10 +40,9 @@ void UInvBaseContainerWidget::NativeConstruct()
 
 	UUInventoryWidgetBase* Inventory = GetInventoryFromContainerSlot();
 
-	if (HeaderSlot && HeaderSlot->GetChildrenCount()>0)
+	if (TitleBar)
 	{
-		if (auto Widget = Cast<UBaseUserWidget>(HeaderSlot->GetChildAt(0)))
-			Widget->SetParentWidget(this);
+		TitleBar->SetParentWidget(this);
 	}	
 
 	if (InvWeight)
@@ -78,6 +79,12 @@ void UInvBaseContainerWidget::UpdateWeightInfo(float InventoryTotalWeight, float
 
 void UInvBaseContainerWidget::UpdateMoneyInfo(int32 TotalMoney)
 {
+	if (!TitleBar)
+		return;
+
+	FString MoneyText = {"$ " + FString::FromInt(TotalMoney)};
+	TitleBar->Money->SetText(FText::FromString(MoneyText));
+		
 }
 
 void UInvBaseContainerWidget::TakeAll()
@@ -86,11 +93,11 @@ void UInvBaseContainerWidget::TakeAll()
 	if (!SourceInv)
 		return;
 
-	auto ManagerComponent = GetOwningPlayerPawn()->FindComponentByClass<UUIManagerComponent>();
-	if (!ManagerComponent || !ManagerComponent->GetCoreHUDWidget())
+	AUIManagerActor* ManagerActor = Cast<AUIManagerActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AUIManagerActor::StaticClass()));
+	if (!ManagerActor || !ManagerActor->GetCoreHUDWidget())
 		return;
     
-	UUInventoryWidgetBase* TargetInv = ManagerComponent->GetCoreHUDWidget()->GetMainInvWidget()->GetInventoryFromContainerSlot();
+	UUInventoryWidgetBase* TargetInv = ManagerActor->GetMainInventory()->GetInventoryFromContainerSlot();
 	if (!TargetInv)
 		return;
     
@@ -103,11 +110,11 @@ void UInvBaseContainerWidget::PlaceAll()
 	if (!TargetInv)
 		return;
 
-	auto ManagerComponent = GetOwningPlayerPawn()->FindComponentByClass<UUIManagerComponent>();
-	if (!ManagerComponent || !ManagerComponent->GetCoreHUDWidget())
+	AUIManagerActor* ManagerActor = Cast<AUIManagerActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AUIManagerActor::StaticClass()));
+	if (!ManagerActor || !ManagerActor->GetCoreHUDWidget())
 		return;
 
-	UUInventoryWidgetBase* SourceInv = ManagerComponent->GetCoreHUDWidget()->GetMainInvWidget()->GetInventoryFromContainerSlot();
+	UUInventoryWidgetBase* SourceInv = ManagerActor->GetCoreHUDWidget()->GetMainInvWidget()->GetInventoryFromContainerSlot();
 	if (!SourceInv)
 		return;
     

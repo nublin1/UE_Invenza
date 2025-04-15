@@ -59,6 +59,15 @@ void UUInventoryWidgetBase::UpdateWeightInfo()
 		}
 	}
 }
+FString ToBinaryString(int32 Value)
+{
+	FString BinaryStr;
+	for (int32 i = 7; i >= 0; --i) // 8 бит (можешь расширить до 32)
+	{
+		BinaryStr.AppendChar(((Value >> i) & 1) ? '1' : '0');
+	}
+	return BinaryStr;
+}
 
 void UUInventoryWidgetBase::UpdateMoneyInfo()
 {
@@ -75,8 +84,14 @@ void UUInventoryWidgetBase::UpdateMoneyInfo()
 	{
 		for (auto Item : AllItems)
 		{
-			if (Item->GetItemRef().ItemCategory == static_cast<int32>(EItemCategory::Money))
-			InventoryTotalMoney += Item->GetQuantity();
+			auto PrintCategoryBits = [](FString Name, int32 Value)
+			{
+				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green,
+					FString::Printf(TEXT("%s = %d (Bits: 0b%s)"), *Name, Value, *ToBinaryString(Value)));
+			};
+
+			if (EnumHasAnyFlags(static_cast<EItemCategory>(Item->GetItemRef().ItemCategory), EItemCategory::Money))
+				InventoryTotalMoney += Item->GetQuantity();
 		}
 
 		OnMoneyUpdatedDelegate.Broadcast(InventoryTotalMoney);
@@ -85,6 +100,7 @@ void UUInventoryWidgetBase::UpdateMoneyInfo()
 
 void UUInventoryWidgetBase::NotifyAddItem(FItemMapping& FromSlots, UItemBase* NewItem)
 {
+	UpdateMoneyInfo();
 }
 
 void UUInventoryWidgetBase::NotifyUpdateItem(FItemMapping* FromSlots, UItemBase* NewItem)
@@ -94,3 +110,4 @@ void UUInventoryWidgetBase::NotifyUpdateItem(FItemMapping* FromSlots, UItemBase*
 void UUInventoryWidgetBase::NotifyRemoveItem(FItemMapping& FromSlots, UItemBase* RemovedItem)
 {
 }
+

@@ -17,7 +17,7 @@ UItemCollection::UItemCollection()
 
 void UItemCollection::AddItem(UItemBase* NewItem, FItemMapping ItemMapping)
 {
-	ItemLocations.FindOrAdd(NewItem).Add(ItemMapping);
+	ItemLocations.FindOrAdd(TStrongObjectPtr<UItemBase>(NewItem)).Add(ItemMapping);
 	//UE_LOG(LogTemp, Warning, TEXT("Widget already exists for Item: %s"), *NewItem->GetName());
 }
 
@@ -33,7 +33,7 @@ void UItemCollection::RemoveItem(UItemBase* Item, UUInventoryWidgetBase* Contain
 		UE_LOG(LogTemp, Warning, TEXT("RemoveItem: Container is null."));
 		return;
 	}
-	auto Mappings = ItemLocations.Find(Item);
+	auto Mappings = ItemLocations.Find(TStrongObjectPtr<UItemBase>(Item));
 	if (!Mappings)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("RemoveItem: Item %s not found in ItemContainers."), *Item->GetName());
@@ -45,10 +45,10 @@ void UItemCollection::RemoveItem(UItemBase* Item, UUInventoryWidgetBase* Contain
 		return Mapping.InventoryWidgetBaseLink == Container;
 	});
 
-	auto MappingsTwo = ItemLocations.Find(Item);
+	auto MappingsTwo = ItemLocations.Find(TStrongObjectPtr<UItemBase>(Item));
 	if (MappingsTwo && MappingsTwo->Num() == 0)
 	{
-		ItemLocations.Remove(Item);
+		ItemLocations.Remove(TStrongObjectPtr<UItemBase>(Item));
 	}
 }
 
@@ -59,7 +59,7 @@ void UItemCollection::RemoveItemFromAllContainers(UItemBase* Item)
 		UE_LOG(LogTemp, Warning, TEXT("RemoveItemFromAllContainers: Item is null."));
 		return;
 	}
-	TArray<FItemMapping>* Mappings = ItemLocations.Find(Item);
+	TArray<FItemMapping>* Mappings = ItemLocations.Find(TStrongObjectPtr<UItemBase>(Item));
 	if (!Mappings)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("RemoveItemFromAllContainers: Item %s not found in ItemLocations."), *Item->GetName());
@@ -80,7 +80,7 @@ void UItemCollection::RemoveItemFromAllContainers(UItemBase* Item)
 		}
 	}
 	
-	ItemLocations.Remove(Item);
+	ItemLocations.Remove(TStrongObjectPtr<UItemBase>(Item));
 }
 
 FItemMapping* UItemCollection::FindItemMappingForItemInContainer(UItemBase* TargetItem, UUInventoryWidgetBase* InContainer)
@@ -96,7 +96,7 @@ FItemMapping* UItemCollection::FindItemMappingForItemInContainer(UItemBase* Targ
 		return nullptr;
 	}
 	
-	TArray<FItemMapping>* Mappings = ItemLocations.Find(TargetItem);
+	TArray<FItemMapping>* Mappings = ItemLocations.Find(TStrongObjectPtr<UItemBase>(TargetItem));
 	if (!Mappings)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("FindItemMappingForItemInContainer: No mapping found for item %s."), *TargetItem->GetName());
@@ -121,7 +121,7 @@ bool UItemCollection::HasItemInContainer(UItemBase* Item, USlotbasedInventoryWid
 		return false;
 	}
 	
-	const TArray<FItemMapping>* Mappings = ItemLocations.Find(Item);
+	const TArray<FItemMapping>* Mappings = ItemLocations.Find(TStrongObjectPtr<UItemBase>(Item));
 	if (!Mappings)
 	{
 		return false;
@@ -178,7 +178,7 @@ UItemBase* UItemCollection::GetItemFromSlot(UInventorySlot* TargetSlot, UUInvent
 		{
 			if (Mapping.InventoryWidgetBaseLink == TargetContainer && Mapping.ItemSlots.Contains(TargetSlot))
 			{
-				return Pair.Key;
+				return Pair.Key.Get();
 			}
 		}
 	}
@@ -198,16 +198,16 @@ TArray<UItemBase*> UItemCollection::GetAllItemsByContainer(UUInventoryWidgetBase
 	
 	for (const auto& Pair : ItemLocations)
 	{
-		UItemBase* Item = Pair.Key;
+		auto Item = Pair.Key;
 		const TArray<FItemMapping>& Mappings = Pair.Value;
 		
 		for (const FItemMapping& Mapping : Mappings)
 		{
 			if (Mapping.InventoryWidgetBaseLink == TargetContainer)
 			{
-				if (!Result.Contains(Item))
+				if (!Result.Contains(Item.Get()))
 				{
-					Result.Add(Item);
+					Result.Add(Item.Get());
 				}
 				break;
 			}
@@ -231,14 +231,14 @@ TArray<UItemBase*> UItemCollection::GetAllSameItemsInContainer(UUInventoryWidget
 	auto RefName = ReferenceItem->GetItemRef().ItemTextData.Name;
 	for (const auto& Pair : ItemLocations)
 	{
-		UItemBase* Item = Pair.Key;
+		auto Item = Pair.Key;
 		if (Item && Item->GetItemRef().ItemTextData.Name.EqualTo(RefName))
 		{
 			for (const FItemMapping& Mapping : Pair.Value)
 			{
 				if (Mapping.InventoryWidgetBaseLink == TargetContainer)
 				{
-					SameItems.AddUnique(Item);
+					SameItems.AddUnique(Item.Get());
 					break;
 				}
 			}

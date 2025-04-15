@@ -7,8 +7,12 @@
 #include "ActorComponents/Items/itemBase.h"
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
+#include "Kismet/GameplayStatics.h"
 #include "UI/Container/InvBaseContainerWidget.h"
 #include "UI/Inventory/SlotbasedInventoryWidget.h"
+#include "World/AUIManagerActor.h"
+
+class AUIManagerActor;
 
 UInteractableContainerComponent::UInteractableContainerComponent()
 {
@@ -39,18 +43,24 @@ void UInteractableContainerComponent::Interact(UInteractionComponent* Interactio
 	if (!ItemCollection) return;
 	InitializeItemCollection();	
 
-	InventoryWidget = FindContainerWidget();
+	FindContainerWidget();
 	if (!InventoryWidget) return;
+
+	AUIManagerActor* ManagerActor = Cast<AUIManagerActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AUIManagerActor::StaticClass()));
+	if (!ManagerActor)
+		return;
 	
 	if (bIsInteracting == false)
 	{
 		ContainerWidget->SetVisibility(ESlateVisibility::Visible);
 		InventoryWidget->ReDrawAllItems();
+		ManagerActor->SetInteractableType(InteractableData.DefaultInteractableType);
 		bIsInteracting = true;
 	}
 	else
 	{
 		ContainerWidget->SetVisibility(ESlateVisibility::Collapsed);
+		ManagerActor->SetInteractableType(EInteractableType::None);
 		bIsInteracting = false;
 	}
 }
@@ -70,8 +80,8 @@ void UInteractableContainerComponent::InitializeInteractionComponent()
 
 void UInteractableContainerComponent::InitializeItemCollection() 
 {
-	InventoryWidget = FindContainerWidget();
-	if (!InventoryWidget) return;
+	FindContainerWidget();
+	if (!InventoryWidget ||! ContainerWidget) return;
 	InventoryWidget->SetItemCollection(ItemCollection);
 
 	if (ItemCollection->InitItems.IsEmpty())
@@ -99,20 +109,15 @@ void UInteractableContainerComponent::UpdateInteractableData()
 	InteractableData.Quantity = -1;
 }
 
-UUInventoryWidgetBase* UInteractableContainerComponent::FindContainerWidget()
+void UInteractableContainerComponent::FindContainerWidget()
 {
-	TArray<UUserWidget*> FoundWidgets;
-	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(GetWorld(), FoundWidgets, UInvBaseContainerWidget::StaticClass(), false);
+	AUIManagerActor* ManagerActor = Cast<AUIManagerActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AUIManagerActor::StaticClass()));
+	if (!ManagerActor)
+		return;
 
-	for (UUserWidget* Widget : FoundWidgets)
-	{
-		if (Widget->GetFName() == ContainerWidgetName)
-		{
-			auto InvBaseContainerWidget = Cast<UInvBaseContainerWidget>(Widget);
-			ContainerWidget = InvBaseContainerWidget;
-			return InvBaseContainerWidget->GetInventoryFromContainerSlot();
-		}
-	}
+	if (!ManagerActor->GetCoreHUDWidget()->GetContainerInWorldWidget())
+		return;
 
-	return nullptr;
+	ContainerWidget = ManagerActor->GetCoreHUDWidget()->GetContainerInWorldWidget();
+	InventoryWidget =  ManagerActor->GetCoreHUDWidget()->GetContainerInWorldWidget()->GetInventoryFromContainerSlot();
 }

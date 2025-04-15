@@ -4,14 +4,15 @@
 #include "UI/Inventory/ListInventorySlotWidget.h"
 
 #include "ActorComponents/ItemCollection.h"
-#include "ActorComponents/UIManagerComponent.h"
 #include "ActorComponents/Items/itemBase.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Components/ListView.h"
 #include "Components/TextBlock.h"
 #include "DragDrop/ItemDragDropOperation.h"
+#include "Kismet/GameplayStatics.h"
 #include "UI/Inventory/ListInventoryWidget.h"
 #include "UI/Item/InventoryItemWidget.h"
+#include "World/AUIManagerActor.h"
 
 void UListInventorySlotWidget::UpdateVisual(UItemBase* Item)
 {
@@ -50,6 +51,21 @@ FReply UListInventorySlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeom
 {
 	if (InMouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton))
 	{
+		AUIManagerActor* ManagerActor = Cast<AUIManagerActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AUIManagerActor::StaticClass()));
+		if (!ManagerActor || !ParentInventoryWidget)
+			return FReply::Unhandled();
+
+		if (ManagerActor->GetInventoryModifierStates().bIsQuickGrabModifierActive)
+		{
+			FItemMoveData ItemMoveData;
+			ItemMoveData.SourceInventory = ParentInventoryWidget;
+			ItemMoveData.SourceItemPivotSlot = this;
+			ItemMoveData.SourceItem = ParentInventoryWidget->GetItemCollection()->GetItemFromSlot(this, ParentInventoryWidget);
+
+			ManagerActor->OnQuickTransferItem(ItemMoveData);
+				
+			return FReply::Unhandled();
+		}
 		
 		return UWidgetBlueprintLibrary::DetectDragIfPressed(InMouseEvent, this, EKeys::LeftMouseButton).NativeReply;
 	}
@@ -62,11 +78,11 @@ void UListInventorySlotWidget::NativeOnDragDetected(const FGeometry& InGeometry,
 {
 	Super::NativeOnDragDetected(InGeometry, InMouseEvent, OutOperation);
 	
-	auto Manager = GetOwningPlayerPawn()->FindComponentByClass<UUIManagerComponent>();
-	if (!Manager || !ParentInventoryWidget)
+	AUIManagerActor* ManagerActor = Cast<AUIManagerActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AUIManagerActor::StaticClass()));
+	if (!ManagerActor || !ParentInventoryWidget)
 		return;
 
-	UInventoryItemWidget* DraggedWidget = CreateWidget<UInventoryItemWidget>(GetOwningPlayer(), Manager->GetUISettings().DraggedWidgetClass);
+	UInventoryItemWidget* DraggedWidget = CreateWidget<UInventoryItemWidget>(GetOwningPlayer(), ManagerActor->GetUISettings().DraggedWidgetClass);
 	if (!DraggedWidget) return;
 	DraggedWidget->SetVisibility(ESlateVisibility::Visible);
 	

@@ -50,7 +50,7 @@ public:
 	bool HasItemInContainer(UItemBase* Item, USlotbasedInventoryWidget* Container) const;
 
 	
-	TMap<UItemBase*, TArray<FItemMapping>> GetItemLocations() const {return ItemLocations;}
+	TMap<TStrongObjectPtr<UItemBase>, TArray<FItemMapping>> GetItemLocations() const {return ItemLocations;}
 	TArray<TObjectPtr<UInventorySlot>> CollectOccupiedSlotsByContainer(USlotbasedInventoryWidget* InContainer);
 	UItemBase* GetItemFromSlot(UInventorySlot* TargetSlot, UUInventoryWidgetBase* TargetContainer) const;
 	TArray<UItemBase*> GetAllItemsByContainer(UUInventoryWidgetBase* TargetContainer) const;
@@ -61,8 +61,8 @@ protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	
-	TMap<UItemBase*, TArray<FItemMapping>> ItemLocations; //ItemLocations
+
+	TMap<TStrongObjectPtr<UItemBase>, TArray<FItemMapping>> ItemLocations; //ItemLocations
 	
 	//====================================================================
 	// FUNCTIONS

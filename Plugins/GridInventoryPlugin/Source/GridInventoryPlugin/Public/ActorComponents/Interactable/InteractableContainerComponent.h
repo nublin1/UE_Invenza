@@ -36,8 +36,6 @@ protected:
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FName ContainerWidgetName;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UItemCollection> ItemCollection;
 	
 	UPROPERTY()
@@ -56,8 +54,6 @@ protected:
 	
 	virtual void UpdateInteractableData() override;
 	UFUNCTION(BlueprintCallable)
-	virtual UUInventoryWidgetBase* FindContainerWidget();
+	virtual void FindContainerWidget();
 
-	
-	
 };

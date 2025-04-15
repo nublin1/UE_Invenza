@@ -3,7 +3,6 @@
 #include "UI/Inventory/SlotbasedInventoryWidget.h"
 
 #include "ActorComponents/ItemCollection.h"
-#include "ActorComponents/UIManagerComponent.h"
 #include "ActorComponents/Items/itemBase.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
@@ -11,9 +10,11 @@
 #include "Components/UniformGridPanel.h"
 #include "Components/UniformGridSlot.h"
 #include "DragDrop/ItemDragDropOperation.h"
+#include "Kismet/GameplayStatics.h"
 #include "Slate/SObjectWidget.h"
 #include "UI/Drag/HighlightSlotWidget.h"
 #include "UI/Item/InventoryItemWidget.h"
+#include "World/AUIManagerActor.h"
 
 USlotbasedInventoryWidget::USlotbasedInventoryWidget(): SlotsGridPanel(nullptr)
 {
@@ -143,7 +144,6 @@ void USlotbasedInventoryWidget::HandleRemoveItem(UItemBase* Item, int32 RemoveQu
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Unable to find occupied slots for item %s"), *Item->GetName());
 	}
-	
 
 	if (Item->GetQuantity() <=0)
 		ItemCollectionLink->RemoveItemFromAllContainers(Item);
@@ -199,7 +199,8 @@ FItemAddResult USlotbasedInventoryWidget::HandleAddItem(FItemMoveData ItemMoveDa
 	
 	if (ItemMoveData.SourceInventory 
 		&& ItemMoveData.TargetInventory
-		&& ItemMoveData.SourceItemPivotSlot)
+		&& ItemMoveData.SourceItemPivotSlot
+		&& ItemMoveData.TargetSlot)
 	{
 		auto TargetItem = ItemCollectionLink->GetItemFromSlot(ItemMoveData.TargetSlot, this);
 		if (ItemMoveData.SourceInventory == ItemMoveData.TargetInventory)
@@ -342,6 +343,7 @@ FItemAddResult USlotbasedInventoryWidget::TryAddStackableItem(FItemMoveData& Ite
 int32 USlotbasedInventoryWidget::HandleStackableItems(FItemMoveData& ItemMoveData, int32 RequestedAddAmount, bool bOnlyCheck)
 {
 	int32 AmountToDistribute = RequestedAddAmount;
+	int32 TotalAddedAmount = 0;
 
 	if (!ItemMoveData.TargetSlot)
 	{
@@ -362,6 +364,7 @@ int32 USlotbasedInventoryWidget::HandleStackableItems(FItemMoveData& ItemMoveDat
 
 				InsertToStackItem(Item, ActualAmountToAdd);
 				AmountToDistribute -= ActualAmountToAdd;
+				TotalAddedAmount += ActualAmountToAdd;
 			}
 		}
 
@@ -389,10 +392,11 @@ int32 USlotbasedInventoryWidget::HandleStackableItems(FItemMoveData& ItemMoveDat
 		FItemMapping Slots(TargetSlot);
 		FItemMoveData NewItemMoveData;
 		NewItemMoveData.SourceItem = ItemMoveData.SourceItem;
+		
 		NewItemMoveData.SourceItem->SetQuantity(ActualAmountToAdd);
 		
 		AddNewItem(NewItemMoveData, Slots);
-		return ActualAmountToAdd;
+		return ActualAmountToAdd + TotalAddedAmount;
 	}
 
 	if (bIsSlotEmpty(ItemMoveData.TargetSlot))
@@ -404,7 +408,7 @@ int32 USlotbasedInventoryWidget::HandleStackableItems(FItemMoveData& ItemMoveDat
 		FItemMapping Slots(ItemMoveData.TargetSlot);
 		FItemMoveData NewItemMoveData;
 		NewItemMoveData.SourceItem = ItemMoveData.SourceItem;
-		NewItemMoveData.SourceItem->SetQuantity(ActualAmountToAdd);
+		//ItemMoveData.SourceInventory->HandleRemoveItem(ItemMoveData.SourceItem, ActualAmountToAdd);
 
 		if (bOnlyCheck)
 			return ActualAmountToAdd;
@@ -428,8 +432,8 @@ int32 USlotbasedInventoryWidget::HandleStackableItems(FItemMoveData& ItemMoveDat
 		
 		InsertToStackItem(ItemFromSlot, ActualAmountToAdd);
 		AmountToDistribute -= ActualAmountToAdd;
-		ItemMoveData.SourceInventory->HandleRemoveItem(ItemMoveData.SourceItem, ActualAmountToAdd);
-		return RequestedAddAmount - AmountToDistribute;
+		//ItemMoveData.SourceInventory->HandleRemoveItem(ItemMoveData.SourceItem, ActualAmountToAdd);
+		return ActualAmountToAdd;
 	}
 }
 
@@ -623,6 +627,7 @@ void USlotbasedInventoryWidget::RemoveItemFromPanel(FItemMapping* FromSlots, UIt
 
 void USlotbasedInventoryWidget::NotifyAddItem(FItemMapping& FromSlots, UItemBase* NewItem)
 {
+	Super::NotifyAddItem(FromSlots, NewItem);
 	AddItemToPanel(NewItem);
 	UpdateWeightInfo();
 	OnAddItemDelegate.Broadcast(FromSlots, NewItem);
@@ -630,6 +635,7 @@ void USlotbasedInventoryWidget::NotifyAddItem(FItemMapping& FromSlots, UItemBase
 
 void USlotbasedInventoryWidget::NotifyUpdateItem(FItemMapping* FromSlots, UItemBase* NewItem)
 {
+	Super::NotifyUpdateItem(FromSlots, NewItem);
 	UpdateSlotInPanel(FromSlots, NewItem);
 	UpdateWeightInfo();
 	//OnItemUpdateDelegate.Broadcast(FromSlots, NewItem);
@@ -692,21 +698,39 @@ FReply USlotbasedInventoryWidget::NativeOnMouseButtonDown(const FGeometry& InGeo
 	
 	if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
-		//TODO: Rewrite with Hit Testing
-		
 		FVector2D ScreenCursorPos = InMouseEvent.GetScreenSpacePosition();
 		FIntPoint GridPosition = CalculateGridPosition(InGeometry, ScreenCursorPos);
 
 		if (GridPosition.X >= 0 && GridPosition.Y >= 0)
 		{
 			SelectedSlot = GetSlotByPosition(FIntVector2(GridPosition.X, GridPosition.Y));
-			if (!SelectedSlot) return FReply::Unhandled();
-
-			auto Linked= ItemCollectionLink-> GetItemLinkedWidgetForSlot(SelectedSlot);
-			if (!Linked) return FReply::Unhandled();
-			
-			return Reply.Handled().DetectDrag(TakeWidget(), EKeys::LeftMouseButton);
 		}
+		
+		AUIManagerActor* ManagerActor = Cast<AUIManagerActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AUIManagerActor::StaticClass()));
+		if (ManagerActor && SelectedSlot)
+		{
+			if (ManagerActor->GetInventoryModifierStates().bIsQuickGrabModifierActive)
+			{
+				FItemMoveData ItemMoveData;
+				ItemMoveData.SourceInventory = this;
+				ItemMoveData.SourceItemPivotSlot = SelectedSlot;
+				ItemMoveData.SourceItem = ItemCollectionLink->GetItemFromSlot(SelectedSlot, this);
+
+				ManagerActor->OnQuickTransferItem(ItemMoveData);
+				
+				return FReply::Unhandled();
+			}
+		}
+		
+		//TODO: Rewrite with Hit Testing
+		
+		if (!SelectedSlot) return FReply::Unhandled();
+
+		auto Linked= ItemCollectionLink-> GetItemLinkedWidgetForSlot(SelectedSlot);
+		if (!Linked) return FReply::Unhandled();
+			
+		return Reply.Handled().DetectDrag(TakeWidget(), EKeys::LeftMouseButton);
+		
 	}
 	
 	return FReply::Unhandled();
@@ -717,11 +741,11 @@ void USlotbasedInventoryWidget::NativeOnDragDetected(const FGeometry& InGeometry
 {
 	Super::NativeOnDragDetected(InGeometry, InMouseEvent, OutOperation);
 
-	auto Manager = GetOwningPlayerPawn()->FindComponentByClass<UUIManagerComponent>();
-	if (!Manager)
+	AUIManagerActor* ManagerActor = Cast<AUIManagerActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AUIManagerActor::StaticClass()));
+	if (!ManagerActor)
 		return;
 
-	UInventoryItemWidget* DraggedWidget = CreateWidget<UInventoryItemWidget>(GetOwningPlayer(),Manager->GetUISettings().DraggedWidgetClass);
+	UInventoryItemWidget* DraggedWidget = CreateWidget<UInventoryItemWidget>(GetOwningPlayer(),ManagerActor->GetUISettings().DraggedWidgetClass);
 	if (!DraggedWidget) return;
 	DraggedWidget->SetVisibility(ESlateVisibility::Hidden);
 	
@@ -822,6 +846,9 @@ bool USlotbasedInventoryWidget::NativeOnDrop(const FGeometry& InGeometry, const 
 		HighlightWidgetPreview->SetVisibility(ESlateVisibility::Collapsed);
 	
 	if (!InOperation || !SlotsGridPanel) return false;
+	AUIManagerActor* ManagerActor = Cast<AUIManagerActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AUIManagerActor::StaticClass()));
+	if (!ManagerActor)
+		return false;
 	
 	FVector2D ScreenCursorPos = InDragDropEvent.GetScreenSpacePosition();
 	FIntPoint GridPosition = CalculateGridPosition(InGeometry, ScreenCursorPos);
@@ -833,36 +860,7 @@ bool USlotbasedInventoryWidget::NativeOnDrop(const FGeometry& InGeometry, const 
 		DragOp->ItemMoveData.TargetInventory = this;
 		DragOp->ItemMoveData.TargetSlot = TargetSlot;
 
-		auto Result = HandleAddItem(DragOp->ItemMoveData, false);
-		switch (Result.OperationResult)
-		{
-		case EItemAddResult::IAR_AllItemAdded:
-			if (Result.bIsUsedReferences)
-			{
-				break;
-			}
-			if (DragOp->ItemMoveData.SourceInventory->GetItemCollection() == DragOp->ItemMoveData.TargetInventory->GetItemCollection())
-			{
-				DragOp->ItemMoveData.SourceInventory->HandleRemoveItemFromContainer(DragOp->ItemMoveData.SourceItem);
-				break;
-			}
-			else
-			{
-				DragOp->ItemMoveData.SourceInventory->HandleRemoveItem(DragOp->ItemMoveData.SourceItem, DragOp->ItemMoveData.SourceItem->GetQuantity());
-				break;
-			}
-			break;
-		case EItemAddResult::IAR_NoItemAdded:
-			break;
-		case EItemAddResult::IAR_PartialAmountItemAdded:
-			break;
-		case EItemAddResult::IAR_ItemSwapped:
-			if (DragOp->ItemMoveData.SourceInventory->GetIsUseReferences() && DragOp->ItemMoveData.SourceInventory != this)
-			{
-				DragOp->ItemMoveData.SourceInventory->HandleRemoveItemFromContainer(DragOp->ItemMoveData.SourceItem);
-			}
-			break;
-		}
+		auto Result = ManagerActor->ItemTransferRequest(DragOp->ItemMoveData);
 
 		return true;
 	}

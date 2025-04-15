@@ -11,7 +11,7 @@
 #include "UI/Inrefaces/UDraggableWidgetInterface.h"
 #include "UI/Inventory/SlotbasedInventoryWidget.h"
 
-UCoreHUDWidget::UCoreHUDWidget()
+UCoreHUDWidget::UCoreHUDWidget(): UISettings()
 {
 }
 
@@ -19,7 +19,7 @@ void UCoreHUDWidget::InitializeWidget()
 {
 	TArray<UUserWidget*> FoundWidgets;
 	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(GetWorld(), FoundWidgets, UInvBaseContainerWidget::StaticClass(), false);
-	for (auto Widget : FoundWidgets)
+	for (const auto Widget : FoundWidgets)
 	{
 		auto Inventory = Cast<UInvBaseContainerWidget>(Widget)->GetInventoryFromContainerSlot();
 		if (!Inventory) return;
@@ -30,6 +30,16 @@ void UCoreHUDWidget::InitializeWidget()
 		if (Widget->GetName() == UISettings.MainInvWidgetName)
 		{
 			MainInvWidget = Cast<UInvBaseContainerWidget>(Widget);
+			continue;
+		}
+		if (Widget->GetName() == UISettings.ContainerInWorldWidgetName)
+		{
+			ContainerInWorldWidget =Cast<UInvBaseContainerWidget>(Widget);
+			continue;
+		}
+		if (Widget->GetName() == UISettings.ContainerInWorldWidgetName)
+		{
+			VendorInvWidget =Cast<UInvBaseContainerWidget>(Widget);
 		}
 	}
 }

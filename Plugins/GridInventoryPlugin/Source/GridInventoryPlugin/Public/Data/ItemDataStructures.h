@@ -85,6 +85,6 @@ struct FItemMetaData
 	UPROPERTY(EditAnywhere, Category = "Item Data")
 	FItemNumeraticData ItemNumeraticData;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (Bitmask, BitmaskEnum = "EItemCategory"))
-	int32 ItemCategory = static_cast<int32>(EItemCategory::None);
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Data", meta = (Bitmask, BitmaskEnum = "/Script/GridInventoryPlugin.EItemCategory"))
+	EItemCategory ItemCategory;
 };

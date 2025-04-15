@@ -6,8 +6,9 @@
 #include "UI/BaseUserWidget.h"
 #include "InvBaseContainerWidget.generated.h"
 
+class UMovableTitleBar;
 class UUInventoryWidgetBase;
-class UUIManagerComponent;
+class UAUIManagerActor;
 class UInvWeightWidget;
 class USlotbasedInventoryWidget;
 /**
@@ -38,7 +39,7 @@ protected:
 	//====================================================================
 	//Widgets
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = UI, meta=(BindWidgetOptional))
-	TObjectPtr<UNamedSlot> HeaderSlot;
+	TObjectPtr<UMovableTitleBar> TitleBar;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = UI, meta=(BindWidgetOptional))
 	TObjectPtr<UNamedSlot> ContainerSlot;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = UI, meta=(BindWidgetOptional))

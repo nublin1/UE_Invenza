@@ -3,7 +3,7 @@
 
 #include "UI/Item/InventoryItemWidget.h"
 
-#include "ActorComponents/UIManagerComponent.h"
+
 #include "ActorComponents/Items/itemBase.h"
 #include "Components/Image.h"
 #include "Components/SizeBox.h"

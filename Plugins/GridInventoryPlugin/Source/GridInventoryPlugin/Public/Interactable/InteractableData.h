@@ -15,6 +15,7 @@ class UInteractionComponent;
 UENUM()
 enum class EInteractableType: uint8 
 {
+	None		UMETA(DisplayName = "None"),
 	Pickup		UMETA(DisplayName = "Pickup"),
 	NPC			UMETA(DisplayName = "NPC"),
 	Toggle		UMETA(DisplayName = "Toggle"),

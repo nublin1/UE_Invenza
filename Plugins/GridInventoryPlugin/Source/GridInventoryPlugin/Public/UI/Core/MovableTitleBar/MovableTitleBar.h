@@ -23,6 +23,8 @@ public:
 	//Widgets
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
 	TObjectPtr<UTextBlock> TitleName;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Money;
 
 	//====================================================================
 	// FUNCTIONS

@@ -43,6 +43,8 @@ public:
 	//Getters
 	UInteractionWidget* GetInteractionWidget() {return InteractionWidget;}
 	UInvBaseContainerWidget* GetMainInvWidget() {return MainInvWidget.Get();}
+	UInvBaseContainerWidget* GetContainerInWorldWidget() {return ContainerInWorldWidget.Get();}
+	UInvBaseContainerWidget* GetVendorInvWidget() {return VendorInvWidget.Get();}
 
 	//Setters
 	void SetUISettings(FUISettings NewUISettings) {UISettings = NewUISettings;}
@@ -60,8 +62,13 @@ protected:
 	//
 	UPROPERTY()
 	TObjectPtr<UInvBaseContainerWidget> MainInvWidget;
+	UPROPERTY()
+	TObjectPtr<UInvBaseContainerWidget> ContainerInWorldWidget;
+	UPROPERTY()
+	TObjectPtr<UInvBaseContainerWidget> VendorInvWidget;
 	
 	//
+	UPROPERTY()
 	bool bIsShowingInventoryMenu = false;
 	UPROPERTY(BlueprintReadWrite)
 	FUISettings UISettings;

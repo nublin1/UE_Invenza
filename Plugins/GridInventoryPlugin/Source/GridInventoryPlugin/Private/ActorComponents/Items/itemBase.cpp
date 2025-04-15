@@ -40,6 +40,9 @@ UItemBase* UItemBase::CreateFromDataTable(UDataTable* ItemDataTable, const FName
 
 bool UItemBase::bIsSameitems(UItemBase* FirstItem, UItemBase* SecondItem)
 {
+	if (!FirstItem || !SecondItem)
+		return false;
+	
 	if (FirstItem->GetItemRef().ItemTextData.Name.EqualTo(SecondItem->GetItemRef().ItemTextData.Name))
 		return true;
 

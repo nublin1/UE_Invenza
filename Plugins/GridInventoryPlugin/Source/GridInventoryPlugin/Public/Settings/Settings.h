@@ -4,6 +4,7 @@
 #include "CoreMinimal.h"
 #include "Settings.generated.h"
 
+class UInputAction;
 class UInventorySlot;
 class UHighlightSlotWidget;
 class APickup;
@@ -14,6 +15,13 @@ struct FUISettings
 {
 	GENERATED_BODY()
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Settings")
+	UInputAction* ToggleInventoryAction;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Settings")
+	UInputAction* IA_Mod_QuickGrab;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Settings")
+	UInputAction* IA_Mod_GrabAllSame ;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TSubclassOf<UInventoryItemWidget> InventoryItemVisualClass;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
@@ -22,6 +30,10 @@ struct FUISettings
 	TSubclassOf<UHighlightSlotWidget> HighlightSlotWidgetClass;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FName MainInvWidgetName;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName ContainerInWorldWidgetName;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName VendorInvWidgetName;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FVector2D SlotSize = FVector2D(0.f);
 	
@@ -34,4 +46,15 @@ struct FRegularSettings
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TSubclassOf<AActor> PickupClass;
+};
+
+USTRUCT(BlueprintType)
+struct FInventoryModifierState
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite)
+	bool bIsQuickGrabModifierActive = false;
+	UPROPERTY(BlueprintReadWrite)
+	bool bIsGrabAllSameModifierActive = false;
 };
