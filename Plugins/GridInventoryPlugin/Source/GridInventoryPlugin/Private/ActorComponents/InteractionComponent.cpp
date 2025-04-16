@@ -184,7 +184,18 @@ void UInteractionComponent::BeginInteract()
 
 	if (IsValid(TargetInteractableComponent))
 	{
-		TargetInteractableComponent->BeginInteract(this);
+		if (CurrentInteractableComponent && CurrentInteractableComponent == TargetInteractableComponent)
+		{
+			StopInteract();
+			return;
+		}
+		else
+		{
+			StopInteract();
+			TargetInteractableComponent->BeginInteract(this);
+			CurrentInteractableComponent = TargetInteractableComponent;
+		}
+		
 
 		if (FMath::IsNearlyZero(TargetInteractableComponent->InteractableData.InteractableDuration, 0.1f))
 		{
@@ -207,6 +218,7 @@ void UInteractionComponent::EndInteract()
 	if (IsValid(TargetInteractableComponent))
 	{
 		TargetInteractableComponent->EndInteract(this);
+		EndIteractNotify();
 	}
 }
 
@@ -221,10 +233,28 @@ void UInteractionComponent::Interact()
 	}
 }
 
+void UInteractionComponent::StopInteract()
+{
+	if (!CurrentInteractableComponent)
+		return;
+	
+	if (StopIteractDelegate.IsBound())
+		StopIteractDelegate.Broadcast(CurrentInteractableComponent);
+
+	CurrentInteractableComponent->StopInteract(this);
+	CurrentInteractableComponent = nullptr;
+}
+
 void UInteractionComponent::IteractNotify()
 {
 	if (IteractableDataDelegate.IsBound())
 		IteractableDataDelegate.Broadcast(TargetInteractableComponent);
+}
+
+void UInteractionComponent::EndIteractNotify()
+{
+	if (IteractableDataDelegate.IsBound())
+		EndIteractDelegate.Broadcast(TargetInteractableComponent);
 }
 
 void UInteractionComponent::TickComponent(float DeltaTime, ELevelTick TickType,

@@ -23,11 +23,18 @@ public:
 	//====================================================================
 	UInteractableComponent();
 
+	UFUNCTION()
 	virtual void BeginFocus();
+	UFUNCTION()
 	virtual void EndFocus();
+	UFUNCTION()
 	virtual void BeginInteract(UInteractionComponent* InteractionComponent);
+	UFUNCTION()
 	virtual void EndInteract(UInteractionComponent* InteractionComponent);
+	UFUNCTION()
 	virtual void Interact(UInteractionComponent* InteractionComponent);
+	UFUNCTION()
+	virtual void StopInteract(UInteractionComponent* InteractionComponent);
 
 	UPROPERTY(EditAnywhere,BlueprintReadWrite)
 	FInteractableData InteractableData;

@@ -48,13 +48,13 @@ public:
 	
 	FItemMapping* FindItemMappingForItemInContainer(UItemBase* TargetItem, UUInventoryWidgetBase* InContainer);
 	bool HasItemInContainer(UItemBase* Item, USlotbasedInventoryWidget* Container) const;
-
 	
 	TMap<TStrongObjectPtr<UItemBase>, TArray<FItemMapping>> GetItemLocations() const {return ItemLocations;}
 	TArray<TObjectPtr<UInventorySlot>> CollectOccupiedSlotsByContainer(USlotbasedInventoryWidget* InContainer);
 	UItemBase* GetItemFromSlot(UInventorySlot* TargetSlot, UUInventoryWidgetBase* TargetContainer) const;
 	TArray<UItemBase*> GetAllItemsByContainer(UUInventoryWidgetBase* TargetContainer) const;
 	TArray<UItemBase*> GetAllSameItemsInContainer(UUInventoryWidgetBase* TargetContainer, UItemBase* ReferenceItem) const;
+	TArray<UItemBase*> GetAllItemsByCategory(EItemCategory ItemCategory);
 	UInventoryItemWidget* GetItemLinkedWidgetForSlot(USlotbasedInventorySlot* _ItemSlot) const;
 
 protected:

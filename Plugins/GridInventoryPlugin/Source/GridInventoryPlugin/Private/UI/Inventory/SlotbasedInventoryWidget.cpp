@@ -139,7 +139,7 @@ void USlotbasedInventoryWidget::HandleRemoveItem(UItemBase* Item, int32 RemoveQu
 	
 	auto Slots = GetItemMapping(Item);
 	if (Slots)
-		NotifyUpdateItem(Slots, Item);
+		NotifyRemoveItem(*Slots, Item, RemoveQuantity);
 	else
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Unable to find occupied slots for item %s"), *Item->GetName());
@@ -156,7 +156,7 @@ void USlotbasedInventoryWidget::HandleRemoveItemFromContainer(UItemBase* Item)
 	auto Mapping = GetItemMapping(Item);
 	if (!Mapping) return;
 
-	NotifyRemoveItem(*Mapping, Item);
+	NotifyRemoveItem(*Mapping, Item, Item->GetQuantity());
 
 	Mapping->ItemVisualLinked->RemoveFromParent();
 	if (ItemCollectionLink)
@@ -283,7 +283,7 @@ FItemAddResult USlotbasedInventoryWidget::HandleNonStackableItems(FItemMoveData&
 		if (!bOnlyCheck)
 		{
 			FItemMapping Slots (EmptySlot);
-			AddNewItem(ItemMoveData, Slots);
+			AddNewItem(ItemMoveData, Slots, 1);
 		}
 		
 		return FItemAddResult::AddedAll(1, false, FText::Format(
@@ -296,7 +296,7 @@ FItemAddResult USlotbasedInventoryWidget::HandleNonStackableItems(FItemMoveData&
 		if (!bOnlyCheck)
 		{
 			FItemMapping Slots (ItemMoveData.TargetSlot);
-			AddNewItem(ItemMoveData, Slots);
+			AddNewItem(ItemMoveData, Slots, 1);
 		}
 
 		return FItemAddResult::AddedAll(1, false, FText::Format(
@@ -392,10 +392,9 @@ int32 USlotbasedInventoryWidget::HandleStackableItems(FItemMoveData& ItemMoveDat
 		FItemMapping Slots(TargetSlot);
 		FItemMoveData NewItemMoveData;
 		NewItemMoveData.SourceItem = ItemMoveData.SourceItem;
-		
 		NewItemMoveData.SourceItem->SetQuantity(ActualAmountToAdd);
 		
-		AddNewItem(NewItemMoveData, Slots);
+		AddNewItem(NewItemMoveData, Slots, ActualAmountToAdd);
 		return ActualAmountToAdd + TotalAddedAmount;
 	}
 
@@ -413,7 +412,7 @@ int32 USlotbasedInventoryWidget::HandleStackableItems(FItemMoveData& ItemMoveDat
 		if (bOnlyCheck)
 			return ActualAmountToAdd;
 		
-		AddNewItem(NewItemMoveData, Slots);
+		AddNewItem(NewItemMoveData, Slots, ActualAmountToAdd);
 		return ActualAmountToAdd;
 	}
 	else
@@ -460,7 +459,7 @@ FItemAddResult USlotbasedInventoryWidget::HandleAddReferenceItem(FItemMoveData& 
 		
 		FItemMapping Slots;
 		Slots.ItemSlots.Add(ItemMoveData.TargetSlot);
-		AddNewItem(ItemMoveData, Slots);
+		AddNewItem(ItemMoveData, Slots, ItemMoveData.SourceItem->GetQuantity());
 
 		return FItemAddResult::AddedAll(1, true, FText::Format(
 			FText::FromString("Successfully added {0} to inventory as a reference"),
@@ -516,7 +515,7 @@ FItemAddResult USlotbasedInventoryWidget::HandleSwapOrAddItems(FItemMoveData& It
 	return TryAddStackableItem(ItemMoveData, bOnlyCheck);
 }
 
-void USlotbasedInventoryWidget::AddNewItem(FItemMoveData& ItemMoveData, FItemMapping OccupiedSlots)
+void USlotbasedInventoryWidget::AddNewItem(FItemMoveData& ItemMoveData, FItemMapping OccupiedSlots, int32 AddAmount)
 {
 	TObjectPtr<UItemBase> FinalItem;
 	if (bUseReferences)
@@ -526,7 +525,7 @@ void USlotbasedInventoryWidget::AddNewItem(FItemMoveData& ItemMoveData, FItemMap
 	else
 	{
 		FinalItem = NewObject<UItemBase>(this);
-		FinalItem->SetQuantity(ItemMoveData.SourceItem->GetQuantity());
+		FinalItem->SetQuantity(AddAmount);
 		FinalItem->SetItemRef(ItemMoveData.SourceItem->GetItemRef());
 	}
 	
@@ -536,7 +535,7 @@ void USlotbasedInventoryWidget::AddNewItem(FItemMoveData& ItemMoveData, FItemMap
 		ItemCollectionLink->AddItem(FinalItem, OccupiedSlots);
 	}
 
-	NotifyAddItem(OccupiedSlots, FinalItem);
+	NotifyAddItem(OccupiedSlots, FinalItem, ItemMoveData.SourceItem->GetQuantity());
 }
 
 void USlotbasedInventoryWidget::ReplaceItem(UItemBase* Item, UInventorySlot* NewSlot)
@@ -607,14 +606,14 @@ void USlotbasedInventoryWidget::ReplaceItemInPanel(FItemMapping& FromSlots, UIte
 	CanvasSlot->SetPosition(VisualPosition);
 }
 
-void USlotbasedInventoryWidget::UpdateSlotInPanel(FItemMapping* FromSlots, UItemBase* Item)
+void USlotbasedInventoryWidget::UpdateSlotInPanel(FItemMapping FromSlots, UItemBase* Item)
 {
-	if (!FromSlots->ItemVisualLinked || !Item)
+	if (!FromSlots.ItemVisualLinked || !Item)
 		return;
 
-	FromSlots->ItemVisualLinked->UpdateQuantityText(Item->GetQuantity());
-	FromSlots->ItemVisualLinked->UpdateItemName(Item->GetItemRef().ItemTextData.Name);
-	FromSlots->ItemVisualLinked->UpdateVisual(Item);
+	FromSlots.ItemVisualLinked->UpdateQuantityText(Item->GetQuantity());
+	FromSlots.ItemVisualLinked->UpdateItemName(Item->GetItemRef().ItemTextData.Name);
+	FromSlots.ItemVisualLinked->UpdateVisual(Item);
 }
 
 void USlotbasedInventoryWidget::RemoveItemFromPanel(FItemMapping* FromSlots, UItemBase* Item)
@@ -625,33 +624,23 @@ void USlotbasedInventoryWidget::RemoveItemFromPanel(FItemMapping* FromSlots, UIt
 	FromSlots->ItemVisualLinked->RemoveFromParent();
 }
 
-void USlotbasedInventoryWidget::NotifyAddItem(FItemMapping& FromSlots, UItemBase* NewItem)
+void USlotbasedInventoryWidget::NotifyAddItem(FItemMapping& FromSlots, UItemBase* NewItem, int32 ChangeQuantity)
 {
-	Super::NotifyAddItem(FromSlots, NewItem);
-	AddItemToPanel(NewItem);
+	Super::NotifyAddItem(FromSlots, NewItem, ChangeQuantity);
+	if (!FromSlots.ItemVisualLinked)
+		AddItemToPanel(NewItem);
+	else
+		UpdateSlotInPanel(FromSlots, NewItem);
 	UpdateWeightInfo();
-	OnAddItemDelegate.Broadcast(FromSlots, NewItem);
 }
 
-void USlotbasedInventoryWidget::NotifyUpdateItem(FItemMapping* FromSlots, UItemBase* NewItem)
+void USlotbasedInventoryWidget::NotifyRemoveItem(FItemMapping& FromSlots, UItemBase* RemovedItem, int32 RemoveQuantity) 
 {
-	Super::NotifyUpdateItem(FromSlots, NewItem);
-	UpdateSlotInPanel(FromSlots, NewItem);
-	UpdateWeightInfo();
-	//OnItemUpdateDelegate.Broadcast(FromSlots, NewItem);
-}
-
-/*void UBaseInventoryWidget::NotifyUseSlot(UBaseInventorySlot* FromSlot)
-{
-	//auto Item = FindItemBySlot(FromSlot);
-
-	//OnUseItemDelegate.Broadcast(FromSlot, Item);
-}*/
-
-void USlotbasedInventoryWidget::NotifyRemoveItem(FItemMapping& FromSlots, UItemBase* RemovedItem) 
-{
-	RemoveItemFromPanel(&FromSlots, RemovedItem);
-	OnRemoveItemDelegate.Broadcast(FromSlots, RemovedItem);
+	Super::NotifyRemoveItem(FromSlots, RemovedItem, RemoveQuantity);
+	if (RemovedItem->GetQuantity() <=0)
+		RemoveItemFromPanel(&FromSlots, RemovedItem);
+	else
+		UpdateSlotInPanel(FromSlots, RemovedItem);
 }
 
 void USlotbasedInventoryWidget::CreateHighlightWidget()
@@ -715,6 +704,8 @@ FReply USlotbasedInventoryWidget::NativeOnMouseButtonDown(const FGeometry& InGeo
 				ItemMoveData.SourceInventory = this;
 				ItemMoveData.SourceItemPivotSlot = SelectedSlot;
 				ItemMoveData.SourceItem = ItemCollectionLink->GetItemFromSlot(SelectedSlot, this);
+				if (!ItemMoveData.SourceItem)
+					return FReply::Unhandled();
 
 				ManagerActor->OnQuickTransferItem(ItemMoveData);
 				
@@ -846,9 +837,6 @@ bool USlotbasedInventoryWidget::NativeOnDrop(const FGeometry& InGeometry, const 
 		HighlightWidgetPreview->SetVisibility(ESlateVisibility::Collapsed);
 	
 	if (!InOperation || !SlotsGridPanel) return false;
-	AUIManagerActor* ManagerActor = Cast<AUIManagerActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AUIManagerActor::StaticClass()));
-	if (!ManagerActor)
-		return false;
 	
 	FVector2D ScreenCursorPos = InDragDropEvent.GetScreenSpacePosition();
 	FIntPoint GridPosition = CalculateGridPosition(InGeometry, ScreenCursorPos);
@@ -860,7 +848,8 @@ bool USlotbasedInventoryWidget::NativeOnDrop(const FGeometry& InGeometry, const 
 		DragOp->ItemMoveData.TargetInventory = this;
 		DragOp->ItemMoveData.TargetSlot = TargetSlot;
 
-		auto Result = ManagerActor->ItemTransferRequest(DragOp->ItemMoveData);
+		if (OnItemDroppedDelegate.IsBound())
+			OnItemDroppedDelegate.Broadcast(DragOp->ItemMoveData);
 
 		return true;
 	}

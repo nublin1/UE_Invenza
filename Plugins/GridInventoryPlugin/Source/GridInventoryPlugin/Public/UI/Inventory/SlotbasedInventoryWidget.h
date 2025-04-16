@@ -99,7 +99,7 @@ protected:
 	UFUNCTION()
 	virtual FItemAddResult HandleSwapOrAddItems(FItemMoveData& ItemMoveData,bool bOnlyCheck );
 	
-	virtual void AddNewItem(FItemMoveData& ItemMoveData, FItemMapping OccupiedSlots) override;
+	virtual void AddNewItem(FItemMoveData& ItemMoveData, FItemMapping OccupiedSlots, int32 AddAmount) override;
 	UFUNCTION()
 	virtual void ReplaceItem(UItemBase* Item, UInventorySlot* NewSlot);
 
@@ -108,12 +108,11 @@ protected:
 	
 	virtual void AddItemToPanel(UItemBase* Item) override;
 	virtual void ReplaceItemInPanel(FItemMapping& FromSlots, UItemBase* Item);	
-	virtual void UpdateSlotInPanel(FItemMapping* FromSlots, UItemBase* Item);
+	virtual void UpdateSlotInPanel(FItemMapping FromSlots, UItemBase* Item);
 	virtual void RemoveItemFromPanel(FItemMapping* FromSlots, UItemBase* Item);
 	
-	virtual void NotifyAddItem(FItemMapping& FromSlots, UItemBase* NewItem) override;
-	virtual void NotifyUpdateItem(FItemMapping* FromSlots, UItemBase* NewItem) override;
-	virtual void NotifyRemoveItem(FItemMapping& FromSlots, UItemBase* RemovedItem) override;
+	virtual void NotifyAddItem(FItemMapping& FromSlots, UItemBase* NewItem, int32 ChangeQuantity) override;
+	virtual void NotifyRemoveItem(FItemMapping& FromSlots, UItemBase* RemovedItem, int32 RemoveQuantity) override;
 	//void NotifyUseSlot(UBaseInventorySlot* FromSlot);
 
 	UFUNCTION()

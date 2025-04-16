@@ -37,7 +37,7 @@ void UCoreHUDWidget::InitializeWidget()
 			ContainerInWorldWidget =Cast<UInvBaseContainerWidget>(Widget);
 			continue;
 		}
-		if (Widget->GetName() == UISettings.ContainerInWorldWidgetName)
+		if (Widget->GetName() == UISettings.VendorInvWidgetName)
 		{
 			VendorInvWidget =Cast<UInvBaseContainerWidget>(Widget);
 		}

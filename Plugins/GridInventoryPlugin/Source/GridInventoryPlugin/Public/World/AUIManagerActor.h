@@ -11,6 +11,7 @@
 #include "AUIManagerActor.generated.h"
 
 
+class FIteract;
 enum class EInteractableType : uint8;
 class UItemCollection;
 struct FItemMoveData;
@@ -37,7 +38,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void OnQuickTransferItem(FItemMoveData ItemMoveData);
 	UFUNCTION(BlueprintCallable)
-	FItemAddResult ItemTransferRequest(FItemMoveData ItemMoveData);
+	void ItemTransferRequest(FItemMoveData ItemMoveData);
 
 	UInvBaseContainerWidget* GetMainInventory() {return CoreHUDWidget->GetMainInvWidget();}
 
@@ -45,8 +46,7 @@ public:
 	UCoreHUDWidget* GetCoreHUDWidget() {return CoreHUDWidget;}
 	FInventoryModifierState GetInventoryModifierStates() const {return InventoryModifierState;}
 
-	UFUNCTION(BlueprintCallable)
-	void SetInteractableType(EInteractableType InteractableType);
+	
 
 protected:
 	//====================================================================
@@ -71,6 +71,11 @@ protected:
 	// FUNCTIONS
 	//====================================================================
 	virtual void BeginPlay() override;
+
+	UFUNCTION(BlueprintCallable)
+	void SetInteractableType(UInteractableComponent* IteractData);
+	UFUNCTION(BlueprintCallable)
+	void ClearInteractableType(UInteractableComponent* IteractData = nullptr);
 
 	UFUNCTION(BlueprintCallable)
 	void BindEvents(AActor* TargetActor);

@@ -73,7 +73,8 @@ void UInvBaseContainerWidget::NativeConstruct()
 
 void UInvBaseContainerWidget::UpdateWeightInfo(float InventoryTotalWeight, float InventoryWeightCapacity)
 {
-	FString Text = {" " + FString::SanitizeFloat(InventoryTotalWeight) + "/" + FString::SanitizeFloat(InventoryWeightCapacity)};
+	FString RoundedString = FString::Printf(TEXT("%0.2f"), InventoryTotalWeight);
+	FString Text = {" " + RoundedString + "/" + FString::SanitizeFloat(InventoryWeightCapacity)};
 	InvWeight->WeightInfo->SetText(FText::FromString(Text));
 }
 

@@ -248,6 +248,21 @@ TArray<UItemBase*> UItemCollection::GetAllSameItemsInContainer(UUInventoryWidget
 	return SameItems;
 }
 
+TArray<UItemBase*> UItemCollection::GetAllItemsByCategory(EItemCategory ItemCategory)
+{
+	TArray<UItemBase*> SameItems;
+	for (const auto& Pair : ItemLocations)
+	{
+		auto Item = Pair.Key;
+		if (EnumHasAnyFlags(static_cast<EItemCategory>(Item->GetItemRef().ItemCategory), ItemCategory))
+		{
+			SameItems.Add(Item.Get());
+		}
+	}
+
+	return SameItems;
+}
+
 UInventoryItemWidget* UItemCollection::GetItemLinkedWidgetForSlot(USlotbasedInventorySlot* _ItemSlot) const
 {
 	if (!_ItemSlot)

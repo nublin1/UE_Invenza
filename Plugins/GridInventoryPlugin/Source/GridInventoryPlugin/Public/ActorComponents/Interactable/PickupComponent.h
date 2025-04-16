@@ -27,8 +27,7 @@ public:
 	UPickupComponent();
 	virtual void BeginFocus() override;
 	virtual void EndFocus() override;
-
-	UFUNCTION()
+	
 	virtual void Interact(UInteractionComponent* InteractionComponent) override;
 	UFUNCTION()
 	virtual void InitializeDrop(UItemBase* ItemToDrop);

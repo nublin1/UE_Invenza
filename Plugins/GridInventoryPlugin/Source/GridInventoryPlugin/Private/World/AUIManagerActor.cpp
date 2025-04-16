@@ -40,7 +40,7 @@ void AUIManagerActor::OnQuickTransferItem(FItemMoveData ItemMoveData)
 	ItemTransferRequest(ItemMoveData);
 }
 
-FItemAddResult AUIManagerActor::ItemTransferRequest(FItemMoveData ItemMoveData)
+void AUIManagerActor::ItemTransferRequest(FItemMoveData ItemMoveData)
 {
 	auto Result = ItemMoveData.TargetInventory->HandleAddItem(ItemMoveData, false);
 	switch (Result.OperationResult)
@@ -50,18 +50,26 @@ FItemAddResult AUIManagerActor::ItemTransferRequest(FItemMoveData ItemMoveData)
 		{
 			break;
 		}
-		if (ItemMoveData.SourceInventory->GetItemCollection() == ItemMoveData.TargetInventory->GetItemCollection())
+		if (ItemMoveData.SourceInventory && ItemMoveData.SourceInventory->GetItemCollection() == ItemMoveData.TargetInventory->GetItemCollection())
 		{
 			ItemMoveData.SourceInventory->HandleRemoveItemFromContainer(ItemMoveData.SourceItem);
 			break;
 		}
-		else
+		else if (ItemMoveData.SourceInventory)
 		{
 			ItemMoveData.SourceInventory->HandleRemoveItem(ItemMoveData.SourceItem, ItemMoveData.SourceItem->GetQuantity());
 			break;
 		}
 		break;
 	case EItemAddResult::IAR_NoItemAdded:
+		if (!ItemMoveData.SourceInventory)
+			if (auto Pawn = UGameplayStatics::GetPlayerController(GetWorld(), 0)->GetPawn())
+			{
+				auto Interaction = Pawn->FindComponentByClass<UInteractionComponent>();
+				if (!Interaction) break;
+
+				Interaction->DropItem(ItemMoveData.SourceItem);
+			}
 		break;
 	case EItemAddResult::IAR_PartialAmountItemAdded:
 		break;
@@ -72,25 +80,43 @@ FItemAddResult AUIManagerActor::ItemTransferRequest(FItemMoveData ItemMoveData)
 		}
 		break;
 	}
-
-	return Result;
 }
 
-void AUIManagerActor::SetInteractableType(EInteractableType InteractableType)
+void AUIManagerActor::SetInteractableType(UInteractableComponent* IteractData)
 {
-	switch (InteractableType)
+	switch (IteractData->InteractableData.DefaultInteractableType)
 	{
 	case EInteractableType::Container:
 		CurrentInteractInvWidget = CoreHUDWidget->GetContainerInWorldWidget();
+		CurrentInteractInvWidget->SetVisibility(ESlateVisibility::Visible);
 		break;
 	case EInteractableType::Vendor:
+		CurrentInteractInvWidget = CoreHUDWidget->GetVendorInvWidget();
+		CurrentInteractInvWidget->SetVisibility(ESlateVisibility::Visible);
 		break;
 	case EInteractableType::None:
-		CurrentInteractInvWidget = nullptr;
+		if (CurrentInteractInvWidget)
+		{
+			CurrentInteractInvWidget->SetVisibility(ESlateVisibility::Collapsed);
+			CurrentInteractInvWidget = nullptr;
+		}
 		break;
 	default:
-		CurrentInteractInvWidget = nullptr;
+		if (CurrentInteractInvWidget)
+		{
+			CurrentInteractInvWidget->SetVisibility(ESlateVisibility::Collapsed);
+			CurrentInteractInvWidget = nullptr;
+		}
 		break;
+	}
+}
+
+void AUIManagerActor::ClearInteractableType(UInteractableComponent* IteractData)
+{
+	if (CurrentInteractInvWidget)
+	{
+		CurrentInteractInvWidget->SetVisibility(ESlateVisibility::Collapsed);
+		CurrentInteractInvWidget = nullptr;
 	}
 }
 
@@ -110,7 +136,6 @@ void AUIManagerActor::BindEvents(AActor* TargetActor)
 
 	if (!IsValid(InteractionWidget))
 	{
-		
 		UE_LOG(LogTemp, Warning, TEXT("InteractionWidget is not valid or pending kill!"));
 		return;
 	}
@@ -120,6 +145,9 @@ void AUIManagerActor::BindEvents(AActor* TargetActor)
 	InteractionComponent->BeginFocusDelegate.AddDynamic(InteractionWidget, &UInteractionWidget::OnFoundInteractable);
 	InteractionComponent->EndFocusDelegate.AddDynamic(InteractionWidget, &UInteractionWidget::OnLostInteractable);
 	InteractionComponent->IteractableDataDelegate.AddDynamic(this, &AUIManagerActor::UIIteract);
+
+	InteractionComponent->IteractableDataDelegate.AddDynamic(this, &AUIManagerActor::SetInteractableType);
+	InteractionComponent->StopIteractDelegate.AddDynamic(this, &AUIManagerActor::ClearInteractableType);
 
 	UItemCollection* ItemCollection = TargetActor->FindComponentByClass<UItemCollection>();
 	if (!ItemCollection) return;
@@ -136,6 +164,13 @@ void AUIManagerActor::BindEvents(AActor* TargetActor)
 		ItemMoveData.SourceItem = UItemBase::CreateFromDataTable(ItemCollection->ItemDataTable, Item.ItemName, Item.ItemCount);
 		CoreHUDWidget->GetMainInvWidget()->GetInventoryFromContainerSlot()->HandleAddItem(ItemMoveData);
 	}
+
+	CoreHUDWidget->GetMainInvWidget()->GetInventoryFromContainerSlot()->OnItemDroppedDelegate.AddDynamic(this, &AUIManagerActor::ItemTransferRequest);
+	if (auto ContainerInWorldWidget = CoreHUDWidget->GetContainerInWorldWidget())
+		ContainerInWorldWidget->GetInventoryFromContainerSlot()->OnItemDroppedDelegate.AddDynamic(this, &AUIManagerActor::ItemTransferRequest);
+	if (auto VendorInvWidget = CoreHUDWidget->GetVendorInvWidget())
+		VendorInvWidget->GetInventoryFromContainerSlot()->OnItemDroppedDelegate.AddDynamic(this, &AUIManagerActor::ItemTransferRequest);
+		
 }
 
 void AUIManagerActor::UIIteract( UInteractableComponent* TargetInteractableComponent)

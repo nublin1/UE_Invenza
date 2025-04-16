@@ -28,8 +28,8 @@ public:
 	virtual void BeginFocus() override;
 	virtual void EndFocus() override;
 	
-	UFUNCTION()
 	virtual void Interact(UInteractionComponent* InteractionComponent) override;
+	virtual void StopInteract(UInteractionComponent* InteractionComponent) override;
 
 protected:
 	//====================================================================

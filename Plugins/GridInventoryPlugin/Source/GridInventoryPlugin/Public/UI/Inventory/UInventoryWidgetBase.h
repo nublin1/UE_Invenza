@@ -9,7 +9,8 @@
 #include "UInventoryWidgetBase.generated.h"
 
 #pragma region Delegates
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnItemUpdateDelegate, const FItemMapping&, ItemSlots, UItemBase*, Item);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnItemDropped, FItemMoveData, ItemMoveData);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnItemUpdateDelegate, FItemMapping, ItemSlots, UItemBase*, Item);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAddItemDelegate, FItemMapping, ItemSlots, UItemBase*, Item);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnRemoveItemDelegate, FItemMapping, ItemSlots, UItemBase*, Item);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUseItemDelegate, USlotbasedInventorySlot*, ItemSlot, UItemBase*, Item);
@@ -30,6 +31,7 @@ public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
+	FOnItemDropped OnItemDroppedDelegate;
 	FOnItemUpdateDelegate OnItemUpdateDelegate;
 	FOnAddItemDelegate OnAddItemDelegate;	
 	FOnRemoveItemDelegate OnRemoveItemDelegate;
@@ -101,7 +103,7 @@ protected:
 	UFUNCTION()
 	virtual FItemAddResult HandleAddReferenceItem(FItemMoveData& ItemMoveData) PURE_VIRTUAL(UUInventoryWidgetBase::HandleAddReferenceItem, return FItemAddResult(););
 	UFUNCTION()
-	virtual void AddNewItem(FItemMoveData& ItemMoveData, FItemMapping OccupiedSlots) PURE_VIRTUAL(UUInventoryWidgetBase::AddNewItem, );
+	virtual void AddNewItem(FItemMoveData& ItemMoveData, FItemMapping OccupiedSlots, int32 AddAmount) PURE_VIRTUAL(UUInventoryWidgetBase::AddNewItem, );
 	UFUNCTION()
 	virtual void InsertToStackItem(UItemBase* Item, int32 AddQuantity);
 
@@ -113,9 +115,9 @@ protected:
 	virtual void UpdateMoneyInfo();
 
 	// Notifications
-	virtual void NotifyAddItem(FItemMapping& FromSlots, UItemBase* NewItem);
-	virtual void NotifyUpdateItem(FItemMapping* FromSlots, UItemBase* NewItem);
-	virtual void NotifyRemoveItem(FItemMapping& FromSlots, UItemBase* RemovedItem);
+	virtual void NotifyAddItem(FItemMapping& FromSlots, UItemBase* NewItem, int32 ChangeQuantity);
+	//virtual void NotifyUpdateItem(FItemMapping InSlots, UItemBase* UpdatedItem);
+	virtual void NotifyRemoveItem(FItemMapping& FromSlots, UItemBase* RemovedItem, int32 RemoveQuantity);
 	//void NotifyUseSlot(UBaseInventorySlot* FromSlot);
 
 	

@@ -3,6 +3,7 @@
 #include "ActorComponents/Interactable/InteractableContainerComponent.h"
 
 #include "ToolBuilderUtil.h"
+#include "ActorComponents/InteractionComponent.h"
 #include "ActorComponents/ItemCollection.h"
 #include "ActorComponents/Items/itemBase.h"
 #include "Blueprint/UserWidget.h"
@@ -45,24 +46,27 @@ void UInteractableContainerComponent::Interact(UInteractionComponent* Interactio
 
 	FindContainerWidget();
 	if (!InventoryWidget) return;
-
-	AUIManagerActor* ManagerActor = Cast<AUIManagerActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AUIManagerActor::StaticClass()));
-	if (!ManagerActor)
-		return;
 	
 	if (bIsInteracting == false)
 	{
 		ContainerWidget->SetVisibility(ESlateVisibility::Visible);
 		InventoryWidget->ReDrawAllItems();
-		ManagerActor->SetInteractableType(InteractableData.DefaultInteractableType);
 		bIsInteracting = true;
 	}
 	else
 	{
 		ContainerWidget->SetVisibility(ESlateVisibility::Collapsed);
-		ManagerActor->SetInteractableType(EInteractableType::None);
 		bIsInteracting = false;
 	}
+}
+
+void UInteractableContainerComponent::StopInteract(UInteractionComponent* InteractionComponent)
+{
+	Super::StopInteract(InteractionComponent);
+	
+	ContainerWidget->SetVisibility(ESlateVisibility::Collapsed);
+	ContainerWidget=nullptr;
+	bIsInteracting = false;
 }
 
 void UInteractableContainerComponent::OnRegister()

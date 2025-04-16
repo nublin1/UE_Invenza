@@ -28,6 +28,10 @@ void UInteractableComponent::Interact(UInteractionComponent* InteractionComponen
 {
 }
 
+void UInteractableComponent::StopInteract(UInteractionComponent* InteractionComponent)
+{
+}
+
 void UInteractableComponent::InitializeInteractionComponent()
 {
 }

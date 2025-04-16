@@ -31,7 +31,7 @@ void UUInventoryWidgetBase::InsertToStackItem(UItemBase* Item, int32 AddQuantity
 	Item->SetQuantity(Item->GetQuantity() + AddQuantity);
 	auto Slots = GetItemMapping(Item);
 	if (Slots)
-		NotifyUpdateItem(Slots, Item);
+		NotifyAddItem(*Slots, Item, AddQuantity);
 	else
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Unable to find occupied slots for item %s"), *Item->GetName());
@@ -55,18 +55,10 @@ void UUInventoryWidgetBase::UpdateWeightInfo()
 				InventoryTotalWeight += Item->GetQuantity() * Item->GetItemSingleWeight();
 			}
 
+			InventoryTotalWeight = FMath::RoundToFloat(InventoryTotalWeight * 100.0f) / 100.0f;
 			OnWightUpdatedDelegate.Broadcast(InventoryTotalWeight, InventoryWeightCapacity);
 		}
 	}
-}
-FString ToBinaryString(int32 Value)
-{
-	FString BinaryStr;
-	for (int32 i = 7; i >= 0; --i) // 8 бит (можешь расширить до 32)
-	{
-		BinaryStr.AppendChar(((Value >> i) & 1) ? '1' : '0');
-	}
-	return BinaryStr;
 }
 
 void UUInventoryWidgetBase::UpdateMoneyInfo()
@@ -84,12 +76,6 @@ void UUInventoryWidgetBase::UpdateMoneyInfo()
 	{
 		for (auto Item : AllItems)
 		{
-			auto PrintCategoryBits = [](FString Name, int32 Value)
-			{
-				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green,
-					FString::Printf(TEXT("%s = %d (Bits: 0b%s)"), *Name, Value, *ToBinaryString(Value)));
-			};
-
 			if (EnumHasAnyFlags(static_cast<EItemCategory>(Item->GetItemRef().ItemCategory), EItemCategory::Money))
 				InventoryTotalMoney += Item->GetQuantity();
 		}
@@ -98,16 +84,24 @@ void UUInventoryWidgetBase::UpdateMoneyInfo()
 	}
 }
 
-void UUInventoryWidgetBase::NotifyAddItem(FItemMapping& FromSlots, UItemBase* NewItem)
+void UUInventoryWidgetBase::NotifyAddItem(FItemMapping& FromSlots, UItemBase* NewItem, int32 ChangeQuantity)
 {
 	UpdateMoneyInfo();
+	if (OnAddItemDelegate.IsBound())
+		OnAddItemDelegate.Broadcast(FromSlots, NewItem);
 }
 
-void UUInventoryWidgetBase::NotifyUpdateItem(FItemMapping* FromSlots, UItemBase* NewItem)
+/*void UUInventoryWidgetBase::NotifyUpdateItem(FItemMapping FromSlots, UItemBase* UpdatedItem)
 {
-}
+	if (OnItemUpdateDelegate.IsBound())
+		OnItemUpdateDelegate.Broadcast(FromSlots, UpdatedItem);
+}*/
 
-void UUInventoryWidgetBase::NotifyRemoveItem(FItemMapping& FromSlots, UItemBase* RemovedItem)
+void UUInventoryWidgetBase::NotifyRemoveItem(FItemMapping& FromSlots, UItemBase* RemovedItem, int32 RemoveQuantity)
 {
+	if (OnRemoveItemDelegate.IsBound())
+		OnRemoveItemDelegate.Broadcast(FromSlots, RemovedItem);
+	
+	
 }
 

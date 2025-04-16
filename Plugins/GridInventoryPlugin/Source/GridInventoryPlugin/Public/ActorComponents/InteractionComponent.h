@@ -13,6 +13,8 @@ class UItemBase;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FBeginFocus, FInteractableData&, InteractableData);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FEndFocus, FInteractableData&, InteractableData);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FIteract, UInteractableComponent*, TargetInteractableComponent);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FStopIteract, UInteractableComponent*, TargetInteractableComponent);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FEndIteract, UInteractableComponent*, TargetInteractableComponent);
 #pragma endregion
 
 enum class EInteractableType : uint8;
@@ -31,12 +33,16 @@ public:
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	//Delegates
-	UPROPERTY(BlueprintAssignable)
+	UPROPERTY(BlueprintAssignable, Category="Interaction")
 	FBeginFocus BeginFocusDelegate;
 	UPROPERTY(BlueprintAssignable, Category="Interaction")
 	FEndFocus EndFocusDelegate;
 	UPROPERTY(BlueprintAssignable, Category="Interaction")
 	FIteract IteractableDataDelegate;
+	UPROPERTY(BlueprintAssignable, Category="Interaction")
+	FStopIteract StopIteractDelegate;
+	UPROPERTY(BlueprintAssignable, Category="Interaction")
+	FEndIteract EndIteractDelegate;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Settings")
 	FRegularSettings RegularSettings;
@@ -72,7 +78,9 @@ protected:
 	FTimerHandle TimerHandle_Interaction;
 	FInteractionData InteractionData;
 	UPROPERTY(EditAnywhere, Category = "Character | Interaction")
-	UInteractableComponent* TargetInteractableComponent;	
+	UInteractableComponent* TargetInteractableComponent;
+	UPROPERTY(VisibleAnywhere, Category = "Character | Interaction")
+	UInteractableComponent* CurrentInteractableComponent;
 	UPROPERTY()
 	TObjectPtr<UCameraComponent> CameraComponent;
 	
@@ -85,9 +93,11 @@ protected:
 	void BeginInteract();
 	void EndInteract();
 	void Interact();
+	void StopInteract();
 
 	void IteractNotify();
-	
+	void EndIteractNotify();
+
 	//Overrides
 	virtual void BeginPlay() override;
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;

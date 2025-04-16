@@ -1,10 +1,10 @@
 //  Nublin Studio 2025 All Rights Reserved.
 
 #include "ActorComponents/Interactable/VendorComponent.h"
-
-#include "ActorComponents/ItemCollection.h"
-#include "Blueprint/WidgetBlueprintLibrary.h"
-#include "UI/Container/InvBaseContainerWidget.h"
+#include "ActorComponents/InteractionComponent.h"
+#include "ActorComponents/TradeComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "World/AUIManagerActor.h"
 
 UVendorComponent::UVendorComponent()
 {
@@ -23,6 +23,27 @@ void UVendorComponent::EndFocus()
 void UVendorComponent::Interact(UInteractionComponent* InteractionComponent)
 {
 	Super::Interact(InteractionComponent);
+	auto Trade = GetOwner()->FindComponentByClass<UTradeComponent>();
+	auto ManagerActor = Cast<AUIManagerActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AUIManagerActor::StaticClass()));
+	if (!Trade || !ManagerActor)
+		return;
+
+	if (!bIsInteract)
+	{
+		Trade->OpenTradeMenu(GetOwner(), InteractionComponent->GetOwner(), ManagerActor);
+		bIsInteract = true;
+		return;
+	}
+	
+	bIsInteract = false;
+}
+
+void UVendorComponent::StopInteract(UInteractionComponent* InteractionComponent)
+{
+	Super::StopInteract(InteractionComponent);
+	bIsInteract = false;
+	auto Trade = GetOwner()->FindComponentByClass<UTradeComponent>();
+	Trade->CloseTradeMenu();
 }
 
 void UVendorComponent::OnRegister()
@@ -33,7 +54,6 @@ void UVendorComponent::OnRegister()
 void UVendorComponent::InitializeInteractionComponent()
 {
 	Super::InitializeInteractionComponent();
-	ItemCollection = GetOwner()->FindComponentByClass<UItemCollection>();
 	UpdateInteractableData();
 }
 
@@ -45,20 +65,3 @@ void UVendorComponent::UpdateInteractableData()
 	InteractableData.Quantity = -1;
 }
 
-UUInventoryWidgetBase* UVendorComponent::FindContainerWidget()
-{
-	TArray<UUserWidget*> FoundWidgets;
-	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(GetWorld(), FoundWidgets, UInvBaseContainerWidget::StaticClass(), false);
-
-	for (UUserWidget* Widget : FoundWidgets)
-	{
-		if (Widget->GetFName() == ContainerWidgetName)
-		{
-			auto InvBaseContainerWidget = Cast<UInvBaseContainerWidget>(Widget);
-			ContainerWidget = InvBaseContainerWidget;
-			return InvBaseContainerWidget->GetInventoryFromContainerSlot();
-		}
-	}
-
-	return nullptr;
-}

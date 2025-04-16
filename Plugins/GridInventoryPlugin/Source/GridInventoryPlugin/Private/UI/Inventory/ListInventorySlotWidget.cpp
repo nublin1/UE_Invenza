@@ -60,7 +60,7 @@ FReply UListInventorySlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeom
 			FItemMoveData ItemMoveData;
 			ItemMoveData.SourceInventory = ParentInventoryWidget;
 			ItemMoveData.SourceItemPivotSlot = this;
-			ItemMoveData.SourceItem = ParentInventoryWidget->GetItemCollection()->GetItemFromSlot(this, ParentInventoryWidget);
+			ItemMoveData.SourceItem = LinkedItem;
 
 			ManagerActor->OnQuickTransferItem(ItemMoveData);
 				

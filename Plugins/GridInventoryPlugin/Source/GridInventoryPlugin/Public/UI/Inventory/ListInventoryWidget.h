@@ -58,15 +58,14 @@ protected:
 	virtual int32 HandleStackableItems(FItemMoveData& ItemMoveData, int32 RequestedAddAmount,
 												bool bOnlyCheck) override;
 	virtual FItemAddResult HandleAddReferenceItem(FItemMoveData& ItemMoveData) override;
-	virtual void AddNewItem(FItemMoveData& ItemMoveData, FItemMapping OccupiedSlots) override;
+	virtual void AddNewItem(FItemMoveData& ItemMoveData, FItemMapping OccupiedSlots, int32 AddAmount) override;
 	virtual void InsertToStackItem(UItemBase* Item, int32 AddQuantity) override;
 
 	virtual void AddItemToPanel(UItemBase* Item) override;
 
 	//
-	virtual void NotifyAddItem(FItemMapping& FromSlots, UItemBase* NewItem) override;
-	virtual void NotifyUpdateItem(FItemMapping* FromSlots, UItemBase* NewItem) override;
-	virtual void NotifyRemoveItem(FItemMapping& FromSlots, UItemBase* RemovedItem) override;
+	virtual void NotifyAddItem(FItemMapping& FromSlots, UItemBase* NewItem, int32 ChangeQuantity) override;
+	virtual void NotifyRemoveItem(FItemMapping& FromSlots, UItemBase* RemovedItem, int32 RemoveQuantity) override;
 	
 	virtual void NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation) override;
 	virtual bool NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
