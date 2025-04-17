@@ -163,8 +163,6 @@ void USlotbasedInventoryWidget::HandleRemoveItemFromContainer(UItemBase* Item)
 	{
 		ItemCollectionLink->RemoveItem(Item, this);
 	}
-
-	UpdateWeightInfo();
 }
 
 FItemAddResult USlotbasedInventoryWidget::HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck)
@@ -186,6 +184,11 @@ FItemAddResult USlotbasedInventoryWidget::HandleAddItem(FItemMoveData ItemMoveDa
 		return FItemAddResult::AddedNone(FText::Format(FText::FromString("Can't be added {0} of {1} to inventory"),
 												   0, ItemMoveData.SourceItem->GetItemRef().ItemTextData.Name));
 	}
+
+	if (!bOnlyCheck
+		&& ItemMoveData.SourceInventory
+		&& !ExecuteItemChecks(EInventoryCheckType::PreAdd, ItemMoveData.SourceItem))
+		return FItemAddResult::AddedNone(FText::FromString("One of the additional checks failed."));
 	
 	if (bUseReferences)
 		return HandleAddReferenceItem(ItemMoveData);
@@ -631,7 +634,6 @@ void USlotbasedInventoryWidget::NotifyAddItem(FItemMapping& FromSlots, UItemBase
 		AddItemToPanel(NewItem);
 	else
 		UpdateSlotInPanel(FromSlots, NewItem);
-	UpdateWeightInfo();
 }
 
 void USlotbasedInventoryWidget::NotifyRemoveItem(FItemMapping& FromSlots, UItemBase* RemovedItem, int32 RemoveQuantity) 
@@ -694,34 +696,36 @@ FReply USlotbasedInventoryWidget::NativeOnMouseButtonDown(const FGeometry& InGeo
 		{
 			SelectedSlot = GetSlotByPosition(FIntVector2(GridPosition.X, GridPosition.Y));
 		}
+		if (!SelectedSlot) return FReply::Unhandled();
+		
+		auto ItemInSlot = ItemCollectionLink->GetItemFromSlot(SelectedSlot, this);
+		if (!ItemInSlot) return FReply::Unhandled();
 		
 		AUIManagerActor* ManagerActor = Cast<AUIManagerActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AUIManagerActor::StaticClass()));
-		if (ManagerActor && SelectedSlot)
+		if (ManagerActor
+			&& ManagerActor->GetInventoryModifierStates().bIsQuickGrabModifierActive
+			&& ExecuteItemChecks(EInventoryCheckType::PreTransfer, ItemInSlot))
 		{
-			if (ManagerActor->GetInventoryModifierStates().bIsQuickGrabModifierActive)
-			{
-				FItemMoveData ItemMoveData;
-				ItemMoveData.SourceInventory = this;
-				ItemMoveData.SourceItemPivotSlot = SelectedSlot;
-				ItemMoveData.SourceItem = ItemCollectionLink->GetItemFromSlot(SelectedSlot, this);
-				if (!ItemMoveData.SourceItem)
-					return FReply::Unhandled();
-
-				ManagerActor->OnQuickTransferItem(ItemMoveData);
-				
+			FItemMoveData ItemMoveData;
+			ItemMoveData.SourceInventory = this;
+			ItemMoveData.SourceItemPivotSlot = SelectedSlot;
+			ItemMoveData.SourceItem = ItemInSlot;
+			if (!ItemMoveData.SourceItem)
 				return FReply::Unhandled();
-			}
+
+			ManagerActor->OnQuickTransferItem(ItemMoveData);
+
+			return FReply::Unhandled();
+			
 		}
 		
 		//TODO: Rewrite with Hit Testing
 		
-		if (!SelectedSlot) return FReply::Unhandled();
-
 		auto Linked= ItemCollectionLink-> GetItemLinkedWidgetForSlot(SelectedSlot);
 		if (!Linked) return FReply::Unhandled();
-			
-		return Reply.Handled().DetectDrag(TakeWidget(), EKeys::LeftMouseButton);
-		
+
+		if (ExecuteItemChecks(EInventoryCheckType::PreTransfer, ItemCollectionLink->GetItemFromSlot(SelectedSlot, this)))
+			return Reply.Handled().DetectDrag(TakeWidget(), EKeys::LeftMouseButton);
 	}
 	
 	return FReply::Unhandled();

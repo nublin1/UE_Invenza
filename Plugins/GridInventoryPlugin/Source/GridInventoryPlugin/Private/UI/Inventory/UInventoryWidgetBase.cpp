@@ -5,6 +5,25 @@
 
 #include "ActorComponents/ItemCollection.h"
 
+
+bool UUInventoryWidgetBase::ExecuteItemChecks(EInventoryCheckType CheckType, UItemBase* Item)
+{
+	if (Checks.IsEmpty())
+		return true;
+	
+	for (const FInventoryCheck& Check : Checks)
+	{
+		if (Check.CheckType == CheckType)
+		{
+			if (!Check.CheckFunction(Item))
+			{
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
 FItemMapping* UUInventoryWidgetBase::GetItemMapping(UItemBase* Item)
 {
 	if (!Item)
@@ -86,6 +105,7 @@ void UUInventoryWidgetBase::UpdateMoneyInfo()
 
 void UUInventoryWidgetBase::NotifyAddItem(FItemMapping& FromSlots, UItemBase* NewItem, int32 ChangeQuantity)
 {
+	UpdateWeightInfo();
 	UpdateMoneyInfo();
 	if (OnAddItemDelegate.IsBound())
 		OnAddItemDelegate.Broadcast(FromSlots, NewItem);
@@ -99,6 +119,8 @@ void UUInventoryWidgetBase::NotifyAddItem(FItemMapping& FromSlots, UItemBase* Ne
 
 void UUInventoryWidgetBase::NotifyRemoveItem(FItemMapping& FromSlots, UItemBase* RemovedItem, int32 RemoveQuantity)
 {
+	UpdateWeightInfo();
+	UpdateMoneyInfo();
 	if (OnRemoveItemDelegate.IsBound())
 		OnRemoveItemDelegate.Broadcast(FromSlots, RemovedItem);
 	

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "InventoryTypes.h"
+#include "Data/LogicChecks.h"
 #include "Settings/Settings.h"
 #include "UI/BaseUserWidget.h"
 #include "UInventoryWidgetBase.generated.h"
@@ -67,11 +68,23 @@ public:
 	FORCEINLINE void SetItemCollection(UItemCollection* _ItemCollection) {ItemCollectionLink = _ItemCollection;}
 	FORCEINLINE virtual void SetUISettings(FUISettings NewSettings) {UISettings = NewSettings;}
 
+	FORCEINLINE void AddCheck(EInventoryCheckType CheckType, FName CheckID, TFunction<bool(UItemBase*)> CheckFunction) { Checks.Emplace(CheckType, CheckID, CheckFunction);	}
+	FORCEINLINE void RemoveAllCheck() { Checks.Empty();	}
+	void RemoveCheck(EInventoryCheckType Type, FName CheckID)
+	{
+		Checks.RemoveAll([=](const FInventoryCheck& Check)
+		{
+			return Check.CheckType == Type && Check.CheckID == CheckID;
+		});
+	}
+
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	// Data
+	TArray<FInventoryCheck> Checks;
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Inventory")
 	TObjectPtr<UItemCollection> ItemCollectionLink;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
@@ -92,6 +105,9 @@ protected:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+	UFUNCTION()
+	virtual bool ExecuteItemChecks(EInventoryCheckType CheckType, UItemBase* Item);
+	
 	virtual FItemMapping* GetItemMapping(UItemBase* Item);
 	virtual int32 CalculateActualAmountToAdd(int32 InAmountToAdd, float ItemSingleWeight);
 	
@@ -116,7 +132,6 @@ protected:
 
 	// Notifications
 	virtual void NotifyAddItem(FItemMapping& FromSlots, UItemBase* NewItem, int32 ChangeQuantity);
-	//virtual void NotifyUpdateItem(FItemMapping InSlots, UItemBase* UpdatedItem);
 	virtual void NotifyRemoveItem(FItemMapping& FromSlots, UItemBase* RemovedItem, int32 RemoveQuantity);
 	//void NotifyUseSlot(UBaseInventorySlot* FromSlot);
 

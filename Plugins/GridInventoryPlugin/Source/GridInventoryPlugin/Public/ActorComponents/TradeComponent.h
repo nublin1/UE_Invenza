@@ -18,6 +18,16 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFaildToBuyItem, UItemBase*, Item)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFaildToSellItem, UItemBase*, Item);
 #pragma endregion Delegates
 
+USTRUCT()
+struct FMoneyCalculationResult
+{
+	GENERATED_USTRUCT_BODY()
+	
+	float AvailableMoney = 0.0f;
+	float AccumulatedRequiredValue = 0.0f;
+	bool bHasEnough = false;
+};
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class GRIDINVENTORYPLUGIN_API UTradeComponent : public UActorComponent
 {
@@ -74,11 +84,18 @@ protected:
 	//====================================================================
 
 	UFUNCTION()
-	virtual void TryBuyItem(FItemMapping ItemSlots, UItemBase* BuyItem);
+	float CalculateAvailableMoney(UItemCollection* Collection);
 	UFUNCTION()
-	virtual void BuyItem(UItemBase* Item);
+	FMoneyCalculationResult AccumulatePayment(UInvBaseContainerWidget* ContainerWidget, float FullPrice);
+	
 	UFUNCTION()
-	virtual void Selltem(UItemBase* Item);
+	virtual bool TryBuyItem(UItemBase* ItemToBuy);
+	UFUNCTION()
+	virtual void BuyItem(UItemBase* ItemToBuy, FMoneyCalculationResult Result);
+	UFUNCTION()
+	virtual bool TrySellItem(UItemBase* ItemForSale);
+	UFUNCTION()
+	virtual void Selltem(UItemBase* ItemForSale, FMoneyCalculationResult Result);
 	UFUNCTION()
 	virtual void AbortDeal(UItemBase* Item);
 		
