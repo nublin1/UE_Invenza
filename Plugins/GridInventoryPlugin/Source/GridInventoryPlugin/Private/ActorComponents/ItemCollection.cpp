@@ -171,7 +171,10 @@ UItemBase* UItemCollection::GetItemFromSlot(UInventorySlot* TargetSlot, UUInvent
 		UE_LOG(LogTemp, Warning, TEXT("GetItemFromSlot: %s"), !TargetSlot ? TEXT("TargetSlot is null.") : TEXT("TargetContainer is null."));
 		return nullptr;
 	}
-    
+
+	if (ItemLocations.IsEmpty())
+		return nullptr;
+	
 	for (const auto& Pair : ItemLocations)
 	{
 		for (const FItemMapping& Mapping : Pair.Value)
@@ -263,7 +266,7 @@ TArray<UItemBase*> UItemCollection::GetAllItemsByCategory(EItemCategory ItemCate
 	return SameItems;
 }
 
-UInventoryItemWidget* UItemCollection::GetItemLinkedWidgetForSlot(USlotbasedInventorySlot* _ItemSlot) const
+UInventoryItemWidget* UItemCollection::GetItemLinkedWidgetForSlot(UInventorySlot* _ItemSlot) const
 {
 	if (!_ItemSlot)
 	{

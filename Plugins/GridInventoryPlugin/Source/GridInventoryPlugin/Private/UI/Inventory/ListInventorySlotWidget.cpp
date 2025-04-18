@@ -14,6 +14,24 @@
 #include "UI/Item/InventoryItemWidget.h"
 #include "World/AUIManagerActor.h"
 
+bool UListInventorySlotWidget::ExecuteItemChecks(EInventoryCheckType CheckType, UItemBase* Item)
+{
+	if (ParentInventoryWidget->GetInventoryData().Checks.IsEmpty())
+		return true;
+	
+	for (const FInventoryCheck& Check : ParentInventoryWidget->GetInventoryData().Checks)
+	{
+		if (Check.CheckType == CheckType)
+		{
+			if (!Check.CheckFunction(Item))
+			{
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
 void UListInventorySlotWidget::UpdateVisual(UItemBase* Item)
 {
 	if (ItemIcon)
@@ -49,13 +67,16 @@ void UListInventorySlotWidget::NativeOnListItemObjectSet(UObject* ListItemObject
 
 FReply UListInventorySlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
-	if (InMouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton))
+	Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
+	
+	AUIManagerActor* ManagerActor = Cast<AUIManagerActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AUIManagerActor::StaticClass()));
+	if (!ManagerActor || !ParentInventoryWidget || !LinkedItem)
+		return FReply::Unhandled();
+	
+	if (InMouseEvent.IsMouseButtonDown(ParentInventoryWidget->GetUISettings().ItemSelectKey))
 	{
-		AUIManagerActor* ManagerActor = Cast<AUIManagerActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AUIManagerActor::StaticClass()));
-		if (!ManagerActor || !ParentInventoryWidget)
-			return FReply::Unhandled();
-
-		if (ManagerActor->GetInventoryModifierStates().bIsQuickGrabModifierActive)
+		if (ManagerActor->GetInventoryModifierStates().bIsQuickGrabModifierActive
+			&& ExecuteItemChecks(EInventoryCheckType::PreTransfer, LinkedItem))
 		{
 			FItemMoveData ItemMoveData;
 			ItemMoveData.SourceInventory = ParentInventoryWidget;
@@ -66,11 +87,17 @@ FReply UListInventorySlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeom
 				
 			return FReply::Unhandled();
 		}
-		
-		return UWidgetBlueprintLibrary::DetectDragIfPressed(InMouseEvent, this, EKeys::LeftMouseButton).NativeReply;
+
+		if (ExecuteItemChecks(EInventoryCheckType::PreTransfer, LinkedItem))
+			return UWidgetBlueprintLibrary::DetectDragIfPressed(InMouseEvent, this, EKeys::LeftMouseButton).NativeReply;
 	}
 
-	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
+	if (InMouseEvent.IsMouseButtonDown(ParentInventoryWidget->GetUISettings().ItemUseKey))
+	{
+		
+	}
+
+	return FReply::Unhandled();
 }
 
 void UListInventorySlotWidget::NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent,

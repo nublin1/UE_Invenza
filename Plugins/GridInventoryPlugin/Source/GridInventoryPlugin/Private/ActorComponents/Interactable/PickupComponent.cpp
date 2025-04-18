@@ -62,26 +62,20 @@ void UPickupComponent::InitializePickupComponent()
 	if (!ItemDataTable || DesiredItemID.IsNone())
 		return;
 	
-	FItemData* ItemData = ItemDataTable->FindRow<FItemData>(DesiredItemID, DesiredItemID.ToString());
 
-	if (!ItemData)
-		return;
-
-	ItemBase = NewObject<UItemBase>();
-	ItemBase->SetItemRef(ItemData->ItemMetaData);
-	if (InitQuantity>ItemData->ItemMetaData.ItemNumeraticData.MaxStackSize )
+	ItemBase = UItemBase::CreateFromDataTable(ItemDataTable, DesiredItemID, InitQuantity);
+	if (InitQuantity>ItemBase->GetItemRef().ItemNumeraticData.MaxStackSize )
 	{
-		InitQuantity = ItemData->ItemMetaData.ItemNumeraticData.MaxStackSize;
+		ItemBase->SetQuantity(ItemBase->GetItemRef().ItemNumeraticData.MaxStackSize );
 	}
-	ItemBase->SetQuantity(InitQuantity);
-	InteractableData.Quantity = InitQuantity;
+	
+	InteractableData.Quantity = ItemBase->GetQuantity();
 	InteractableData.Name = ItemBase->GetItemRef().ItemTextData.Name;
 
 	if (auto StaticMesh = GetOwner()->FindComponentByClass<UStaticMeshComponent>())
 	{
-		StaticMesh->SetStaticMesh(ItemData->ItemMetaData.ItemAssetData.Mesh);
+		StaticMesh->SetStaticMesh(ItemBase->GetItemRef().ItemAssetData.Mesh);
 	}
-	
 }
 
 void UPickupComponent::TakePickup(const UInteractionComponent* Taker)

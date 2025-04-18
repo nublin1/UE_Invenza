@@ -57,7 +57,7 @@ protected:
 	virtual FItemAddResult HandleNonStackableItems(FItemMoveData& ItemMoveData, bool bOnlyCheck = false) override;
 	virtual int32 HandleStackableItems(FItemMoveData& ItemMoveData, int32 RequestedAddAmount,
 												bool bOnlyCheck) override;
-	virtual FItemAddResult HandleAddReferenceItem(FItemMoveData& ItemMoveData) override;
+	virtual FItemAddResult HandleAddReferenceItem(FItemMoveData& ItemMoveData, bool bOnlyCheck) override;
 	virtual void AddNewItem(FItemMoveData& ItemMoveData, FItemMapping OccupiedSlots, int32 AddAmount) override;
 	virtual void InsertToStackItem(UItemBase* Item, int32 AddQuantity) override;
 

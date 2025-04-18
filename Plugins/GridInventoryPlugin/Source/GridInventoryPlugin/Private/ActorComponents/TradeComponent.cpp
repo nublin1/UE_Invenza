@@ -88,10 +88,15 @@ float UTradeComponent::CalculateAvailableMoney(UItemCollection* Collection)
 FMoneyCalculationResult UTradeComponent::AccumulatePayment(UInvBaseContainerWidget* ContainerWidget, const float FullPrice)
 {
 	FMoneyCalculationResult Result;
-	Result.AvailableMoney  = CalculateAvailableMoney(ContainerWidget->GetInventoryFromContainerSlot()->GetItemCollection());
+	Result.AvailableMoney  = CalculateAvailableMoney(ContainerWidget->GetInventoryFromContainerSlot()->GetInventoryData().ItemCollectionLink);
 	
-	TArray<UItemBase*> SellerMoneyItems = ContainerWidget->GetInventoryFromContainerSlot()->GetItemCollection()->GetAllItemsByCategory(EItemCategory::Money);
-
+	TArray<UItemBase*> SellerMoneyItems = ContainerWidget->GetInventoryFromContainerSlot()->GetInventoryData().ItemCollectionLink->GetAllItemsByCategory(EItemCategory::Money);
+	if (SellerMoneyItems.IsEmpty())
+	{
+		Result.bHasEnough =false;
+		return Result;
+	}
+	
 	for (UItemBase* MoneyItem : SellerMoneyItems)
 	{
 		int32 Quantity = MoneyItem->GetQuantity();

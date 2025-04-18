@@ -40,13 +40,12 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void ItemTransferRequest(FItemMoveData ItemMoveData);
 
+	UFUNCTION()
 	UInvBaseContainerWidget* GetMainInventory() {return CoreHUDWidget->GetMainInvWidget();}
 
 	FUISettings GetUISettings() {return UISettings;}
 	UCoreHUDWidget* GetCoreHUDWidget() {return CoreHUDWidget;}
 	FInventoryModifierState GetInventoryModifierStates() const {return InventoryModifierState;}
-
-	
 
 protected:
 	//====================================================================
@@ -65,7 +64,6 @@ protected:
 	FRegularSettings RegularSettings;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
 	FInventoryModifierState InventoryModifierState;
-	
 	
 	//====================================================================
 	// FUNCTIONS

@@ -26,11 +26,6 @@ public:
 	//====================================================================
 	USlotbasedInventorySlot();
 
-	bool operator==(const USlotbasedInventorySlot& other) const
-	{
-		return SlotPosition == other.GetSlotPosition();
-	}
-
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES

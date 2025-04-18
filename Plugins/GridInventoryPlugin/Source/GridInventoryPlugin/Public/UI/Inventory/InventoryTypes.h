@@ -2,14 +2,16 @@
 
 #pragma once
 
-#include "SlotbasedInventorySlot.h"
 #include "CoreMinimal.h"
+#include "SlotbasedInventorySlot.h"
 #include "Data/ItemDataStructures.h"
 #include "InventoryTypes.generated.h"
 
+struct FInventoryCheck;
 class UInventoryItemWidget;
 class UItemBase;
 class UUInventoryWidgetBase;
+class UItemCollection;
 
 USTRUCT(Blueprintable)
 struct FItemMapping
@@ -129,6 +131,38 @@ struct FItemMoveData
 					   SavedOrientation(EOrientationType::Hotizontal)
 	{
 	}
+};
+
+USTRUCT(BlueprintType)
+struct FInventorySettings
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
+	float InventoryWeightCapacity = -1.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(tooltip="If true this container will be used as reference."))
+	bool bUseReferences = false;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(tooltip="Can the items be referenced from this container"))
+	bool bCanReferenceItems = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
+	bool bCanUseItems = true;
+};
+
+USTRUCT(BlueprintType)
+struct FInventoryData
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	TArray<FInventoryCheck> Checks;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Inventory")
+	TObjectPtr<UItemCollection> ItemCollectionLink;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Inventory")
+	TArray<UInventorySlot*> InventorySlots;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
+	float InventoryTotalWeight = 0;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
+	int32 InventoryTotalMoney = 0;
 };
 
 UENUM(BlueprintType)

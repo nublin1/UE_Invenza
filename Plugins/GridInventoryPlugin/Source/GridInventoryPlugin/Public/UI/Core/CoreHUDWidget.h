@@ -45,6 +45,7 @@ public:
 	UInvBaseContainerWidget* GetMainInvWidget() {return MainInvWidget.Get();}
 	UInvBaseContainerWidget* GetContainerInWorldWidget() {return ContainerInWorldWidget.Get();}
 	UInvBaseContainerWidget* GetVendorInvWidget() {return VendorInvWidget.Get();}
+	UInvBaseContainerWidget* GetHotbarInvWidget() {return HotbarInvWidget.Get();}
 
 	//Setters
 	void SetUISettings(FUISettings NewUISettings) {UISettings = NewUISettings;}
@@ -66,6 +67,8 @@ protected:
 	TObjectPtr<UInvBaseContainerWidget> ContainerInWorldWidget;
 	UPROPERTY()
 	TObjectPtr<UInvBaseContainerWidget> VendorInvWidget;
+	UPROPERTY()
+	TObjectPtr<UInvBaseContainerWidget> HotbarInvWidget;
 	
 	//
 	UPROPERTY()

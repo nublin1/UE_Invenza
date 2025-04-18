@@ -50,7 +50,8 @@ void AUIManagerActor::ItemTransferRequest(FItemMoveData ItemMoveData)
 		{
 			break;
 		}
-		if (ItemMoveData.SourceInventory && ItemMoveData.SourceInventory->GetItemCollection() == ItemMoveData.TargetInventory->GetItemCollection())
+		if (ItemMoveData.SourceInventory && ItemMoveData.SourceInventory->GetInventoryData().ItemCollectionLink
+			== ItemMoveData.TargetInventory->GetInventoryData().ItemCollectionLink)
 		{
 			ItemMoveData.SourceInventory->HandleRemoveItemFromContainer(ItemMoveData.SourceItem);
 			break;
@@ -62,7 +63,7 @@ void AUIManagerActor::ItemTransferRequest(FItemMoveData ItemMoveData)
 		}
 		break;
 	case EItemAddResult::IAR_NoItemAdded:
-		if (!ItemMoveData.SourceInventory)
+		if (!ItemMoveData.SourceInventory || ItemMoveData.SourceInventory == CoreHUDWidget->GetVendorInvWidget()->GetInventoryFromContainerSlot())
 			if (auto Pawn = UGameplayStatics::GetPlayerController(GetWorld(), 0)->GetPawn())
 			{
 				auto Interaction = Pawn->FindComponentByClass<UInteractionComponent>();
@@ -70,11 +71,17 @@ void AUIManagerActor::ItemTransferRequest(FItemMoveData ItemMoveData)
 
 				Interaction->DropItem(ItemMoveData.SourceItem);
 			}
+			if (ItemMoveData.SourceInventory && ItemMoveData.SourceInventory == CoreHUDWidget->GetVendorInvWidget()->GetInventoryFromContainerSlot())
+			{
+				ItemMoveData.SourceInventory->HandleRemoveItemFromContainer(ItemMoveData.SourceItem);
+			}
 		break;
 	case EItemAddResult::IAR_PartialAmountItemAdded:
 		break;
 	case EItemAddResult::IAR_ItemSwapped:
-		if (ItemMoveData.SourceInventory->GetIsUseReferences() && ItemMoveData.SourceInventory != ItemMoveData.TargetInventory)
+		if (!Result.bIsUsedReferences
+			&& ItemMoveData.SourceInventory->GetInventorySettings().bCanReferenceItems
+			&& ItemMoveData.SourceInventory != ItemMoveData.TargetInventory)
 		{
 			ItemMoveData.SourceInventory->HandleRemoveItemFromContainer(ItemMoveData.SourceItem);
 		}
@@ -170,6 +177,8 @@ void AUIManagerActor::BindEvents(AActor* TargetActor)
 		ContainerInWorldWidget->GetInventoryFromContainerSlot()->OnItemDroppedDelegate.AddDynamic(this, &AUIManagerActor::ItemTransferRequest);
 	if (auto VendorInvWidget = CoreHUDWidget->GetVendorInvWidget())
 		VendorInvWidget->GetInventoryFromContainerSlot()->OnItemDroppedDelegate.AddDynamic(this, &AUIManagerActor::ItemTransferRequest);
+	if (auto HotbarInvWidget = CoreHUDWidget->GetHotbarInvWidget())
+		HotbarInvWidget->GetInventoryFromContainerSlot()->OnItemDroppedDelegate.AddDynamic(this, &AUIManagerActor::ItemTransferRequest);
 		
 }
 

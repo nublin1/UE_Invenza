@@ -24,6 +24,11 @@ public:
 	//====================================================================
 	UInventorySlot();
 
+	bool operator==(const UInventorySlot& other) const
+	{
+		return SlotPosition == other.GetSlotPosition();
+	}
+	
 	UFUNCTION(BlueprintCallable)
 	virtual void UpdateVisual(UItemBase* Item);
 	

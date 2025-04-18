@@ -50,7 +50,7 @@ void UInvBaseContainerWidget::NativeConstruct()
 		if (!Inventory)
 			return;
 
-		if (Inventory->GetWeightCapacity() <0)
+		if (Inventory->GetInventorySettings().InventoryWeightCapacity <0)
 			InvWeight->SetVisibility(ESlateVisibility::Collapsed);
 		else
 		{
@@ -126,7 +126,7 @@ void UInvBaseContainerWidget::TransferAllItems(UUInventoryWidgetBase* SourceInv,
 {
 	if (!SourceInv || !TargetInv) return;
 	
-	UItemCollection* SourceCollection = SourceInv->GetItemCollection();
+	UItemCollection* SourceCollection = SourceInv->GetInventoryData().ItemCollectionLink;
 	if (!SourceCollection)
 	{
 		return;
@@ -160,7 +160,7 @@ void UInvBaseContainerWidget::SortItems()
 	if (!Inv)
 		return;
 
-	TArray<UItemBase*> AllItems = Inv->GetItemCollection()->GetAllItemsByContainer(Inv);
+	TArray<UItemBase*> AllItems = Inv->GetInventoryData().ItemCollectionLink->GetAllItemsByContainer(Inv);
 	if (AllItems.IsEmpty())
 		return;
 	

@@ -9,6 +9,7 @@
 #include "Components/Image.h"
 #include "ListInventorySlotWidget.generated.h"
 
+enum class EInventoryCheckType : uint8;
 class UListInventoryWidget;
 class UTextBlock;
 class UScrollBox;
@@ -38,10 +39,12 @@ public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-
+	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+	UFUNCTION()
+	bool ExecuteItemChecks(EInventoryCheckType CheckType, UItemBase* Item);
 	virtual void UpdateVisual(UItemBase* Item) override;
 
 	//

@@ -55,7 +55,7 @@ public:
 	TArray<UItemBase*> GetAllItemsByContainer(UUInventoryWidgetBase* TargetContainer) const;
 	TArray<UItemBase*> GetAllSameItemsInContainer(UUInventoryWidgetBase* TargetContainer, UItemBase* ReferenceItem) const;
 	TArray<UItemBase*> GetAllItemsByCategory(EItemCategory ItemCategory);
-	UInventoryItemWidget* GetItemLinkedWidgetForSlot(USlotbasedInventorySlot* _ItemSlot) const;
+	UInventoryItemWidget* GetItemLinkedWidgetForSlot(UInventorySlot* _ItemSlot) const;
 
 protected:
 	//====================================================================

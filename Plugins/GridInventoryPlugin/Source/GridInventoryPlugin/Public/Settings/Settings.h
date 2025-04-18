@@ -15,12 +15,16 @@ struct FUISettings
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Settings")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
 	UInputAction* ToggleInventoryAction;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Settings")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
 	UInputAction* IA_Mod_QuickGrab;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Settings")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
 	UInputAction* IA_Mod_GrabAllSame ;
+	UPROPERTY(EditAnywhere, Category = "Inventory|Input")
+	FKey ItemSelectKey = EKeys::LeftMouseButton;
+	UPROPERTY(EditAnywhere, Category = "Inventory|Input")
+	FKey ItemUseKey = EKeys::RightMouseButton;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TSubclassOf<UInventoryItemWidget> InventoryItemVisualClass;
@@ -34,9 +38,10 @@ struct FUISettings
 	FName ContainerInWorldWidgetName;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FName VendorInvWidgetName;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName HotbarInvWidgetName = "Hotbar";
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FVector2D SlotSize = FVector2D(0.f);
-	
 };
 
 USTRUCT(Blueprintable)

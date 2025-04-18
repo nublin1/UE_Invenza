@@ -8,10 +8,10 @@
 
 bool UUInventoryWidgetBase::ExecuteItemChecks(EInventoryCheckType CheckType, UItemBase* Item)
 {
-	if (Checks.IsEmpty())
+	if (InventoryData.Checks.IsEmpty())
 		return true;
 	
-	for (const FInventoryCheck& Check : Checks)
+	for (const FInventoryCheck& Check : InventoryData.Checks)
 	{
 		if (Check.CheckType == CheckType)
 		{
@@ -30,15 +30,15 @@ FItemMapping* UUInventoryWidgetBase::GetItemMapping(UItemBase* Item)
 	{
 		return nullptr;
 	}
-	auto Mapping = ItemCollectionLink->FindItemMappingForItemInContainer(Item, this);
+	auto Mapping = InventoryData.ItemCollectionLink->FindItemMappingForItemInContainer(Item, this);
 	return Mapping;
 }
 
 int32 UUInventoryWidgetBase::CalculateActualAmountToAdd(int32 InAmountToAdd, float ItemSingleWeight)
 {
-	if (InventoryWeightCapacity >= 0)
+	if (InventorySettings.InventoryWeightCapacity >= 0)
 	{
-		const int32 WeightLimitAddAmount = InventoryWeightCapacity - InventoryTotalWeight;
+		const int32 WeightLimitAddAmount = InventorySettings.InventoryWeightCapacity - InventoryData.InventoryTotalWeight;
 		int32 MaxItemsThatFit = WeightLimitAddAmount / ItemSingleWeight;
 		return FMath::Min(MaxItemsThatFit, InAmountToAdd);
 	}
@@ -59,34 +59,34 @@ void UUInventoryWidgetBase::InsertToStackItem(UItemBase* Item, int32 AddQuantity
 
 void UUInventoryWidgetBase::UpdateWeightInfo()
 {
-	if (OnWightUpdatedDelegate.IsBound() && ItemCollectionLink)
+	if (OnWightUpdatedDelegate.IsBound() && InventoryData.ItemCollectionLink)
 	{
-		InventoryTotalWeight = 0;
-		auto AllItems = ItemCollectionLink->GetAllItemsByContainer(this);
+		InventoryData.InventoryTotalWeight = 0;
+		auto AllItems = InventoryData.ItemCollectionLink->GetAllItemsByContainer(this);
 		if (AllItems.IsEmpty())
 		{
-			OnWightUpdatedDelegate.Broadcast(0, InventoryWeightCapacity);
+			OnWightUpdatedDelegate.Broadcast(0, InventorySettings.InventoryWeightCapacity);
 		}
 		else
 		{
 			for (auto Item : AllItems)
 			{
-				InventoryTotalWeight += Item->GetQuantity() * Item->GetItemSingleWeight();
+				InventoryData.InventoryTotalWeight += Item->GetQuantity() * Item->GetItemSingleWeight();
 			}
 
-			InventoryTotalWeight = FMath::RoundToFloat(InventoryTotalWeight * 100.0f) / 100.0f;
-			OnWightUpdatedDelegate.Broadcast(InventoryTotalWeight, InventoryWeightCapacity);
+			InventoryData.InventoryTotalWeight = FMath::RoundToFloat(InventoryData.InventoryTotalWeight * 100.0f) / 100.0f;
+			OnWightUpdatedDelegate.Broadcast(InventoryData.InventoryTotalWeight, InventorySettings.InventoryWeightCapacity);
 		}
 	}
 }
 
 void UUInventoryWidgetBase::UpdateMoneyInfo()
 {
-	if (OnMoneyUpdatedDelegate.IsBound() && ItemCollectionLink)
+	if (OnMoneyUpdatedDelegate.IsBound() && InventoryData.ItemCollectionLink)
 	{
-		InventoryTotalMoney = 0;
+		InventoryData.InventoryTotalMoney = 0;
 	}
-	auto AllItems = ItemCollectionLink->GetAllItemsByContainer(this);
+	auto AllItems = InventoryData.ItemCollectionLink->GetAllItemsByContainer(this);
 	if (AllItems.IsEmpty())
 	{
 		OnMoneyUpdatedDelegate.Broadcast(0);
@@ -96,10 +96,10 @@ void UUInventoryWidgetBase::UpdateMoneyInfo()
 		for (auto Item : AllItems)
 		{
 			if (EnumHasAnyFlags(static_cast<EItemCategory>(Item->GetItemRef().ItemCategory), EItemCategory::Money))
-				InventoryTotalMoney += Item->GetQuantity();
+				InventoryData.InventoryTotalMoney += Item->GetQuantity();
 		}
 
-		OnMoneyUpdatedDelegate.Broadcast(InventoryTotalMoney);
+		OnMoneyUpdatedDelegate.Broadcast(InventoryData.InventoryTotalMoney);
 	}
 }
 
@@ -111,12 +111,6 @@ void UUInventoryWidgetBase::NotifyAddItem(FItemMapping& FromSlots, UItemBase* Ne
 		OnAddItemDelegate.Broadcast(FromSlots, NewItem);
 }
 
-/*void UUInventoryWidgetBase::NotifyUpdateItem(FItemMapping FromSlots, UItemBase* UpdatedItem)
-{
-	if (OnItemUpdateDelegate.IsBound())
-		OnItemUpdateDelegate.Broadcast(FromSlots, UpdatedItem);
-}*/
-
 void UUInventoryWidgetBase::NotifyRemoveItem(FItemMapping& FromSlots, UItemBase* RemovedItem, int32 RemoveQuantity)
 {
 	UpdateWeightInfo();
@@ -124,6 +118,11 @@ void UUInventoryWidgetBase::NotifyRemoveItem(FItemMapping& FromSlots, UItemBase*
 	if (OnRemoveItemDelegate.IsBound())
 		OnRemoveItemDelegate.Broadcast(FromSlots, RemovedItem);
 	
-	
+}
+
+void UUInventoryWidgetBase::NotifyUseSlot(UInventorySlot* UsedSlot)
+{
+	if (OnUseSlotDelegate.IsBound())
+		OnUseSlotDelegate.Broadcast(UsedSlot);
 }
 

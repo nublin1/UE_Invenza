@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+﻿//  Nublin Studio 2025 All Rights Reserved.
 
 #pragma once
 
@@ -6,6 +6,11 @@
 #include "Data/ItemDataStructures.h"
 #include "UObject/Object.h"
 #include "itemBase.generated.h"
+
+#pragma region Delegates
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUseItemDelegate, UItemBase*, Item);
+#pragma endregion Delegates
+
 
 USTRUCT(BlueprintType)
 struct FItemEntry
@@ -29,6 +34,12 @@ class GRIDINVENTORYPLUGIN_API UItemBase : public UObject
 
 public:
 	//====================================================================
+	// PROPERTIES AND VARIABLES
+	//====================================================================
+	UPROPERTY(BlueprintAssignable)
+	FOnUseItemDelegate OnUseItemDelegate;
+	
+	//====================================================================
     // CONSTRUCTOR
     //====================================================================
     UItemBase();
@@ -40,11 +51,14 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Item|Factory")
     static UItemBase* CreateFromDataTable(UDataTable* ItemDataTable, const FName& DesiredItemID, int32 InitQuantity);
 	UFUNCTION(BlueprintCallable, Category = "Item")
-	static bool bIsSameitems(UItemBase* FirstItem, UItemBase* SecondItem);
+	static bool bIsSameItems(UItemBase* FirstItem, UItemBase* SecondItem);
 
     //====================================================================
     // FUNCTIONS
     //====================================================================
+	UFUNCTION()
+	virtual void UseItem();
+	
 	UFUNCTION(BlueprintCallable, Category = "Item|Factory")
 	UItemBase* DuplicateItem();
 	

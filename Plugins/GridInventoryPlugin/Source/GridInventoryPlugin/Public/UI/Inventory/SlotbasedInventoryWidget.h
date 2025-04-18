@@ -42,12 +42,6 @@ public:
 	virtual void HandleRemoveItemFromContainer(UItemBase* Item) override;	
 	virtual FItemAddResult HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck = false) override;
 
-	//
-	UFUNCTION(Category="Inventory")
-	FORCEINLINE float GetInventoryTotalWeight() const {return InventoryTotalWeight;}
-	UFUNCTION(Category="Inventory")
-	FORCEINLINE bool GetIsUseReference() const {return bUseReferences;}
-
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
@@ -66,14 +60,17 @@ protected:
 	TObjectPtr<UButton> Button_TakeAll;
 
 	// Data
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	TArray<TObjectPtr<USlotbasedInventorySlot>> InventorySlots;
-	int NumberOfRows = 0;
-	int NumberOfColumns = 0;
+	int NumberRows = 0;
+	int NumColumns = 0;
 	
 	// DragDrop
-	TObjectPtr<USlotbasedInventorySlot> SelectedSlot = nullptr;
+	UPROPERTY()
+	TObjectPtr<UInventorySlot> SelectedSlot = nullptr;
 	TObjectPtr<UHighlightSlotWidget> HighlightWidgetPreview = nullptr;
+
+	// Settings
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
+	bool bHasSlotSpacing = false;
 	
 	//====================================================================
 	// FUNCTIONS
@@ -85,7 +82,7 @@ protected:
 	UFUNCTION()
 	virtual void HandleVisibilityChanged(ESlateVisibility NewVisibility);
 	
-	virtual USlotbasedInventorySlot* GetSlotByPosition(FIntVector2 SlotPosition);
+	virtual UInventorySlot* GetSlotByPosition(FIntVector2 SlotPosition);
 	virtual bool bIsSlotEmpty(const FIntVector2 SlotPosition);
 	virtual bool bIsSlotEmpty(const UInventorySlot* SlotCheck);
 	
@@ -95,7 +92,7 @@ protected:
 	
 	virtual int32 HandleStackableItems(FItemMoveData& ItemMoveData, int32 RequestedAddAmount,
 												bool bOnlyCheck) override;
-	virtual FItemAddResult HandleAddReferenceItem(FItemMoveData& ItemMoveData) override;
+	virtual FItemAddResult HandleAddReferenceItem(FItemMoveData& ItemMoveData, bool bOnlyCheck) override;
 	UFUNCTION()
 	virtual FItemAddResult HandleSwapOrAddItems(FItemMoveData& ItemMoveData,bool bOnlyCheck );
 	

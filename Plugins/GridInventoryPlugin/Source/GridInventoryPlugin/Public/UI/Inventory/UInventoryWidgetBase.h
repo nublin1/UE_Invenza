@@ -14,7 +14,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnItemDropped, FItemMoveData, ItemM
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnItemUpdateDelegate, FItemMapping, ItemSlots, UItemBase*, Item);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAddItemDelegate, FItemMapping, ItemSlots, UItemBase*, Item);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnRemoveItemDelegate, FItemMapping, ItemSlots, UItemBase*, Item);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUseItemDelegate, USlotbasedInventorySlot*, ItemSlot, UItemBase*, Item);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUseSlotDelegate, UInventorySlot*, ItemSlot);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnWightUpdatedDelegate, float, InventoryTotalWeight, float, InventoryWeightCapacity);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMoneyUpdatedDelegate, int32, InventoryTotalMoney);
 #pragma endregion Delegates
@@ -36,7 +36,7 @@ public:
 	FOnItemUpdateDelegate OnItemUpdateDelegate;
 	FOnAddItemDelegate OnAddItemDelegate;	
 	FOnRemoveItemDelegate OnRemoveItemDelegate;
-	FOnUseItemDelegate OnUseItemDelegate;
+	FOnUseSlotDelegate OnUseSlotDelegate;
 	FOnWightUpdatedDelegate OnWightUpdatedDelegate;
 	FOnMoneyUpdatedDelegate OnMoneyUpdatedDelegate;
 	
@@ -55,24 +55,19 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Inventory")
 	virtual FItemAddResult HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck = false) PURE_VIRTUAL(UUInventoryWidgetBase::HandleAddItem, return FItemAddResult(););
 
-	UFUNCTION(Category="Inventory")
-	FORCEINLINE float GetWeightCapacity() const {return InventoryWeightCapacity;}
-	UFUNCTION(Category="Inventory")
-	FORCEINLINE UItemCollection* GetItemCollection() {return ItemCollectionLink;}
-	UFUNCTION(Category="Inventory")
-	FORCEINLINE bool GetCanReferenceItems() const {return bCanReferenceItems;}
-	UFUNCTION(Category="Inventory")
-	FORCEINLINE bool GetIsUseReferences() const {return bUseReferences;}
-
+	FUISettings GetUISettings() const {return UISettings;}
+	FInventorySettings GetInventorySettings() const {return InventorySettings;}
+	FInventoryData GetInventoryData() {return InventoryData;}
+	
 	//Setters
-	FORCEINLINE void SetItemCollection(UItemCollection* _ItemCollection) {ItemCollectionLink = _ItemCollection;}
+	FORCEINLINE void SetItemCollection(UItemCollection* _ItemCollection) {InventoryData.ItemCollectionLink = _ItemCollection;}
 	FORCEINLINE virtual void SetUISettings(FUISettings NewSettings) {UISettings = NewSettings;}
-
-	FORCEINLINE void AddCheck(EInventoryCheckType CheckType, FName CheckID, TFunction<bool(UItemBase*)> CheckFunction) { Checks.Emplace(CheckType, CheckID, CheckFunction);	}
-	FORCEINLINE void RemoveAllCheck() { Checks.Empty();	}
+	
+	FORCEINLINE void AddCheck(EInventoryCheckType CheckType, FName CheckID, TFunction<bool(UItemBase*)> CheckFunction) { InventoryData.Checks.Emplace(CheckType, CheckID, CheckFunction);	}
+	FORCEINLINE void RemoveAllCheck() { InventoryData.Checks.Empty();	}
 	void RemoveCheck(EInventoryCheckType Type, FName CheckID)
 	{
-		Checks.RemoveAll([=](const FInventoryCheck& Check)
+		InventoryData.Checks.RemoveAll([=](const FInventoryCheck& Check)
 		{
 			return Check.CheckType == Type && Check.CheckID == CheckID;
 		});
@@ -82,26 +77,12 @@ protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	// Data
-	TArray<FInventoryCheck> Checks;
-	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory")
+	FInventoryData InventoryData;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory")
+	FInventorySettings InventorySettings;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Inventory")
-	TObjectPtr<UItemCollection> ItemCollectionLink;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
-	float InventoryTotalWeight = 0;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
-	int32 InventoryTotalMoney = 0;
-
-	// Settings
-	UPROPERTY(visibleAnywhere, BlueprintReadWrite, Category="Inventory")
 	FUISettings UISettings;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
-	float InventoryWeightCapacity = 0;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(tooltip="If true this container will be used as reference."))
-	bool bUseReferences = false;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(tooltip="Can the items be referenced from this container"))
-	bool bCanReferenceItems = false;
-	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
@@ -117,7 +98,7 @@ protected:
 	virtual int32 HandleStackableItems(FItemMoveData& ItemMoveData, int32 RequestedAddAmount,
 												bool bOnlyCheck) PURE_VIRTUAL(UUInventoryWidgetBase::HandleStackableItems, return 0;);
 	UFUNCTION()
-	virtual FItemAddResult HandleAddReferenceItem(FItemMoveData& ItemMoveData) PURE_VIRTUAL(UUInventoryWidgetBase::HandleAddReferenceItem, return FItemAddResult(););
+	virtual FItemAddResult HandleAddReferenceItem(FItemMoveData& ItemMoveData, bool bOnlyCheck) PURE_VIRTUAL(UUInventoryWidgetBase::HandleAddReferenceItem, return FItemAddResult(););
 	UFUNCTION()
 	virtual void AddNewItem(FItemMoveData& ItemMoveData, FItemMapping OccupiedSlots, int32 AddAmount) PURE_VIRTUAL(UUInventoryWidgetBase::AddNewItem, );
 	UFUNCTION()
@@ -129,11 +110,13 @@ protected:
 	virtual void UpdateWeightInfo();
 	UFUNCTION()
 	virtual void UpdateMoneyInfo();
-
-	// Notifications
+	
+	//====================================================================
+	// Event Notifiers
+	//====================================================================
 	virtual void NotifyAddItem(FItemMapping& FromSlots, UItemBase* NewItem, int32 ChangeQuantity);
 	virtual void NotifyRemoveItem(FItemMapping& FromSlots, UItemBase* RemovedItem, int32 RemoveQuantity);
-	//void NotifyUseSlot(UBaseInventorySlot* FromSlot);
+	virtual void NotifyUseSlot(UInventorySlot* UsedSlot);
 
 	
 };

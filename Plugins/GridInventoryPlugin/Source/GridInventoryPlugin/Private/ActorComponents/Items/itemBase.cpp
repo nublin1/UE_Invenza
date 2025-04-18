@@ -1,11 +1,10 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
+﻿//  Nublin Studio 2025 All Rights Reserved.
 
 #include "ActorComponents/Items/itemBase.h"
 
 #include "Data/ItemData.h"
 
-UItemBase::UItemBase(): Quantity(0)
+UItemBase::UItemBase(): ItemRef(), Quantity(0)
 {
 }
 
@@ -38,7 +37,7 @@ UItemBase* UItemBase::CreateFromDataTable(UDataTable* ItemDataTable, const FName
 	return NewItem;
 }
 
-bool UItemBase::bIsSameitems(UItemBase* FirstItem, UItemBase* SecondItem)
+bool UItemBase::bIsSameItems(UItemBase* FirstItem, UItemBase* SecondItem)
 {
 	if (!FirstItem || !SecondItem)
 		return false;
@@ -47,6 +46,14 @@ bool UItemBase::bIsSameitems(UItemBase* FirstItem, UItemBase* SecondItem)
 		return true;
 
 	return false;
+}
+
+void UItemBase::UseItem()
+{
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("UseItem was called!"));
+	
+	if (OnUseItemDelegate.IsBound())
+		OnUseItemDelegate.Broadcast(this);
 }
 
 UItemBase* UItemBase::DuplicateItem()

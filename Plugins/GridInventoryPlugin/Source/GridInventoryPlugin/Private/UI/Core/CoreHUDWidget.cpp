@@ -17,6 +17,9 @@ UCoreHUDWidget::UCoreHUDWidget(): UISettings()
 
 void UCoreHUDWidget::InitializeWidget()
 {
+	auto PlayerController = GetOwningPlayer();
+	auto PlayerCollection = PlayerController->GetPawn()->FindComponentByClass<UItemCollection>();
+	
 	TArray<UUserWidget*> FoundWidgets;
 	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(GetWorld(), FoundWidgets, UInvBaseContainerWidget::StaticClass(), false);
 	for (const auto Widget : FoundWidgets)
@@ -30,6 +33,7 @@ void UCoreHUDWidget::InitializeWidget()
 		if (Widget->GetName() == UISettings.MainInvWidgetName)
 		{
 			MainInvWidget = Cast<UInvBaseContainerWidget>(Widget);
+			MainInvWidget->GetInventoryFromContainerSlot()->SetItemCollection(PlayerCollection);
 			continue;
 		}
 		if (Widget->GetName() == UISettings.ContainerInWorldWidgetName)
@@ -40,6 +44,12 @@ void UCoreHUDWidget::InitializeWidget()
 		if (Widget->GetName() == UISettings.VendorInvWidgetName)
 		{
 			VendorInvWidget =Cast<UInvBaseContainerWidget>(Widget);
+			continue;
+		}
+		if (Widget->GetName() == UISettings.HotbarInvWidgetName)
+		{
+			HotbarInvWidget =Cast<UInvBaseContainerWidget>(Widget);
+			HotbarInvWidget->GetInventoryFromContainerSlot()->SetItemCollection(PlayerCollection);
 		}
 	}
 }
@@ -97,13 +107,13 @@ bool UCoreHUDWidget::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEv
 		return IUDraggableWidgetInterface::Execute_OnDropped(DragOp->Payload, InGeometry, DragOp->DragOffset);
 	}
 
-	if (DragOp->ItemMoveData.SourceInventory->GetIsUseReferences())
+	if (DragOp->ItemMoveData.SourceInventory->GetInventorySettings().bUseReferences)
 	{
 		DragOp->ItemMoveData.SourceInventory->HandleRemoveItemFromContainer(DragOp->ItemMoveData.SourceItem);
 		return true;
 	}
 	
-	DragOp->ItemMoveData.SourceInventory->GetItemCollection()->RemoveItemFromAllContainers(DragOp->ItemMoveData.SourceItem);
+	DragOp->ItemMoveData.SourceInventory->GetInventoryData().ItemCollectionLink->RemoveItemFromAllContainers(DragOp->ItemMoveData.SourceItem);
 	auto Item = DragOp->ItemMoveData.SourceItem->DuplicateItem();
 
 	if (auto Pawn = GetOwningPlayerPawn())
