@@ -3,10 +3,16 @@
 
 #include "UI/Inventory/InventorySlot.h"
 
-UInventorySlot::UInventorySlot(): SlotPosition()
+
+UInventorySlot::UInventorySlot(): SlotPosition(), UseAction(nullptr)
 {
+	
 }
 
 void UInventorySlot::UpdateVisual(UItemBase* Item)
+{
+}
+
+void UInventorySlot::SetItemUseKeyText(FString InUseKeyText)
 {
 }

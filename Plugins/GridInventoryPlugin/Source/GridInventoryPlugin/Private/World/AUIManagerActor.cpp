@@ -3,16 +3,21 @@
 #include "World//AUIManagerActor.h"
 
 #include "EnhancedInputComponent.h"
+#include "EnhancedInputSubsystems.h"
+#include "EnhancedActionKeyMapping.h"
 #include "ActorComponents/InteractionComponent.h"
 #include "ActorComponents/ItemCollection.h"
 #include "ActorComponents/Interactable/PickupComponent.h"
 #include "ActorComponents/Items/itemBase.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Kismet/GameplayStatics.h"
 #include "UI/Container/InvBaseContainerWidget.h"
 #include "UI/Core/CoreHUDWidget.h"
 #include "UI/Interaction/InteractionWidget.h"
 #include "UI/Inventory/SlotbasedInventoryWidget.h"
 
+
+class UEnhancedInputLocalPlayerSubsystem;
 
 AUIManagerActor::AUIManagerActor(): CoreHUDWidget(nullptr), UISettings()
 {
@@ -69,7 +74,7 @@ void AUIManagerActor::ItemTransferRequest(FItemMoveData ItemMoveData)
 				auto Interaction = Pawn->FindComponentByClass<UInteractionComponent>();
 				if (!Interaction) break;
 
-				Interaction->DropItem(ItemMoveData.SourceItem);
+				ItemMoveData.SourceItem->DropItem(GetWorld());
 			}
 			if (ItemMoveData.SourceInventory && ItemMoveData.SourceInventory == CoreHUDWidget->GetVendorInvWidget()->GetInventoryFromContainerSlot())
 			{
@@ -148,7 +153,7 @@ void AUIManagerActor::BindEvents(AActor* TargetActor)
 	}
 	
 	//
-	InteractionComponent->RegularSettings = this->RegularSettings;
+	InteractionComponent->RegularSettings = this->UISettings;
 	InteractionComponent->BeginFocusDelegate.AddDynamic(InteractionWidget, &UInteractionWidget::OnFoundInteractable);
 	InteractionComponent->EndFocusDelegate.AddDynamic(InteractionWidget, &UInteractionWidget::OnLostInteractable);
 	InteractionComponent->IteractableDataDelegate.AddDynamic(this, &AUIManagerActor::UIIteract);
@@ -221,24 +226,106 @@ void AUIManagerActor::OnQuickGrabReleased(const FInputActionInstance& Instance)
 	InventoryModifierState.bIsQuickGrabModifierActive = false;
 }
 
-void AUIManagerActor::InitializeMenuBindings()
+void AUIManagerActor::InitializeBindings()
 {
 	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	if (!PlayerController) return;
+
+	ULocalPlayer* LocalPlayer = PlayerController->GetLocalPlayer();
+	if (!LocalPlayer) return;
+
+	UEnhancedInputLocalPlayerSubsystem* InputSubsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(LocalPlayer);
+	if (!InputSubsystem) return;
+
 	UEnhancedInputComponent* Input = Cast<UEnhancedInputComponent>(PlayerController->InputComponent);
-	if (!Input)
-		return;
+	if (!Input) return;
+
+	if (UISettings.GameplayMappingContext)
+	{
+		InputSubsystem->AddMappingContext(UISettings.InventoryMappingContext, 2);
+	}
 	
 	if (UISettings.ToggleInventoryAction)
 	{
-		Input->BindAction(UISettings.ToggleInventoryAction, ETriggerEvent::Started, CoreHUDWidget, &UCoreHUDWidget::ToggleInventoryMenu);
+		Input->BindAction(UISettings.ToggleInventoryAction, ETriggerEvent::Started, this, &AUIManagerActor::ToggleInventoryLayout);
 	}
 
-	if (UISettings.IA_Mod_QuickGrab)
+	InitializeInvSlotsBindings();
+}
+
+void AUIManagerActor::InitializeInvSlotsBindings()
+{
+	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	if (!PlayerController) return;
+
+	UEnhancedInputComponent* Input = Cast<UEnhancedInputComponent>(PlayerController->InputComponent);
+	if (!Input) return;
+	
+	TArray<UUserWidget*> FoundWidgets;
+	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(GetWorld(), FoundWidgets, UInvBaseContainerWidget::StaticClass(), false);
+	for (const auto Widget : FoundWidgets)
 	{
-		Input->BindAction(UISettings.IA_Mod_QuickGrab, ETriggerEvent::Started, this, &AUIManagerActor::OnQuickGrabPressed);
-		Input->BindAction(UISettings.IA_Mod_QuickGrab, ETriggerEvent::Completed, this, &AUIManagerActor::OnQuickGrabReleased);
+		auto Inventory = Cast<UInvBaseContainerWidget>(Widget)->GetInventoryFromContainerSlot();
+		if (!Inventory) continue;
+
+		auto InvSlots = Inventory->GetInventoryData().InventorySlots;
+		if (InvSlots.IsEmpty()) continue;
+
+		for (const auto Slot : InvSlots)
+		{
+			if (Slot->GetUseAction())
+				Input->BindAction(Slot->GetUseAction(), ETriggerEvent::Started, Inventory, &UUInventoryWidgetBase::UseSlot, Slot);
+		}
 	}
+}
+
+void AUIManagerActor::ToggleInventoryLayout()
+{
+	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	if (!PlayerController) return;
+
+	ULocalPlayer* LocalPlayer = PlayerController->GetLocalPlayer();
+	if (!LocalPlayer) return;
+
+	UEnhancedInputLocalPlayerSubsystem* InputSubsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(LocalPlayer);
+	if (!InputSubsystem) return;
+
+	if (!bIsShowingInventoryMenu)
+	{
+		CoreHUDWidget->DisplayInventoryMenu();
+		
+		const FInputModeGameAndUI InputMode;		
+		PlayerController->SetInputMode(InputMode);
+		PlayerController->SetShowMouseCursor(true);
+		
+		if (UISettings.InventoryMappingContext)
+		{
+			InputSubsystem->AddMappingContext(UISettings.InventoryMappingContext, 1);
+		}
+		
+		UEnhancedInputComponent* Input = Cast<UEnhancedInputComponent>(PlayerController->InputComponent);
+		if (Input && UISettings.IA_Mod_QuickGrab)
+		{
+			Input->BindAction(UISettings.IA_Mod_QuickGrab, ETriggerEvent::Started, this, &AUIManagerActor::OnQuickGrabPressed);
+			Input->BindAction(UISettings.IA_Mod_QuickGrab, ETriggerEvent::Completed, this, &AUIManagerActor::OnQuickGrabReleased);
+		}
+		
+		bIsShowingInventoryMenu = true;
+		
+		return;
+	}
+
+	CoreHUDWidget->HideInventoryMenu();
+	
+	const FInputModeGameOnly InputMode;
+	PlayerController->SetInputMode(InputMode);
+	PlayerController->SetShowMouseCursor(false);
+
+	if (UISettings.InventoryMappingContext)
+		InputSubsystem->RemoveMappingContext(UISettings.InventoryMappingContext);
+
+	bIsShowingInventoryMenu = false;
+	
 }
 
 void AUIManagerActor::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)

@@ -2,14 +2,19 @@
 
 #include "UI/Core/CoreHUDWidget.h"
 
+#include "EnhancedInputComponent.h"
+#include "EnhancedInputSubsystems.h"
 #include "ActorComponents/InteractionComponent.h"
 #include "ActorComponents/ItemCollection.h"
 #include "ActorComponents/Items/itemBase.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "DragDrop/ItemDragDropOperation.h"
+#include "Kismet/GameplayStatics.h"
 #include "UI/Container/InvBaseContainerWidget.h"
 #include "UI/Inrefaces/UDraggableWidgetInterface.h"
 #include "UI/Inventory/SlotbasedInventoryWidget.h"
+
+class UEnhancedInputLocalPlayerSubsystem;
 
 UCoreHUDWidget::UCoreHUDWidget(): UISettings()
 {
@@ -25,7 +30,7 @@ void UCoreHUDWidget::InitializeWidget()
 	for (const auto Widget : FoundWidgets)
 	{
 		auto Inventory = Cast<UInvBaseContainerWidget>(Widget)->GetInventoryFromContainerSlot();
-		if (!Inventory) return;
+		if (!Inventory) continue;
 		
 		Inventory->SetUISettings(UISettings);
 		Inventory->InitializeInventory();
@@ -54,35 +59,12 @@ void UCoreHUDWidget::InitializeWidget()
 	}
 }
 
-void UCoreHUDWidget::ToggleInventoryMenu()
-{
-	auto PlayerController = GetOwningPlayer();
-	if (!PlayerController)
-		return;
-	
-	if (!bIsShowingInventoryMenu)
-	{
-		DisplayInventoryMenu();
-		
-		const FInputModeGameAndUI InputMode;		
-		PlayerController->SetInputMode(InputMode);
-		PlayerController->SetShowMouseCursor(true);
-		return;
-	}
-	
-	HideInventoryMenu();
-	const FInputModeGameOnly InputMode;
-	PlayerController->SetInputMode(InputMode);
-	PlayerController->SetShowMouseCursor(false);
-}
-
 void UCoreHUDWidget::DisplayInventoryMenu()
 {
 	if (!MainInvWidget)
 		return;
 
 	MainInvWidget->SetVisibility(ESlateVisibility::Visible);
-	bIsShowingInventoryMenu = true;
 }
 
 void UCoreHUDWidget::HideInventoryMenu()
@@ -91,7 +73,6 @@ void UCoreHUDWidget::HideInventoryMenu()
 		return;
 
 	MainInvWidget->SetVisibility(ESlateVisibility::Collapsed);
-	bIsShowingInventoryMenu = false;
 }
 
 bool UCoreHUDWidget::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent,
@@ -115,14 +96,16 @@ bool UCoreHUDWidget::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEv
 	
 	DragOp->ItemMoveData.SourceInventory->GetInventoryData().ItemCollectionLink->RemoveItemFromAllContainers(DragOp->ItemMoveData.SourceItem);
 	auto Item = DragOp->ItemMoveData.SourceItem->DuplicateItem();
+	Item->DropItem(GetWorld());
 
+	/*
 	if (auto Pawn = GetOwningPlayerPawn())
 	{
 		auto Interaction = Pawn->FindComponentByClass<UInteractionComponent>();
 		if (!Interaction) return true;
 
 		Interaction->DropItem(Item);
-	}
+	}*/
 	
 	return true;
 	

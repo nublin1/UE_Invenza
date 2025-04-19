@@ -6,6 +6,15 @@
 #include "ActorComponents/ItemCollection.h"
 
 
+void UUInventoryWidgetBase::UseSlot(UInventorySlot* UsedSlot)
+{
+	auto Item = InventoryData.ItemCollectionLink->GetItemFromSlot(UsedSlot, this);
+	if (!Item)
+		return;
+	
+	Item->UseItem();
+}
+
 bool UUInventoryWidgetBase::ExecuteItemChecks(EInventoryCheckType CheckType, UItemBase* Item)
 {
 	if (InventoryData.Checks.IsEmpty())

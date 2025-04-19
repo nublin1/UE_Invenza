@@ -47,6 +47,8 @@ public:
 	virtual void InitializeInventory() PURE_VIRTUAL(UUInventoryWidgetBase::InitializeInventory,);
 	UFUNCTION(Category="Inventory")
 	virtual void ReDrawAllItems() PURE_VIRTUAL(UUInventoryWidgetBase::ReDrawAllItems,);
+	UFUNCTION()
+	virtual void UseSlot(UInventorySlot* UsedSlot);
 	
 	UFUNCTION(Category="Inventory")
 	virtual void HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity) PURE_VIRTUAL(UUInventoryWidgetBase::HandleRemoveItem,);
@@ -110,6 +112,7 @@ protected:
 	virtual void UpdateWeightInfo();
 	UFUNCTION()
 	virtual void UpdateMoneyInfo();
+	
 	
 	//====================================================================
 	// Event Notifiers

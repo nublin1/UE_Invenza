@@ -22,6 +22,7 @@ USlotbasedInventoryWidget::USlotbasedInventoryWidget(): SlotsGridPanel(nullptr)
 
 void USlotbasedInventoryWidget::InitializeInventory()
 {
+	InitSlots();
 	UpdateWeightInfo();
 }
 
@@ -44,8 +45,6 @@ void USlotbasedInventoryWidget::NativeConstruct()
 	Super::NativeConstruct();
 	
 	OnVisibilityChanged.AddDynamic(this, &USlotbasedInventoryWidget::HandleVisibilityChanged);
-	
-	GetWorld()->GetTimerManager().SetTimerForNextTick(this, &USlotbasedInventoryWidget::InitSlots);
 }
 
 void USlotbasedInventoryWidget::InitSlots()

@@ -2,7 +2,11 @@
 
 #include "ActorComponents/Items/itemBase.h"
 
+#include "ToolBuilderUtil.h"
+#include "ActorComponents/Interactable/PickupComponent.h"
 #include "Data/ItemData.h"
+#include "Kismet/GameplayStatics.h"
+#include "World/AUIManagerActor.h"
 
 UItemBase::UItemBase(): ItemRef(), Quantity(0)
 {
@@ -65,4 +69,33 @@ UItemBase* UItemBase::DuplicateItem()
 		NewItem->Quantity = this->Quantity;
 	}
 	return NewItem;
+}
+
+void UItemBase::DropItem(UWorld* World)
+{
+	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(World, 0);
+	if (!PlayerController) return;
+	auto Pawn = PlayerController->GetPawn();
+
+	auto ManagerActor = Cast<AUIManagerActor>(UGameplayStatics::GetActorOfClass(World, AUIManagerActor::StaticClass()));
+	
+	/*if (!RegularSettings.PickupClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("PickupClass was null"));
+		return;
+	}*/
+
+	FActorSpawnParameters SpawnParameters;
+	SpawnParameters.Owner = Pawn;
+	SpawnParameters.bNoFail = true;
+	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+	const FVector SpawnLocation{Pawn->GetActorLocation() + (Pawn->GetActorForwardVector() * 50.0f)};
+	const FTransform SpawnTransform(Pawn->GetActorRotation(), SpawnLocation);
+
+	auto Pickup = World->SpawnActor<AActor>(ManagerActor->GetUISettings().PickupClass, SpawnTransform, SpawnParameters);
+	if (auto PickupComponent = Pickup->FindComponentByClass<UPickupComponent>())
+	{
+		PickupComponent->InitializeDrop(this);
+	}
 }

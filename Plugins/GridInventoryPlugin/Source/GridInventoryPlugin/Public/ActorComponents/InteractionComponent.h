@@ -45,7 +45,7 @@ public:
 	FEndIteract EndIteractDelegate;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Settings")
-	FRegularSettings RegularSettings;
+	FUISettings RegularSettings;
 	
 	//====================================================================
 	// FUNCTIONS
@@ -54,8 +54,7 @@ public:
 
 	UFUNCTION()
 	void InitInteractionComponent();
-	UFUNCTION()
-	void DropItem(UItemBase* ItemToDrop);
+
 
 protected:
 	//====================================================================

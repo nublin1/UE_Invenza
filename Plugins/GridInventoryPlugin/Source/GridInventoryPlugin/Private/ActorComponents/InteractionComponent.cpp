@@ -9,7 +9,8 @@
 #include "GameFramework/Character.h"
 
 
-UInteractionComponent::UInteractionComponent(): TraceChannel(), TargetInteractableComponent(nullptr)
+UInteractionComponent::UInteractionComponent(): TraceChannel(), TargetInteractableComponent(nullptr),
+                                                CurrentInteractableComponent(nullptr)
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	InteractionCheckInterval = 0.1f;
@@ -44,36 +45,6 @@ void UInteractionComponent::InitInteractionComponent()
 
 	Input->BindAction(InteractAction, ETriggerEvent::Started, this, &UInteractionComponent::BeginInteract);
 	Input->BindAction(InteractAction, ETriggerEvent::Completed, this, &UInteractionComponent::EndInteract);
-}
-
-void UInteractionComponent::DropItem(UItemBase* ItemToDrop)
-{
-	if (!ItemToDrop)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Item to drop was somehow null"));
-		return;
-	}
-
-	if (!RegularSettings.PickupClass)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("PickupClass was null"));
-		return;
-	}
-
-	FActorSpawnParameters SpawnParameters;
-	SpawnParameters.Owner = GetOwner();
-	SpawnParameters.bNoFail = true;
-	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-
-	const FVector SpawnLocation{GetOwner()->GetActorLocation() + (GetOwner()->GetActorForwardVector() * 50.0f)};
-	const FTransform SpawnTransform(GetOwner()->GetActorRotation(), SpawnLocation);
-
-	auto Pickup = GetWorld()->SpawnActor<AActor>(RegularSettings.PickupClass, SpawnTransform, SpawnParameters);
-	if (auto PickupComponent = Pickup->FindComponentByClass<UPickupComponent>())
-	{
-		PickupComponent->InitializeDrop(ItemToDrop);
-	}
-	
 }
 
 void UInteractionComponent::PerformInteractionCheck()

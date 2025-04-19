@@ -61,6 +61,9 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Item|Factory")
 	UItemBase* DuplicateItem();
+
+	UFUNCTION(BlueprintCallable, Category = "Item")
+	void DropItem(UWorld* World);
 	
     /** Returns whether the item is stackable */
     UFUNCTION(BlueprintCallable, Category = "Item|Properties")

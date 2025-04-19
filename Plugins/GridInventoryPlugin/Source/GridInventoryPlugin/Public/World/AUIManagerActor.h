@@ -58,12 +58,14 @@ protected:
 	UPROPERTY(BlueprintReadOnly)
 	TObjectPtr<UInvBaseContainerWidget> CurrentInteractInvWidget;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = UI)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
 	FUISettings UISettings;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Settings")
-	FRegularSettings RegularSettings;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
 	FInventoryModifierState InventoryModifierState;
+
+	//
+	UPROPERTY()
+	bool bIsShowingInventoryMenu = false;
 	
 	//====================================================================
 	// FUNCTIONS
@@ -84,7 +86,12 @@ protected:
 	UFUNCTION()
 	void OnQuickGrabReleased(const FInputActionInstance& Instance);
 	UFUNCTION(BlueprintCallable)
-	void InitializeMenuBindings();
+	void InitializeBindings();
+	UFUNCTION()
+	void InitializeInvSlotsBindings();
+
+	UFUNCTION(BlueprintCallable)
+	void ToggleInventoryLayout();
 
 public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,

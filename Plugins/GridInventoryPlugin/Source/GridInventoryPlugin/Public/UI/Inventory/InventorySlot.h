@@ -3,9 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "InputAction.h"
 #include "UI/BaseUserWidget.h"
 #include "InventorySlot.generated.h"
 
+class UInputAction;
 class UItemBase;
 /**
  * 
@@ -33,17 +35,22 @@ public:
 	virtual void UpdateVisual(UItemBase* Item);
 	
 	//Getters
-	FORCEINLINE FIntVector2 GetSlotPosition() const { return SlotPosition; }	
+	FORCEINLINE FIntVector2 GetSlotPosition() const { return SlotPosition; }
+	FORCEINLINE UInputAction* GetUseAction() const { return UseAction; }	
 	
 	//Setters	
 	FORCEINLINE void SetSlotPosition(const FIntVector2 InSlotPosition) { this->SlotPosition = InSlotPosition; }
+	FORCEINLINE virtual void SetItemUseKeyText(FString InUseKeyText);
 	
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere)
 	FIntVector2 SlotPosition{};
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UInputAction> UseAction;
 	
 	//====================================================================
 	// FUNCTIONS

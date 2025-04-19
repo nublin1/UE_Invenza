@@ -35,8 +35,6 @@ public:
 	void InitializeWidget();
 
 	//Inventory
-	UFUNCTION()
-	void ToggleInventoryMenu();
 	void DisplayInventoryMenu();
 	void HideInventoryMenu();
 	
@@ -71,8 +69,7 @@ protected:
 	TObjectPtr<UInvBaseContainerWidget> HotbarInvWidget;
 	
 	//
-	UPROPERTY()
-	bool bIsShowingInventoryMenu = false;
+	
 	UPROPERTY(BlueprintReadWrite)
 	FUISettings UISettings;
 	

@@ -7,6 +7,7 @@
 #include "UI/BaseUserWidget.h"
 #include "SlotbasedInventorySlot.generated.h"
 
+class UTextBlock;
 class UCoreCellWidget;
 /**
  * 
@@ -20,21 +21,29 @@ public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
+	//Widgets
+	UPROPERTY(meta=(BindWidget))
+	TObjectPtr<UCoreCellWidget> CoreCellWidget;
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UTextBlock> ItemUseKey;
 	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
 	USlotbasedInventorySlot();
 
+	virtual void SetItemUseKeyText(FString InUseKeyText)override;
+
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	//Widgets
-	UPROPERTY(meta=(BindWidget))
-	TObjectPtr<UCoreCellWidget> CoreCellWidget;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FString InUseKeyTextByDefault;
 	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+
+	virtual void NativeConstruct() override;
 };

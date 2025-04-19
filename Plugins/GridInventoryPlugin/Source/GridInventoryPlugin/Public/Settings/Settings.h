@@ -4,6 +4,7 @@
 #include "CoreMinimal.h"
 #include "Settings.generated.h"
 
+class UInputMappingContext;
 class UInputAction;
 class UInventorySlot;
 class UHighlightSlotWidget;
@@ -16,6 +17,11 @@ struct FUISettings
 	GENERATED_BODY()
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
+	UInputMappingContext* GameplayMappingContext;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
+	UInputMappingContext* InventoryMappingContext;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
 	UInputAction* ToggleInventoryAction;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
 	UInputAction* IA_Mod_QuickGrab;
@@ -26,6 +32,8 @@ struct FUISettings
 	UPROPERTY(EditAnywhere, Category = "Inventory|Input")
 	FKey ItemUseKey = EKeys::RightMouseButton;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TSubclassOf<AActor> PickupClass;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TSubclassOf<UInventoryItemWidget> InventoryItemVisualClass;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
@@ -42,15 +50,6 @@ struct FUISettings
 	FName HotbarInvWidgetName = "Hotbar";
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FVector2D SlotSize = FVector2D(0.f);
-};
-
-USTRUCT(Blueprintable)
-struct FRegularSettings
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TSubclassOf<AActor> PickupClass;
 };
 
 USTRUCT(BlueprintType)
