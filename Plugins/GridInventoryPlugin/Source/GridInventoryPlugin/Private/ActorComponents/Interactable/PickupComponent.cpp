@@ -62,7 +62,6 @@ void UPickupComponent::InitializePickupComponent()
 	if (!ItemDataTable || DesiredItemID.IsNone())
 		return;
 	
-
 	ItemBase = UItemBase::CreateFromDataTable(ItemDataTable, DesiredItemID, InitQuantity);
 	if (InitQuantity>ItemBase->GetItemRef().ItemNumeraticData.MaxStackSize )
 	{

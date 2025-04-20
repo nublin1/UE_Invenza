@@ -94,7 +94,6 @@ FMoneyCalculationResult UTradeComponent::AccumulatePayment(UInvBaseContainerWidg
 	if (SellerMoneyItems.IsEmpty())
 	{
 		Result.bHasEnough =false;
-		return Result;
 	}
 	
 	for (UItemBase* MoneyItem : SellerMoneyItems)

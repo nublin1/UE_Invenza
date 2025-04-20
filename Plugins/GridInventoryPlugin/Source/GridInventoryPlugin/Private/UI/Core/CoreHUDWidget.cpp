@@ -2,14 +2,11 @@
 
 #include "UI/Core/CoreHUDWidget.h"
 
-#include "EnhancedInputComponent.h"
-#include "EnhancedInputSubsystems.h"
 #include "ActorComponents/InteractionComponent.h"
 #include "ActorComponents/ItemCollection.h"
 #include "ActorComponents/Items/itemBase.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "DragDrop/ItemDragDropOperation.h"
-#include "Kismet/GameplayStatics.h"
 #include "UI/Container/InvBaseContainerWidget.h"
 #include "UI/Inrefaces/UDraggableWidgetInterface.h"
 #include "UI/Inventory/SlotbasedInventoryWidget.h"

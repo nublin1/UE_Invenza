@@ -85,6 +85,11 @@ protected:
 	FInventorySettings InventorySettings;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Inventory")
 	FUISettings UISettings;
+
+	//
+	UPROPERTY()
+	TObjectPtr<UInventorySlot> SlotUnderMouse = nullptr;
+	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================

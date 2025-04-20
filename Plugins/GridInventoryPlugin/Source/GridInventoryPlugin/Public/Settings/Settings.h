@@ -4,6 +4,7 @@
 #include "CoreMinimal.h"
 #include "Settings.generated.h"
 
+class UItemTooltipWidget;
 class UInputMappingContext;
 class UInputAction;
 class UInventorySlot;
@@ -40,6 +41,8 @@ struct FUISettings
 	TSubclassOf<UInventoryItemWidget> DraggedWidgetClass;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TSubclassOf<UHighlightSlotWidget> HighlightSlotWidgetClass;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TSubclassOf<UItemTooltipWidget> ItemTooltipWidgetClass;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FName MainInvWidgetName;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)

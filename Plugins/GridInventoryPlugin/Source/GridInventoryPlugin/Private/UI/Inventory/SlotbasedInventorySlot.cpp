@@ -12,7 +12,7 @@ USlotbasedInventorySlot::USlotbasedInventorySlot()
 void USlotbasedInventorySlot::SetItemUseKeyText(FString InUseKeyText)
 {
 	Super::SetItemUseKeyText(InUseKeyText);
-	if (UseAction)
+	if (ItemUseKey)
 	{
 		ItemUseKey->SetText(FText::FromString(InUseKeyText));
 		ItemUseKey->SetVisibility(ESlateVisibility::Visible);

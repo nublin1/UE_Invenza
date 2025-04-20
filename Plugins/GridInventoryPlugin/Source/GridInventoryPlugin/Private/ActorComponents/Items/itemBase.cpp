@@ -2,11 +2,12 @@
 
 #include "ActorComponents/Items/itemBase.h"
 
-#include "ToolBuilderUtil.h"
 #include "ActorComponents/Interactable/PickupComponent.h"
 #include "Data/ItemData.h"
 #include "Kismet/GameplayStatics.h"
 #include "World/AUIManagerActor.h"
+
+#define LOCTEXT_NAMESPACE "Inventory"
 
 UItemBase::UItemBase(): ItemRef(), Quantity(0)
 {
@@ -63,7 +64,7 @@ void UItemBase::UseItem()
 UItemBase* UItemBase::DuplicateItem()
 {
 	UItemBase* NewItem = NewObject<UItemBase>();
-	if (NewItem)
+	if (NewItem && this)
 	{
 		NewItem->ItemRef = this->ItemRef;
 		NewItem->Quantity = this->Quantity;
@@ -74,16 +75,9 @@ UItemBase* UItemBase::DuplicateItem()
 void UItemBase::DropItem(UWorld* World)
 {
 	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(World, 0);
-	if (!PlayerController) return;
+	if (!PlayerController || !this) return;
 	auto Pawn = PlayerController->GetPawn();
-
 	auto ManagerActor = Cast<AUIManagerActor>(UGameplayStatics::GetActorOfClass(World, AUIManagerActor::StaticClass()));
-	
-	/*if (!RegularSettings.PickupClass)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("PickupClass was null"));
-		return;
-	}*/
 
 	FActorSpawnParameters SpawnParameters;
 	SpawnParameters.Owner = Pawn;
@@ -98,4 +92,25 @@ void UItemBase::DropItem(UWorld* World)
 	{
 		PickupComponent->InitializeDrop(this);
 	}
+}
+
+FText UItemBase::GetItemCategoryString()
+{
+	FText Result = FText::GetEmpty();
+
+	if (ItemRef.ItemCategory2 & (1 <<static_cast<uint8>(EItemCategory::Consumable)))
+	{
+		Result = FText::Join(FText::FromString(" "), Result, LOCTEXT("Category_Consumable", "Consumable"));
+	}
+	if (ItemRef.ItemCategory2 & (1 <<static_cast<uint8>(EItemCategory::Money)))
+	{
+		Result = FText::Join(FText::FromString(" "), Result, LOCTEXT("Category_Money", "Money"));
+	}
+
+	if (ItemRef.ItemCategory2 & (1 <<static_cast<uint8>(EItemCategory::None)) || Result.IsEmpty())
+	{
+		Result = FText::Join(FText::FromString(" "), Result, LOCTEXT("Category_None", "None"));
+	}
+
+	return Result;
 }

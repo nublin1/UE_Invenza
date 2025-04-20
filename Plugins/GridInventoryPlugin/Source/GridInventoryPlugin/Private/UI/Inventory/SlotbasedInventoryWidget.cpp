@@ -13,6 +13,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Slate/SObjectWidget.h"
 #include "UI/Drag/HighlightSlotWidget.h"
+#include "UI/HelpersWidgets/ItemTooltipWidget.h"
 #include "UI/Item/InventoryItemWidget.h"
 #include "World/AUIManagerActor.h"
 
@@ -24,6 +25,7 @@ void USlotbasedInventoryWidget::InitializeInventory()
 {
 	InitSlots();
 	UpdateWeightInfo();
+	CreateTooltipWidget();
 }
 
 void USlotbasedInventoryWidget::ReDrawAllItems()
@@ -733,6 +735,17 @@ void USlotbasedInventoryWidget::CreateHighlightWidget()
 	HighlightWidgetPreview->SetVisibility(ESlateVisibility::Collapsed);
 }
 
+void USlotbasedInventoryWidget::CreateTooltipWidget()
+{
+	if (!InventorySettings.bShowTooltips || !UISettings.ItemTooltipWidgetClass)
+		return;
+	
+	InventoryData.ItemTooltipWidget = CreateWidget<UItemTooltipWidget>(this, UISettings.ItemTooltipWidgetClass);
+	SetToolTip(InventoryData.ItemTooltipWidget);
+	InventoryData.ItemTooltipWidget->SetVisibility(ESlateVisibility::Collapsed);
+	
+}
+
 FIntPoint USlotbasedInventoryWidget::CalculateGridPosition(const FGeometry& Geometry, const FVector2D& ScreenCursorPos) const
 {
 	if (!SlotsGridPanel) return FIntPoint(-1, -1);
@@ -785,11 +798,11 @@ FReply USlotbasedInventoryWidget::NativeOnMouseButtonDown(const FGeometry& InGeo
 	{
 		if (GridPosition.X >= 0 && GridPosition.Y >= 0)
 		{
-			SelectedSlot = GetSlotByPosition(FIntVector2(GridPosition.X, GridPosition.Y));
+			SlotUnderMouse = GetSlotByPosition(FIntVector2(GridPosition.X, GridPosition.Y));
 		}
-		if (!SelectedSlot || !InventoryData.ItemCollectionLink) return FReply::Unhandled();
+		if (!SlotUnderMouse || !InventoryData.ItemCollectionLink) return FReply::Unhandled();
 		
-		auto ItemInSlot = InventoryData.ItemCollectionLink->GetItemFromSlot(SelectedSlot, this);
+		auto ItemInSlot = InventoryData.ItemCollectionLink->GetItemFromSlot(SlotUnderMouse, this);
 		if (!ItemInSlot) return FReply::Unhandled();
 		
 		AUIManagerActor* ManagerActor = Cast<AUIManagerActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AUIManagerActor::StaticClass()));
@@ -799,7 +812,7 @@ FReply USlotbasedInventoryWidget::NativeOnMouseButtonDown(const FGeometry& InGeo
 		{
 			FItemMoveData ItemMoveData;
 			ItemMoveData.SourceInventory = this;
-			ItemMoveData.SourceItemPivotSlot = SelectedSlot;
+			ItemMoveData.SourceItemPivotSlot = SlotUnderMouse;
 			ItemMoveData.SourceItem = ItemInSlot;
 			if (!ItemMoveData.SourceItem)
 				return FReply::Unhandled();
@@ -812,22 +825,22 @@ FReply USlotbasedInventoryWidget::NativeOnMouseButtonDown(const FGeometry& InGeo
 		
 		//TODO: Rewrite with Hit Testing
 		
-		auto Linked= InventoryData.ItemCollectionLink-> GetItemLinkedWidgetForSlot(SelectedSlot);
+		auto Linked= InventoryData.ItemCollectionLink-> GetItemLinkedWidgetForSlot(SlotUnderMouse);
 		if (!Linked) return FReply::Unhandled();
 
-		if (ExecuteItemChecks(EInventoryCheckType::PreTransfer, InventoryData.ItemCollectionLink->GetItemFromSlot(SelectedSlot, this)))
-			return Reply.Handled().DetectDrag(TakeWidget(), EKeys::LeftMouseButton);
+		if (ExecuteItemChecks(EInventoryCheckType::PreTransfer, InventoryData.ItemCollectionLink->GetItemFromSlot(SlotUnderMouse, this)))
+			return Reply.Handled().DetectDrag(TakeWidget(), UISettings.ItemSelectKey);
 	}
 
 	if (InMouseEvent.GetEffectingButton() == UISettings.ItemUseKey && InventorySettings.bCanUseItems)
 	{
 		if (GridPosition.X >= 0 && GridPosition.Y >= 0)
 		{
-			SelectedSlot = GetSlotByPosition(FIntVector2(GridPosition.X, GridPosition.Y));
+			SlotUnderMouse = GetSlotByPosition(FIntVector2(GridPosition.X, GridPosition.Y));
 		}
-		if (!SelectedSlot) return FReply::Unhandled();
+		if (!SlotUnderMouse) return FReply::Unhandled();
 		
-		auto ItemInSlot = InventoryData.ItemCollectionLink->GetItemFromSlot(SelectedSlot, this);
+		auto ItemInSlot = InventoryData.ItemCollectionLink->GetItemFromSlot(SlotUnderMouse, this);
 		if (!ItemInSlot) return FReply::Unhandled();
 		
 		ItemInSlot->UseItem();
@@ -838,16 +851,38 @@ FReply USlotbasedInventoryWidget::NativeOnMouseButtonDown(const FGeometry& InGeo
 	return FReply::Unhandled();
 }
 
+FReply USlotbasedInventoryWidget::NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	FReply Reply = Super::NativeOnMouseMove(InGeometry, InMouseEvent);
+
+	FVector2D ScreenCursorPos = InMouseEvent.GetScreenSpacePosition();
+	FIntPoint GridPosition = CalculateGridPosition(InGeometry, ScreenCursorPos);
+
+	if (GridPosition.X >= 0 && GridPosition.Y >= 0 && GridPosition.X<=NumberRows && GridPosition.Y<=NumColumns)
+	{
+		SlotUnderMouse = GetSlotByPosition(FIntVector2(GridPosition.X, GridPosition.Y));
+	}
+	
+	if (!SlotUnderMouse) return FReply::Unhandled();
+	auto ItemInSlot = InventoryData.ItemCollectionLink->GetItemFromSlot(SlotUnderMouse, this);
+	
+	if (ItemInSlot && InventoryData.ItemTooltipWidget)
+	{
+		InventoryData.ItemTooltipWidget->SetTooltipData(ItemInSlot);
+		InventoryData.ItemTooltipWidget->SetVisibility(ESlateVisibility::Visible);
+	}
+	else if (InventoryData.ItemTooltipWidget)
+		InventoryData.ItemTooltipWidget->SetVisibility(ESlateVisibility::Collapsed);
+
+	return Reply;
+}
+
 void USlotbasedInventoryWidget::NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent,
-	UDragDropOperation*& OutOperation)
+                                                     UDragDropOperation*& OutOperation)
 {
 	Super::NativeOnDragDetected(InGeometry, InMouseEvent, OutOperation);
 
-	AUIManagerActor* ManagerActor = Cast<AUIManagerActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AUIManagerActor::StaticClass()));
-	if (!ManagerActor)
-		return;
-
-	UInventoryItemWidget* DraggedWidget = CreateWidget<UInventoryItemWidget>(GetOwningPlayer(),ManagerActor->GetUISettings().DraggedWidgetClass);
+	UInventoryItemWidget* DraggedWidget = CreateWidget<UInventoryItemWidget>(GetOwningPlayer(), UISettings.DraggedWidgetClass);
 	if (!DraggedWidget) return;
 	DraggedWidget->SetVisibility(ESlateVisibility::Hidden);
 	
@@ -855,9 +890,9 @@ void USlotbasedInventoryWidget::NativeOnDragDetected(const FGeometry& InGeometry
 	DragItemDragDropOperation->DefaultDragVisual = DraggedWidget;
 	DragItemDragDropOperation->Pivot = EDragPivot::CenterCenter;
 
-	DragItemDragDropOperation->ItemMoveData.SourceItem = InventoryData.ItemCollectionLink->GetItemFromSlot(SelectedSlot, this);
+	DragItemDragDropOperation->ItemMoveData.SourceItem = InventoryData.ItemCollectionLink->GetItemFromSlot(SlotUnderMouse, this);
 	DragItemDragDropOperation->ItemMoveData.SourceInventory = this;
-	DragItemDragDropOperation->ItemMoveData.SourceItemPivotSlot = SelectedSlot;
+	DragItemDragDropOperation->ItemMoveData.SourceItemPivotSlot = SlotUnderMouse;
 
 	auto ShowDragVisual = [DraggedWidget]()
 	{

@@ -85,6 +85,9 @@ public:
     UFUNCTION(Category = "Item|Properties")
     FORCEINLINE FIntVector2 GetOccupiedSlots() const { return FIntVector2(ItemRef.ItemNumeraticData.NumHorizontalSlots, ItemRef.ItemNumeraticData.NumVerticalSlots); }
 
+	UFUNCTION(BlueprintCallable, Category = "Item|Properties")
+	FORCEINLINE FText GetItemCategoryString();
+
     /** Get and set methods */
     FItemMetaData& GetItemRef() { return ItemRef; }
     int32 GetQuantity() const { return Quantity; }

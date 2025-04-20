@@ -47,7 +47,7 @@ protected:
 
 	//
 	UPROPERTY(BlueprintReadOnly)
-	TArray<TObjectPtr<UInventoryListEntry>> ItemsArray;
+	TArray<TObjectPtr<UInventoryListEntry>> ItemsArray;	
 
 	//====================================================================
 	// FUNCTIONS
@@ -67,6 +67,8 @@ protected:
 	virtual void NotifyAddItem(FItemMapping& FromSlots, UItemBase* NewItem, int32 ChangeQuantity) override;
 	virtual void NotifyRemoveItem(FItemMapping& FromSlots, UItemBase* RemovedItem, int32 RemoveQuantity) override;
 	
+	virtual FReply NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	virtual void NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation) override;
 	virtual bool NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 };

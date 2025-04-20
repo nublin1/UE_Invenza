@@ -10,6 +10,7 @@
 #include "Components/TextBlock.h"
 #include "DragDrop/ItemDragDropOperation.h"
 #include "Kismet/GameplayStatics.h"
+#include "UI/HelpersWidgets/ItemTooltipWidget.h"
 #include "UI/Inventory/ListInventoryWidget.h"
 #include "UI/Item/InventoryItemWidget.h"
 #include "World/AUIManagerActor.h"
@@ -65,9 +66,34 @@ void UListInventorySlotWidget::NativeOnListItemObjectSet(UObject* ListItemObject
 	}
 }
 
+FReply UListInventorySlotWidget::NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	FReply Reply = Super::NativeOnMouseMove(InGeometry, InMouseEvent);
+
+	if (!ParentInventoryWidget)
+		return Reply;
+
+	if (LinkedItem && ParentInventoryWidget->GetInventoryData().ItemTooltipWidget)
+	{
+		ParentInventoryWidget->GetInventoryData().ItemTooltipWidget->SetTooltipData(LinkedItem);
+		 ParentInventoryWidget->GetInventoryData().ItemTooltipWidget->SetVisibility(ESlateVisibility::Visible);
+	}
+	else if ( ParentInventoryWidget->GetInventoryData().ItemTooltipWidget)
+		 ParentInventoryWidget->GetInventoryData().ItemTooltipWidget->SetVisibility(ESlateVisibility::Collapsed);
+
+	return Reply;
+}
+
+void UListInventorySlotWidget::NativeOnMouseLeave(const FPointerEvent& InMouseEvent)
+{
+	Super::NativeOnMouseLeave(InMouseEvent);
+	if ( ParentInventoryWidget->GetInventoryData().ItemTooltipWidget)
+		ParentInventoryWidget->GetInventoryData().ItemTooltipWidget->SetVisibility(ESlateVisibility::Collapsed);
+}
+
 FReply UListInventorySlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
-	Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
+	FReply Reply = Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
 	
 	AUIManagerActor* ManagerActor = Cast<AUIManagerActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AUIManagerActor::StaticClass()));
 	if (!ManagerActor || !ParentInventoryWidget || !LinkedItem)
@@ -85,16 +111,16 @@ FReply UListInventorySlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeom
 
 			ManagerActor->OnQuickTransferItem(ItemMoveData);
 				
-			return FReply::Unhandled();
+			return FReply::Handled();
 		}
 
 		if (ExecuteItemChecks(EInventoryCheckType::PreTransfer, LinkedItem))
-			return UWidgetBlueprintLibrary::DetectDragIfPressed(InMouseEvent, this, EKeys::LeftMouseButton).NativeReply;
+			return FReply::Handled().DetectDrag(TakeWidget(), ParentInventoryWidget->GetUISettings().ItemSelectKey);
 	}
 
 	if (InMouseEvent.IsMouseButtonDown(ParentInventoryWidget->GetUISettings().ItemUseKey))
 	{
-		
+		LinkedItem->UseItem();
 	}
 
 	return FReply::Unhandled();

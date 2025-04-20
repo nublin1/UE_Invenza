@@ -7,6 +7,7 @@
 #include "Data/ItemDataStructures.h"
 #include "InventoryTypes.generated.h"
 
+class UItemTooltipWidget;
 struct FInventoryCheck;
 class UInventoryItemWidget;
 class UItemBase;
@@ -146,6 +147,8 @@ struct FInventorySettings
 	bool bCanReferenceItems = false;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
 	bool bCanUseItems = true;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
+	bool bShowTooltips = true;
 };
 
 USTRUCT(BlueprintType)
@@ -157,6 +160,8 @@ struct FInventoryData
 	TArray<FInventoryCheck> Checks;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Inventory")
 	TObjectPtr<UItemCollection> ItemCollectionLink;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Inventory")
+	TObjectPtr<UItemTooltipWidget> ItemTooltipWidget = nullptr;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Inventory")
 	TArray<UInventorySlot*> InventorySlots;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")

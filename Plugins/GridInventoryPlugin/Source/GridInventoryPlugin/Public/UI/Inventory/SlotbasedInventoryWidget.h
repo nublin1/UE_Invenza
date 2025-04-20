@@ -63,9 +63,7 @@ protected:
 	int NumberRows = 0;
 	int NumColumns = 0;
 	
-	// DragDrop
-	UPROPERTY()
-	TObjectPtr<UInventorySlot> SelectedSlot = nullptr;
+	// Highlight
 	TObjectPtr<UHighlightSlotWidget> HighlightWidgetPreview = nullptr;
 
 	// Settings
@@ -115,8 +113,11 @@ protected:
 	UFUNCTION()
 	virtual void CreateHighlightWidget();
 	UFUNCTION()
+	virtual void CreateTooltipWidget();
+	UFUNCTION()
 	virtual FIntPoint CalculateGridPosition(const FGeometry& Geometry, const FVector2D& ScreenCursorPos) const;
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+	virtual FReply NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	virtual void NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation) override;
 	virtual void NativeOnDragEnter(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 	virtual void NativeOnDragLeave(const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
