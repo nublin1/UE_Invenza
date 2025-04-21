@@ -122,15 +122,21 @@ struct FItemMoveData
 	TObjectPtr<UUInventoryWidgetBase> TargetInventory;
 	UPROPERTY()
 	TObjectPtr<UInventorySlot> TargetSlot;
-	UPROPERTY()
-	EOrientationType SavedOrientation;
+	//UPROPERTY()
+	//EOrientationType SavedOrientation; Future
 
 	FItemMoveData (): SourceItem(nullptr),
 					   SourceInventory(nullptr),
 					   SourceItemPivotSlot(nullptr), TargetInventory(nullptr),
-					   TargetSlot(nullptr),
-					   SavedOrientation(EOrientationType::Hotizontal)
+					   TargetSlot(nullptr)
 	{
+	}
+
+	FItemMoveData (UItemBase* SourceItem, UUInventoryWidgetBase* SourceInventory, UUInventoryWidgetBase* TargetInventory)
+	{
+		this->SourceItem = SourceItem;
+		this->SourceInventory = SourceInventory;
+		this->TargetInventory = TargetInventory;
 	}
 };
 

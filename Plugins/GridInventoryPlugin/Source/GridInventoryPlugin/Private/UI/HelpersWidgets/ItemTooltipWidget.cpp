@@ -18,7 +18,7 @@ void UItemTooltipWidget::SetTooltipData(UItemBase* Item)
 	auto ItemData = Item->GetItemRef();
 	
 	ItemName->SetText(ItemData.ItemTextData.Name);
-	ItemType->SetText(Item->GetItemCategoryString());
+	ItemType->SetText(FText::FromString(Item->CategoryToString()));
 	ItemDescription->SetText(ItemData.ItemTextData.ItemDescription);
 	StackWeightValue->SetText(FText::AsNumber(Item->GetItemStackWeight()));
 

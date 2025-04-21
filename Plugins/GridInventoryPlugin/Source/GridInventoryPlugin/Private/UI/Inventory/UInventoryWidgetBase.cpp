@@ -6,6 +6,31 @@
 #include "ActorComponents/ItemCollection.h"
 
 
+void UUInventoryWidgetBase::ChangeItemCollextionLink(UItemCollection* NewItemCollection)
+{
+	InventoryData.ItemCollectionLink = NewItemCollection;
+	
+	if (NewItemCollection->InitItems.Num() > 0)
+	{
+		for (const auto& Item : NewItemCollection->InitItems)
+		{
+			FItemMoveData ItemMoveData;
+			ItemMoveData.TargetInventory = this;
+			ItemMoveData.SourceItem = UItemBase::CreateFromDataTable(NewItemCollection->ItemDataTable, Item.ItemName,
+																	 Item.ItemCount);
+			if (ItemMoveData.SourceItem)
+			{
+				HandleAddItem(ItemMoveData);
+			}
+		}
+
+		NewItemCollection->InitItems.Empty();
+	}
+
+	
+	ReDrawAllItems();
+}
+
 void UUInventoryWidgetBase::UseSlot(UInventorySlot* UsedSlot)
 {
 	auto Item = InventoryData.ItemCollectionLink->GetItemFromSlot(UsedSlot, this);

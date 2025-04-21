@@ -231,6 +231,9 @@ TArray<UItemBase*> UItemCollection::GetAllSameItemsInContainer(UUInventoryWidget
 		return SameItems;
 	}
 
+	if (ItemLocations.IsEmpty())
+		return SameItems;
+
 	auto RefName = ReferenceItem->GetItemRef().ItemTextData.Name;
 	for (const auto& Pair : ItemLocations)
 	{

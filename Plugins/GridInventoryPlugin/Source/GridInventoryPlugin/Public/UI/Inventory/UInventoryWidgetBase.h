@@ -46,6 +46,8 @@ public:
 	UFUNCTION(Category="Inventory")
 	virtual void InitializeInventory() PURE_VIRTUAL(UUInventoryWidgetBase::InitializeInventory,);
 	UFUNCTION(Category="Inventory")
+	virtual void ChangeItemCollextionLink(UItemCollection* NewItemCollection);
+	UFUNCTION(Category="Inventory")
 	virtual void ReDrawAllItems() PURE_VIRTUAL(UUInventoryWidgetBase::ReDrawAllItems,);
 	UFUNCTION()
 	virtual void UseSlot(UInventorySlot* UsedSlot);

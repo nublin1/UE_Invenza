@@ -1,45 +1,19 @@
 //  Nublin Studio 2025 All Rights Reserved.
 
-
 #include "ActorComponents/TradeComponent.h"
 #include "ActorComponents/ItemCollection.h"
 #include "UI/Inventory/UInventoryWidgetBase.h"
-#include "World/AUIManagerActor.h"
 
-
-void UTradeComponent::OpenTradeMenu(AActor* Seller, AActor* Buyer, AUIManagerActor* Actor)
+void UTradeComponent::OpenTradeMenu(AActor* Vendor, AActor* Buyer)
 {
-	SellerItemCollection = Cast<UItemCollection>(Seller->FindComponentByClass(UItemCollection::StaticClass()));
-	BuyerItemCollection = Cast<UItemCollection>(Buyer->FindComponentByClass(UItemCollection::StaticClass()));
-	ManagerActor = Actor;
-	if (!SellerItemCollection || !BuyerItemCollection || !ManagerActor)
-	{
-		return;
-	}
-
-	SellerInvWidget = ManagerActor->GetCoreHUDWidget()->GetVendorInvWidget();
-	BuyerInvWidget = ManagerActor->GetMainInventory();
-	if (!SellerInvWidget || !BuyerInvWidget)
-		return;
-
-	SellerInvWidget->GetInventoryFromContainerSlot()->SetItemCollection(SellerItemCollection);
-	if (SellerItemCollection->InitItems.Num() > 0)
-	{
-		for (const auto& Item : SellerItemCollection->InitItems)
-		{
-			FItemMoveData ItemMoveData;
-			ItemMoveData.SourceItem = UItemBase::CreateFromDataTable(SellerItemCollection->ItemDataTable, Item.ItemName,
-			                                                         Item.ItemCount);
-			if (ItemMoveData.SourceItem)
-			{
-				SellerInvWidget->GetInventoryFromContainerSlot()->HandleAddItem(ItemMoveData);
-			}
-		}
-
-		SellerItemCollection->InitItems.Empty();
-	}
+	this->VendorActor = Vendor;
+	this->BuyerActor = Buyer;
 	
-	SellerInvWidget->GetInventoryFromContainerSlot()->AddCheck(
+	VendorItemCollection = Cast<UItemCollection>(this->VendorActor->FindComponentByClass(UItemCollection::StaticClass()));
+	BuyerItemCollection = Cast<UItemCollection>(this->BuyerActor->FindComponentByClass(UItemCollection::StaticClass()));
+	
+	
+	/*SellerInvWidget->GetInventoryFromContainerSlot()->AddCheck(
 			EInventoryCheckType::PreAdd,
 			TEXT("TryBuyItemCheck"),
 			[this](UItemBase* Item) -> bool
@@ -52,17 +26,13 @@ void UTradeComponent::OpenTradeMenu(AActor* Seller, AActor* Buyer, AUIManagerAct
 		[this](UItemBase* Item) -> bool
 		{
 			return this->TrySellItem(Item);
-		});
+		});*/
 }
 
 void UTradeComponent::CloseTradeMenu()
 {
-	SellerInvWidget->GetInventoryFromContainerSlot()->RemoveCheck(EInventoryCheckType::PreTransfer, TEXT("TrySellItemCheck"));
-	SellerInvWidget->GetInventoryFromContainerSlot()->RemoveCheck(EInventoryCheckType::PreAdd, TEXT("TryBuyItemCheck"));
-	
-	SellerItemCollection = nullptr;
+	VendorItemCollection = nullptr;
 	BuyerItemCollection = nullptr;
-	ManagerActor = nullptr;
 }
 
 float UTradeComponent::CalculateAvailableMoney(UItemCollection* Collection)
@@ -85,12 +55,12 @@ float UTradeComponent::CalculateAvailableMoney(UItemCollection* Collection)
 	return AvailableMoney;
 }
 
-FMoneyCalculationResult UTradeComponent::AccumulatePayment(UInvBaseContainerWidget* ContainerWidget, const float FullPrice)
+FMoneyCalculationResult UTradeComponent::AccumulatePayment(UItemCollection* ItemCollection, const float FullPrice)
 {
 	FMoneyCalculationResult Result;
-	Result.AvailableMoney  = CalculateAvailableMoney(ContainerWidget->GetInventoryFromContainerSlot()->GetInventoryData().ItemCollectionLink);
+	Result.AvailableMoney  = CalculateAvailableMoney(ItemCollection);
 	
-	TArray<UItemBase*> SellerMoneyItems = ContainerWidget->GetInventoryFromContainerSlot()->GetInventoryData().ItemCollectionLink->GetAllItemsByCategory(EItemCategory::Money);
+	TArray<UItemBase*> SellerMoneyItems = ItemCollection->GetAllItemsByCategory(EItemCategory::Money);
 	if (SellerMoneyItems.IsEmpty())
 	{
 		Result.bHasEnough =false;
@@ -123,11 +93,11 @@ bool UTradeComponent::TryBuyItem(UItemBase* ItemToBuy)
 		return false;
 
 	auto FullPrice = ItemToBuy->GetItemRef().ItemNumeraticData.BasePrice * BuyPriceFactor * ItemToBuy->GetQuantity();
-	auto Result =  AccumulatePayment(SellerInvWidget, FullPrice);
+	auto Result =  AccumulatePayment(VendorItemCollection, FullPrice);
 
 	if (Result.bHasEnough)
 	{
-		BuyItem(ItemToBuy, Result);
+		//BuyItem(ItemToBuy, Result);
 		return true;
 	}
 
@@ -137,17 +107,13 @@ bool UTradeComponent::TryBuyItem(UItemBase* ItemToBuy)
 	return false;
 }
 
-void UTradeComponent::BuyItem(UItemBase* ItemToBuy, FMoneyCalculationResult Result)
+
+void UTradeComponent::BuyItem(UItemBase* ItemToBuy)
 {
-	TArray<UItemBase*> SellerMoneyItems = SellerItemCollection->GetAllItemsByCategory(EItemCategory::Money);
-	auto MoneyItem = SellerMoneyItems[0]->DuplicateItem();
-	MoneyItem->SetQuantity(Result.AccumulatedRequiredValue);
-	SellerInvWidget->GetInventoryFromContainerSlot()->HandleRemoveItem(SellerMoneyItems[0], Result.AccumulatedRequiredValue);
-	
-	FItemMoveData MoneyMoveData;
-	MoneyMoveData.SourceItem = MoneyItem;
+	/*FItemMoveData MoneyMoveData;
+	MoneyMoveData.SourceItem = ItemToBuy;
 	MoneyMoveData.TargetInventory = BuyerInvWidget->GetInventoryFromContainerSlot();
-	ManagerActor->ItemTransferRequest(MoneyMoveData);
+	ManagerActor->ItemTransferRequest(MoneyMoveData);*/
 
 	if (OnBoughtItemDelegate.IsBound())
 		OnBoughtItemDelegate.Broadcast(ItemToBuy);
@@ -159,11 +125,11 @@ bool UTradeComponent::TrySellItem(UItemBase* ItemForSale)
 		return false;
 	
 	auto FullPrice = ItemForSale->GetItemRef().ItemNumeraticData.BasePrice * BuyPriceFactor * ItemForSale->GetQuantity();
-	auto Result =  AccumulatePayment(BuyerInvWidget, FullPrice);
+	auto Result =  AccumulatePayment(BuyerItemCollection, FullPrice);
 	
 	if (Result.bHasEnough)
 	{
-		Selltem(ItemForSale, Result);
+		//Selltem(ItemForSale, Result);
 		return true;
 	}
 
@@ -175,7 +141,7 @@ bool UTradeComponent::TrySellItem(UItemBase* ItemForSale)
 
 void UTradeComponent::Selltem(UItemBase* ItemForSale, FMoneyCalculationResult Result)
 {
-	TArray<UItemBase*> BuyerMoneyItems = BuyerItemCollection->GetAllItemsByCategory(EItemCategory::Money);
+	/*TArray<UItemBase*> BuyerMoneyItems = BuyerItemCollection->GetAllItemsByCategory(EItemCategory::Money);
 	auto MoneyItem = BuyerMoneyItems[0]->DuplicateItem();
 	MoneyItem->SetQuantity(Result.AccumulatedRequiredValue);
 	BuyerInvWidget->GetInventoryFromContainerSlot()->HandleRemoveItem(BuyerMoneyItems[0], Result.AccumulatedRequiredValue);
@@ -186,7 +152,7 @@ void UTradeComponent::Selltem(UItemBase* ItemForSale, FMoneyCalculationResult Re
 	ManagerActor->ItemTransferRequest(MoneyMoveData);
 	
 	if (OnSoldItemDelegate.IsBound())
-		OnSoldItemDelegate.Broadcast(ItemForSale);
+		OnSoldItemDelegate.Broadcast(ItemForSale);*/
 }
 
 void UTradeComponent::AbortDeal(UItemBase* Item)

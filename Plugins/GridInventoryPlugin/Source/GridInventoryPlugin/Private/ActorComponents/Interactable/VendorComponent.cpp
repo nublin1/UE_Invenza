@@ -24,13 +24,12 @@ void UVendorComponent::Interact(UInteractionComponent* InteractionComponent)
 {
 	Super::Interact(InteractionComponent);
 	auto Trade = GetOwner()->FindComponentByClass<UTradeComponent>();
-	auto ManagerActor = Cast<AUIManagerActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AUIManagerActor::StaticClass()));
-	if (!Trade || !ManagerActor)
+	if (!Trade)
 		return;
 
 	if (!bIsInteract)
 	{
-		Trade->OpenTradeMenu(GetOwner(), InteractionComponent->GetOwner(), ManagerActor);
+		Trade->OpenTradeMenu(GetOwner(), InteractionComponent->GetOwner());
 		bIsInteract = true;
 		return;
 	}

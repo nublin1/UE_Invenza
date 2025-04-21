@@ -7,16 +7,17 @@
 #include "TradeComponent.generated.h"
 
 #pragma region Delegates
-struct FItemMapping;
-class AUIManagerActor;
-class UInvBaseContainerWidget;
-class UItemCollection;
-class UItemBase;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSoldItem, UItemBase*, Item);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBoughtItem, UItemBase*, Item);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFaildToBuyItem, UItemBase*, Item);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFaildToSellItem, UItemBase*, Item);
 #pragma endregion Delegates
+
+struct FItemMapping;
+class AUIManagerActor;
+class UInvBaseContainerWidget;
+class UItemCollection;
+class UItemBase;
 
 USTRUCT()
 struct FMoneyCalculationResult
@@ -46,28 +47,31 @@ public:
 	// FUNCTIONS
 	//====================================================================
 	UFUNCTION(BlueprintCallable, Category = "Trade")
-	void OpenTradeMenu(AActor* Seller, AActor* Buyer, AUIManagerActor* Actor);
+	void OpenTradeMenu(AActor* Vendor, AActor* Buyer);
 	UFUNCTION(BlueprintCallable, Category = "Trade")
 	void CloseTradeMenu();
+
+	UFUNCTION()
+	virtual bool TryBuyItem(UItemBase* ItemToBuy);
+	UFUNCTION()
+	virtual void BuyItem(UItemBase* ItemToBuy);
+	UFUNCTION()
+	virtual bool TrySellItem(UItemBase* ItemForSale);
+	UFUNCTION()
+	virtual void Selltem(UItemBase* ItemForSale, FMoneyCalculationResult Result);
 
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	UPROPERTY()
-	AActor* SellerActor = nullptr;
+	AActor* VendorActor = nullptr;
 	UPROPERTY()
 	AActor* BuyerActor = nullptr;
 	UPROPERTY()
-	UItemCollection* SellerItemCollection = nullptr;
+	UItemCollection* VendorItemCollection = nullptr;
 	UPROPERTY()
 	UItemCollection* BuyerItemCollection = nullptr;
-	UPROPERTY()
-	UInvBaseContainerWidget* SellerInvWidget;
-	UPROPERTY()
-	UInvBaseContainerWidget* BuyerInvWidget;
-	UPROPERTY()
-	AUIManagerActor* ManagerActor;
 	
 	//Settings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -86,16 +90,9 @@ protected:
 	UFUNCTION()
 	float CalculateAvailableMoney(UItemCollection* Collection);
 	UFUNCTION()
-	FMoneyCalculationResult AccumulatePayment(UInvBaseContainerWidget* ContainerWidget, float FullPrice);
+	FMoneyCalculationResult AccumulatePayment(UItemCollection* ItemCollection, float FullPrice);
 	
-	UFUNCTION()
-	virtual bool TryBuyItem(UItemBase* ItemToBuy);
-	UFUNCTION()
-	virtual void BuyItem(UItemBase* ItemToBuy, FMoneyCalculationResult Result);
-	UFUNCTION()
-	virtual bool TrySellItem(UItemBase* ItemForSale);
-	UFUNCTION()
-	virtual void Selltem(UItemBase* ItemForSale, FMoneyCalculationResult Result);
+	
 	UFUNCTION()
 	virtual void AbortDeal(UItemBase* Item);
 		

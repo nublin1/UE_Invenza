@@ -10,7 +10,7 @@ enum class EOrientationType : uint8
 	Hotizontal UMETA(DisplayName = "Hotizontal"),
 };
 
-UENUM(BlueprintType, meta = (Bitflags))
+UENUM(BlueprintType)
 enum class EItemCategory : uint8
 {
 	None			 UMETA(DisplayName = "None"),
@@ -88,9 +88,10 @@ struct FItemMetaData
 	UPROPERTY(EditAnywhere, Category = "Item Data")
 	FItemNumeraticData ItemNumeraticData;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Data", meta = (Bitmask, BitmaskEnum = "/Script/GridInventoryPlugin.EItemCategory"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Data")
 	EItemCategory ItemCategory;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Data", meta = (Bitmask, BitmaskEnum = "/Script/GridInventoryPlugin.EItemCategory"))
-	int32 ItemCategory2;
+	// Later
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Data", meta = (Bitmask, BitmaskEnum = "/Script/GridInventoryPlugin.EItemCategory"))
+	//int32 ItemCategory2;
 };

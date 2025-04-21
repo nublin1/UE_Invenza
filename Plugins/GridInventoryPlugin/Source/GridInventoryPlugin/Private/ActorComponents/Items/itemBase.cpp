@@ -94,23 +94,7 @@ void UItemBase::DropItem(UWorld* World)
 	}
 }
 
-FText UItemBase::GetItemCategoryString()
+FString UItemBase::CategoryToString()
 {
-	FText Result = FText::GetEmpty();
-
-	if (ItemRef.ItemCategory2 & (1 <<static_cast<uint8>(EItemCategory::Consumable)))
-	{
-		Result = FText::Join(FText::FromString(" "), Result, LOCTEXT("Category_Consumable", "Consumable"));
-	}
-	if (ItemRef.ItemCategory2 & (1 <<static_cast<uint8>(EItemCategory::Money)))
-	{
-		Result = FText::Join(FText::FromString(" "), Result, LOCTEXT("Category_Money", "Money"));
-	}
-
-	if (ItemRef.ItemCategory2 & (1 <<static_cast<uint8>(EItemCategory::None)) || Result.IsEmpty())
-	{
-		Result = FText::Join(FText::FromString(" "), Result, LOCTEXT("Category_None", "None"));
-	}
-
-	return Result;
+	return StaticEnum<EItemCategory>()->GetNameStringByValue(static_cast<int32>(ItemRef.ItemCategory));
 }

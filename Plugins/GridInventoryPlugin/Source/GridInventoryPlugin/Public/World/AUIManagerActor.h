@@ -72,6 +72,9 @@ protected:
 	//====================================================================
 	virtual void BeginPlay() override;
 
+	UFUNCTION()
+	virtual void SellToVendorRequest(UItemBase* Item);
+
 	UFUNCTION(BlueprintCallable)
 	void SetInteractableType(UInteractableComponent* IteractData);
 	UFUNCTION(BlueprintCallable)

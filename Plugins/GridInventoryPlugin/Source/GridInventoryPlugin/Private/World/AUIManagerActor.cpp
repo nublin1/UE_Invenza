@@ -7,10 +7,12 @@
 #include "EnhancedActionKeyMapping.h"
 #include "ActorComponents/InteractionComponent.h"
 #include "ActorComponents/ItemCollection.h"
+#include "ActorComponents/TradeComponent.h"
 #include "ActorComponents/Interactable/PickupComponent.h"
 #include "ActorComponents/Items/itemBase.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Kismet/GameplayStatics.h"
+#include "Service/TradeService.h"
 #include "UI/Container/InvBaseContainerWidget.h"
 #include "UI/Core/CoreHUDWidget.h"
 #include "UI/Interaction/InteractionWidget.h"
@@ -27,6 +29,19 @@ AUIManagerActor::AUIManagerActor(): CoreHUDWidget(nullptr), UISettings()
 void AUIManagerActor::BeginPlay()
 {
 	Super::BeginPlay();
+}
+
+void AUIManagerActor::SellToVendorRequest(UItemBase* Item)
+{
+	FTradeRequest Req;
+	Req.Vendor      = CoreHUDWidget->GetVendorInvWidget()->GetInventoryFromContainerSlot()->
+		GetInventoryData().ItemCollectionLink->GetOwner()->FindComponentByClass<UTradeComponent>();
+	Req.BuyerInv	= CoreHUDWidget->GetMainInvWidget()->GetInventoryFromContainerSlot();
+	Req.VendorInv   = CoreHUDWidget->GetVendorInvWidget()->GetInventoryFromContainerSlot();
+	Req.Item		= Item;
+	Req.Quantity	= Item->GetQuantity();
+
+	ETradeResult Result = UTradeService::ExecuteBuy(Req);
 }
 
 void AUIManagerActor::OnQuickTransferItem(FItemMoveData ItemMoveData)
@@ -47,6 +62,12 @@ void AUIManagerActor::OnQuickTransferItem(FItemMoveData ItemMoveData)
 
 void AUIManagerActor::ItemTransferRequest(FItemMoveData ItemMoveData)
 {
+	if (ItemMoveData.TargetInventory == CoreHUDWidget->GetVendorInvWidget()->GetInventoryFromContainerSlot())
+	{
+		SellToVendorRequest(ItemMoveData.SourceItem);
+		return;
+	}
+	
 	auto Result = ItemMoveData.TargetInventory->HandleAddItem(ItemMoveData, false);
 	switch (Result.OperationResult)
 	{
@@ -104,6 +125,8 @@ void AUIManagerActor::SetInteractableType(UInteractableComponent* IteractData)
 		break;
 	case EInteractableType::Vendor:
 		CurrentInteractInvWidget = CoreHUDWidget->GetVendorInvWidget();
+		if (auto Collection = IteractData->GetOwner()->FindComponentByClass<UItemCollection>())
+			CurrentInteractInvWidget->GetInventoryFromContainerSlot()->ChangeItemCollextionLink(Collection);
 		CurrentInteractInvWidget->SetVisibility(ESlateVisibility::Visible);
 		break;
 	case EInteractableType::None:
