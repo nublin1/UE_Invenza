@@ -13,35 +13,6 @@ UItemBase::UItemBase(): ItemRef(), Quantity(0)
 {
 }
 
-UItemBase* UItemBase::CreateFromDataTable(UDataTable* ItemDataTable, const FName& DesiredItemID, int32 InitQuantity)
-{
-	if (!ItemDataTable)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("ItemDataTable is null!"));
-		return nullptr;
-	}
-
-	FItemData* ItemData = ItemDataTable->FindRow<FItemData>(DesiredItemID, TEXT("CreateFromDataTable"));
-	if (!ItemData)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Item data not found for ID: %s"), *DesiredItemID.ToString());
-		return nullptr;
-	}
-	
-	UItemBase* NewItem = NewObject<UItemBase>();
-	if (!NewItem)
-	{
-		UE_LOG(LogTemp, Error, TEXT("Failed to create UItemBase object!"));
-		return nullptr;
-	}
-	
-	NewItem->SetItemRef(ItemData->ItemMetaData);
-	int32 ClampedQuantity = FMath::Clamp(InitQuantity, 1, ItemData->ItemMetaData.ItemNumeraticData.MaxStackSize);
-	NewItem->SetQuantity(ClampedQuantity);
-
-	return NewItem;
-}
-
 bool UItemBase::bIsSameItems(UItemBase* FirstItem, UItemBase* SecondItem)
 {
 	if (!FirstItem || !SecondItem)
@@ -51,6 +22,16 @@ bool UItemBase::bIsSameItems(UItemBase* FirstItem, UItemBase* SecondItem)
 		return true;
 
 	return false;
+}
+
+void UItemBase::InitItem(FItemData Data, int32 InQuantity)
+{
+	this->SetItemRef(Data.ItemMetaData);
+	if (InQuantity <= 0)
+		InQuantity = 1;
+	else if (InQuantity > ItemRef.ItemNumeraticData.MaxStackSize)
+		InQuantity = ItemRef.ItemNumeraticData.MaxStackSize;
+	Quantity = InQuantity;
 }
 
 void UItemBase::UseItem()

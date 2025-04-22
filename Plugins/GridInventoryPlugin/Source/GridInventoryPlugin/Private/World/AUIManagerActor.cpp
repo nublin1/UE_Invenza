@@ -4,13 +4,13 @@
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
-#include "EnhancedActionKeyMapping.h"
 #include "ActorComponents/InteractionComponent.h"
 #include "ActorComponents/ItemCollection.h"
 #include "ActorComponents/TradeComponent.h"
 #include "ActorComponents/Interactable/PickupComponent.h"
 #include "ActorComponents/Items/itemBase.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
+#include "Factory/ItemFactory.h"
 #include "Kismet/GameplayStatics.h"
 #include "Service/TradeService.h"
 #include "UI/Container/InvBaseContainerWidget.h"
@@ -29,6 +29,9 @@ AUIManagerActor::AUIManagerActor(): CoreHUDWidget(nullptr), UISettings()
 void AUIManagerActor::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (ItemDataTable)
+		UItemFactory::Init(ItemDataTable);
 }
 
 void AUIManagerActor::SellToVendorRequest(UItemBase* Item)
@@ -126,7 +129,7 @@ void AUIManagerActor::SetInteractableType(UInteractableComponent* IteractData)
 	case EInteractableType::Vendor:
 		CurrentInteractInvWidget = CoreHUDWidget->GetVendorInvWidget();
 		if (auto Collection = IteractData->GetOwner()->FindComponentByClass<UItemCollection>())
-			CurrentInteractInvWidget->GetInventoryFromContainerSlot()->ChangeItemCollextionLink(Collection);
+			CurrentInteractInvWidget->GetInventoryFromContainerSlot()->ChangeItemCollectionLink(Collection);
 		CurrentInteractInvWidget->SetVisibility(ESlateVisibility::Visible);
 		break;
 	case EInteractableType::None:
@@ -196,7 +199,7 @@ void AUIManagerActor::BindEvents(AActor* TargetActor)
 	for (auto Item : ItemCollection->InitItems)
 	{
 		FItemMoveData ItemMoveData;
-		ItemMoveData.SourceItem = UItemBase::CreateFromDataTable(ItemCollection->ItemDataTable, Item.ItemName, Item.ItemCount);
+		ItemMoveData.SourceItem = UItemFactory::CreateItemByID(this, Item.ItemName, Item.ItemCount);
 		CoreHUDWidget->GetMainInvWidget()->GetInventoryFromContainerSlot()->HandleAddItem(ItemMoveData);
 	}
 

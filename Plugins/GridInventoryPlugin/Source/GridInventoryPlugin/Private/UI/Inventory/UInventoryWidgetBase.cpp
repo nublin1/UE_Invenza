@@ -4,9 +4,10 @@
 #include "UI/Inventory/UInventoryWidgetBase.h"
 
 #include "ActorComponents/ItemCollection.h"
+#include "Factory/ItemFactory.h"
 
 
-void UUInventoryWidgetBase::ChangeItemCollextionLink(UItemCollection* NewItemCollection)
+void UUInventoryWidgetBase::ChangeItemCollectionLink(UItemCollection* NewItemCollection)
 {
 	InventoryData.ItemCollectionLink = NewItemCollection;
 	
@@ -16,7 +17,7 @@ void UUInventoryWidgetBase::ChangeItemCollextionLink(UItemCollection* NewItemCol
 		{
 			FItemMoveData ItemMoveData;
 			ItemMoveData.TargetInventory = this;
-			ItemMoveData.SourceItem = UItemBase::CreateFromDataTable(NewItemCollection->ItemDataTable, Item.ItemName,
+			ItemMoveData.SourceItem = UItemFactory::CreateItemByID(this, Item.ItemName,
 																	 Item.ItemCount);
 			if (ItemMoveData.SourceItem)
 			{

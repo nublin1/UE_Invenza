@@ -8,6 +8,7 @@
 #include "ActorComponents/Items/itemBase.h"
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
+#include "Factory/ItemFactory.h"
 #include "Kismet/GameplayStatics.h"
 #include "UI/Container/InvBaseContainerWidget.h"
 #include "UI/Inventory/SlotbasedInventoryWidget.h"
@@ -94,7 +95,7 @@ void UInteractableContainerComponent::InitializeItemCollection()
 	for (const auto& Item : ItemCollection->InitItems)
 	{
 		FItemMoveData ItemMoveData;
-		ItemMoveData.SourceItem = UItemBase::CreateFromDataTable(ItemCollection->ItemDataTable, Item.ItemName, Item.ItemCount);
+		ItemMoveData.SourceItem =  UItemFactory::CreateItemByID(this, Item.ItemName, Item.ItemCount);
 		if (ItemMoveData.SourceItem)
 		{
 			InventoryWidget->HandleAddItem(ItemMoveData);

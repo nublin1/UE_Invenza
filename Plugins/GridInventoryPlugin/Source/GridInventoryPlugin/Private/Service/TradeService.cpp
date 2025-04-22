@@ -3,8 +3,10 @@
 
 #include "Service/TradeService.h"
 
+#include "ActorComponents/ItemCollection.h"
 #include "ActorComponents/TradeComponent.h"
 #include "ActorComponents/Items/itemBase.h"
+#include "Factory/ItemFactory.h"
 #include "UI/Inventory/InventoryTypes.h"
 #include "UI/Inventory/UInventoryWidgetBase.h"
 
@@ -18,8 +20,36 @@ ETradeResult UTradeService::ExecuteBuy(const FTradeRequest& Request)
 	if (AddResult.OperationResult != EItemAddResult::IAR_AllItemAdded)
 		return ETradeResult::NoSpaceInInventory;
 
-	Request.Vendor->BuyItem(Request.Item);
+	auto FullPrice = Request.Vendor->GetTotalBuyPrice(Request.Item);
+
+	Request.Vendor->BuyItem(Request.Item, Request.VendorInv, Request.BuyerInv);
 	Request.BuyerInv->HandleRemoveItem(Request.Item, Request.Item->GetQuantity());
+	
+	UItemBase* MoneyItem = UItemFactory::CreateItemByID(Request.Vendor, FName("Money"), FullPrice);
+	FItemMoveData MoneyData (MoneyItem, Request.VendorInv, Request.BuyerInv);
+	Request.BuyerInv->HandleAddItem(MoneyData, false);
+
+	auto Moneys = Request.VendorInv->GetInventoryData().ItemCollectionLink->
+		GetAllSameItemsInContainer(Request.VendorInv, MoneyItem);
+
+	float RemainingAmount = FullPrice;
+	for (auto Money : Moneys)
+	{
+		if (!Money || RemainingAmount <= 0.f)
+			break;
+		
+		const float TotalValue = Money->GetQuantity();
+		if (TotalValue <= RemainingAmount)
+		{
+			Request.VendorInv->HandleRemoveItem(Money, Money->GetQuantity());
+		}
+		else
+		{
+			Request.VendorInv->HandleRemoveItem(Money, RemainingAmount);
+		}
+		
+		RemainingAmount -= TotalValue;
+	}
 	
 	return ETradeResult::Success;
 }

@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "SlotbasedInventorySlot.h"
-#include "Data/ItemDataStructures.h"
 #include "InventoryTypes.generated.h"
 
 class UItemTooltipWidget;
@@ -132,11 +131,11 @@ struct FItemMoveData
 	{
 	}
 
-	FItemMoveData (UItemBase* SourceItem, UUInventoryWidgetBase* SourceInventory, UUInventoryWidgetBase* TargetInventory)
+	FItemMoveData (UItemBase* _SourceItem, UUInventoryWidgetBase* _SourceInventory, UUInventoryWidgetBase* _TargetInventory)
 	{
-		this->SourceItem = SourceItem;
-		this->SourceInventory = SourceInventory;
-		this->TargetInventory = TargetInventory;
+		SourceItem = _SourceItem;
+		SourceInventory = _SourceInventory;
+		TargetInventory = _TargetInventory;
 	}
 };
 

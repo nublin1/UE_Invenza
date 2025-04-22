@@ -7,6 +7,7 @@
 #include "TradeComponent.generated.h"
 
 #pragma region Delegates
+class UUInventoryWidgetBase;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSoldItem, UItemBase*, Item);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBoughtItem, UItemBase*, Item);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFaildToBuyItem, UItemBase*, Item);
@@ -54,11 +55,16 @@ public:
 	UFUNCTION()
 	virtual bool TryBuyItem(UItemBase* ItemToBuy);
 	UFUNCTION()
-	virtual void BuyItem(UItemBase* ItemToBuy);
+	virtual void BuyItem(UItemBase* ItemToBuy, UUInventoryWidgetBase* VendorInv, UUInventoryWidgetBase* BuyerInv);
 	UFUNCTION()
 	virtual bool TrySellItem(UItemBase* ItemForSale);
 	UFUNCTION()
-	virtual void Selltem(UItemBase* ItemForSale, FMoneyCalculationResult Result);
+	virtual void Selltem(UItemBase* ItemsToSell, FMoneyCalculationResult Result);
+
+	UFUNCTION()
+	virtual float GetTotalBuyPrice(UItemBase* ItemToBuy);
+	UFUNCTION()
+	virtual float GetTotalSellPrice(UItemBase* ItemsToSell);
 
 protected:
 	//====================================================================

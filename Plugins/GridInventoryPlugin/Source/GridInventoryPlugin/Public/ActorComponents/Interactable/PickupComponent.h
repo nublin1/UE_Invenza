@@ -40,8 +40,6 @@ protected:
 	// PROPERTIES AND VARIABLES
 	//====================================================================	
 	UPROPERTY(EditAnywhere, Category = "Pickup | Item Initialization")
-	TObjectPtr<UDataTable>ItemDataTable;
-	UPROPERTY(EditAnywhere, Category = "Pickup | Item Initialization")
 	FName DesiredItemID;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Pickup | Item Reference")
 	TObjectPtr<UItemBase> ItemBase;

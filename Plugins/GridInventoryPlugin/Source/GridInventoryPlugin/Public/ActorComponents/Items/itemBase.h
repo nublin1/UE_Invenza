@@ -8,6 +8,7 @@
 #include "itemBase.generated.h"
 
 #pragma region Delegates
+struct FItemData;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUseItemDelegate, UItemBase*, Item);
 #pragma endregion Delegates
 
@@ -48,14 +49,15 @@ public:
     // STATIC METHODS
     //====================================================================
     /** Creates an item from the data table */
-    UFUNCTION(BlueprintCallable, Category = "Item|Factory")
-    static UItemBase* CreateFromDataTable(UDataTable* ItemDataTable, const FName& DesiredItemID, int32 InitQuantity);
 	UFUNCTION(BlueprintCallable, Category = "Item")
 	static bool bIsSameItems(UItemBase* FirstItem, UItemBase* SecondItem);
 
     //====================================================================
     // FUNCTIONS
     //====================================================================
+	UFUNCTION()
+	virtual void InitItem(FItemData Data, int32 InQuantity);
+	
 	UFUNCTION()
 	virtual void UseItem();
 	

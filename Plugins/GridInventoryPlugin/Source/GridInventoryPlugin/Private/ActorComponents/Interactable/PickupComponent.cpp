@@ -5,6 +5,7 @@
 #include "ActorComponents/Items/itemBase.h"
 #include "Components/BoxComponent.h"
 #include "Data/ItemData.h"
+#include "Factory/ItemFactory.h"
 
 UPickupComponent::UPickupComponent()
 {
@@ -14,19 +15,22 @@ UPickupComponent::UPickupComponent()
 void UPickupComponent::OnRegister()
 {
 	Super::OnRegister();
-	InitializePickupComponent();
 	UpdateInteractableData();
 }
 
 void UPickupComponent::BeginPlay()
 {
 	Super::BeginPlay();
+	GetWorld()->GetTimerManager().SetTimerForNextTick([this]()
+	{
+		InitializePickupComponent();
+	});
 }
 
 void UPickupComponent::BeginFocus()
 {
 	if (auto StaticMesh = GetOwner()->FindComponentByClass<UStaticMeshComponent>())
-	{		
+	{
 		StaticMesh->SetRenderCustomDepth(true);
 	}
 }
@@ -59,15 +63,11 @@ void UPickupComponent::InitializeDrop(UItemBase* ItemToDrop)
 
 void UPickupComponent::InitializePickupComponent()
 {
-	if (!ItemDataTable || DesiredItemID.IsNone())
+	if (DesiredItemID.IsNone())
 		return;
-	
-	ItemBase = UItemBase::CreateFromDataTable(ItemDataTable, DesiredItemID, InitQuantity);
-	if (InitQuantity>ItemBase->GetItemRef().ItemNumeraticData.MaxStackSize )
-	{
-		ItemBase->SetQuantity(ItemBase->GetItemRef().ItemNumeraticData.MaxStackSize );
-	}
-	
+
+	ItemBase = UItemFactory::CreateItemByID(this, DesiredItemID, InitQuantity);
+
 	InteractableData.Quantity = ItemBase->GetQuantity();
 	InteractableData.Name = ItemBase->GetItemRef().ItemTextData.Name;
 
@@ -86,6 +86,5 @@ void UPickupComponent::UpdateInteractableData()
 {
 	Super::UpdateInteractableData();
 	InteractableData.DefaultInteractableType = EInteractableType::Pickup;
-	InteractableData.Action =  FText::FromString(TEXT("Pickup"));
-	
+	InteractableData.Action = FText::FromString(TEXT("Pickup"));
 }

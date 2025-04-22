@@ -40,7 +40,7 @@ public class GridInventoryPlugin : ModuleRules
 				"SlateCore",
 				"UMG",
 				"EnhancedInput",
-				"InputCore"
+				"InputCore", "AIModule"
 			}
 			);
 		

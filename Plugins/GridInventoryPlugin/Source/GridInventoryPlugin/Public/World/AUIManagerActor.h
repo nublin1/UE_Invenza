@@ -64,6 +64,10 @@ protected:
 	FInventoryModifierState InventoryModifierState;
 
 	//
+	UPROPERTY(EditAnywhere, Category = "Item Initialization")
+	TObjectPtr<UDataTable>ItemDataTable;
+
+	//
 	UPROPERTY()
 	bool bIsShowingInventoryMenu = false;
 	

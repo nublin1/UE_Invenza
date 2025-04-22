@@ -2,7 +2,9 @@
 
 #include "ActorComponents/TradeComponent.h"
 #include "ActorComponents/ItemCollection.h"
+#include "Kismet/GameplayStatics.h"
 #include "UI/Inventory/UInventoryWidgetBase.h"
+#include "World/AUIManagerActor.h"
 
 void UTradeComponent::OpenTradeMenu(AActor* Vendor, AActor* Buyer)
 {
@@ -108,12 +110,18 @@ bool UTradeComponent::TryBuyItem(UItemBase* ItemToBuy)
 }
 
 
-void UTradeComponent::BuyItem(UItemBase* ItemToBuy)
+void UTradeComponent::BuyItem(UItemBase* ItemToBuy, UUInventoryWidgetBase* VendorInv, UUInventoryWidgetBase* BuyerInv)
 {
-	/*FItemMoveData MoneyMoveData;
-	MoneyMoveData.SourceItem = ItemToBuy;
-	MoneyMoveData.TargetInventory = BuyerInvWidget->GetInventoryFromContainerSlot();
-	ManagerActor->ItemTransferRequest(MoneyMoveData);*/
+	auto Manager = Cast<AUIManagerActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AUIManagerActor::StaticClass()));
+	if (!Manager)
+		return;
+	
+	FItemMoveData ItemToBuyMoveData;
+	ItemToBuyMoveData.SourceItem = ItemToBuy;
+	ItemToBuyMoveData.SourceInventory = BuyerInv;
+	ItemToBuyMoveData.TargetInventory = VendorInv;
+	
+	VendorInv->HandleAddItem(ItemToBuyMoveData);
 
 	if (OnBoughtItemDelegate.IsBound())
 		OnBoughtItemDelegate.Broadcast(ItemToBuy);
@@ -139,7 +147,7 @@ bool UTradeComponent::TrySellItem(UItemBase* ItemForSale)
 	return false;
 }
 
-void UTradeComponent::Selltem(UItemBase* ItemForSale, FMoneyCalculationResult Result)
+void UTradeComponent::Selltem(UItemBase* ItemsToSell, FMoneyCalculationResult Result)
 {
 	/*TArray<UItemBase*> BuyerMoneyItems = BuyerItemCollection->GetAllItemsByCategory(EItemCategory::Money);
 	auto MoneyItem = BuyerMoneyItems[0]->DuplicateItem();
@@ -153,6 +161,18 @@ void UTradeComponent::Selltem(UItemBase* ItemForSale, FMoneyCalculationResult Re
 	
 	if (OnSoldItemDelegate.IsBound())
 		OnSoldItemDelegate.Broadcast(ItemForSale);*/
+}
+
+float UTradeComponent::GetTotalBuyPrice(UItemBase* ItemToBuy)
+{
+	auto FullPrice = ItemToBuy->GetItemRef().ItemNumeraticData.BasePrice * BuyPriceFactor * ItemToBuy->GetQuantity();
+	return FullPrice;
+}
+
+float UTradeComponent::GetTotalSellPrice(UItemBase* ItemsToSell)
+{
+	auto FullPrice = ItemsToSell->GetItemRef().ItemNumeraticData.BasePrice * BuyPriceFactor * ItemsToSell->GetQuantity();
+	return FullPrice;
 }
 
 void UTradeComponent::AbortDeal(UItemBase* Item)
