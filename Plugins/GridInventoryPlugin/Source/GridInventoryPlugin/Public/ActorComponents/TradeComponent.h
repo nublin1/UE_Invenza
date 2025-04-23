@@ -55,11 +55,11 @@ public:
 	UFUNCTION()
 	virtual bool TryBuyItem(UItemBase* ItemToBuy);
 	UFUNCTION()
-	virtual void BuyItem(UItemBase* ItemToBuy, UUInventoryWidgetBase* VendorInv, UUInventoryWidgetBase* BuyerInv);
+	virtual void BuyItem(UItemBase* ItemToBuy);
 	UFUNCTION()
 	virtual bool TrySellItem(UItemBase* ItemForSale);
 	UFUNCTION()
-	virtual void Selltem(UItemBase* ItemsToSell, FMoneyCalculationResult Result);
+	virtual void Selltem(UItemBase* ItemsToSell);
 
 	UFUNCTION()
 	virtual float GetTotalBuyPrice(UItemBase* ItemToBuy);
@@ -97,9 +97,6 @@ protected:
 	float CalculateAvailableMoney(UItemCollection* Collection);
 	UFUNCTION()
 	FMoneyCalculationResult AccumulatePayment(UItemCollection* ItemCollection, float FullPrice);
-	
-	
-	UFUNCTION()
-	virtual void AbortDeal(UItemBase* Item);
+
 		
 };

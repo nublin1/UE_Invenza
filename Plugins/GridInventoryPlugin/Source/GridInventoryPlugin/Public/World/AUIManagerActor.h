@@ -77,7 +77,7 @@ protected:
 	virtual void BeginPlay() override;
 
 	UFUNCTION()
-	virtual void SellToVendorRequest(UItemBase* Item);
+	virtual void VendorRequest(FItemMoveData ItemMoveData);
 
 	UFUNCTION(BlueprintCallable)
 	void SetInteractableType(UInteractableComponent* IteractData);

@@ -51,7 +51,7 @@ protected:
 	TObjectPtr<UScrollBox> ScrollBox;
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UUniformGridPanel> SlotsGridPanel;
-	UPROPERTY(meta=(BindWidget))
+	UPROPERTY(meta=(BindWidgetOptional))
 	TObjectPtr<UCanvasPanel> ItemsVisualsPanel;
 	UPROPERTY(meta=(BindWidgetOptional))
 	TObjectPtr<UCanvasPanel> HighlightVisualsPanel;

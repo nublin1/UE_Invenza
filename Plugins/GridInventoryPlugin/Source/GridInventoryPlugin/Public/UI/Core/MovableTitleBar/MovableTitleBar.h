@@ -7,6 +7,7 @@
 #include "UI/Inrefaces/UDraggableWidgetInterface.h"
 #include "MovableTitleBar.generated.h"
 
+class UButton;
 class UTextBlock;
 /**
  * 
@@ -25,6 +26,8 @@ public:
 	TObjectPtr<UTextBlock> TitleName;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> Money;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidgetOptional))
+	TObjectPtr<UButton> Button_Close;
 
 	//====================================================================
 	// FUNCTIONS

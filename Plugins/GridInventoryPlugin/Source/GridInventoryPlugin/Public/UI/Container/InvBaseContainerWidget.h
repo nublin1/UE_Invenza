@@ -46,6 +46,12 @@ protected:
 	TObjectPtr<UNamedSlot> OperationsSlot;
 	UPROPERTY(meta=(BindWidgetOptional))
 	TObjectPtr<UInvWeightWidget> InvWeight;
+
+	//
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = UI)
+	bool bIsShowTotalMoney = true;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = UI)
+	bool bIsShowWeight = true;
 	
 	//====================================================================
 	// FUNCTIONS

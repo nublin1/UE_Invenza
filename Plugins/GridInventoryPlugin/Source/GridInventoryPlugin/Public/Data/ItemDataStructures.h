@@ -13,9 +13,11 @@ enum class EOrientationType : uint8
 UENUM(BlueprintType)
 enum class EItemCategory : uint8
 {
-	None			 UMETA(DisplayName = "None"),
-	Consumable		 UMETA(DisplayName = "Consumable"),
-	Money			 UMETA(DisplayName = "Money"),
+	None        UMETA(DisplayName = "None"),
+	Consumable  UMETA(DisplayName = "Consumable"),
+	Money       UMETA(DisplayName = "Money"),
+	Weapon      UMETA(DisplayName = "Weapon"),
+	Armor       UMETA(DisplayName = "Armor"),
 };
 
 USTRUCT()
@@ -48,24 +50,26 @@ struct FItemAssetData
 	TObjectPtr<UStaticMesh> Mesh;
 };
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FItemNumeraticData
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float Weight;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	int32 MaxStackSize;
 
-	UPROPERTY(EditAnywhere, meta = (ToolTip = "Number of horizontal slots occupied by the item"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (ToolTip = "Number of horizontal slots occupied by the item"))
 	int32 NumHorizontalSlots = 1;
 
-	UPROPERTY(EditAnywhere, meta = (ToolTip = "Number of vertical slots occupied by the item"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (ToolTip = "Number of vertical slots occupied by the item"))
 	int32 NumVerticalSlots = 1;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	bool bCanBeSold = true;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float BasePrice = 0.0f;
 
 	FItemNumeraticData()

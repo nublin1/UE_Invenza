@@ -2,6 +2,7 @@
 
 #include "ActorComponents/TradeComponent.h"
 #include "ActorComponents/ItemCollection.h"
+#include "Factory/ItemFactory.h"
 #include "Kismet/GameplayStatics.h"
 #include "UI/Inventory/UInventoryWidgetBase.h"
 #include "World/AUIManagerActor.h"
@@ -13,22 +14,6 @@ void UTradeComponent::OpenTradeMenu(AActor* Vendor, AActor* Buyer)
 	
 	VendorItemCollection = Cast<UItemCollection>(this->VendorActor->FindComponentByClass(UItemCollection::StaticClass()));
 	BuyerItemCollection = Cast<UItemCollection>(this->BuyerActor->FindComponentByClass(UItemCollection::StaticClass()));
-	
-	
-	/*SellerInvWidget->GetInventoryFromContainerSlot()->AddCheck(
-			EInventoryCheckType::PreAdd,
-			TEXT("TryBuyItemCheck"),
-			[this](UItemBase* Item) -> bool
-			{
-				return this->TryBuyItem(Item);
-			});
-	SellerInvWidget->GetInventoryFromContainerSlot()->AddCheck(
-		EInventoryCheckType::PreTransfer,
-		TEXT("TrySellItemCheck"),
-		[this](UItemBase* Item) -> bool
-		{
-			return this->TrySellItem(Item);
-		});*/
 }
 
 void UTradeComponent::CloseTradeMenu()
@@ -90,16 +75,11 @@ bool UTradeComponent::TryBuyItem(UItemBase* ItemToBuy)
 {
 	if (bSellOnly)
 		return false;
-		
-	if (ItemToBuy->GetItemRef().ItemCategory == EItemCategory::Money)
-		return false;
-
-	auto FullPrice = ItemToBuy->GetItemRef().ItemNumeraticData.BasePrice * BuyPriceFactor * ItemToBuy->GetQuantity();
-	auto Result =  AccumulatePayment(VendorItemCollection, FullPrice);
+	
+	auto Result =  AccumulatePayment(VendorItemCollection, GetTotalBuyPrice(ItemToBuy));
 
 	if (Result.bHasEnough)
 	{
-		//BuyItem(ItemToBuy, Result);
 		return true;
 	}
 
@@ -109,35 +89,18 @@ bool UTradeComponent::TryBuyItem(UItemBase* ItemToBuy)
 	return false;
 }
 
-
-void UTradeComponent::BuyItem(UItemBase* ItemToBuy, UUInventoryWidgetBase* VendorInv, UUInventoryWidgetBase* BuyerInv)
+void UTradeComponent::BuyItem(UItemBase* ItemToBuy)
 {
-	auto Manager = Cast<AUIManagerActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AUIManagerActor::StaticClass()));
-	if (!Manager)
-		return;
-	
-	FItemMoveData ItemToBuyMoveData;
-	ItemToBuyMoveData.SourceItem = ItemToBuy;
-	ItemToBuyMoveData.SourceInventory = BuyerInv;
-	ItemToBuyMoveData.TargetInventory = VendorInv;
-	
-	VendorInv->HandleAddItem(ItemToBuyMoveData);
-
 	if (OnBoughtItemDelegate.IsBound())
 		OnBoughtItemDelegate.Broadcast(ItemToBuy);
 }
 
 bool UTradeComponent::TrySellItem(UItemBase* ItemForSale)
-{
-	if (ItemForSale->GetItemRef().ItemCategory == EItemCategory::Money)
-		return false;
-	
-	auto FullPrice = ItemForSale->GetItemRef().ItemNumeraticData.BasePrice * BuyPriceFactor * ItemForSale->GetQuantity();
-	auto Result =  AccumulatePayment(BuyerItemCollection, FullPrice);
+{	
+	auto Result = AccumulatePayment(BuyerItemCollection, GetTotalSellPrice(ItemForSale));
 	
 	if (Result.bHasEnough)
 	{
-		//Selltem(ItemForSale, Result);
 		return true;
 	}
 
@@ -147,20 +110,10 @@ bool UTradeComponent::TrySellItem(UItemBase* ItemForSale)
 	return false;
 }
 
-void UTradeComponent::Selltem(UItemBase* ItemsToSell, FMoneyCalculationResult Result)
+void UTradeComponent::Selltem(UItemBase* ItemsToSell)
 {
-	/*TArray<UItemBase*> BuyerMoneyItems = BuyerItemCollection->GetAllItemsByCategory(EItemCategory::Money);
-	auto MoneyItem = BuyerMoneyItems[0]->DuplicateItem();
-	MoneyItem->SetQuantity(Result.AccumulatedRequiredValue);
-	BuyerInvWidget->GetInventoryFromContainerSlot()->HandleRemoveItem(BuyerMoneyItems[0], Result.AccumulatedRequiredValue);
-	
-	FItemMoveData MoneyMoveData;
-	MoneyMoveData.SourceItem = MoneyItem;
-	MoneyMoveData.TargetInventory = SellerInvWidget->GetInventoryFromContainerSlot();
-	ManagerActor->ItemTransferRequest(MoneyMoveData);
-	
 	if (OnSoldItemDelegate.IsBound())
-		OnSoldItemDelegate.Broadcast(ItemForSale);*/
+		OnSoldItemDelegate.Broadcast(ItemsToSell);
 }
 
 float UTradeComponent::GetTotalBuyPrice(UItemBase* ItemToBuy)
@@ -173,9 +126,4 @@ float UTradeComponent::GetTotalSellPrice(UItemBase* ItemsToSell)
 {
 	auto FullPrice = ItemsToSell->GetItemRef().ItemNumeraticData.BasePrice * BuyPriceFactor * ItemsToSell->GetQuantity();
 	return FullPrice;
-}
-
-void UTradeComponent::AbortDeal(UItemBase* Item)
-{
-	
 }

@@ -73,9 +73,16 @@ void UInvBaseContainerWidget::NativeConstruct()
 
 void UInvBaseContainerWidget::UpdateWeightInfo(float InventoryTotalWeight, float InventoryWeightCapacity)
 {
-	FString RoundedString = FString::Printf(TEXT("%0.2f"), InventoryTotalWeight);
-	FString Text = {" " + RoundedString + "/" + FString::SanitizeFloat(InventoryWeightCapacity)};
-	InvWeight->WeightInfo->SetText(FText::FromString(Text));
+	if (bIsShowWeight)
+	{
+		FString RoundedString = FString::Printf(TEXT("%0.2f"), InventoryTotalWeight);
+		FString Text = {" " + RoundedString + "/" + FString::SanitizeFloat(InventoryWeightCapacity)};
+		InvWeight->WeightInfo->SetText(FText::FromString(Text));
+	}
+	else
+	{
+		InvWeight->SetVisibility(ESlateVisibility::Collapsed);
+	}
 }
 
 void UInvBaseContainerWidget::UpdateMoneyInfo(int32 TotalMoney)
@@ -83,8 +90,16 @@ void UInvBaseContainerWidget::UpdateMoneyInfo(int32 TotalMoney)
 	if (!TitleBar)
 		return;
 
-	FString MoneyText = {"$ " + FString::FromInt(TotalMoney)};
-	TitleBar->Money->SetText(FText::FromString(MoneyText));
+	if (bIsShowTotalMoney)
+	{
+		FString MoneyText = {"$ " + FString::FromInt(TotalMoney)};
+		TitleBar->Money->SetText(FText::FromString(MoneyText));
+	}
+	else
+	{
+		TitleBar->Money->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	
 		
 }
 

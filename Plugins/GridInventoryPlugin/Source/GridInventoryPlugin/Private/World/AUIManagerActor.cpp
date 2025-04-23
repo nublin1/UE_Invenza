@@ -34,17 +34,22 @@ void AUIManagerActor::BeginPlay()
 		UItemFactory::Init(ItemDataTable);
 }
 
-void AUIManagerActor::SellToVendorRequest(UItemBase* Item)
+void AUIManagerActor::VendorRequest(FItemMoveData ItemMoveData )
 {
 	FTradeRequest Req;
 	Req.Vendor      = CoreHUDWidget->GetVendorInvWidget()->GetInventoryFromContainerSlot()->
 		GetInventoryData().ItemCollectionLink->GetOwner()->FindComponentByClass<UTradeComponent>();
 	Req.BuyerInv	= CoreHUDWidget->GetMainInvWidget()->GetInventoryFromContainerSlot();
 	Req.VendorInv   = CoreHUDWidget->GetVendorInvWidget()->GetInventoryFromContainerSlot();
-	Req.Item		= Item;
-	Req.Quantity	= Item->GetQuantity();
+	Req.Item		= ItemMoveData.SourceItem;
+	Req.Quantity	= ItemMoveData.SourceItem->GetQuantity();
 
-	ETradeResult Result = UTradeService::ExecuteBuy(Req);
+	if (ItemMoveData.TargetInventory == CoreHUDWidget->GetVendorInvWidget()->GetInventoryFromContainerSlot())
+		ETradeResult Result = UTradeService::ExecuteBuy(Req);
+	else
+	{
+		ETradeResult Result = UTradeService::ExecuteSell(Req);
+	}
 }
 
 void AUIManagerActor::OnQuickTransferItem(FItemMoveData ItemMoveData)
@@ -65,9 +70,10 @@ void AUIManagerActor::OnQuickTransferItem(FItemMoveData ItemMoveData)
 
 void AUIManagerActor::ItemTransferRequest(FItemMoveData ItemMoveData)
 {
-	if (ItemMoveData.TargetInventory == CoreHUDWidget->GetVendorInvWidget()->GetInventoryFromContainerSlot())
+	if (ItemMoveData.TargetInventory == CoreHUDWidget->GetVendorInvWidget()->GetInventoryFromContainerSlot()
+		|| ItemMoveData.SourceInventory == CoreHUDWidget->GetVendorInvWidget()->GetInventoryFromContainerSlot())
 	{
-		SellToVendorRequest(ItemMoveData.SourceItem);
+		VendorRequest(ItemMoveData);
 		return;
 	}
 	

@@ -14,6 +14,7 @@ UENUM()
 enum class ETradeResult : uint8
 {
 	Success,
+	ItemCantBeSold,
 	NotEnoughMoney,
 	NoSpaceInInventory,
 	VendorOutOfStock,
@@ -51,7 +52,7 @@ public:
 	UFUNCTION()
 	static ETradeResult ExecuteBuy(const FTradeRequest& Request);
 	UFUNCTION()
-	ETradeResult ExecuteSell(const FTradeRequest& Request);
+	static ETradeResult ExecuteSell(const FTradeRequest& Request);
 
 protected:
 	//====================================================================
