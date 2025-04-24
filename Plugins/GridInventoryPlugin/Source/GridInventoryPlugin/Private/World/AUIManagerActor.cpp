@@ -216,6 +216,8 @@ void AUIManagerActor::BindEvents(AActor* TargetActor)
 		VendorInvWidget->GetInventoryFromContainerSlot()->OnItemDroppedDelegate.AddDynamic(this, &AUIManagerActor::ItemTransferRequest);
 	if (auto HotbarInvWidget = CoreHUDWidget->GetHotbarInvWidget())
 		HotbarInvWidget->GetInventoryFromContainerSlot()->OnItemDroppedDelegate.AddDynamic(this, &AUIManagerActor::ItemTransferRequest);
+	if (auto EquipInvWidget = CoreHUDWidget->GetEquipmentInvWidget())
+		EquipInvWidget->GetInventoryFromContainerSlot()->OnItemDroppedDelegate.AddDynamic(this, &AUIManagerActor::ItemTransferRequest);
 		
 }
 

@@ -51,6 +51,8 @@ struct FUISettings
 	FName VendorInvWidgetName;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FName HotbarInvWidgetName = "Hotbar";
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName EquipmentInvWidgetName = "";
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FVector2D SlotSize = FVector2D(0.f);
 };

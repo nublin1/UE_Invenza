@@ -140,6 +140,11 @@ bool USlotbasedInventoryWidget::bIsSlotEmpty(const UInventorySlot* SlotCheck)
 	return true;
 }
 
+bool USlotbasedInventoryWidget::bIsGridPositionValid(FIntPoint& GridPosition)
+{
+	return GridPosition.X >= 0 && GridPosition.Y >= 0 && GridPosition.X<=NumberRows && GridPosition.Y<=NumColumns;
+}
+
 void USlotbasedInventoryWidget::HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity)
 {
 	if (!Item) return;
@@ -858,12 +863,12 @@ FReply USlotbasedInventoryWidget::NativeOnMouseMove(const FGeometry& InGeometry,
 	FVector2D ScreenCursorPos = InMouseEvent.GetScreenSpacePosition();
 	FIntPoint GridPosition = CalculateGridPosition(InGeometry, ScreenCursorPos);
 
-	if (GridPosition.X >= 0 && GridPosition.Y >= 0 && GridPosition.X<=NumberRows && GridPosition.Y<=NumColumns)
+	if (bIsGridPositionValid(GridPosition))
 	{
 		SlotUnderMouse = GetSlotByPosition(FIntVector2(GridPosition.X, GridPosition.Y));
 	}
 	
-	if (!SlotUnderMouse) return FReply::Unhandled();
+	if (!SlotUnderMouse || !InventoryData.ItemCollectionLink) return FReply::Unhandled();
 	auto ItemInSlot = InventoryData.ItemCollectionLink->GetItemFromSlot(SlotUnderMouse, this);
 	
 	if (ItemInSlot && InventoryData.ItemTooltipWidget)
@@ -939,7 +944,7 @@ bool USlotbasedInventoryWidget::NativeOnDragOver(const FGeometry& InGeometry, co
 	FVector2D ScreenCursorPos = InDragDropEvent.GetScreenSpacePosition();
 	FIntPoint GridPosition = CalculateGridPosition(InGeometry, ScreenCursorPos);
 	
-	if (GridPosition.X >= 0 && GridPosition.Y >= 0 && GridPosition.X<=NumberRows && GridPosition.Y<=NumColumns)
+	if (bIsGridPositionValid(GridPosition))
 	{
 		//UE_LOG(LogTemp, Log, TEXT("Column: %d, Row: %d"), GridPosition.X, GridPosition.Y);
 
@@ -989,7 +994,7 @@ bool USlotbasedInventoryWidget::NativeOnDrop(const FGeometry& InGeometry, const 
 	FIntPoint GridPosition = CalculateGridPosition(InGeometry, ScreenCursorPos);
 	
 	//UE_LOG(LogTemp, Log, TEXT("Row: %d, Column: %d"),  GridPosition.X,  GridPosition.Y);
-	if (GridPosition.X >= 0 && GridPosition.Y >= 0 && GridPosition.X<=NumberRows && GridPosition.Y<=NumColumns)
+	if (bIsGridPositionValid(GridPosition))
 	{
 		auto DragOp = Cast<UItemDragDropOperation>(InOperation);
 		auto TargetSlot = GetSlotByPosition(FIntVector2(GridPosition.X, GridPosition.Y));

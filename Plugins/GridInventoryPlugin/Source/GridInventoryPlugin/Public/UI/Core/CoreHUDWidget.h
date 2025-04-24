@@ -44,6 +44,7 @@ public:
 	UInvBaseContainerWidget* GetContainerInWorldWidget() {return ContainerInWorldWidget.Get();}
 	UInvBaseContainerWidget* GetVendorInvWidget() {return VendorInvWidget.Get();}
 	UInvBaseContainerWidget* GetHotbarInvWidget() {return HotbarInvWidget.Get();}
+	UInvBaseContainerWidget* GetEquipmentInvWidget() {return EquipmentInvWidget.Get();}
 
 	//Setters
 	void SetUISettings(FUISettings NewUISettings) {UISettings = NewUISettings;}
@@ -67,9 +68,10 @@ protected:
 	TObjectPtr<UInvBaseContainerWidget> VendorInvWidget;
 	UPROPERTY()
 	TObjectPtr<UInvBaseContainerWidget> HotbarInvWidget;
+	UPROPERTY()
+	TObjectPtr<UInvBaseContainerWidget> EquipmentInvWidget;
 	
-	//
-	
+	//	
 	UPROPERTY(BlueprintReadWrite)
 	FUISettings UISettings;
 	

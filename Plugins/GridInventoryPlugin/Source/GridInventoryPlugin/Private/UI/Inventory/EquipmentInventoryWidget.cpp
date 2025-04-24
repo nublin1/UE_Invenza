@@ -4,6 +4,7 @@
 #include "UI/Inventory/EquipmentInventoryWidget.h"
 
 #include "Components/UniformGridPanel.h"
+#include "Components/UniformGridSlot.h"
 #include "UI/Inventory/EquipmentSlotWidget.h"
 
 void UEquipmentInventoryWidget::InitializeInventory()
@@ -26,8 +27,10 @@ void UEquipmentInventoryWidget::InitSlots()
 			auto WClass = ChildWidget->GetClass();
 			if (WClass->IsChildOf(UEquipmentSlotWidget::StaticClass()))
 			{
+				const UUniformGridSlot* UniSlot = Cast<UUniformGridSlot>(ChildWidget->Slot);
 				if (auto EqSlot = Cast<UEquipmentSlotWidget>(ChildWidget))
 				{
+					EqSlot->SetSlotPosition(FIntVector2(UniSlot->GetRow(), UniSlot->GetColumn()));
 					NewInvSlots.Add(EqSlot);
 				}
 			}
@@ -43,4 +46,9 @@ void UEquipmentInventoryWidget::InitSlots()
 		}
 	}
 	InventoryData.InventorySlots = ConvertedSlots;
+}
+
+bool UEquipmentInventoryWidget::bIsGridPositionValid(FIntPoint& GridPosition)
+{
+	return true;
 }

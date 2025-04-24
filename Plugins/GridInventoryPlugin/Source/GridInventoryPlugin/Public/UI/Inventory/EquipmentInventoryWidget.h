@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "SlotbasedInventoryWidget.h"
 #include "UI/Inventory/UInventoryWidgetBase.h"
 #include "EquipmentInventoryWidget.generated.h"
 
@@ -13,7 +14,7 @@ class UUniformGridPanel;
  * 
  */
 UCLASS()
-class GRIDINVENTORYPLUGIN_API UEquipmentInventoryWidget : public UUInventoryWidgetBase
+class GRIDINVENTORYPLUGIN_API UEquipmentInventoryWidget : public USlotbasedInventoryWidget
 {
 	GENERATED_BODY()
 
@@ -31,14 +32,13 @@ protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	TObjectPtr<UUniformGridPanel> SlotsGridPanel;
-	UPROPERTY(meta=(BindWidgetOptional))
-	TObjectPtr<UCanvasPanel> ItemsVisualsPanel;
+	
 
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UFUNCTION()
-	virtual void InitSlots();
+	virtual void InitSlots() override;
+
+	virtual bool bIsGridPositionValid(FIntPoint& GridPosition) override;
 	
 };

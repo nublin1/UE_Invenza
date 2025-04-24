@@ -52,6 +52,13 @@ void UCoreHUDWidget::InitializeWidget()
 		{
 			HotbarInvWidget =Cast<UInvBaseContainerWidget>(Widget);
 			HotbarInvWidget->GetInventoryFromContainerSlot()->SetItemCollection(PlayerCollection);
+			continue;
+		}
+		if (Widget->GetName() == UISettings.EquipmentInvWidgetName)
+		{
+			EquipmentInvWidget = Cast<UInvBaseContainerWidget>(Widget);
+			EquipmentInvWidget->GetInventoryFromContainerSlot()->SetItemCollection(PlayerCollection);
+			continue;
 		}
 	}
 }
