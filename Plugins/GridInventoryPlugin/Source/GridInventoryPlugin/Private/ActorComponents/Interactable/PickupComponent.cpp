@@ -67,6 +67,11 @@ void UPickupComponent::InitializePickupComponent()
 		return;
 
 	ItemBase = UItemFactory::CreateItemByID(this, DesiredItemID, InitQuantity);
+	if (!ItemBase)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Item create is failed!"));
+		return;
+	}
 
 	InteractableData.Quantity = ItemBase->GetQuantity();
 	InteractableData.Name = ItemBase->GetItemRef().ItemTextData.Name;

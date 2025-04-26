@@ -3,6 +3,7 @@
 #include "UI/Inventory/SlotbasedInventoryWidget.h"
 
 #include "ActorComponents/ItemCollection.h"
+#include "ActorComponents/UIInventoryManager.h"
 #include "ActorComponents/Items/itemBase.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
@@ -10,12 +11,10 @@
 #include "Components/UniformGridPanel.h"
 #include "Components/UniformGridSlot.h"
 #include "DragDrop/ItemDragDropOperation.h"
-#include "Kismet/GameplayStatics.h"
 #include "Slate/SObjectWidget.h"
 #include "UI/Drag/HighlightSlotWidget.h"
 #include "UI/HelpersWidgets/ItemTooltipWidget.h"
 #include "UI/Item/InventoryItemWidget.h"
-#include "World/AUIManagerActor.h"
 
 USlotbasedInventoryWidget::USlotbasedInventoryWidget(): SlotsGridPanel(nullptr)
 {
@@ -809,10 +808,10 @@ FReply USlotbasedInventoryWidget::NativeOnMouseButtonDown(const FGeometry& InGeo
 		
 		auto ItemInSlot = InventoryData.ItemCollectionLink->GetItemFromSlot(SlotUnderMouse, this);
 		if (!ItemInSlot) return FReply::Unhandled();
-		
-		AUIManagerActor* ManagerActor = Cast<AUIManagerActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AUIManagerActor::StaticClass()));
-		if (ManagerActor
-			&& ManagerActor->GetInventoryModifierStates().bIsQuickGrabModifierActive
+
+		UIInventoryManager* InventoryManager = GetOwningPlayerPawn()->FindComponentByClass<UIInventoryManager>();
+		if (InventoryManager
+			&& InventoryManager->GetInventoryModifierStates().bIsQuickGrabModifierActive
 			&& ExecuteItemChecks(EInventoryCheckType::PreTransfer, ItemInSlot))
 		{
 			FItemMoveData ItemMoveData;
@@ -822,10 +821,9 @@ FReply USlotbasedInventoryWidget::NativeOnMouseButtonDown(const FGeometry& InGeo
 			if (!ItemMoveData.SourceItem)
 				return FReply::Unhandled();
 
-			ManagerActor->OnQuickTransferItem(ItemMoveData);
+			InventoryManager->OnQuickTransferItem(ItemMoveData);
 
 			return FReply::Unhandled();
-			
 		}
 		
 		//TODO: Rewrite with Hit Testing

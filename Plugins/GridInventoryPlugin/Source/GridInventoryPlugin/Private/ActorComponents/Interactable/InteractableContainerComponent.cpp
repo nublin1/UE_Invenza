@@ -2,19 +2,17 @@
 
 #include "ActorComponents/Interactable/InteractableContainerComponent.h"
 
-#include "ToolBuilderUtil.h"
-#include "ActorComponents/InteractionComponent.h"
 #include "ActorComponents/ItemCollection.h"
+#include "ActorComponents/UIInventoryManager.h"
 #include "ActorComponents/Items/itemBase.h"
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Factory/ItemFactory.h"
 #include "Kismet/GameplayStatics.h"
-#include "UI/Container/InvBaseContainerWidget.h"
-#include "UI/Inventory/SlotbasedInventoryWidget.h"
-#include "World/AUIManagerActor.h"
+#include "UI/Inventory/UInventoryWidgetBase.h"
 
-class AUIManagerActor;
+
+class UIInventoryManager;
 
 UInteractableContainerComponent::UInteractableContainerComponent()
 {
@@ -116,13 +114,26 @@ void UInteractableContainerComponent::UpdateInteractableData()
 
 void UInteractableContainerComponent::FindContainerWidget()
 {
-	AUIManagerActor* ManagerActor = Cast<AUIManagerActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AUIManagerActor::StaticClass()));
-	if (!ManagerActor)
+	auto* PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+	if (!PlayerPawn)
 		return;
 
-	if (!ManagerActor->GetCoreHUDWidget()->GetContainerInWorldWidget())
+	UIInventoryManager* InventoryManager = PlayerPawn->FindComponentByClass<UIInventoryManager>();
+	if (!InventoryManager)
 		return;
 
-	ContainerWidget = ManagerActor->GetCoreHUDWidget()->GetContainerInWorldWidget();
-	InventoryWidget =  ManagerActor->GetCoreHUDWidget()->GetContainerInWorldWidget()->GetInventoryFromContainerSlot();
+	auto* CoreHUDWidget = InventoryManager->GetCoreHUDWidget();
+	if (!CoreHUDWidget)
+		return;
+
+	auto* FoundContainerWidget = CoreHUDWidget->GetContainerInWorldWidget();
+	if (!FoundContainerWidget)
+		return;
+
+	auto* FoundInventoryWidget = FoundContainerWidget->GetInventoryFromContainerSlot();
+	if (!FoundInventoryWidget)
+		return;
+
+	ContainerWidget = FoundContainerWidget;
+	InventoryWidget = FoundInventoryWidget;
 }

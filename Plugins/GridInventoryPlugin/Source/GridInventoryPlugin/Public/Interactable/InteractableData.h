@@ -30,12 +30,11 @@ struct FInteractableData
 	GENERATED_USTRUCT_BODY()
 
 	FInteractableData() :
-	DefaultInteractableType(EInteractableType::Pickup),
-	Name(FText::GetEmpty()),
-	Action(FText::GetEmpty()),
-	InteractableDuration(0.0f)
+		DefaultInteractableType(EInteractableType::Pickup),
+		Name(FText::GetEmpty()),
+		Action(FText::GetEmpty()),
+		InteractableDuration(0.0f), Quantity(0)
 	{
-
 	};
 
 	UPROPERTY(EditDefaultsOnly)

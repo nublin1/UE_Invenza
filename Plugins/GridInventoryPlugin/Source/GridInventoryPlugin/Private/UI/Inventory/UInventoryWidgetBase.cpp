@@ -151,7 +151,7 @@ void UUInventoryWidgetBase::NotifyRemoveItem(FItemMapping& FromSlots, UItemBase*
 	UpdateWeightInfo();
 	UpdateMoneyInfo();
 	if (OnRemoveItemDelegate.IsBound())
-		OnRemoveItemDelegate.Broadcast(FromSlots, RemovedItem);
+		OnRemoveItemDelegate.Broadcast(FromSlots, RemovedItem, RemoveQuantity);
 	
 }
 

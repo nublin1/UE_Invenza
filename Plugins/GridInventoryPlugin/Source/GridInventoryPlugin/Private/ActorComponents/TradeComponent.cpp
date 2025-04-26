@@ -2,10 +2,6 @@
 
 #include "ActorComponents/TradeComponent.h"
 #include "ActorComponents/ItemCollection.h"
-#include "Factory/ItemFactory.h"
-#include "Kismet/GameplayStatics.h"
-#include "UI/Inventory/UInventoryWidgetBase.h"
-#include "World/AUIManagerActor.h"
 
 void UTradeComponent::OpenTradeMenu(AActor* Vendor, AActor* Buyer)
 {

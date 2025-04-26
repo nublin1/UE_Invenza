@@ -4,6 +4,7 @@
 #include "UI/Container/InvBaseContainerWidget.h"
 
 #include "ActorComponents/ItemCollection.h"
+#include "ActorComponents/UIInventoryManager.h"
 #include "Components/Button.h"
 #include "Components/NamedSlot.h"
 #include "Components/TextBlock.h"
@@ -13,7 +14,7 @@
 #include "UI/Core/OperationsPanel/OperationPanelWidget.h"
 #include "UI/Core/Weight/InvWeightWidget.h"
 #include "UI/Inventory/SlotbasedInventoryWidget.h"
-#include "World/AUIManagerActor.h"
+
 
 UInvBaseContainerWidget::UInvBaseContainerWidget()
 {
@@ -99,8 +100,6 @@ void UInvBaseContainerWidget::UpdateMoneyInfo(int32 TotalMoney)
 	{
 		TitleBar->Money->SetVisibility(ESlateVisibility::Collapsed);
 	}
-	
-		
 }
 
 void UInvBaseContainerWidget::TakeAll()
@@ -109,11 +108,11 @@ void UInvBaseContainerWidget::TakeAll()
 	if (!SourceInv)
 		return;
 
-	AUIManagerActor* ManagerActor = Cast<AUIManagerActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AUIManagerActor::StaticClass()));
-	if (!ManagerActor || !ManagerActor->GetCoreHUDWidget())
+	UIInventoryManager* InventoryManager = GetOwningPlayerPawn()->FindComponentByClass<UIInventoryManager>();
+	if (!InventoryManager || !InventoryManager->GetCoreHUDWidget())
 		return;
     
-	UUInventoryWidgetBase* TargetInv = ManagerActor->GetMainInventory()->GetInventoryFromContainerSlot();
+	UUInventoryWidgetBase* TargetInv = InventoryManager->GetMainInventory()->GetInventoryFromContainerSlot();
 	if (!TargetInv)
 		return;
     
@@ -126,11 +125,11 @@ void UInvBaseContainerWidget::PlaceAll()
 	if (!TargetInv)
 		return;
 
-	AUIManagerActor* ManagerActor = Cast<AUIManagerActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AUIManagerActor::StaticClass()));
-	if (!ManagerActor || !ManagerActor->GetCoreHUDWidget())
+	UIInventoryManager* InventoryManager = GetOwningPlayerPawn()->FindComponentByClass<UIInventoryManager>();
+	if (!InventoryManager || !InventoryManager->GetCoreHUDWidget())
 		return;
 
-	UUInventoryWidgetBase* SourceInv = ManagerActor->GetCoreHUDWidget()->GetMainInvWidget()->GetInventoryFromContainerSlot();
+	UUInventoryWidgetBase* SourceInv = InventoryManager->GetCoreHUDWidget()->GetMainInvWidget()->GetInventoryFromContainerSlot();
 	if (!SourceInv)
 		return;
     

@@ -1,6 +1,6 @@
 ﻿//  Nublin Studio 2025 All Rights Reserved.
 
-#include "World//AUIManagerActor.h"
+#include "ActorComponents/UIInventoryManager.h"
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -21,12 +21,12 @@
 
 class UEnhancedInputLocalPlayerSubsystem;
 
-AUIManagerActor::AUIManagerActor(): CoreHUDWidget(nullptr), UISettings()
+UIInventoryManager::UIInventoryManager(): CoreHUDWidget(nullptr), UISettings()
 {
 	
 }
 
-void AUIManagerActor::BeginPlay()
+void UIInventoryManager::BeginPlay()
 {
 	Super::BeginPlay();
 
@@ -34,7 +34,7 @@ void AUIManagerActor::BeginPlay()
 		UItemFactory::Init(ItemDataTable);
 }
 
-void AUIManagerActor::VendorRequest(FItemMoveData ItemMoveData )
+void UIInventoryManager::VendorRequest(FItemMoveData ItemMoveData )
 {
 	FTradeRequest Req;
 	Req.Vendor      = CoreHUDWidget->GetVendorInvWidget()->GetInventoryFromContainerSlot()->
@@ -52,7 +52,7 @@ void AUIManagerActor::VendorRequest(FItemMoveData ItemMoveData )
 	}
 }
 
-void AUIManagerActor::OnQuickTransferItem(FItemMoveData ItemMoveData)
+void UIInventoryManager::OnQuickTransferItem(FItemMoveData ItemMoveData)
 {
 	if (!CurrentInteractInvWidget)
 		return;
@@ -68,14 +68,18 @@ void AUIManagerActor::OnQuickTransferItem(FItemMoveData ItemMoveData)
 	ItemTransferRequest(ItemMoveData);
 }
 
-void AUIManagerActor::ItemTransferRequest(FItemMoveData ItemMoveData)
+void UIInventoryManager::ItemTransferRequest(FItemMoveData ItemMoveData)
 {
-	if (ItemMoveData.TargetInventory == CoreHUDWidget->GetVendorInvWidget()->GetInventoryFromContainerSlot()
-		|| ItemMoveData.SourceInventory == CoreHUDWidget->GetVendorInvWidget()->GetInventoryFromContainerSlot())
+	if (CoreHUDWidget->GetVendorInvWidget())
 	{
-		VendorRequest(ItemMoveData);
-		return;
+		if (ItemMoveData.TargetInventory == CoreHUDWidget->GetVendorInvWidget()->GetInventoryFromContainerSlot()
+		|| (ItemMoveData.SourceInventory && ItemMoveData.SourceInventory == CoreHUDWidget->GetVendorInvWidget()->GetInventoryFromContainerSlot()))
+		{
+			VendorRequest(ItemMoveData);
+			return;
+		}
 	}
+	
 	
 	auto Result = ItemMoveData.TargetInventory->HandleAddItem(ItemMoveData, false);
 	switch (Result.OperationResult)
@@ -98,18 +102,23 @@ void AUIManagerActor::ItemTransferRequest(FItemMoveData ItemMoveData)
 		}
 		break;
 	case EItemAddResult::IAR_NoItemAdded:
-		if (!ItemMoveData.SourceInventory || ItemMoveData.SourceInventory == CoreHUDWidget->GetVendorInvWidget()->GetInventoryFromContainerSlot())
-			if (auto Pawn = UGameplayStatics::GetPlayerController(GetWorld(), 0)->GetPawn())
+		if (CoreHUDWidget->GetVendorInvWidget())
+		{
+			if (!ItemMoveData.SourceInventory || ItemMoveData.SourceInventory == CoreHUDWidget->GetVendorInvWidget()->GetInventoryFromContainerSlot())
 			{
-				auto Interaction = Pawn->FindComponentByClass<UInteractionComponent>();
-				if (!Interaction) break;
+				if (auto Pawn = UGameplayStatics::GetPlayerController(GetWorld(), 0)->GetPawn())
+				{
+					auto Interaction = Pawn->FindComponentByClass<UInteractionComponent>();
+					if (!Interaction) break;
 
-				ItemMoveData.SourceItem->DropItem(GetWorld());
+					ItemMoveData.SourceItem->DropItem(GetWorld());
+				}
+				if (ItemMoveData.SourceInventory && ItemMoveData.SourceInventory == CoreHUDWidget->GetVendorInvWidget()->GetInventoryFromContainerSlot())
+				{
+					ItemMoveData.SourceInventory->HandleRemoveItemFromContainer(ItemMoveData.SourceItem);
+				}
 			}
-			if (ItemMoveData.SourceInventory && ItemMoveData.SourceInventory == CoreHUDWidget->GetVendorInvWidget()->GetInventoryFromContainerSlot())
-			{
-				ItemMoveData.SourceInventory->HandleRemoveItemFromContainer(ItemMoveData.SourceItem);
-			}
+		}
 		break;
 	case EItemAddResult::IAR_PartialAmountItemAdded:
 		break;
@@ -124,7 +133,7 @@ void AUIManagerActor::ItemTransferRequest(FItemMoveData ItemMoveData)
 	}
 }
 
-void AUIManagerActor::SetInteractableType(UInteractableComponent* IteractData)
+void UIInventoryManager::SetInteractableType(UInteractableComponent* IteractData)
 {
 	switch (IteractData->InteractableData.DefaultInteractableType)
 	{
@@ -155,7 +164,7 @@ void AUIManagerActor::SetInteractableType(UInteractableComponent* IteractData)
 	}
 }
 
-void AUIManagerActor::ClearInteractableType(UInteractableComponent* IteractData)
+void UIInventoryManager::ClearInteractableType(UInteractableComponent* IteractData)
 {
 	if (CurrentInteractInvWidget)
 	{
@@ -164,7 +173,7 @@ void AUIManagerActor::ClearInteractableType(UInteractableComponent* IteractData)
 	}
 }
 
-void AUIManagerActor::BindEvents(AActor* TargetActor)
+void UIInventoryManager::BindEvents(AActor* TargetActor)
 {
 	if (!TargetActor) return;
 	
@@ -188,10 +197,10 @@ void AUIManagerActor::BindEvents(AActor* TargetActor)
 	InteractionComponent->RegularSettings = this->UISettings;
 	InteractionComponent->BeginFocusDelegate.AddDynamic(InteractionWidget, &UInteractionWidget::OnFoundInteractable);
 	InteractionComponent->EndFocusDelegate.AddDynamic(InteractionWidget, &UInteractionWidget::OnLostInteractable);
-	InteractionComponent->IteractableDataDelegate.AddDynamic(this, &AUIManagerActor::UIIteract);
+	InteractionComponent->IteractableDataDelegate.AddDynamic(this, &UIInventoryManager::UIIteract);
 
-	InteractionComponent->IteractableDataDelegate.AddDynamic(this, &AUIManagerActor::SetInteractableType);
-	InteractionComponent->StopIteractDelegate.AddDynamic(this, &AUIManagerActor::ClearInteractableType);
+	InteractionComponent->IteractableDataDelegate.AddDynamic(this, &UIInventoryManager::SetInteractableType);
+	InteractionComponent->StopIteractDelegate.AddDynamic(this, &UIInventoryManager::ClearInteractableType);
 
 	UItemCollection* ItemCollection = TargetActor->FindComponentByClass<UItemCollection>();
 	if (!ItemCollection) return;
@@ -209,19 +218,19 @@ void AUIManagerActor::BindEvents(AActor* TargetActor)
 		CoreHUDWidget->GetMainInvWidget()->GetInventoryFromContainerSlot()->HandleAddItem(ItemMoveData);
 	}
 
-	CoreHUDWidget->GetMainInvWidget()->GetInventoryFromContainerSlot()->OnItemDroppedDelegate.AddDynamic(this, &AUIManagerActor::ItemTransferRequest);
+	CoreHUDWidget->GetMainInvWidget()->GetInventoryFromContainerSlot()->OnItemDroppedDelegate.AddDynamic(this, &UIInventoryManager::ItemTransferRequest);
 	if (auto ContainerInWorldWidget = CoreHUDWidget->GetContainerInWorldWidget())
-		ContainerInWorldWidget->GetInventoryFromContainerSlot()->OnItemDroppedDelegate.AddDynamic(this, &AUIManagerActor::ItemTransferRequest);
+		ContainerInWorldWidget->GetInventoryFromContainerSlot()->OnItemDroppedDelegate.AddDynamic(this, &UIInventoryManager::ItemTransferRequest);
 	if (auto VendorInvWidget = CoreHUDWidget->GetVendorInvWidget())
-		VendorInvWidget->GetInventoryFromContainerSlot()->OnItemDroppedDelegate.AddDynamic(this, &AUIManagerActor::ItemTransferRequest);
+		VendorInvWidget->GetInventoryFromContainerSlot()->OnItemDroppedDelegate.AddDynamic(this, &UIInventoryManager::ItemTransferRequest);
 	if (auto HotbarInvWidget = CoreHUDWidget->GetHotbarInvWidget())
-		HotbarInvWidget->GetInventoryFromContainerSlot()->OnItemDroppedDelegate.AddDynamic(this, &AUIManagerActor::ItemTransferRequest);
+		HotbarInvWidget->GetInventoryFromContainerSlot()->OnItemDroppedDelegate.AddDynamic(this, &UIInventoryManager::ItemTransferRequest);
 	if (auto EquipInvWidget = CoreHUDWidget->GetEquipmentInvWidget())
-		EquipInvWidget->GetInventoryFromContainerSlot()->OnItemDroppedDelegate.AddDynamic(this, &AUIManagerActor::ItemTransferRequest);
+		EquipInvWidget->GetInventoryFromContainerSlot()->OnItemDroppedDelegate.AddDynamic(this, &UIInventoryManager::ItemTransferRequest);
 		
 }
 
-void AUIManagerActor::UIIteract( UInteractableComponent* TargetInteractableComponent)
+void UIInventoryManager::UIIteract( UInteractableComponent* TargetInteractableComponent)
 {
 	if (!TargetInteractableComponent) return;
 
@@ -250,17 +259,17 @@ void AUIManagerActor::UIIteract( UInteractableComponent* TargetInteractableCompo
 	}
 }
 
-void AUIManagerActor::OnQuickGrabPressed(const FInputActionInstance& Instance)
+void UIInventoryManager::OnQuickGrabPressed(const FInputActionInstance& Instance)
 {
 	InventoryModifierState.bIsQuickGrabModifierActive = true;
 }
 
-void AUIManagerActor::OnQuickGrabReleased(const FInputActionInstance& Instance)
+void UIInventoryManager::OnQuickGrabReleased(const FInputActionInstance& Instance)
 {
 	InventoryModifierState.bIsQuickGrabModifierActive = false;
 }
 
-void AUIManagerActor::InitializeBindings()
+void UIInventoryManager::InitializeBindings()
 {
 	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	if (!PlayerController) return;
@@ -281,13 +290,13 @@ void AUIManagerActor::InitializeBindings()
 	
 	if (UISettings.ToggleInventoryAction)
 	{
-		Input->BindAction(UISettings.ToggleInventoryAction, ETriggerEvent::Started, this, &AUIManagerActor::ToggleInventoryLayout);
+		Input->BindAction(UISettings.ToggleInventoryAction, ETriggerEvent::Started, this, &UIInventoryManager::ToggleInventoryLayout);
 	}
 
 	InitializeInvSlotsBindings();
 }
 
-void AUIManagerActor::InitializeInvSlotsBindings()
+void UIInventoryManager::InitializeInvSlotsBindings()
 {
 	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	if (!PlayerController) return;
@@ -313,7 +322,7 @@ void AUIManagerActor::InitializeInvSlotsBindings()
 	}
 }
 
-void AUIManagerActor::ToggleInventoryLayout()
+void UIInventoryManager::ToggleInventoryLayout()
 {
 	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	if (!PlayerController) return;
@@ -340,8 +349,8 @@ void AUIManagerActor::ToggleInventoryLayout()
 		UEnhancedInputComponent* Input = Cast<UEnhancedInputComponent>(PlayerController->InputComponent);
 		if (Input && UISettings.IA_Mod_QuickGrab)
 		{
-			Input->BindAction(UISettings.IA_Mod_QuickGrab, ETriggerEvent::Started, this, &AUIManagerActor::OnQuickGrabPressed);
-			Input->BindAction(UISettings.IA_Mod_QuickGrab, ETriggerEvent::Completed, this, &AUIManagerActor::OnQuickGrabReleased);
+			Input->BindAction(UISettings.IA_Mod_QuickGrab, ETriggerEvent::Started, this, &UIInventoryManager::OnQuickGrabPressed);
+			Input->BindAction(UISettings.IA_Mod_QuickGrab, ETriggerEvent::Completed, this, &UIInventoryManager::OnQuickGrabReleased);
 		}
 		
 		bIsShowingInventoryMenu = true;
@@ -362,7 +371,7 @@ void AUIManagerActor::ToggleInventoryLayout()
 	
 }
 
-void AUIManagerActor::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+void UIInventoryManager::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 }
 

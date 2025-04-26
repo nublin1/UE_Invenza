@@ -4,6 +4,7 @@
 #include "UI/Inventory/ListInventorySlotWidget.h"
 
 #include "ActorComponents/ItemCollection.h"
+#include "ActorComponents/UIInventoryManager.h"
 #include "ActorComponents/Items/itemBase.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Components/ListView.h"
@@ -13,7 +14,6 @@
 #include "UI/HelpersWidgets/ItemTooltipWidget.h"
 #include "UI/Inventory/ListInventoryWidget.h"
 #include "UI/Item/InventoryItemWidget.h"
-#include "World/AUIManagerActor.h"
 
 bool UListInventorySlotWidget::ExecuteItemChecks(EInventoryCheckType CheckType, UItemBase* Item)
 {
@@ -95,13 +95,13 @@ FReply UListInventorySlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeom
 {
 	FReply Reply = Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
 	
-	AUIManagerActor* ManagerActor = Cast<AUIManagerActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AUIManagerActor::StaticClass()));
-	if (!ManagerActor || !ParentInventoryWidget || !LinkedItem)
+	UIInventoryManager* InventoryManager = GetOwningPlayerPawn()->FindComponentByClass<UIInventoryManager>();
+	if (!InventoryManager || !ParentInventoryWidget || !LinkedItem)
 		return FReply::Unhandled();
 	
 	if (InMouseEvent.IsMouseButtonDown(ParentInventoryWidget->GetUISettings().ItemSelectKey))
 	{
-		if (ManagerActor->GetInventoryModifierStates().bIsQuickGrabModifierActive
+		if (InventoryManager->GetInventoryModifierStates().bIsQuickGrabModifierActive
 			&& ExecuteItemChecks(EInventoryCheckType::PreTransfer, LinkedItem))
 		{
 			FItemMoveData ItemMoveData;
@@ -109,7 +109,7 @@ FReply UListInventorySlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeom
 			ItemMoveData.SourceItemPivotSlot = this;
 			ItemMoveData.SourceItem = LinkedItem;
 
-			ManagerActor->OnQuickTransferItem(ItemMoveData);
+			InventoryManager->OnQuickTransferItem(ItemMoveData);
 				
 			return FReply::Handled();
 		}
@@ -131,11 +131,11 @@ void UListInventorySlotWidget::NativeOnDragDetected(const FGeometry& InGeometry,
 {
 	Super::NativeOnDragDetected(InGeometry, InMouseEvent, OutOperation);
 	
-	AUIManagerActor* ManagerActor = Cast<AUIManagerActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AUIManagerActor::StaticClass()));
-	if (!ManagerActor || !ParentInventoryWidget)
+	UIInventoryManager* InventoryManager = GetOwningPlayerPawn()->FindComponentByClass<UIInventoryManager>();
+	if (!InventoryManager || !ParentInventoryWidget)
 		return;
 
-	UInventoryItemWidget* DraggedWidget = CreateWidget<UInventoryItemWidget>(GetOwningPlayer(), ManagerActor->GetUISettings().DraggedWidgetClass);
+	UInventoryItemWidget* DraggedWidget = CreateWidget<UInventoryItemWidget>(GetOwningPlayer(), InventoryManager->GetUISettings().DraggedWidgetClass);
 	if (!DraggedWidget) return;
 	DraggedWidget->SetVisibility(ESlateVisibility::Visible);
 	

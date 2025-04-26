@@ -10,8 +10,8 @@ struct FEquipmentSlotData : public FTableRowBase
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FName SlotName;
+	FName SlotName = "";
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	EItemCategory AllowedCategory;
+	EItemCategory AllowedCategory = EItemCategory::None;
 };

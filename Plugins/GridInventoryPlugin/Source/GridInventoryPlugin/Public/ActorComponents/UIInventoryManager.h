@@ -8,8 +8,7 @@
 #include "UI/Container/InvBaseContainerWidget.h"
 #include "UI/Core/CoreHUDWidget.h"
 #include "UI/Inventory/InventoryTypes.h"
-#include "AUIManagerActor.generated.h"
-
+#include "UIInventoryManager.generated.h"
 
 class FIteract;
 enum class EInteractableType : uint8;
@@ -20,8 +19,12 @@ class UInputAction;
 class UInteractableComponent;
 class UCoreHUDWidget;
 
-UCLASS(ClassGroup=(Custom), Blueprintable)
-class GRIDINVENTORYPLUGIN_API AUIManagerActor  : public AActor
+#pragma region Delegates
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOninitializationComplete, bool, Status);
+#pragma endregion Delegates
+
+UCLASS(ClassGroup=(Custom), Blueprintable, meta=(BlueprintSpawnableComponent))
+class GRIDINVENTORYPLUGIN_API UIInventoryManager : public UActorComponent
 {
 	GENERATED_BODY()
 
@@ -29,11 +32,13 @@ public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
+	UPROPERTY(BlueprintAssignable, BlueprintCallable)
+	FOninitializationComplete OninitializationCompleteDelegate;
 
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	AUIManagerActor();
+	UIInventoryManager();
 
 	UFUNCTION(BlueprintCallable)
 	void OnQuickTransferItem(FItemMoveData ItemMoveData);

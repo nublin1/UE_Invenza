@@ -2,10 +2,10 @@
 
 #include "ActorComponents/Items/itemBase.h"
 
+#include "ActorComponents/UIInventoryManager.h"
 #include "ActorComponents/Interactable/PickupComponent.h"
 #include "Data/ItemData.h"
 #include "Kismet/GameplayStatics.h"
-#include "World/AUIManagerActor.h"
 
 #define LOCTEXT_NAMESPACE "Inventory"
 
@@ -58,7 +58,10 @@ void UItemBase::DropItem(UWorld* World)
 	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(World, 0);
 	if (!PlayerController || !this) return;
 	auto Pawn = PlayerController->GetPawn();
-	auto ManagerActor = Cast<AUIManagerActor>(UGameplayStatics::GetActorOfClass(World, AUIManagerActor::StaticClass()));
+	UIInventoryManager* InventoryManager = Pawn->FindComponentByClass<UIInventoryManager>();
+
+	if (!InventoryManager)
+		return;
 
 	FActorSpawnParameters SpawnParameters;
 	SpawnParameters.Owner = Pawn;
@@ -68,7 +71,10 @@ void UItemBase::DropItem(UWorld* World)
 	const FVector SpawnLocation{Pawn->GetActorLocation() + (Pawn->GetActorForwardVector() * 50.0f)};
 	const FTransform SpawnTransform(Pawn->GetActorRotation(), SpawnLocation);
 
-	auto Pickup = World->SpawnActor<AActor>(ManagerActor->GetUISettings().PickupClass, SpawnTransform, SpawnParameters);
+	auto Pickup = World->SpawnActor<AActor>(InventoryManager->GetUISettings().PickupClass, SpawnTransform, SpawnParameters);
+	if (!Pickup)
+		return;
+	
 	if (auto PickupComponent = Pickup->FindComponentByClass<UPickupComponent>())
 	{
 		PickupComponent->InitializeDrop(this);

@@ -55,6 +55,12 @@ struct FUISettings
 	FName EquipmentInvWidgetName = "";
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FVector2D SlotSize = FVector2D(0.f);
+
+	FUISettings(): GameplayMappingContext(nullptr), InventoryMappingContext(nullptr), ToggleInventoryAction(nullptr),
+	               IA_Mod_QuickGrab(nullptr),
+	               IA_Mod_GrabAllSame(nullptr)
+	{
+	}
 };
 
 USTRUCT(BlueprintType)

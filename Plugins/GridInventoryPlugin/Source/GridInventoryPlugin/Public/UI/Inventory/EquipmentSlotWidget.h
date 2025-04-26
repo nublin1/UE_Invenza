@@ -19,6 +19,11 @@ public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName SlotName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	EItemCategory AllowedCategory;
 
 	//====================================================================
 	// FUNCTIONS
@@ -28,8 +33,7 @@ protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Equipment)
-	FEquipmentSlot EquipmentSlot;
+	
 
 	//====================================================================
 	// FUNCTIONS

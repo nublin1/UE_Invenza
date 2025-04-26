@@ -3,8 +3,6 @@
 #include "ActorComponents/Interactable/VendorComponent.h"
 #include "ActorComponents/InteractionComponent.h"
 #include "ActorComponents/TradeComponent.h"
-#include "Kismet/GameplayStatics.h"
-#include "World/AUIManagerActor.h"
 
 UVendorComponent::UVendorComponent()
 {

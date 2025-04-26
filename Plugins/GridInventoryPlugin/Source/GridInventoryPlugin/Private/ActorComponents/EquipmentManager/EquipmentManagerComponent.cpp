@@ -1,22 +1,29 @@
 // Nublin Studio 2025 All Rights Reserved.
 
-
 #include "ActorComponents/EquipmentManager/EquipmentManagerComponent.h"
 
+#include "ActorComponents/UIInventoryManager.h"
 #include "ActorComponents/Items/itemBase.h"
 #include "Data/EquipmentSlotData.h"
 #include "Data/EquipmentStructures.h"
-
+#include "UI/Inventory/EquipmentInventoryWidget.h"
+#include "UI/Inventory/EquipmentSlotWidget.h"
 
 UEquipmentManagerComponent::UEquipmentManagerComponent(): SlotDefinitionTable(nullptr)
 {
 	PrimaryComponentTick.bCanEverTick = true;
 }
 
+
 void UEquipmentManagerComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	
+}
+void UEquipmentManagerComponent::Initialize()
+{
+	InitializeSlotsFromTable();
+	BindWidgetsToSlots();
 }
 
 void UEquipmentManagerComponent::InitializeSlotsFromTable()
@@ -39,33 +46,57 @@ void UEquipmentManagerComponent::InitializeSlotsFromTable()
 	}
 }
 
-bool UEquipmentManagerComponent::EquipItemToSlot(FName SlotName, UItemBase* Item)
+void UEquipmentManagerComponent::BindWidgetsToSlots()
 {
-	if (!Item || !EquipmentSlots.Contains(SlotName)) return false;
-
-	FEquipmentSlot& Slot = EquipmentSlots[SlotName];
-	if (Slot.AllowedCategory != Item->GetItemRef().ItemCategory)
+	auto InventoryManager = GetOwner()->FindComponentByClass<UIInventoryManager>();
+	if (!InventoryManager)
 	{
-		return false;
+		return;
 	}
 
-	if (Slot.EquippedItem != nullptr)
+	auto EquipmentInvWidget = InventoryManager->GetCoreHUDWidget()->GetEquipmentInvWidget();
+	if (!EquipmentInvWidget)
 	{
-		return false;
+		return;
 	}
 
-	Slot.EquippedItem = Item;
+	EquipmentInvWidget->GetInventoryFromContainerSlot()->OnAddItemDelegate.AddDynamic(
+		this, &UEquipmentManagerComponent::EquipItemToSlot);
+	EquipmentInvWidget->GetInventoryFromContainerSlot()->OnRemoveItemDelegate.AddDynamic(
+		this, &UEquipmentManagerComponent::UnequipItem);
+	
+}
+
+void UEquipmentManagerComponent::EquipItemToSlot(FItemMapping ItemSlots, UItemBase* Item)
+{
+	// Имя виджета должно совподать с именем слота
+	auto SlotName = Cast<UEquipmentSlotWidget>(ItemSlots.ItemSlots[0])->SlotName;
+	if (!Item || !EquipmentSlots.Contains(SlotName)) return;
+
+	FEquipmentSlot& EquipmentSlot = EquipmentSlots[SlotName];
+	if (EquipmentSlot.AllowedCategory != Item->GetItemRef().ItemCategory)
+	{
+		return;
+	}
+
+	if (EquipmentSlot.EquippedItem != nullptr)
+	{
+		// TODO: Remove from inventory
+		return ;
+	}
+
+	EquipmentSlot.EquippedItem = Item;
 
 	// Broadcast
 	OnEquippedItem.Broadcast(SlotName, Item);
 
-	// TODO: Remove from inventory, apply effects
-	return true;
+	// TODO: apply effects
+	return;
 }
 
-bool UEquipmentManagerComponent::EquipItem(UItemBase* Item)
+void UEquipmentManagerComponent::EquipItem(UItemBase* Item)
 {
-	if (!Item) return false;
+	if (!Item) return;
 	for (auto& Elem : EquipmentSlots)
 	{
 		FEquipmentSlot& Slot = Elem.Value;
@@ -78,32 +109,34 @@ bool UEquipmentManagerComponent::EquipItem(UItemBase* Item)
 
 			// Broadcast
 			OnEquippedItem.Broadcast(Slot.SlotName, Item);
-			return true;
+			return;
 		}
 	}
 
-	return false; // No suitable slot found
+	return; // No suitable slot found
 }
 
-bool UEquipmentManagerComponent::UnequipItem(FName SlotName)
+void UEquipmentManagerComponent::UnequipItem(FItemMapping ItemSlots, UItemBase* Item, int32 RemoveQuantity)
 {
-	if (!EquipmentSlots.Contains(SlotName)) return false;
+	auto SlotName = Cast<UEquipmentSlotWidget>(ItemSlots.ItemSlots[0])->SlotName;
+	if (!EquipmentSlots.Contains(SlotName)) return;
 
 	FEquipmentSlot& Slot = EquipmentSlots[SlotName];
-
 	if (Slot.EquippedItem == nullptr)
 	{
-		return false;
+		return;
 	}
 
-	// TODO: Add item back to inventory, remove effects
-	UItemBase* RemovedItem = Slot.EquippedItem;
-	Slot.EquippedItem = nullptr;
+	if (Item->GetQuantity() >= RemoveQuantity)
+	{
+		// TODO: Add item back to inventory, remove effects
+		UItemBase* RemovedItem = Slot.EquippedItem;
+		Slot.EquippedItem = nullptr;
 
-	// Broadcast
-	OnUnequippedItem.Broadcast(SlotName, nullptr);
-
-	return true;
+		// Broadcast
+		OnUnequippedItem.Broadcast(SlotName, nullptr);
+		return;
+	}
 }
 
 void UEquipmentManagerComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)

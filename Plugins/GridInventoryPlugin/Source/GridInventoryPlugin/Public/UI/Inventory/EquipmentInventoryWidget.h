@@ -28,6 +28,8 @@ public:
 	//====================================================================
 	virtual void InitializeInventory() override;
 
+	virtual FItemAddResult HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck) override;
+
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES

@@ -15,7 +15,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFaildToSellItem, UItemBase*, Item
 #pragma endregion Delegates
 
 struct FItemMapping;
-class AUIManagerActor;
+class UIInventoryManager;
 class UInvBaseContainerWidget;
 class UItemCollection;
 class UItemBase;

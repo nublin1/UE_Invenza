@@ -7,6 +7,7 @@
 #include "Data/EquipmentStructures.h"
 #include "EquipmentManagerComponent.generated.h"
 
+struct FItemMapping;
 class UItemBase;
 
 
@@ -15,7 +16,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnEquippedItem, FName, SlotName, U
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnequippedItem, FName, SlotName, UItemBase*, Item);
 #pragma endregion
 
-UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
+UCLASS( ClassGroup=(Custom), Blueprintable, meta=(BlueprintSpawnableComponent) )
 class GRIDINVENTORYPLUGIN_API UEquipmentManagerComponent : public UActorComponent
 {
 	GENERATED_BODY()
@@ -35,16 +36,16 @@ public:
 	//====================================================================
 	UEquipmentManagerComponent();
 
-	UFUNCTION(BlueprintCallable)
-	void InitializeSlotsFromTable();
+	UFUNCTION(BlueprintCallable, Category = "Equipment")
+	virtual void Initialize();
 
 	UFUNCTION(BlueprintCallable)
-	bool EquipItemToSlot(FName SlotName, UItemBase* Item);
+	void EquipItemToSlot(FItemMapping ItemSlots, UItemBase* Item);
 	UFUNCTION(BlueprintCallable)
-	bool EquipItem(UItemBase* Item);
+	void EquipItem(UItemBase* Item);
 
 	UFUNCTION(BlueprintCallable)
-	bool UnequipItem(FName SlotName);
+	void UnequipItem(FItemMapping ItemSlots, UItemBase* Item, int32 RemoveQuantity);
 
 protected:
 	//====================================================================
@@ -53,13 +54,18 @@ protected:
 	UPROPERTY(VisibleAnywhere)
 	TMap<FName, FEquipmentSlot> EquipmentSlots;
 
-	UPROPERTY(EditDefaultsOnly, Category="Config")
+	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly, Category="Config")
 	UDataTable* SlotDefinitionTable;
 	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
 	virtual void BeginPlay() override;
+
+	UFUNCTION()
+	virtual void InitializeSlotsFromTable();
+	UFUNCTION()
+	virtual void BindWidgetsToSlots();
 
 public:	
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
