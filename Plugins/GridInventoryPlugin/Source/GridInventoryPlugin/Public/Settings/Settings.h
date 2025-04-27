@@ -25,6 +25,8 @@ struct FUISettings
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
 	UInputAction* ToggleInventoryAction;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
+	UInputAction* ToggleEquipmentAction;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
 	UInputAction* IA_Mod_QuickGrab;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
 	UInputAction* IA_Mod_GrabAllSame ;

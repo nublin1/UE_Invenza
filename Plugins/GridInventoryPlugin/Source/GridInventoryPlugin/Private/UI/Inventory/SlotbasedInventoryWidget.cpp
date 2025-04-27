@@ -24,6 +24,7 @@ void USlotbasedInventoryWidget::InitializeInventory()
 {
 	InitSlots();
 	UpdateWeightInfo();
+	UpdateMoneyInfo();
 	CreateTooltipWidget();
 }
 

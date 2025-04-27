@@ -25,7 +25,6 @@ public:
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	
-	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
@@ -35,8 +34,19 @@ public:
 	void InitializeWidget();
 
 	//Inventory
+	UFUNCTION(BlueprintCallable)
+	void ToggleInventoryLayout();
 	void DisplayInventoryMenu();
 	void HideInventoryMenu();
+	// Equipment
+	UFUNCTION(BlueprintCallable)
+	void ToggleEquipmentLayout();
+	void DisplayEquipmentMenu();
+	void HideEquipmentMenu();
+
+	//
+	UFUNCTION()
+	void UpdateInputState();
 	
 	//Getters
 	UInteractionWidget* GetInteractionWidget() {return InteractionWidget;}
@@ -74,10 +84,14 @@ protected:
 	//	
 	UPROPERTY(BlueprintReadWrite)
 	FUISettings UISettings;
+	UPROPERTY()
+	int32 OpenMenuCount = 0;
 	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-
+	UFUNCTION()
+	virtual void Hide(UBaseUserWidget* UserWidget);
+	
 	virtual bool NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 };

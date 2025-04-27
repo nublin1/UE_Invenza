@@ -71,10 +71,6 @@ protected:
 	//
 	UPROPERTY(EditAnywhere, Category = "Item Initialization")
 	TObjectPtr<UDataTable>ItemDataTable;
-
-	//
-	UPROPERTY()
-	bool bIsShowingInventoryMenu = false;
 	
 	//====================================================================
 	// FUNCTIONS
@@ -102,8 +98,7 @@ protected:
 	UFUNCTION()
 	void InitializeInvSlotsBindings();
 
-	UFUNCTION(BlueprintCallable)
-	void ToggleInventoryLayout();
+	
 
 public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,

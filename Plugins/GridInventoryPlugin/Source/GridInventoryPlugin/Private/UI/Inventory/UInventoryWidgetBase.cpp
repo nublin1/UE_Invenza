@@ -117,6 +117,13 @@ void UUInventoryWidgetBase::UpdateWeightInfo()
 
 void UUInventoryWidgetBase::UpdateMoneyInfo()
 {
+	if (!InventoryData.ItemCollectionLink)
+	{
+		InventoryData.InventoryTotalMoney = 0;
+		OnMoneyUpdatedDelegate.Broadcast(InventoryData.InventoryTotalMoney);
+		return;
+	}
+	
 	if (OnMoneyUpdatedDelegate.IsBound() && InventoryData.ItemCollectionLink)
 	{
 		InventoryData.InventoryTotalMoney = 0;

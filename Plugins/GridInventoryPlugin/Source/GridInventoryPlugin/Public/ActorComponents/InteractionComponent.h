@@ -92,8 +92,8 @@ protected:
 	void BeginInteract();
 	void EndInteract();
 	void Interact();
-	void StopInteract();
-
+public: void StopInteract();
+protected:
 	void IteractNotify();
 	void EndIteractNotify();
 

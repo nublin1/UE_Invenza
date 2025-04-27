@@ -7,6 +7,7 @@
 #include "ActorComponents/Items/itemBase.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "DragDrop/ItemDragDropOperation.h"
+#include "Kismet/GameplayStatics.h"
 #include "UI/Container/InvBaseContainerWidget.h"
 #include "UI/Inrefaces/UDraggableWidgetInterface.h"
 #include "UI/Inventory/SlotbasedInventoryWidget.h"
@@ -36,6 +37,7 @@ void UCoreHUDWidget::InitializeWidget()
 		{
 			MainInvWidget = Cast<UInvBaseContainerWidget>(Widget);
 			MainInvWidget->GetInventoryFromContainerSlot()->SetItemCollection(PlayerCollection);
+			MainInvWidget->OnClose.AddDynamic(this, &UCoreHUDWidget::Hide);
 			continue;
 		}
 		if (Widget->GetName() == UISettings.ContainerInWorldWidgetName)
@@ -58,9 +60,25 @@ void UCoreHUDWidget::InitializeWidget()
 		{
 			EquipmentInvWidget = Cast<UInvBaseContainerWidget>(Widget);
 			EquipmentInvWidget->GetInventoryFromContainerSlot()->SetItemCollection(PlayerCollection);
+			EquipmentInvWidget->OnClose.AddDynamic(this, &UCoreHUDWidget::Hide);
 			continue;
 		}
 	}
+}
+
+void UCoreHUDWidget::ToggleInventoryLayout()
+{
+	if (MainInvWidget->GetVisibility() != ESlateVisibility::Visible)
+	{
+		DisplayInventoryMenu();
+		++OpenMenuCount;
+	}
+	else
+	{
+		HideInventoryMenu();
+	}
+
+	UpdateInputState();
 }
 
 void UCoreHUDWidget::DisplayInventoryMenu()
@@ -77,10 +95,77 @@ void UCoreHUDWidget::HideInventoryMenu()
 		return;
 
 	MainInvWidget->SetVisibility(ESlateVisibility::Collapsed);
+	--OpenMenuCount;
+}
+
+void UCoreHUDWidget::ToggleEquipmentLayout()
+{
+	if (EquipmentInvWidget->GetVisibility() != ESlateVisibility::Visible)
+	{
+		DisplayEquipmentMenu();
+		++OpenMenuCount;
+	}
+	else
+	{
+		HideEquipmentMenu();
+		
+	}
+
+	UpdateInputState();
+}
+
+void UCoreHUDWidget::DisplayEquipmentMenu()
+{
+	if (!EquipmentInvWidget)
+		return;
+
+	EquipmentInvWidget->SetVisibility(ESlateVisibility::Visible);
+}
+
+void UCoreHUDWidget::HideEquipmentMenu()
+{
+	if (!EquipmentInvWidget)
+		return;
+
+	EquipmentInvWidget->SetVisibility(ESlateVisibility::Collapsed);
+	--OpenMenuCount;
+}
+
+void UCoreHUDWidget::UpdateInputState()
+{
+	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	if (!PC) return;
+
+	if (OpenMenuCount > 0)
+	{
+		const FInputModeGameAndUI InputMode;
+		PC->SetInputMode(InputMode);
+		PC->SetShowMouseCursor(true);
+	}
+	else
+	{
+		const FInputModeGameOnly InputMode;
+		PC->SetInputMode(InputMode);
+		PC->SetShowMouseCursor(false);
+	}
+}
+
+void UCoreHUDWidget::Hide(UBaseUserWidget* UserWidget)
+{
+	if (UserWidget == MainInvWidget)
+	{
+		HideInventoryMenu();
+	}
+	else if (UserWidget == EquipmentInvWidget)
+	{
+		HideEquipmentMenu();
+	}
+
+	UpdateInputState();
 }
 
 bool UCoreHUDWidget::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent,
-	UDragDropOperation* InOperation)
+                                  UDragDropOperation* InOperation)
 {
 	Super::NativeOnDrop(InGeometry, InDragDropEvent, InOperation);
 	
@@ -101,17 +186,6 @@ bool UCoreHUDWidget::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEv
 	DragOp->ItemMoveData.SourceInventory->GetInventoryData().ItemCollectionLink->RemoveItemFromAllContainers(DragOp->ItemMoveData.SourceItem);
 	auto Item = DragOp->ItemMoveData.SourceItem->DuplicateItem();
 	Item->DropItem(GetWorld());
-
-	/*
-	if (auto Pawn = GetOwningPlayerPawn())
-	{
-		auto Interaction = Pawn->FindComponentByClass<UInteractionComponent>();
-		if (!Interaction) return true;
-
-		Interaction->DropItem(Item);
-	}*/
 	
 	return true;
-	
-	//return Super::NativeOnDrop(InGeometry, InDragDropEvent, InOperation);
 }

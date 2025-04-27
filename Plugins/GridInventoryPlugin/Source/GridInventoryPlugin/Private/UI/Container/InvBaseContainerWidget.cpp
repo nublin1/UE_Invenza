@@ -20,21 +20,6 @@ UInvBaseContainerWidget::UInvBaseContainerWidget()
 {
 }
 
-UUInventoryWidgetBase* UInvBaseContainerWidget::GetInventoryFromContainerSlot()
-{
-	if (!ContainerSlot || ContainerSlot->GetChildrenCount() == 0)
-	{
-		return nullptr;
-	}
-
-	if (UUInventoryWidgetBase* BaseInventoryWidget = Cast<UUInventoryWidgetBase>(ContainerSlot->GetChildAt(0)))
-	{
-		return BaseInventoryWidget;
-	}
-
-	return nullptr;
-}
-
 void UInvBaseContainerWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
@@ -44,6 +29,7 @@ void UInvBaseContainerWidget::NativeConstruct()
 	if (TitleBar)
 	{
 		TitleBar->SetParentWidget(this);
+		TitleBar->Button_Close->OnClicked.AddDynamic(this, &UInvBaseContainerWidget::CloseButtonClicked);
 	}	
 
 	if (InvWeight)
@@ -70,6 +56,29 @@ void UInvBaseContainerWidget::NativeConstruct()
 			if (OperationsWidget->Button_Sort) OperationsWidget->Button_Sort->OnClicked.AddDynamic(this, &UInvBaseContainerWidget::SortItems);
 		}
 	}
+}
+
+void UInvBaseContainerWidget::CloseButtonClicked()
+{
+	SetVisibility(ESlateVisibility::Collapsed);
+	
+	if (OnClose.IsBound())
+		OnClose.Broadcast(this);
+}
+
+UUInventoryWidgetBase* UInvBaseContainerWidget::GetInventoryFromContainerSlot()
+{
+	if (!ContainerSlot || ContainerSlot->GetChildrenCount() == 0)
+	{
+		return nullptr;
+	}
+
+	if (UUInventoryWidgetBase* BaseInventoryWidget = Cast<UUInventoryWidgetBase>(ContainerSlot->GetChildAt(0)))
+	{
+		return BaseInventoryWidget;
+	}
+
+	return nullptr;
 }
 
 void UInvBaseContainerWidget::UpdateWeightInfo(float InventoryTotalWeight, float InventoryWeightCapacity)

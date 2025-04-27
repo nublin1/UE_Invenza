@@ -2,6 +2,7 @@
 
 #include "ActorComponents/Interactable/InteractableContainerComponent.h"
 
+#include "ActorComponents/InteractionComponent.h"
 #include "ActorComponents/ItemCollection.h"
 #include "ActorComponents/UIInventoryManager.h"
 #include "ActorComponents/Items/itemBase.h"
@@ -45,6 +46,9 @@ void UInteractableContainerComponent::Interact(UInteractionComponent* Interactio
 
 	FindContainerWidget();
 	if (!InventoryWidget) return;
+
+	CurrentInteractionComponent = InteractionComponent;
+	InventoryWidget->OnVisibilityChanged.AddDynamic(this, &UInteractableContainerComponent::ContainerWidgetVisibilityChanged);
 	
 	if (bIsInteracting == false)
 	{
@@ -66,12 +70,21 @@ void UInteractableContainerComponent::StopInteract(UInteractionComponent* Intera
 	ContainerWidget->SetVisibility(ESlateVisibility::Collapsed);
 	ContainerWidget=nullptr;
 	bIsInteracting = false;
+	CurrentInteractionComponent = nullptr;
 }
 
 void UInteractableContainerComponent::OnRegister()
 {
 	Super::OnRegister();
 	InitializeInteractionComponent();
+}
+
+void UInteractableContainerComponent::ContainerWidgetVisibilityChanged(ESlateVisibility NewVisibility)
+{
+	if (NewVisibility != ESlateVisibility::Visible)
+	{
+		CurrentInteractionComponent->StopInteract();
+	}
 }
 
 void UInteractableContainerComponent::InitializeInteractionComponent()

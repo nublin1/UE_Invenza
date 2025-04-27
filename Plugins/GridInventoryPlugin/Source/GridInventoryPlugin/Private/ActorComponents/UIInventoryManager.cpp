@@ -21,7 +21,7 @@
 
 class UEnhancedInputLocalPlayerSubsystem;
 
-UIInventoryManager::UIInventoryManager(): CoreHUDWidget(nullptr), UISettings()
+UIInventoryManager::UIInventoryManager(): CoreHUDWidget(nullptr)
 {
 	
 }
@@ -290,7 +290,18 @@ void UIInventoryManager::InitializeBindings()
 	
 	if (UISettings.ToggleInventoryAction)
 	{
-		Input->BindAction(UISettings.ToggleInventoryAction, ETriggerEvent::Started, this, &UIInventoryManager::ToggleInventoryLayout);
+		Input->BindAction(UISettings.ToggleInventoryAction, ETriggerEvent::Started, CoreHUDWidget, &UCoreHUDWidget::ToggleInventoryLayout);
+	}
+
+	if (UISettings.ToggleEquipmentAction)
+	{
+		Input->BindAction(UISettings.ToggleEquipmentAction, ETriggerEvent::Started, CoreHUDWidget, &UCoreHUDWidget::ToggleEquipmentLayout);
+	}
+
+	if (UISettings.IA_Mod_QuickGrab)
+	{
+		Input->BindAction(UISettings.IA_Mod_QuickGrab, ETriggerEvent::Started, this, &UIInventoryManager::OnQuickGrabPressed);
+		Input->BindAction(UISettings.IA_Mod_QuickGrab, ETriggerEvent::Completed, this, &UIInventoryManager::OnQuickGrabReleased);
 	}
 
 	InitializeInvSlotsBindings();
@@ -320,55 +331,6 @@ void UIInventoryManager::InitializeInvSlotsBindings()
 				Input->BindAction(Slot->GetUseAction(), ETriggerEvent::Started, Inventory, &UUInventoryWidgetBase::UseSlot, Slot);
 		}
 	}
-}
-
-void UIInventoryManager::ToggleInventoryLayout()
-{
-	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	if (!PlayerController) return;
-
-	ULocalPlayer* LocalPlayer = PlayerController->GetLocalPlayer();
-	if (!LocalPlayer) return;
-
-	UEnhancedInputLocalPlayerSubsystem* InputSubsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(LocalPlayer);
-	if (!InputSubsystem) return;
-
-	if (!bIsShowingInventoryMenu)
-	{
-		CoreHUDWidget->DisplayInventoryMenu();
-		
-		const FInputModeGameAndUI InputMode;		
-		PlayerController->SetInputMode(InputMode);
-		PlayerController->SetShowMouseCursor(true);
-		
-		if (UISettings.InventoryMappingContext)
-		{
-			InputSubsystem->AddMappingContext(UISettings.InventoryMappingContext, 1);
-		}
-		
-		UEnhancedInputComponent* Input = Cast<UEnhancedInputComponent>(PlayerController->InputComponent);
-		if (Input && UISettings.IA_Mod_QuickGrab)
-		{
-			Input->BindAction(UISettings.IA_Mod_QuickGrab, ETriggerEvent::Started, this, &UIInventoryManager::OnQuickGrabPressed);
-			Input->BindAction(UISettings.IA_Mod_QuickGrab, ETriggerEvent::Completed, this, &UIInventoryManager::OnQuickGrabReleased);
-		}
-		
-		bIsShowingInventoryMenu = true;
-		
-		return;
-	}
-
-	CoreHUDWidget->HideInventoryMenu();
-	
-	const FInputModeGameOnly InputMode;
-	PlayerController->SetInputMode(InputMode);
-	PlayerController->SetShowMouseCursor(false);
-
-	if (UISettings.InventoryMappingContext)
-		InputSubsystem->RemoveMappingContext(UISettings.InventoryMappingContext);
-
-	bIsShowingInventoryMenu = false;
-	
 }
 
 void UIInventoryManager::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)

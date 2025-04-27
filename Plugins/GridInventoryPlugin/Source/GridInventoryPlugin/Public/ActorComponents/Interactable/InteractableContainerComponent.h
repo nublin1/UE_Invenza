@@ -43,10 +43,17 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UInvBaseContainerWidget> ContainerWidget;
 
+	//
+	UPROPERTY()
+	TObjectPtr<UInteractionComponent> CurrentInteractionComponent = nullptr;
+
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
 	virtual void OnRegister() override;
+
+	UFUNCTION()
+	virtual void ContainerWidgetVisibilityChanged(ESlateVisibility NewVisibility);
 	
 	virtual void InitializeInteractionComponent() override;
 	UFUNCTION()

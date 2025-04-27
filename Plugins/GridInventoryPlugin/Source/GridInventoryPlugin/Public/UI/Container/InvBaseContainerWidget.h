@@ -11,6 +11,10 @@ class UUInventoryWidgetBase;
 class UAUIManagerActor;
 class UInvWeightWidget;
 class USlotbasedInventoryWidget;
+
+#pragma region Delegates
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FWidgetClose, UBaseUserWidget*, Widget);
+#pragma endregion Delegates
 /**
  * 
  */
@@ -23,12 +27,17 @@ public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
+	UPROPERTY(BlueprintAssignable,BlueprintCallable)
+	FWidgetClose OnClose;
 	
 
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
 	UInvBaseContainerWidget();
+
+	UFUNCTION()
+	virtual UMovableTitleBar* GetTitleBar() const{return TitleBar;}
 
 	UFUNCTION(BlueprintCallable)
 	virtual UUInventoryWidgetBase* GetInventoryFromContainerSlot();
@@ -57,6 +66,9 @@ protected:
 	// FUNCTIONS
 	//====================================================================
 	virtual void NativeConstruct() override;
+
+	UFUNCTION()
+	virtual void CloseButtonClicked();
 	
 	UFUNCTION()
 	virtual void UpdateWeightInfo(float InventoryTotalWeight, float InventoryWeightCapacity);
