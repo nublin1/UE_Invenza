@@ -46,6 +46,9 @@ protected:
 	UPROPERTY()
 	bool bIsInteracting = false;
 
+	UPROPERTY()
+	TObjectPtr<UInteractionComponent> CurrentInteractionComponent = nullptr;
+
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================

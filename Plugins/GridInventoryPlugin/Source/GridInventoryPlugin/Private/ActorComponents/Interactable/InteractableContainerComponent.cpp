@@ -52,13 +52,11 @@ void UInteractableContainerComponent::Interact(UInteractionComponent* Interactio
 	
 	if (bIsInteracting == false)
 	{
-		ContainerWidget->SetVisibility(ESlateVisibility::Visible);
 		InventoryWidget->ReDrawAllItems();
 		bIsInteracting = true;
 	}
 	else
 	{
-		ContainerWidget->SetVisibility(ESlateVisibility::Collapsed);
 		bIsInteracting = false;
 	}
 }
@@ -66,8 +64,8 @@ void UInteractableContainerComponent::Interact(UInteractionComponent* Interactio
 void UInteractableContainerComponent::StopInteract(UInteractionComponent* InteractionComponent)
 {
 	Super::StopInteract(InteractionComponent);
-	
-	ContainerWidget->SetVisibility(ESlateVisibility::Collapsed);
+
+	InventoryWidget->OnVisibilityChanged.RemoveDynamic(this, &UInteractableContainerComponent::ContainerWidgetVisibilityChanged);
 	ContainerWidget=nullptr;
 	bIsInteracting = false;
 	CurrentInteractionComponent = nullptr;

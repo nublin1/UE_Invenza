@@ -43,10 +43,6 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UInvBaseContainerWidget> ContainerWidget;
 
-	//
-	UPROPERTY()
-	TObjectPtr<UInteractionComponent> CurrentInteractionComponent = nullptr;
-
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================

@@ -32,17 +32,16 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void InitializeWidget();
-
+	
+	void ToggleWidget(UWidget* Widget);
+	void ShowWidget(UWidget* Widget);
+	void HideWidget(UWidget* Widget);
 	//Inventory
 	UFUNCTION(BlueprintCallable)
 	void ToggleInventoryLayout();
-	void DisplayInventoryMenu();
-	void HideInventoryMenu();
 	// Equipment
 	UFUNCTION(BlueprintCallable)
 	void ToggleEquipmentLayout();
-	void DisplayEquipmentMenu();
-	void HideEquipmentMenu();
 
 	//
 	UFUNCTION()

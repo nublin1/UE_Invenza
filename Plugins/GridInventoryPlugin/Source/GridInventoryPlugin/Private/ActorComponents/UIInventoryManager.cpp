@@ -139,25 +139,29 @@ void UIInventoryManager::SetInteractableType(UInteractableComponent* IteractData
 	{
 	case EInteractableType::Container:
 		CurrentInteractInvWidget = CoreHUDWidget->GetContainerInWorldWidget();
-		CurrentInteractInvWidget->SetVisibility(ESlateVisibility::Visible);
+		if (!CurrentInteractInvWidget)
+			break;
+		CoreHUDWidget->ToggleWidget(CurrentInteractInvWidget);
 		break;
 	case EInteractableType::Vendor:
 		CurrentInteractInvWidget = CoreHUDWidget->GetVendorInvWidget();
+		if (!CurrentInteractInvWidget)
+			break;
 		if (auto Collection = IteractData->GetOwner()->FindComponentByClass<UItemCollection>())
 			CurrentInteractInvWidget->GetInventoryFromContainerSlot()->ChangeItemCollectionLink(Collection);
-		CurrentInteractInvWidget->SetVisibility(ESlateVisibility::Visible);
+		CoreHUDWidget->ToggleWidget(CurrentInteractInvWidget);
 		break;
 	case EInteractableType::None:
 		if (CurrentInteractInvWidget)
 		{
-			CurrentInteractInvWidget->SetVisibility(ESlateVisibility::Collapsed);
+			CoreHUDWidget->ToggleWidget(CurrentInteractInvWidget);
 			CurrentInteractInvWidget = nullptr;
 		}
 		break;
 	default:
 		if (CurrentInteractInvWidget)
 		{
-			CurrentInteractInvWidget->SetVisibility(ESlateVisibility::Collapsed);
+			CoreHUDWidget->ToggleWidget(CurrentInteractInvWidget);
 			CurrentInteractInvWidget = nullptr;
 		}
 		break;
@@ -168,7 +172,7 @@ void UIInventoryManager::ClearInteractableType(UInteractableComponent* IteractDa
 {
 	if (CurrentInteractInvWidget)
 	{
-		CurrentInteractInvWidget->SetVisibility(ESlateVisibility::Collapsed);
+		CoreHUDWidget->ToggleWidget(CurrentInteractInvWidget);
 		CurrentInteractInvWidget = nullptr;
 	}
 }

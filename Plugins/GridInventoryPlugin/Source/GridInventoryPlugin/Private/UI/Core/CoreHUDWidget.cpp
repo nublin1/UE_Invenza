@@ -66,69 +66,55 @@ void UCoreHUDWidget::InitializeWidget()
 	}
 }
 
-void UCoreHUDWidget::ToggleInventoryLayout()
+void UCoreHUDWidget::ToggleWidget(UWidget* Widget)
 {
-	if (MainInvWidget->GetVisibility() != ESlateVisibility::Visible)
+	if (!Widget)
+		return;
+
+	if (Widget->GetVisibility() != ESlateVisibility::Visible)
 	{
-		DisplayInventoryMenu();
-		++OpenMenuCount;
+		ShowWidget(Widget);
 	}
 	else
 	{
-		HideInventoryMenu();
+		HideWidget(Widget);
 	}
 
 	UpdateInputState();
 }
 
-void UCoreHUDWidget::DisplayInventoryMenu()
+void UCoreHUDWidget::ShowWidget(UWidget* Widget)
 {
-	if (!MainInvWidget)
+	if (!Widget)
 		return;
 
-	MainInvWidget->SetVisibility(ESlateVisibility::Visible);
+	if (Widget->GetVisibility() != ESlateVisibility::Visible)
+	{
+		Widget->SetVisibility(ESlateVisibility::Visible);
+		++OpenMenuCount;
+	}
 }
 
-void UCoreHUDWidget::HideInventoryMenu()
+void UCoreHUDWidget::HideWidget(UWidget* Widget)
 {
-	if (!MainInvWidget)
+	if (!Widget)
 		return;
 
-	MainInvWidget->SetVisibility(ESlateVisibility::Collapsed);
-	--OpenMenuCount;
+	if (Widget->GetVisibility() == ESlateVisibility::Visible)
+	{
+		Widget->SetVisibility(ESlateVisibility::Collapsed);
+		--OpenMenuCount;
+	}
+}
+
+void UCoreHUDWidget::ToggleInventoryLayout()
+{
+	ToggleWidget(MainInvWidget);
 }
 
 void UCoreHUDWidget::ToggleEquipmentLayout()
 {
-	if (EquipmentInvWidget->GetVisibility() != ESlateVisibility::Visible)
-	{
-		DisplayEquipmentMenu();
-		++OpenMenuCount;
-	}
-	else
-	{
-		HideEquipmentMenu();
-		
-	}
-
-	UpdateInputState();
-}
-
-void UCoreHUDWidget::DisplayEquipmentMenu()
-{
-	if (!EquipmentInvWidget)
-		return;
-
-	EquipmentInvWidget->SetVisibility(ESlateVisibility::Visible);
-}
-
-void UCoreHUDWidget::HideEquipmentMenu()
-{
-	if (!EquipmentInvWidget)
-		return;
-
-	EquipmentInvWidget->SetVisibility(ESlateVisibility::Collapsed);
-	--OpenMenuCount;
+	ToggleWidget(EquipmentInvWidget);
 }
 
 void UCoreHUDWidget::UpdateInputState()
@@ -154,11 +140,15 @@ void UCoreHUDWidget::Hide(UBaseUserWidget* UserWidget)
 {
 	if (UserWidget == MainInvWidget)
 	{
-		HideInventoryMenu();
+		HideWidget(MainInvWidget);
 	}
 	else if (UserWidget == EquipmentInvWidget)
 	{
-		HideEquipmentMenu();
+		HideWidget(EquipmentInvWidget);
+	}
+	else if (auto Interaction = GetOwningPlayerPawn()->FindComponentByClass<UInteractionComponent>())
+	{
+		Interaction->StopInteract();
 	}
 
 	UpdateInputState();
