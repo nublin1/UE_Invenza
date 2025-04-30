@@ -69,7 +69,7 @@ FMoneyCalculationResult UTradeComponent::AccumulatePayment(UItemCollection* Item
 
 bool UTradeComponent::TryBuyItem(UItemBase* ItemToBuy)
 {
-	if (bSellOnly)
+	if (TradeSettings.bSellOnly)
 		return false;
 	
 	auto Result =  AccumulatePayment(VendorItemCollection, GetTotalBuyPrice(ItemToBuy));
@@ -114,12 +114,12 @@ void UTradeComponent::Selltem(UItemBase* ItemsToSell)
 
 float UTradeComponent::GetTotalBuyPrice(UItemBase* ItemToBuy)
 {
-	auto FullPrice = ItemToBuy->GetItemRef().ItemNumeraticData.BasePrice * BuyPriceFactor * ItemToBuy->GetQuantity();
+	auto FullPrice = ItemToBuy->GetItemRef().ItemNumeraticData.BasePrice * TradeSettings.BuyPriceFactor * ItemToBuy->GetQuantity();
 	return FullPrice;
 }
 
 float UTradeComponent::GetTotalSellPrice(UItemBase* ItemsToSell)
 {
-	auto FullPrice = ItemsToSell->GetItemRef().ItemNumeraticData.BasePrice * BuyPriceFactor * ItemsToSell->GetQuantity();
+	auto FullPrice = ItemsToSell->GetItemRef().ItemNumeraticData.BasePrice * TradeSettings.SellPriceFactor * ItemsToSell->GetQuantity();
 	return FullPrice;
 }

@@ -43,6 +43,7 @@ void UCoreHUDWidget::InitializeWidget()
 		if (Widget->GetName() == UISettings.ContainerInWorldWidgetName)
 		{
 			ContainerInWorldWidget =Cast<UInvBaseContainerWidget>(Widget);
+			ContainerInWorldWidget->OnClose.AddDynamic(this, &UCoreHUDWidget::Hide);
 			continue;
 		}
 		if (Widget->GetName() == UISettings.VendorInvWidgetName)

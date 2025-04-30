@@ -30,6 +30,21 @@ struct FMoneyCalculationResult
 	bool bHasEnough = false;
 };
 
+USTRUCT(BlueprintType, Blueprintable)
+struct FTradeSettings
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	float BuyPriceFactor = 1.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	float SellPriceFactor = 1.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	bool RemoveItemAfterPurchase = false;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	bool bSellOnly = false;
+};
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class GRIDINVENTORYPLUGIN_API UTradeComponent : public UActorComponent
 {
@@ -44,6 +59,7 @@ public:
 	FOnFaildToBuyItem OnFaildToBuyItemDelegate;
 	FOnFaildToSellItem OnFaildToSellItemDelegate;
 
+	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
@@ -66,6 +82,8 @@ public:
 	UFUNCTION()
 	virtual float GetTotalSellPrice(UItemBase* ItemsToSell);
 
+	FTradeSettings GetTradeSettings() const {return TradeSettings;}
+
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
@@ -78,17 +96,11 @@ protected:
 	UItemCollection* VendorItemCollection = nullptr;
 	UPROPERTY()
 	UItemCollection* BuyerItemCollection = nullptr;
-	
-	//Settings
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float BuyPriceFactor = 1.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float SellPriceFactor = 1.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	bool RemoveItemAfterPurchase = false;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	bool bSellOnly = false;
 
+	//Settings
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	FTradeSettings TradeSettings;
+	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================

@@ -93,6 +93,8 @@ protected:
 	void OnQuickGrabPressed(const FInputActionInstance& Instance);
 	UFUNCTION()
 	void OnQuickGrabReleased(const FInputActionInstance& Instance);
+	void OnGrabAllPressed(const FInputActionInstance& Instance);
+	void OnGrabAllReleased(const FInputActionInstance& Instance);
 	UFUNCTION(BlueprintCallable)
 	void InitializeBindings();
 	UFUNCTION()

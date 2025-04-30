@@ -810,10 +810,7 @@ FReply USlotbasedInventoryWidget::NativeOnMouseButtonDown(const FGeometry& InGeo
 		auto ItemInSlot = InventoryData.ItemCollectionLink->GetItemFromSlot(SlotUnderMouse, this);
 		if (!ItemInSlot) return FReply::Unhandled();
 
-		UIInventoryManager* InventoryManager = GetOwningPlayerPawn()->FindComponentByClass<UIInventoryManager>();
-		if (InventoryManager
-			&& InventoryManager->GetInventoryModifierStates().bIsQuickGrabModifierActive
-			&& ExecuteItemChecks(EInventoryCheckType::PreTransfer, ItemInSlot))
+		if (UIInventoryManager* InventoryManager = GetOwningPlayerPawn()->FindComponentByClass<UIInventoryManager>())
 		{
 			FItemMoveData ItemMoveData;
 			ItemMoveData.SourceInventory = this;
@@ -822,9 +819,25 @@ FReply USlotbasedInventoryWidget::NativeOnMouseButtonDown(const FGeometry& InGeo
 			if (!ItemMoveData.SourceItem)
 				return FReply::Unhandled();
 
-			InventoryManager->OnQuickTransferItem(ItemMoveData);
+			if (InventoryManager->GetInventoryModifierStates().bIsQuickGrabModifierActive
+			&& ExecuteItemChecks(EInventoryCheckType::PreTransfer, ItemInSlot))
+			{
+				InventoryManager->OnQuickTransferItem(ItemMoveData);
 
-			return FReply::Unhandled();
+				return FReply::Unhandled();
+			}
+			if (InventoryManager->GetInventoryModifierStates().bIsGrabAllSameModifierActive
+			&& ExecuteItemChecks(EInventoryCheckType::PreTransfer, ItemInSlot))
+			{
+				auto SameItems = InventoryData.ItemCollectionLink->GetAllSameItemsInContainer(this, ItemMoveData.SourceItem);
+				for (auto Item : SameItems)
+				{
+					ItemMoveData.SourceItem = Item;
+					InventoryManager->OnQuickTransferItem(ItemMoveData);
+				}
+				
+				return FReply::Unhandled();
+			}
 		}
 		
 		//TODO: Rewrite with Hit Testing

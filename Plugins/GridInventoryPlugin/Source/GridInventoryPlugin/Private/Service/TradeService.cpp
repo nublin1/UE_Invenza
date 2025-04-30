@@ -80,7 +80,8 @@ ETradeResult UTradeService::ExecuteSell(const FTradeRequest& Request)
 
 	auto FullPrice = Request.Vendor->GetTotalSellPrice(Request.Item);
 	Request.BuyerInv->HandleAddItem(ItemMoveData, false);
-	Request.VendorInv->HandleRemoveItem(Request.Item, Request.Quantity);	
+	if (Request.Vendor->GetTradeSettings().RemoveItemAfterPurchase)
+		Request.VendorInv->HandleRemoveItem(Request.Item, Request.Quantity);	
 
 	UItemBase* MoneyItem = UItemFactory::CreateItemByID(Request.VendorInv, FName("Money"), FullPrice);
 	FItemMoveData MoneyData (MoneyItem, Request.VendorInv, Request.BuyerInv);

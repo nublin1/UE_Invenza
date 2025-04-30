@@ -6,6 +6,7 @@
 #include "UI/BaseUserWidget.h"
 #include "OperationPanelWidget.generated.h"
 
+class UUIButton;
 class UButton;
 /**
  * 
@@ -21,11 +22,11 @@ public:
 	//====================================================================
 	//Widgets
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = UI, meta=(BindWidgetOptional))
-	TObjectPtr<UButton> Button_TakeAll;
+	TObjectPtr<UUIButton> Button_TakeAll;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = UI, meta=(BindWidgetOptional))
-    TObjectPtr<UButton> Button_PlaceAll;
+    TObjectPtr<UUIButton> Button_PlaceAll;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = UI, meta=(BindWidgetOptional))
-	TObjectPtr<UButton> Button_Sort;
+	TObjectPtr<UUIButton> Button_Sort;
 
 	//====================================================================
 	// FUNCTIONS

@@ -25,10 +25,12 @@ USTRUCT()
 struct FTradeRequest
 {
 	GENERATED_USTRUCT_BODY()
-	
+
+	UPROPERTY()
 	TObjectPtr<UTradeComponent> Vendor;			// Торговый компонент продавца
 	TObjectPtr<UUInventoryWidgetBase> VendorInv;
 	TObjectPtr<UUInventoryWidgetBase> BuyerInv;
+	UPROPERTY()
 	TObjectPtr<UItemBase> Item;					// Что покупаем / продаём
 	int32 Quantity;						// Сколько
 };

@@ -137,7 +137,7 @@ void UUInventoryWidgetBase::UpdateMoneyInfo()
 	{
 		for (auto Item : AllItems)
 		{
-			if (EnumHasAnyFlags(static_cast<EItemCategory>(Item->GetItemRef().ItemCategory), EItemCategory::Money))
+			if (Item->GetItemRef().ItemCategory == EItemCategory::Money)
 				InventoryData.InventoryTotalMoney += Item->GetQuantity();
 		}
 

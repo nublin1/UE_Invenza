@@ -273,6 +273,16 @@ void UIInventoryManager::OnQuickGrabReleased(const FInputActionInstance& Instanc
 	InventoryModifierState.bIsQuickGrabModifierActive = false;
 }
 
+void UIInventoryManager::OnGrabAllPressed(const FInputActionInstance& Instance)
+{
+	InventoryModifierState.bIsGrabAllSameModifierActive = true;
+}
+
+void UIInventoryManager::OnGrabAllReleased(const FInputActionInstance& Instance)
+{
+	InventoryModifierState.bIsGrabAllSameModifierActive = false;
+}
+
 void UIInventoryManager::InitializeBindings()
 {
 	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
@@ -289,7 +299,11 @@ void UIInventoryManager::InitializeBindings()
 
 	if (UISettings.GameplayMappingContext)
 	{
-		InputSubsystem->AddMappingContext(UISettings.InventoryMappingContext, 2);
+		InputSubsystem->AddMappingContext(UISettings.GameplayMappingContext, 0);
+	}
+	if (UISettings.InventoryMappingContext)
+	{
+		InputSubsystem->AddMappingContext(UISettings.InventoryMappingContext, 1);
 	}
 	
 	if (UISettings.ToggleInventoryAction)
@@ -306,6 +320,11 @@ void UIInventoryManager::InitializeBindings()
 	{
 		Input->BindAction(UISettings.IA_Mod_QuickGrab, ETriggerEvent::Started, this, &UIInventoryManager::OnQuickGrabPressed);
 		Input->BindAction(UISettings.IA_Mod_QuickGrab, ETriggerEvent::Completed, this, &UIInventoryManager::OnQuickGrabReleased);
+	}
+	if (UISettings.IA_Mod_GrabAllSame)
+	{
+		Input->BindAction(UISettings.IA_Mod_GrabAllSame, ETriggerEvent::Started, this, &UIInventoryManager::OnGrabAllPressed);
+		Input->BindAction(UISettings.IA_Mod_GrabAllSame, ETriggerEvent::Completed, this, &UIInventoryManager::OnGrabAllReleased);
 	}
 
 	InitializeInvSlotsBindings();

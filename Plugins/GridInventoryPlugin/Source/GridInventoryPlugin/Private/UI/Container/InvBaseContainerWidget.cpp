@@ -8,8 +8,8 @@
 #include "Components/Button.h"
 #include "Components/NamedSlot.h"
 #include "Components/TextBlock.h"
-#include "Kismet/GameplayStatics.h"
 #include "UI/Core/CoreHUDWidget.h"
+#include "UI/Core/Buttons/UIButton.h"
 #include "UI/Core/MovableTitleBar/MovableTitleBar.h"
 #include "UI/Core/OperationsPanel/OperationPanelWidget.h"
 #include "UI/Core/Weight/InvWeightWidget.h"
@@ -25,10 +25,10 @@ void UInvBaseContainerWidget::NativeConstruct()
 	Super::NativeConstruct();
 
 	UUInventoryWidgetBase* Inventory = GetInventoryFromContainerSlot();
-
 	if (TitleBar)
 	{
 		TitleBar->SetParentWidget(this);
+		TitleBar->TitleName->SetText(Title);
 		TitleBar->Button_Close->OnClicked.AddDynamic(this, &UInvBaseContainerWidget::CloseButtonClicked);
 	}	
 
@@ -45,17 +45,21 @@ void UInvBaseContainerWidget::NativeConstruct()
 		}
 	}
 
-	Inventory->OnMoneyUpdatedDelegate.AddDynamic(this, &UInvBaseContainerWidget::UpdateMoneyInfo);
-	
 	if (OperationsSlot && OperationsSlot->GetChildrenCount() > 0)
 	{
 		if (auto OperationsWidget = Cast<UOperationPanelWidget>(OperationsSlot->GetChildAt(0)))
 		{
-			if (OperationsWidget->Button_TakeAll) OperationsWidget->Button_TakeAll->OnClicked.AddDynamic(this, &UInvBaseContainerWidget::TakeAll);
-			if (OperationsWidget->Button_PlaceAll) OperationsWidget->Button_PlaceAll->OnClicked.AddDynamic(this, &UInvBaseContainerWidget::PlaceAll);
-			if (OperationsWidget->Button_Sort) OperationsWidget->Button_Sort->OnClicked.AddDynamic(this, &UInvBaseContainerWidget::SortItems);
+			if (OperationsWidget->Button_TakeAll && OperationsWidget->Button_TakeAll->MainButton)
+				OperationsWidget->Button_TakeAll->MainButton->OnClicked.AddDynamic(this, &UInvBaseContainerWidget::TakeAll);
+			if (OperationsWidget->Button_PlaceAll && OperationsWidget->Button_PlaceAll->MainButton)
+				OperationsWidget->Button_PlaceAll->MainButton->OnClicked.AddDynamic(this, &UInvBaseContainerWidget::PlaceAll);
+			if (OperationsWidget->Button_Sort && OperationsWidget->Button_Sort->MainButton)
+				OperationsWidget->Button_Sort->MainButton->OnClicked.AddDynamic(this, &UInvBaseContainerWidget::SortItems);
+			
 		}
 	}
+
+	Inventory->OnMoneyUpdatedDelegate.AddDynamic(this, &UInvBaseContainerWidget::UpdateMoneyInfo);
 }
 
 void UInvBaseContainerWidget::CloseButtonClicked()
