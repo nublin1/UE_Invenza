@@ -5,6 +5,8 @@
 #include "ActorComponents/ItemCollection.h"
 #include "ActorComponents/UIInventoryManager.h"
 #include "ActorComponents/Items/itemBase.h"
+#include "Components/Border.h"
+#include "Components/Button.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Components/ScrollBox.h"
@@ -12,8 +14,13 @@
 #include "Components/UniformGridSlot.h"
 #include "DragDrop/ItemDragDropOperation.h"
 #include "Slate/SObjectWidget.h"
+#include "UI/Core/CoreCellWidget.h"
+#include "UI/Core/Buttons/ItemCategoryButton.h"
+#include "UI/Core/Buttons/UIButton.h"
+#include "UI/Core/ItemFiltersPanel/ItemFiltersPanel.h"
 #include "UI/Drag/HighlightSlotWidget.h"
 #include "UI/HelpersWidgets/ItemTooltipWidget.h"
+#include "UI/Inventory/ListInventoryWidget.h"
 #include "UI/Item/InventoryItemWidget.h"
 
 USlotbasedInventoryWidget::USlotbasedInventoryWidget(): SlotsGridPanel(nullptr)
@@ -46,7 +53,18 @@ void USlotbasedInventoryWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 	
-	OnVisibilityChanged.AddDynamic(this, &USlotbasedInventoryWidget::HandleVisibilityChanged);
+	if (ItemFiltersPanel)
+	{
+		for (auto FilterButton : ItemFiltersPanel->GetFilteredCategores())
+		{
+			FilterButton->OnButtonClicked.AddDynamic(this, &USlotbasedInventoryWidget::OnFilterStatusChanged);
+		}
+
+		if (ItemFiltersPanel->GetClearFiltersButton())
+		{			
+			ItemFiltersPanel->GetClearFiltersButton()->MainButton->OnClicked.AddDynamic(this, &USlotbasedInventoryWidget::ClearFilters);
+		}
+	}
 }
 
 void USlotbasedInventoryWidget::InitSlots()
@@ -97,11 +115,73 @@ void USlotbasedInventoryWidget::InitSlots()
 	InventoryData.InventorySlots = ConvertedSlots;
 }
 
-void USlotbasedInventoryWidget::HandleVisibilityChanged(ESlateVisibility NewVisibility)
+void USlotbasedInventoryWidget::ClearFilters()
 {
-	if (NewVisibility == ESlateVisibility::Visible)
+	for (auto Item : InventoryData.ItemCollectionLink->GetAllItemsByContainer(this))
 	{
+		auto ItemMapping = InventoryData.ItemCollectionLink->FindItemMappingForItemInContainer(Item, this);
+		if (!ItemMapping)
+			continue;
+
+		ItemMapping->ItemVisualLinked->GetCoreCellWidget()->ResetBorderColor();
+		ItemMapping->ItemVisualLinked->ChangeOpacity(1.0f);
+	}
+
+	ActiveFilters.Empty();
+}
+
+void USlotbasedInventoryWidget::OnFilterStatusChanged(UUIButton* ItemCategoryButton)
+{
+	auto CastedCategoryButton = Cast<UItemCategoryButton>(ItemCategoryButton);
+	if (!CastedCategoryButton)
+		return;
+
+	for (auto Item : InventoryData.ItemCollectionLink->GetAllItemsByContainer(this))
+	{
+		auto ItemMapping = InventoryData.ItemCollectionLink->FindItemMappingForItemInContainer(Item, this);
+		if (!ItemMapping)
+			continue;
+
+		ItemMapping->ItemVisualLinked->ChangeOpacity(ItemFiltersPanel->FilterOpacity);
+	}
+
+	if (CastedCategoryButton->GetToggleStatus())
+	{
+		ActiveFilters.Add(CastedCategoryButton->GetItemCategory());
 		
+	}
+	else
+	{
+		ActiveFilters.Remove(CastedCategoryButton->GetItemCategory());
+		for (auto Item : InventoryData.ItemCollectionLink->GetAllItemsByCategory(CastedCategoryButton->GetItemCategory()))
+		{
+			auto ItemMapping = InventoryData.ItemCollectionLink->FindItemMappingForItemInContainer(Item, this);
+			if (!ItemMapping)
+				continue;
+
+			ItemMapping->ItemVisualLinked->GetCoreCellWidget()->ResetBorderColor();
+			ItemMapping->ItemVisualLinked->ChangeOpacity(ItemFiltersPanel->FilterOpacity);
+		}
+	}
+
+	if (ActiveFilters.Num() == 0)
+	{
+		ClearFilters();
+		return;
+	}
+
+	for (auto ActiveFilter : ActiveFilters)
+	{
+		for (auto Item : InventoryData.ItemCollectionLink->GetAllItemsByCategory(ActiveFilter))
+		{
+			auto ItemMapping = InventoryData.ItemCollectionLink->FindItemMappingForItemInContainer(Item, this);
+			if (!ItemMapping)
+				continue;
+
+			if (ItemFiltersPanel->bUseFilterColor)
+				ItemMapping->ItemVisualLinked->ChangeBorderColor(ItemFiltersPanel->FilterColor);
+			ItemMapping->ItemVisualLinked->ChangeOpacity(1.0f);
+		}
 	}
 }
 

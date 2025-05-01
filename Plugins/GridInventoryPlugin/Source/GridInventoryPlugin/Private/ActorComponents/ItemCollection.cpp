@@ -258,7 +258,7 @@ TArray<UItemBase*> UItemCollection::GetAllItemsByCategory(EItemCategory ItemCate
 	for (const auto& Pair : ItemLocations)
 	{
 		auto Item = Pair.Key;
-		if (EnumHasAnyFlags(static_cast<EItemCategory>(Item->GetItemRef().ItemCategory), ItemCategory))
+		if (Item->GetItemRef().ItemCategory == ItemCategory)
 		{
 			SameItems.Add(Item.Get());
 		}

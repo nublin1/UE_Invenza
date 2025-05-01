@@ -22,6 +22,12 @@ public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ToolTip = "Enable filter color override"))
+	bool bUseFilterColor = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ToolTip = "Only for Grid inventory", EditCondition = "bUseFilterColor"))
+	FLinearColor FilterColor = FLinearColor::Green;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ToolTip="Only for Grid inventory"))
+	float FilterOpacity = 0.15f;
 
 	//====================================================================
 	// FUNCTIONS

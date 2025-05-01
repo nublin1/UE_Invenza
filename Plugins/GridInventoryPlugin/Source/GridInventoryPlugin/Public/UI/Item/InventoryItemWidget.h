@@ -1,4 +1,5 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// Nublin Studio 2025 All Rights Reserved.
+
 
 #pragma once
 
@@ -31,6 +32,8 @@ public:
 	//====================================================================
 	UInventoryItemWidget();
 
+	UCoreCellWidget* GetCoreCellWidget() const {return CoreCellWidget.Get();}
+
 	UFUNCTION()
 	void UpdateVisual(UItemBase* Item);
 	UFUNCTION()
@@ -39,23 +42,28 @@ public:
 	void UpdateItemName(FText Name);
 	UFUNCTION()
 	void UpdateQuantityText(int Quantity);
+
+	UFUNCTION(BlueprintCallable)
+	void ChangeBorderColor(FLinearColor NewColor) const;
+	UFUNCTION(BlueprintCallable)
+	void ChangeOpacity(float NewValue);
 	
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	// Widgets
-	UPROPERTY(VisibleAnywhere, meta=(BindWidget))
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta=(BindWidget))
 	TObjectPtr<UCoreCellWidget> CoreCellWidget;
-	UPROPERTY(VisibleAnywhere, meta=(BindWidgetOptional))
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta=(BindWidgetOptional))
 	TObjectPtr<USizeBox> SizeBoxText;
-	UPROPERTY(VisibleAnywhere, Category="Inventory Slot", meta=(BindWidgetOptional))
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Inventory Slot", meta=(BindWidgetOptional))
 	TObjectPtr<UHorizontalBox> HBoxName;
-	UPROPERTY(VisibleAnywhere, Category="Inventory Slot", meta=(BindWidgetOptional))
+	UPROPERTY(VisibleAnywhere,BlueprintReadWrite, Category="Inventory Slot", meta=(BindWidgetOptional))
 	TObjectPtr<UTextBlock> ItemName;
-	UPROPERTY(VisibleAnywhere, Category="Inventory Slot", meta=(BindWidgetOptional))
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Inventory Slot", meta=(BindWidgetOptional))
 	TObjectPtr<UHorizontalBox> HBoxQuantity;
-	UPROPERTY(VisibleAnywhere, Category="Inventory Slot", meta=(BindWidgetOptional))
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Inventory Slot", meta=(BindWidgetOptional))
 	TObjectPtr<UTextBlock> ItemQuantity;
 		
 	//====================================================================

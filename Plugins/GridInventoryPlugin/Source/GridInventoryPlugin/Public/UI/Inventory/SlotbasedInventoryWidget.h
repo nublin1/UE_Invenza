@@ -10,6 +10,9 @@
 #include "UI/BaseUserWidget.h"
 #include "SlotbasedInventoryWidget.generated.h"
 
+class UItemFiltersPanel;
+enum class EItemCategory : uint8;
+class UUIButton;
 class UButton;
 class UItemCollection;
 class UScrollBox;
@@ -48,6 +51,8 @@ protected:
 	//====================================================================
 	// Widgets
 	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UItemFiltersPanel> ItemFiltersPanel;
+	UPROPERTY(meta=(BindWidgetOptional))
 	TObjectPtr<UScrollBox> ScrollBox;
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UUniformGridPanel> SlotsGridPanel;
@@ -69,6 +74,10 @@ protected:
 	// Settings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
 	bool bHasSlotSpacing = false;
+
+	//
+	UPROPERTY()
+	TArray<EItemCategory> ActiveFilters;
 	
 	//====================================================================
 	// FUNCTIONS
@@ -77,8 +86,11 @@ protected:
 	
 	UFUNCTION()
 	virtual void InitSlots();
+
 	UFUNCTION()
-	virtual void HandleVisibilityChanged(ESlateVisibility NewVisibility);
+	virtual void ClearFilters();
+	UFUNCTION()
+	virtual void OnFilterStatusChanged(UUIButton* ItemCategoryButton);
 	
 	virtual UInventorySlot* GetSlotByPosition(FIntVector2 SlotPosition);
 	virtual bool bIsSlotEmpty(const FIntVector2 SlotPosition);

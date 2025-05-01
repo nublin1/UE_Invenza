@@ -42,16 +42,22 @@ public:
 	//====================================================================
 	UCoreCellWidget();
 
+	virtual void ResetBorderColor();
+
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	UPROPERTY(EditAnywhere,BlueprintReadWrite)
 	FVector2D StartSlotSize = FVector2d(100.0f);
+
+	//
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	FLinearColor InitialBorderColor;
 	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-
 	virtual void NativePreConstruct() override;
+	
 };

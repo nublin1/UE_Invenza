@@ -1,10 +1,11 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// Nublin Studio 2025 All Rights Reserved.
 
 
 #include "UI/Item/InventoryItemWidget.h"
 
 
 #include "ActorComponents/Items/itemBase.h"
+#include "Components/Border.h"
 #include "Components/Image.h"
 #include "Components/SizeBox.h"
 #include "Components/TextBlock.h"
@@ -52,6 +53,19 @@ void UInventoryItemWidget::UpdateQuantityText(int Quantity)
 		ItemQuantity->SetText(FText::AsNumber(Quantity));
 	else
 		ItemQuantity->SetVisibility(ESlateVisibility::Collapsed);
+}
+
+void UInventoryItemWidget::ChangeBorderColor(FLinearColor NewColor) const
+{
+	CoreCellWidget->Left_Border->SetBrushColor(NewColor);
+	CoreCellWidget->Right_Border->SetBrushColor(NewColor);
+	CoreCellWidget->Top_Border->SetBrushColor(NewColor);
+	CoreCellWidget->BottomBorder->SetBrushColor(NewColor);
+}
+
+void UInventoryItemWidget::ChangeOpacity(float NewValue)
+{
+	CoreCellWidget->Content_Image->SetOpacity(NewValue);
 }
 
 FReply UInventoryItemWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
