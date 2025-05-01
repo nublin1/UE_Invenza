@@ -7,6 +7,7 @@
 #include "UI/BaseUserWidget.h"
 #include "ListInventoryWidget.generated.h"
 
+class UEditableText;
 class UInventoryListEntry;
 class UListView;
 class UScrollBox;
@@ -43,16 +44,23 @@ protected:
 	UPROPERTY(meta=(BindWidgetOptional))
 	TObjectPtr<UScrollBox> ScrollBox;
 	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UEditableText> SearchText;
+	UPROPERTY(meta=(BindWidgetOptional))
 	TObjectPtr<UListView> ItemsList;
 
 	//
 	UPROPERTY(BlueprintReadOnly)
-	TArray<TObjectPtr<UInventoryListEntry>> ItemsArray;	
+	TArray<TObjectPtr<UInventoryListEntry>> InvSlotsArray;
+	UPROPERTY(BlueprintReadOnly)
+	TArray<TObjectPtr<UInventoryListEntry>> FiltredInvSlotsArray;	
 
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
 	virtual void NativeConstruct() override;
+
+	UFUNCTION()
+	virtual void SearchTextChanged(const FText& NewText);
 
 	virtual FItemAddResult HandleNonStackableItems(FItemMoveData& ItemMoveData, bool bOnlyCheck = false) override;
 	virtual int32 HandleStackableItems(FItemMoveData& ItemMoveData, int32 RequestedAddAmount,

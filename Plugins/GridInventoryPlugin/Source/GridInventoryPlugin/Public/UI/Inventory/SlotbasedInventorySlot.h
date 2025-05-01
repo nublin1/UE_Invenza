@@ -40,6 +40,9 @@ protected:
 	//====================================================================
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString InUseKeyTextByDefault;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Defaults")
+	TObjectPtr<UTexture2D> CellImage;
 	
 	//====================================================================
 	// FUNCTIONS

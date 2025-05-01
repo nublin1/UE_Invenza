@@ -7,6 +7,7 @@
 #include "UI/BaseUserWidget.h"
 #include "InventorySlot.generated.h"
 
+class UCoreCellWidget;
 class UInputAction;
 class UItemBase;
 /**
@@ -45,7 +46,7 @@ public:
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
-	//====================================================================
+	//====================================================================	
 	UPROPERTY(VisibleAnywhere)
 	FIntVector2 SlotPosition{};
 

@@ -33,9 +33,16 @@ protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	
+	// Widgets
+	UPROPERTY(meta=(BindWidget))
+	TObjectPtr<UCoreCellWidget> CoreCellWidget;
+
+	//
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Defaults")
+	TObjectPtr<UTexture2D> CellImage;
 
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+	virtual void NativeConstruct() override;
 };
