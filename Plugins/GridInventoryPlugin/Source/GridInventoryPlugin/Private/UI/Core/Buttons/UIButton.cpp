@@ -3,6 +3,7 @@
 
 #include "UI/Core/Buttons/UIButton.h"
 
+#include "Components/Button.h"
 #include "Components/Image.h"
 #include "Components/SizeBox.h"
 #include "Components/TextBlock.h"
@@ -25,7 +26,7 @@ void UUIButton::NativePreConstruct()
 	{
 		MainLabel->SetText(DefaultText);
 	}
-
+	
 	if (MainImage)
 	{
 		if (DefaultImage)
@@ -36,4 +37,22 @@ void UUIButton::NativePreConstruct()
 			MainImage->SetBrush(Brush);
 		}
 	}
+}
+
+void UUIButton::NativeConstruct()
+{
+	Super::NativeConstruct();
+	
+	MainButton->OnPressed.AddDynamic(this, &UUIButton::OnMainButtonClicked);
+}
+
+void UUIButton::OnMainButtonClicked()
+{
+	if (bIsToggleButton)
+	{
+		bIsToggleOn = !bIsToggleOn;
+	}
+
+	if (OnButtonClicked.IsBound())
+		OnButtonClicked.Broadcast(this);
 }

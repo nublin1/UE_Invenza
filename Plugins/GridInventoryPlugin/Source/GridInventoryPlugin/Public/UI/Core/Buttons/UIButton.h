@@ -10,6 +10,10 @@ class USizeBox;
 class UButton;
 class UImage;
 class UTextBlock;
+
+#pragma region Delegates
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnButtonClicked, UUIButton*, UIButton);
+#pragma endregion Delegates
 /**
  * 
  */
@@ -22,6 +26,11 @@ public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
+	// Delegates
+	UPROPERTY(BlueprintAssignable, BlueprintCallable)
+	FOnButtonClicked OnButtonClicked;
+	
+	// Widgets
 	UPROPERTY(meta=(BindWidgetOptional))
 	TObjectPtr<USizeBox> MainBox;
 	UPROPERTY(meta=(BindWidgetOptional))
@@ -36,13 +45,17 @@ public:
 	//====================================================================
 	UUIButton();
 
+	bool GetToggleStatus() const {return bIsToggleOn;}
+
+	void SetToggleStatus(const bool bNewStatus) {bIsToggleOn = bNewStatus;}
+
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	bool bIsToggleButton;
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bIsToggleOn;
 
 	//
@@ -57,4 +70,8 @@ protected:
 	// FUNCTIONS
 	//====================================================================
 	virtual void NativePreConstruct() override;
+	virtual void NativeConstruct() override;
+
+	UFUNCTION()
+	virtual void OnMainButtonClicked();
 };

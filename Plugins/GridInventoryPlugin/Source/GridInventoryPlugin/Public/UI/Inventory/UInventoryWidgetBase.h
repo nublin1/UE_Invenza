@@ -32,6 +32,7 @@ public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
+	// Delegates
 	FOnItemDropped OnItemDroppedDelegate;
 	FOnItemUpdateDelegate OnItemUpdateDelegate;
 	FOnAddItemDelegate OnAddItemDelegate;	

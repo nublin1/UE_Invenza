@@ -7,6 +7,9 @@
 #include "UI/BaseUserWidget.h"
 #include "ListInventoryWidget.generated.h"
 
+class UItemCategoryButton;
+class UUIButton;
+class UItemFiltersPanel;
 class UEditableText;
 class UInventoryListEntry;
 class UListView;
@@ -42,6 +45,8 @@ protected:
 	//====================================================================
 	// Widgets
 	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UItemFiltersPanel> ItemFiltersPanel;
+	UPROPERTY(meta=(BindWidgetOptional))
 	TObjectPtr<UScrollBox> ScrollBox;
 	UPROPERTY(meta=(BindWidgetOptional))
 	TObjectPtr<UEditableText> SearchText;
@@ -52,13 +57,22 @@ protected:
 	UPROPERTY(BlueprintReadOnly)
 	TArray<TObjectPtr<UInventoryListEntry>> InvSlotsArray;
 	UPROPERTY(BlueprintReadOnly)
-	TArray<TObjectPtr<UInventoryListEntry>> FiltredInvSlotsArray;	
+	TArray<TObjectPtr<UInventoryListEntry>> FiltredInvSlotsArray;
+	UPROPERTY()
+	int32 FiltersEnabledCount = 0;
+	/** Whether to search in filtered inventory slots instead of the full inventory slots array */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory", meta=(ToolTip="If true, search will be performed in the filtered inventory slots array; otherwise, search will be performed in the main inventory slots array."))
+	bool bUseFilteredSlots;
 
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
 	virtual void NativeConstruct() override;
 
+	UFUNCTION()
+	virtual void ClearFilters();
+	UFUNCTION()
+	virtual void OnFilterStatusChanged(UUIButton* ItemCategoryButton);
 	UFUNCTION()
 	virtual void SearchTextChanged(const FText& NewText);
 
