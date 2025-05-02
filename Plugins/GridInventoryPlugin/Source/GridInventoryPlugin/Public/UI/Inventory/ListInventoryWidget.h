@@ -49,8 +49,6 @@ protected:
 	UPROPERTY(meta=(BindWidgetOptional))
 	TObjectPtr<UScrollBox> ScrollBox;
 	UPROPERTY(meta=(BindWidgetOptional))
-	TObjectPtr<UEditableText> SearchText;
-	UPROPERTY(meta=(BindWidgetOptional))
 	TObjectPtr<UListView> ItemsList;
 
 	//
@@ -60,9 +58,6 @@ protected:
 	TArray<TObjectPtr<UInventoryListEntry>> FiltredInvSlotsArray;
 	UPROPERTY()
 	int32 FiltersEnabledCount = 0;
-	/** Whether to search in filtered inventory slots instead of the full inventory slots array */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory", meta=(ToolTip="If true, search will be performed in the filtered inventory slots array; otherwise, search will be performed in the main inventory slots array."))
-	bool bUseFilteredSlots;
 
 	//====================================================================
 	// FUNCTIONS

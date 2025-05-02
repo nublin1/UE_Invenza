@@ -91,6 +91,8 @@ protected:
 	virtual void ClearFilters();
 	UFUNCTION()
 	virtual void OnFilterStatusChanged(UUIButton* ItemCategoryButton);
+	UFUNCTION()
+	virtual void SearchTextChanged(const FText& NewText);
 	
 	virtual UInventorySlot* GetSlotByPosition(FIntVector2 SlotPosition);
 	virtual bool bIsSlotEmpty(const FIntVector2 SlotPosition);

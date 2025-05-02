@@ -6,6 +6,7 @@
 #include "UI/BaseUserWidget.h"
 #include "ItemFiltersPanel.generated.h"
 
+class UEditableText;
 class UUIButton;
 class UItemCategoryButton;
 class UVerticalBox;
@@ -25,7 +26,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ToolTip = "Enable filter color override"))
 	bool bUseFilterColor = false;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ToolTip = "Only for Grid inventory", EditCondition = "bUseFilterColor"))
-	FLinearColor FilterColor = FLinearColor::Green;
+	FLinearColor ItemFilterBorderColor = FLinearColor::Green;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ToolTip="Only for Grid inventory"))
 	float FilterOpacity = 0.15f;
 
@@ -34,6 +35,8 @@ public:
 	//====================================================================
 	UUIButton* GetClearFiltersButton() const {return ClearFiltersButton; }
 	TArray<TObjectPtr<UItemCategoryButton>> GetFilteredCategores() const {return CategoryButtonList;}
+	UEditableText* GetSearchText() const {return SearchText; }
+	bool IsSearchInFilteredSlots() const {return bSearchInFilteredSlots; }
 
 	UFUNCTION()
 	virtual void DisableAllFilters();
@@ -44,16 +47,24 @@ protected:
 	//====================================================================
 	// Widgets
 	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UHorizontalBox> HorizontalBox;
+	TObjectPtr<UHorizontalBox> HorizontalContentBox;
 	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UVerticalBox> VerticalBox;
+	TObjectPtr<UVerticalBox> VerticalContentBox;
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UEditableText> SearchText;
 
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidgetOptional))
 	TObjectPtr<UUIButton> ClearFiltersButton;
 
 	//
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bIsShowSearchField = true;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TArray<TObjectPtr<UItemCategoryButton>> CategoryButtonList;
+	
+	/** Whether to search in filtered inventory slots instead of the full inventory slots array */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ToolTip="If true, search will be performed in the filtered inventory slots"))
+	bool bSearchInFilteredSlots;
 
 	//====================================================================
 	// FUNCTIONS

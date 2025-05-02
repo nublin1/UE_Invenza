@@ -6,6 +6,7 @@
 #include "ActorComponents/ItemCollection.h"
 #include "ActorComponents/Items/itemBase.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
+#include "DragDrop/InvContainerDragDropOperation.h"
 #include "DragDrop/ItemDragDropOperation.h"
 #include "Kismet/GameplayStatics.h"
 #include "UI/Container/InvBaseContainerWidget.h"
@@ -158,25 +159,40 @@ void UCoreHUDWidget::Hide(UBaseUserWidget* UserWidget)
 bool UCoreHUDWidget::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent,
                                   UDragDropOperation* InOperation)
 {
-	Super::NativeOnDrop(InGeometry, InDragDropEvent, InOperation);
+	const bool bSuperHandled = Super::NativeOnDrop(InGeometry, InDragDropEvent, InOperation);
 	
-	if (!InOperation) return false;
+	if (!InOperation) return bSuperHandled;
 
-	auto DragOp = Cast<UItemDragDropOperation>(InOperation);
-	if (DragOp->Payload && DragOp->Payload->GetClass()->ImplementsInterface(UUDraggableWidgetInterface::StaticClass()))
+	if (auto DragOp = Cast<UItemDragDropOperation>(InOperation))
 	{
-		return IUDraggableWidgetInterface::Execute_OnDropped(DragOp->Payload, InGeometry, DragOp->DragOffset);
-	}
+		if (!DragOp)
+			return bSuperHandled;
+		
+		if (DragOp->Payload && DragOp->Payload->GetClass()->ImplementsInterface(UUDraggableWidgetInterface::StaticClass()))
+		{
+			return IUDraggableWidgetInterface::Execute_OnDropped(DragOp->Payload, InGeometry, DragOp->DragOffset);
+		}
 
-	if (DragOp->ItemMoveData.SourceInventory->GetInventorySettings().bUseReferences)
-	{
-		DragOp->ItemMoveData.SourceInventory->HandleRemoveItemFromContainer(DragOp->ItemMoveData.SourceItem);
+		if (DragOp->ItemMoveData.SourceInventory->GetInventorySettings().bUseReferences)
+		{
+			DragOp->ItemMoveData.SourceInventory->HandleRemoveItemFromContainer(DragOp->ItemMoveData.SourceItem);
+			return true;
+		}
+	
+		DragOp->ItemMoveData.SourceInventory->GetInventoryData().ItemCollectionLink->RemoveItemFromAllContainers(DragOp->ItemMoveData.SourceItem);
+		auto Item = DragOp->ItemMoveData.SourceItem->DuplicateItem();
+		Item->DropItem(GetWorld());
+	
 		return true;
 	}
+
+	if (auto DragOp = Cast<UInvContainerDragDropOperation>(InOperation))
+	{
+		if (DragOp->Payload && DragOp->Payload->GetClass()->ImplementsInterface(UUDraggableWidgetInterface::StaticClass()))
+		{
+			return IUDraggableWidgetInterface::Execute_OnDropped(DragOp->Payload, InGeometry, DragOp->DragOffset);
+		}
+	}
+	return bSuperHandled;
 	
-	DragOp->ItemMoveData.SourceInventory->GetInventoryData().ItemCollectionLink->RemoveItemFromAllContainers(DragOp->ItemMoveData.SourceItem);
-	auto Item = DragOp->ItemMoveData.SourceItem->DuplicateItem();
-	Item->DropItem(GetWorld());
-	
-	return true;
 }

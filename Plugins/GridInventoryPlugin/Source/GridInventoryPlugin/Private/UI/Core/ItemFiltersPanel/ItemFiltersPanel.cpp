@@ -4,6 +4,7 @@
 #include "UI/Core/ItemFiltersPanel/ItemFiltersPanel.h"
 
 #include "Components/Button.h"
+#include "Components/EditableText.h"
 #include "Components/HorizontalBox.h"
 #include "Components/VerticalBox.h"
 #include "UI/Core/Buttons/ItemCategoryButton.h"
@@ -12,9 +13,14 @@ void UItemFiltersPanel::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	if (HorizontalBox && HorizontalBox->GetChildrenCount()> 0)
+	if (!bIsShowSearchField && SearchText)
 	{
-		for (auto HorizontalChild : HorizontalBox->GetAllChildren())
+		SearchText->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
+	if (HorizontalContentBox && HorizontalContentBox->GetChildrenCount()> 0)
+	{
+		for (auto HorizontalChild : HorizontalContentBox->GetAllChildren())
 		{
 			if (auto ItemCategoryButton =  Cast<UItemCategoryButton>(HorizontalChild))
 			{
@@ -23,9 +29,9 @@ void UItemFiltersPanel::NativeConstruct()
 		}
 	}
 
-	if (VerticalBox && VerticalBox->GetChildrenCount()>0)
+	if (VerticalContentBox && VerticalContentBox->GetChildrenCount()>0)
 	{
-		for (auto VerticalChild : VerticalBox->GetAllChildren())
+		for (auto VerticalChild : VerticalContentBox->GetAllChildren())
 		{
 			if (auto ItemCategoryButton =  Cast<UItemCategoryButton>(VerticalChild))
 			{
@@ -48,6 +54,7 @@ void UItemFiltersPanel::DisableAllFilters()
 	if (CategoryButtonList.IsEmpty())
 		return;
 
+	SearchText->SetText(FText::FromString(""));
 	for (auto CategoryButton : CategoryButtonList)
 	{
 		CategoryButton->SetToggleStatus(false);

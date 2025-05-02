@@ -52,7 +52,6 @@ protected:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-
 	UFUNCTION()
 	virtual void InitializeInteractionComponent();
 	UFUNCTION()

@@ -43,13 +43,14 @@ FMoneyCalculationResult UTradeComponent::AccumulatePayment(UItemCollection* Item
 	FMoneyCalculationResult Result;
 	Result.AvailableMoney  = CalculateAvailableMoney(ItemCollection);
 	
-	TArray<UItemBase*> SellerMoneyItems = ItemCollection->GetAllItemsByCategory(EItemCategory::Money);
-	if (SellerMoneyItems.IsEmpty())
+	TArray<UItemBase*> MoneyItems = ItemCollection->GetAllItemsByCategory(EItemCategory::Money);
+	if (MoneyItems.IsEmpty())
 	{
-		Result.bHasEnough =false;
+		Result.bHasEnough = false;
+		return Result;
 	}
 	
-	for (UItemBase* MoneyItem : SellerMoneyItems)
+	for (UItemBase* MoneyItem : MoneyItems)
 	{
 		int32 Quantity = MoneyItem->GetQuantity();
 		float UnitValue = MoneyItem->GetItemRef().ItemNumeraticData.BasePrice;

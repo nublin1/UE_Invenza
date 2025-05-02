@@ -7,6 +7,7 @@
 #include "UI/Inrefaces/UDraggableWidgetInterface.h"
 #include "MovableTitleBar.generated.h"
 
+class UCoreCellWidget;
 class UButton;
 class UTextBlock;
 /**
@@ -40,6 +41,12 @@ protected:
 	//====================================================================
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FText Title;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<UBaseUserWidget> DragContainerWidgetClass;
+
+	//
+	UPROPERTY()
+	UCoreCellWidget* DragContainer_Temp;
 
 	//====================================================================
 	// FUNCTIONS
@@ -51,5 +58,4 @@ protected:
 
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	virtual void NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation) override;
-	
 };

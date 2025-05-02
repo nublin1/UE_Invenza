@@ -6,10 +6,13 @@
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Components/PanelWidget.h"
+#include "Components/SizeBox.h"
 #include "Components/TextBlock.h"
+#include "DragDrop/InvContainerDragDropOperation.h"
 #include "DragDrop/ItemDragDropOperation.h"
+#include "UI/Core/CoreCellWidget.h"
 
-UMovableTitleBar::UMovableTitleBar()
+UMovableTitleBar::UMovableTitleBar(): DragContainer_Temp(nullptr)
 {
 }
 
@@ -35,6 +38,9 @@ bool UMovableTitleBar::OnDropped_Implementation(const FGeometry& DropGeometry, F
 	
 	CaSlot->SetPosition(DropPosition - DragOffset);
 	ParentWidget->SetVisibility(ESlateVisibility::Visible);
+
+	if (DragContainer_Temp)
+		DragContainer_Temp->RemoveFromParent();
 	return true;
 }
 
@@ -53,14 +59,31 @@ FReply UMovableTitleBar::NativeOnMouseButtonDown(const FGeometry& InGeometry, co
 void UMovableTitleBar::NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent,
 	UDragDropOperation*& OutOperation)
 {
-	UItemDragDropOperation* DragOperation = NewObject<UItemDragDropOperation>();
-	DragOperation->DefaultDragVisual = ParentWidget;
+	DragContainer_Temp = CreateWidget<UCoreCellWidget>(GetWorld(), DragContainerWidgetClass);
+	if (DragContainer_Temp)
+	{
+		DragContainer_Temp->AddToPlayerScreen(1);
+		DragContainer_Temp->SetPositionInViewport(FVector2D(-10000, -10000));
+
+		FVector2D OriginalSize = ParentWidget->GetCachedGeometry().GetLocalSize();
+		DragContainer_Temp->SizeBox->SetWidthOverride(OriginalSize.X);
+		DragContainer_Temp->SizeBox->SetHeightOverride (OriginalSize.Y);
+		DragContainer_Temp->SetDesiredSizeInViewport(OriginalSize);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("Drag Widget not found"));
+		return;
+	}
+	
+	UInvContainerDragDropOperation* DragOperation = NewObject<UInvContainerDragDropOperation>();
+	DragOperation->DefaultDragVisual = DragContainer_Temp;
 	DragOperation->Pivot = EDragPivot::MouseDown;
 	DragOperation->Payload = this;
-
+	
 	FVector2D ScreenCursorPos = InMouseEvent.GetScreenSpacePosition();
-	auto DragOffset = ParentWidget->GetCachedGeometry().AbsoluteToLocal(ScreenCursorPos);
-	DragOperation->DragOffset = DragOffset;
+	auto _DragOffset = ParentWidget->GetCachedGeometry().AbsoluteToLocal(ScreenCursorPos);
+	DragOperation->DragOffset = _DragOffset;
 	
 	OutOperation = DragOperation;
 

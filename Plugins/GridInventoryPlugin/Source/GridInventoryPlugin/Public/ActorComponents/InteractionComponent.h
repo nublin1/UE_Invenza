@@ -35,20 +35,20 @@ public:
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	//Delegates
-	UPROPERTY(BlueprintAssignable, Category="Interaction")
+	UPROPERTY(BlueprintAssignable, Category = "Interaction|Events")
 	FBeginFocus BeginFocusDelegate;
-	UPROPERTY(BlueprintAssignable, Category="Interaction")
+	UPROPERTY(BlueprintAssignable, Category = "Interaction|Events")
 	FEndFocus EndFocusDelegate;
-	UPROPERTY(BlueprintAssignable, Category="Interaction")
+	UPROPERTY(BlueprintAssignable, Category = "Interaction|Events")
 	FIteract IteractableDataDelegate;
-	UPROPERTY(BlueprintAssignable, Category="Interaction")
+	UPROPERTY(BlueprintAssignable, Category = "Interaction|Events")
 	FStopIteract StopIteractDelegate;
-	UPROPERTY(BlueprintAssignable, Category="Interaction")
+	UPROPERTY(BlueprintAssignable, Category = "Interaction|Events")
 	FEndIteract EndIteractDelegate;
-	UPROPERTY(BlueprintAssignable, Category = "Interaction")
+	UPROPERTY(BlueprintAssignable, Category = "Interaction|Events")
 	FInteractionProgressDelegate OnInteractionProgress;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Settings")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interaction|UI")
 	FUISettings RegularSettings;
 	
 	//====================================================================
@@ -63,20 +63,23 @@ protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(EditAnywhere, Category = "Character | Interaction")
+#pragma region Settings
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction|Trace")
 	float InteractionCheckInterval;
-	UPROPERTY(EditAnywhere, Category = "Character | Interaction")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction|Trace")
 	float InteractionCheckDistance;
-	UPROPERTY(EditAnywhere, Category = "Character | Interaction")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction|Trace")
 	TEnumAsByte<ECollisionChannel> TraceChannel;
-	UPROPERTY(EditAnywhere, Category = "Character | Interaction")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction|Trace")
 	float BaseEyeHeight;
+#pragma endregion
 
-	//
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Input")
+#pragma region Input
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interaction|Input")
 	TObjectPtr<UInputAction> InteractAction;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction|Input")
 	bool bHoldToInteract = true;
+#pragma endregion
 	
 	//
 	UPROPERTY()
@@ -85,14 +88,12 @@ protected:
 	float InteractionStartTime = 0.0f;
 	UPROPERTY()
 	FInteractionData InteractionData;
-	UPROPERTY(VisibleAnywhere, Category = "Character | Interaction")
+	UPROPERTY(VisibleAnywhere, Category = "Interaction|State")
 	UInteractableComponent* TargetInteractableComponent;
-	UPROPERTY(VisibleAnywhere, Category = "Character | Interaction")
+	UPROPERTY(VisibleAnywhere, Category = "Interaction|State")
 	UInteractableComponent* CurrentInteractableComponent;
 	UPROPERTY()
 	TObjectPtr<UCameraComponent> CameraComponent;
-	
-	
 	
 	//====================================================================
 	// FUNCTIONS

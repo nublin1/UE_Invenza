@@ -3,12 +3,15 @@
 
 #include "UI/Core/Buttons/UIButton.h"
 
+#include "EnhancedInputComponent.h"
+#include "ViewportWorldInteraction.h"
 #include "Components/Button.h"
 #include "Components/Image.h"
 #include "Components/SizeBox.h"
 #include "Components/TextBlock.h"
+#include "Kismet/GameplayStatics.h"
 
-UUIButton::UUIButton(): bIsToggleButton(false), bIsToggleOn(false)
+UUIButton::UUIButton(): bIsToggleButton(false), bIsToggleOn(false), DefaultButtonBackgroundImage()
 {
 }
 
@@ -37,6 +40,8 @@ void UUIButton::NativePreConstruct()
 			MainImage->SetBrush(Brush);
 		}
 	}
+
+	DefaultButtonBackgroundImage = MainButton->GetBackgroundColor();
 }
 
 void UUIButton::NativeConstruct()
@@ -44,6 +49,28 @@ void UUIButton::NativeConstruct()
 	Super::NativeConstruct();
 	
 	MainButton->OnPressed.AddDynamic(this, &UUIButton::OnMainButtonClicked);
+
+	if (ClickAction)
+	{
+		UEnhancedInputComponent* Input = Cast<UEnhancedInputComponent>(GetOwningPlayer()->InputComponent);
+		if (!Input) return;
+
+		Input->BindAction(ClickAction, ETriggerEvent::Started, this, &UUIButton::ClickButton);
+	}
+}
+
+void UUIButton::ClickButton()
+{
+	MainButton->OnClicked.Broadcast();
+}
+
+void UUIButton::SetToggleStatus(const bool bNewStatus)
+{
+	bIsToggleOn = bNewStatus;
+	if (bIsToggleOn)
+		MainButton->SetBackgroundColor(ToggleColor);
+	else
+		MainButton->SetBackgroundColor(DefaultButtonBackgroundImage);
 }
 
 void UUIButton::OnMainButtonClicked()
@@ -51,6 +78,10 @@ void UUIButton::OnMainButtonClicked()
 	if (bIsToggleButton)
 	{
 		bIsToggleOn = !bIsToggleOn;
+		if (bIsToggleOn)
+			MainButton->SetBackgroundColor(ToggleColor);
+		else
+			MainButton->SetBackgroundColor(DefaultButtonBackgroundImage);
 	}
 
 	if (OnButtonClicked.IsBound())

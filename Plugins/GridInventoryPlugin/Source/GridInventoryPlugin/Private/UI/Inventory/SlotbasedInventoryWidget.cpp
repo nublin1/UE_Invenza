@@ -9,6 +9,7 @@
 #include "Components/Button.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
+#include "Components/EditableText.h"
 #include "Components/ScrollBox.h"
 #include "Components/UniformGridPanel.h"
 #include "Components/UniformGridSlot.h"
@@ -55,6 +56,11 @@ void USlotbasedInventoryWidget::NativeConstruct()
 	
 	if (ItemFiltersPanel)
 	{
+		if (ItemFiltersPanel->GetSearchText())
+		{
+			ItemFiltersPanel->GetSearchText()->OnTextChanged.AddDynamic(this, &USlotbasedInventoryWidget::SearchTextChanged);
+		}
+		
 		for (auto FilterButton : ItemFiltersPanel->GetFilteredCategores())
 		{
 			FilterButton->OnButtonClicked.AddDynamic(this, &USlotbasedInventoryWidget::OnFilterStatusChanged);
@@ -179,10 +185,62 @@ void USlotbasedInventoryWidget::OnFilterStatusChanged(UUIButton* ItemCategoryBut
 				continue;
 
 			if (ItemFiltersPanel->bUseFilterColor)
-				ItemMapping->ItemVisualLinked->ChangeBorderColor(ItemFiltersPanel->FilterColor);
+				ItemMapping->ItemVisualLinked->ChangeBorderColor(ItemFiltersPanel->ItemFilterBorderColor);
 			ItemMapping->ItemVisualLinked->ChangeOpacity(1.0f);
 		}
 	}
+}
+
+void USlotbasedInventoryWidget::SearchTextChanged(const FText& NewText)
+{
+	if (ItemFiltersPanel->IsSearchInFilteredSlots())
+	{
+		for (auto ActiveFilter : ActiveFilters)
+		{
+			for (auto Item : InventoryData.ItemCollectionLink->GetAllItemsByCategory(ActiveFilter))
+			{
+				auto ItemMapping = InventoryData.ItemCollectionLink->FindItemMappingForItemInContainer(Item, this);
+				if (!ItemMapping)
+					continue;
+
+				FString StringName = Item->GetItemRef().ItemTextData.Name.ToString();
+				if (StringName.Contains(NewText.ToString(), ESearchCase::IgnoreCase))
+				{
+					ItemMapping->ItemVisualLinked->ChangeBorderColor(ItemFiltersPanel->ItemFilterBorderColor);
+					ItemMapping->ItemVisualLinked->ChangeOpacity(1.0f);
+				}
+				else
+				{
+					ItemMapping->ItemVisualLinked->GetCoreCellWidget()->ResetBorderColor();
+					ItemMapping->ItemVisualLinked->ChangeOpacity(ItemFiltersPanel->FilterOpacity);
+				}
+			}
+		}
+				
+		return;
+	}
+
+	for (auto Item : InventoryData.ItemCollectionLink->GetAllItemsByContainer(this))
+	{
+		auto ItemMapping = InventoryData.ItemCollectionLink->FindItemMappingForItemInContainer(Item, this);
+		if (!ItemMapping)
+			continue;
+
+		FString StringName = Item->GetItemRef().ItemTextData.Name.ToString();
+		if (StringName.Contains(NewText.ToString(), ESearchCase::IgnoreCase))
+		{
+			ItemMapping->ItemVisualLinked->ChangeBorderColor(ItemFiltersPanel->ItemFilterBorderColor);
+			ItemMapping->ItemVisualLinked->ChangeOpacity(1.0f);
+		}
+		else
+		{
+			ItemMapping->ItemVisualLinked->GetCoreCellWidget()->ResetBorderColor();
+			ItemMapping->ItemVisualLinked->ChangeOpacity(ItemFiltersPanel->FilterOpacity);
+		}
+		
+	}
+
+	
 }
 
 UInventorySlot* USlotbasedInventoryWidget::GetSlotByPosition(FIntVector2 SlotPosition)

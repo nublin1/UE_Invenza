@@ -6,6 +6,7 @@
 #include "UI/BaseUserWidget.h"
 #include "UIButton.generated.h"
 
+class UInputAction;
 class USizeBox;
 class UButton;
 class UImage;
@@ -47,16 +48,21 @@ public:
 
 	bool GetToggleStatus() const {return bIsToggleOn;}
 
-	void SetToggleStatus(const bool bNewStatus) {bIsToggleOn = bNewStatus;}
+	void SetToggleStatus(const bool bNewStatus);
 
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TObjectPtr<UInputAction> ClickAction;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	bool bIsToggleButton;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bIsToggleOn;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Settings")
+	FLinearColor ToggleColor = FLinearColor(FColor::FromHex(TEXT("FFD369FF")));
 
 	//
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Defaults")
@@ -65,6 +71,8 @@ protected:
 	FVector2D DefaultSize = FVector2D(64.f, 64.f);
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Defaults")
 	TObjectPtr<UTexture2D> DefaultImage;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Defaults")
+	FLinearColor DefaultButtonBackgroundImage;
 
 	//====================================================================
 	// FUNCTIONS
@@ -72,6 +80,8 @@ protected:
 	virtual void NativePreConstruct() override;
 	virtual void NativeConstruct() override;
 
+	UFUNCTION()
+	virtual void ClickButton();
 	UFUNCTION()
 	virtual void OnMainButtonClicked();
 };

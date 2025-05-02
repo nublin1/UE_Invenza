@@ -3,39 +3,34 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UI/Core/Buttons/UIButton.h"
-#include "ItemCategoryButton.generated.h"
+#include "Blueprint/DragDropOperation.h"
+#include "InvContainerDragDropOperation.generated.h"
 
-enum class EItemCategory : uint8;
 /**
  * 
  */
 UCLASS()
-class GRIDINVENTORYPLUGIN_API UItemCategoryButton : public UUIButton
+class GRIDINVENTORYPLUGIN_API UInvContainerDragDropOperation : public UDragDropOperation
 {
 	GENERATED_BODY()
-
 public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
-	UItemCategoryButton(); 
-
-	EItemCategory GetItemCategory() const {return Category;}
-protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Settings")
-	EItemCategory Category;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	FVector2D DragOffset;
 	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+	UInvContainerDragDropOperation();
 
-	virtual void OnMainButtonClicked() override;
+protected:
+	//====================================================================
+	// PROPERTIES AND VARIABLES
+	//====================================================================
+	
+	//===================================================================
+	// FUNCTIONS
+	//====================================================================
 };
