@@ -201,10 +201,13 @@ void UIInventoryManager::BindEvents(AActor* TargetActor)
 	InteractionComponent->RegularSettings = this->UISettings;
 	InteractionComponent->BeginFocusDelegate.AddDynamic(InteractionWidget, &UInteractionWidget::OnFoundInteractable);
 	InteractionComponent->EndFocusDelegate.AddDynamic(InteractionWidget, &UInteractionWidget::OnLostInteractable);
+	InteractionComponent->OnInteractionProgress.AddDynamic(InteractionWidget, &UInteractionWidget::UpdateProgressBar);
+	
 	InteractionComponent->IteractableDataDelegate.AddDynamic(this, &UIInventoryManager::UIIteract);
 
 	InteractionComponent->IteractableDataDelegate.AddDynamic(this, &UIInventoryManager::SetInteractableType);
 	InteractionComponent->StopIteractDelegate.AddDynamic(this, &UIInventoryManager::ClearInteractableType);
+
 
 	UItemCollection* ItemCollection = TargetActor->FindComponentByClass<UItemCollection>();
 	if (!ItemCollection) return;

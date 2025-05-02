@@ -2,6 +2,7 @@
 
 #include "UI/Interaction/InteractionWidget.h"
 
+#include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
 #include "Interactable/InteractableData.h"
 
@@ -19,6 +20,24 @@ void UInteractionWidget::OnFoundInteractable_Implementation( FInteractableData& 
 void UInteractionWidget::OnLostInteractable_Implementation( FInteractableData& NewInteractableData)
 {
 	SetVisibility(ESlateVisibility::Collapsed);
+}
+
+void UInteractionWidget::UpdateProgressBar(float Progress)
+{
+	if (InteractionProgressBar)
+	{
+		InteractionProgressBar->SetPercent(Progress);
+	}
+}
+
+void UInteractionWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+	
+	if (InteractionProgressBar)
+	{
+		InteractionProgressBar->SetPercent(0);
+	}
 }
 
 void UInteractionWidget::UpdateText(FInteractableData& NewInteractableData)

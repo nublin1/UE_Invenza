@@ -37,15 +37,15 @@ struct FInteractableData
 	{
 	};
 
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Interactable)
 	EInteractableType DefaultInteractableType;
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Interactable)
 	FText Name;	
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Interactable)
 	FText Action;	
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Interactable)
 	float InteractableDuration;
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Interactable)
 	int32 Quantity;
 };
 

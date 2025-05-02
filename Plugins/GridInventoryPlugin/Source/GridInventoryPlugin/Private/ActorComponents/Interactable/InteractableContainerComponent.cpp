@@ -65,7 +65,10 @@ void UInteractableContainerComponent::StopInteract(UInteractionComponent* Intera
 {
 	Super::StopInteract(InteractionComponent);
 
-	InventoryWidget->OnVisibilityChanged.RemoveDynamic(this, &UInteractableContainerComponent::ContainerWidgetVisibilityChanged);
+	if (InventoryWidget)
+	{
+		InventoryWidget->OnVisibilityChanged.RemoveDynamic(this, &UInteractableContainerComponent::ContainerWidgetVisibilityChanged);
+	}
 	ContainerWidget=nullptr;
 	bIsInteracting = false;
 	CurrentInteractionComponent = nullptr;

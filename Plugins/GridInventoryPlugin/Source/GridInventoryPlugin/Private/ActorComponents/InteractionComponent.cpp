@@ -96,6 +96,7 @@ void UInteractionComponent::FoundInteractable(AActor* NewInteractable, UInteract
 	{
 		if (InteractionData.CurrentInteractable != InteractionData.LastInteractable)
 		{
+			GetWorld()->GetTimerManager().ClearTimer(TimerHandle_Interaction);
 			InteractionData.LastInteractable = InteractionData.CurrentInteractable;
 		}
 
@@ -106,9 +107,6 @@ void UInteractionComponent::FoundInteractable(AActor* NewInteractable, UInteract
 	InteractionData.CurrentInteractable = NewInteractableComp;
 	TargetInteractableComponent = NewInteractableComp;
 
-	//if (TargetInteractable)
-	//	InventoryHUDComponent->UpdateInteractionWidget(TargetInteractable->InteractableData);
-
 	TargetInteractableComponent->BeginFocus();
 	if (BeginFocusDelegate.IsBound())
 	{
@@ -118,19 +116,14 @@ void UInteractionComponent::FoundInteractable(AActor* NewInteractable, UInteract
 
 void UInteractionComponent::NotFoundInteractable()
 {
-	/*if (IsInteracting())
-	{
-		GetOwner()->GetWorldTimerManager().ClearTimer(TimerHandle_Interaction);
-	}*/
-
+	GetWorld()->GetTimerManager().ClearTimer(TimerHandle_Interaction);
+	
 	if (InteractionData.CurrentInteractable)
 	{
 		if (IsValid(TargetInteractableComponent))
 		{
 			TargetInteractableComponent->EndFocus();
 		}
-
-		//InventoryHUDComponent->HideInteractionWidget();
 
 		if (EndFocusDelegate.IsBound() && InteractionData.CurrentInteractable)
 		{
@@ -155,6 +148,12 @@ void UInteractionComponent::BeginInteract()
 
 	if (IsValid(TargetInteractableComponent))
 	{
+		if (GetWorld()->GetTimerManager().IsTimerActive(TimerHandle_Interaction))
+		{
+			GetWorld()->GetTimerManager().ClearTimer(TimerHandle_Interaction);
+			return;
+		}
+		
 		if (CurrentInteractableComponent && CurrentInteractableComponent == TargetInteractableComponent)
 		{
 			StopInteract();
@@ -164,17 +163,16 @@ void UInteractionComponent::BeginInteract()
 		{
 			StopInteract();
 			TargetInteractableComponent->BeginInteract(this);
-			CurrentInteractableComponent = TargetInteractableComponent;
 		}
 		
-
 		if (FMath::IsNearlyZero(TargetInteractableComponent->InteractableData.InteractableDuration, 0.1f))
 		{
 			Interact();
 		}
 		else
 		{
-			GetOwner()->GetWorldTimerManager().SetTimer(TimerHandle_Interaction,
+			InteractionStartTime = GetWorld()->GetTimeSeconds();
+			GetWorld()->GetTimerManager().SetTimer(TimerHandle_Interaction,
 											this, &UInteractionComponent::Interact,
 											TargetInteractableComponent->InteractableData.InteractableDuration,
 											false);
@@ -184,23 +182,32 @@ void UInteractionComponent::BeginInteract()
 
 void UInteractionComponent::EndInteract()
 {
-	GetOwner()->GetWorldTimerManager().ClearTimer(TimerHandle_Interaction);	
-	
-	if (IsValid(TargetInteractableComponent))
+	if (bHoldToInteract)
 	{
-		TargetInteractableComponent->EndInteract(this);
-		EndIteractNotify();
+		GetWorld()->GetTimerManager().ClearTimer(TimerHandle_Interaction);	
+		if (IsValid(TargetInteractableComponent))
+		{
+			TargetInteractableComponent->EndInteract(this);
+			EndIteractNotify();
+			return;
+		}
 	}
+	
 }
 
 void UInteractionComponent::Interact()
-{
-	GetOwner()->GetWorldTimerManager().ClearTimer(TimerHandle_Interaction);
-
+{	
+	CurrentInteractableComponent = TargetInteractableComponent;
+	
 	if (IsValid(TargetInteractableComponent))
 	{
 		TargetInteractableComponent->Interact(this);
 		IteractNotify();
+	}
+
+	if (GetWorld()->GetTimerManager().IsTimerActive(TimerHandle_Interaction))
+	{
+		EndInteract();
 	}
 }
 
@@ -236,5 +243,18 @@ void UInteractionComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	if (GetWorld()->TimeSince(InteractionData.LastInteractionCheckTime) > InteractionCheckInterval)
 	{
 		PerformInteractionCheck();
+	}
+
+	if (TargetInteractableComponent && GetWorld()->GetTimerManager().IsTimerActive(TimerHandle_Interaction))
+	{
+		float Elapsed = GetWorld()->GetTimeSeconds() - InteractionStartTime;
+		float Progress = FMath::Clamp(Elapsed / TargetInteractableComponent->InteractableData.InteractableDuration, 0.0f, 1.0f);
+		if(OnInteractionProgress.IsBound())
+			OnInteractionProgress.Broadcast(Progress);
+	}
+	else
+	{
+		if(OnInteractionProgress.IsBound())
+			OnInteractionProgress.Broadcast(0);
 	}
 }

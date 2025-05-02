@@ -52,6 +52,9 @@ public:
 	void OnLostInteractable(FInteractableData& NewInteractableData);
 	virtual void OnLostInteractable_Implementation(FInteractableData& NewInteractableData);
 
+	UFUNCTION()
+	void UpdateProgressBar(float Progress);
+
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
@@ -60,6 +63,7 @@ protected:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+	virtual void NativeConstruct() override;
 
 	UFUNCTION()
 	void UpdateText(FInteractableData& NewInteractableData);

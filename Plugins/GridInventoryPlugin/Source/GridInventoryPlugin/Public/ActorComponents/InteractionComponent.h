@@ -16,6 +16,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FEndFocus, FInteractableData&, Inter
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FIteract, UInteractableComponent*, TargetInteractableComponent);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FStopIteract, UInteractableComponent*, TargetInteractableComponent);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FEndIteract, UInteractableComponent*, TargetInteractableComponent);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FInteractionProgressDelegate, float, Progress);
 #pragma endregion
 
 enum class EInteractableType : uint8;
@@ -44,6 +45,8 @@ public:
 	FStopIteract StopIteractDelegate;
 	UPROPERTY(BlueprintAssignable, Category="Interaction")
 	FEndIteract EndIteractDelegate;
+	UPROPERTY(BlueprintAssignable, Category = "Interaction")
+	FInteractionProgressDelegate OnInteractionProgress;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Settings")
 	FUISettings RegularSettings;
@@ -72,34 +75,51 @@ protected:
 	//
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Input")
 	TObjectPtr<UInputAction> InteractAction;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction")
+	bool bHoldToInteract = true;
 	
 	//
+	UPROPERTY()
 	FTimerHandle TimerHandle_Interaction;
+	UPROPERTY()
+	float InteractionStartTime = 0.0f;
+	UPROPERTY()
 	FInteractionData InteractionData;
-	UPROPERTY(EditAnywhere, Category = "Character | Interaction")
+	UPROPERTY(VisibleAnywhere, Category = "Character | Interaction")
 	UInteractableComponent* TargetInteractableComponent;
 	UPROPERTY(VisibleAnywhere, Category = "Character | Interaction")
 	UInteractableComponent* CurrentInteractableComponent;
 	UPROPERTY()
 	TObjectPtr<UCameraComponent> CameraComponent;
 	
+	
+	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+	UFUNCTION()
 	void PerformInteractionCheck();
+	UFUNCTION()
 	void FoundInteractable(AActor *NewInteractable, UInteractableComponent* NewInteractableComp);
+	UFUNCTION()
 	void NotFoundInteractable();
+	UFUNCTION()
 	void BeginInteract();
+	UFUNCTION()
 	void EndInteract();
+	UFUNCTION(BlueprintCallable)
 	void Interact();
-public: void StopInteract();
+public:
+	UFUNCTION()
+	void StopInteract();
 protected:
+	UFUNCTION()
 	void IteractNotify();
+	UFUNCTION()
 	void EndIteractNotify();
 
 	//Overrides
 	virtual void BeginPlay() override;
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-
-		
+	
 };
