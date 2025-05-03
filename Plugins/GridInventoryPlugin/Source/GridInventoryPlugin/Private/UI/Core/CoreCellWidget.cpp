@@ -4,26 +4,33 @@
 #include "UI/Core/CoreCellWidget.h"
 
 #include "Components/Border.h"
+#include "Components/Image.h"
 #include "Components/SizeBox.h"
 
-UCoreCellWidget::UCoreCellWidget(): InitialBorderColor()
+UCoreCellWidget::UCoreCellWidget(): DefaultBorderColor()
 {
 }
 
 void UCoreCellWidget::ResetBorderColor()
 {
-	Left_Border->SetBrushColor(InitialBorderColor);
-	Right_Border->SetBrushColor(InitialBorderColor);
-	Top_Border->SetBrushColor(InitialBorderColor);
-	BottomBorder->SetBrushColor(InitialBorderColor);
+	Left_Border->SetBrushColor(DefaultBorderColor);
+	Right_Border->SetBrushColor(DefaultBorderColor);
+	Top_Border->SetBrushColor(DefaultBorderColor);
+	BottomBorder->SetBrushColor(DefaultBorderColor);
 }
 
 void UCoreCellWidget::NativePreConstruct()
 {
 	Super::NativePreConstruct();
 
-	SizeBox->SetWidthOverride(StartSlotSize.X);
-	SizeBox->SetHeightOverride(StartSlotSize.Y);
+	SizeBox->SetWidthOverride(DefaultSlotSize.X);
+	SizeBox->SetHeightOverride(DefaultSlotSize.Y);
 
-	InitialBorderColor = Left_Border->GetBrushColor();
+	DefaultBorderColor = Left_Border->GetBrushColor();
+	if (DefaultContent_Image)
+	{
+		FSlateBrush Brush;
+		Brush.SetResourceObject(DefaultContent_Image);
+		Content_Image->SetBrush(Brush);
+	}
 }

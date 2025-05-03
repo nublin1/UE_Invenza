@@ -32,6 +32,9 @@ public:
 	//====================================================================
 	USlotbasedInventorySlot();
 
+	virtual void UpdateVisual(UTexture2D* NewTexture) override;
+	virtual void ResetVisual() override;
+
 	virtual void SetItemUseKeyText(FString InUseKeyText)override;
 
 protected:
@@ -42,7 +45,7 @@ protected:
 	FString InUseKeyTextByDefault;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Defaults")
-	TObjectPtr<UTexture2D> CellImage;
+	TObjectPtr<UTexture2D> DefaultCellImage;
 	
 	//====================================================================
 	// FUNCTIONS

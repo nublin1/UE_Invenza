@@ -68,7 +68,7 @@ void UCoreHUDWidget::InitializeWidget()
 	}
 }
 
-void UCoreHUDWidget::ToggleWidget(UWidget* Widget)
+void UCoreHUDWidget::ToggleWidget(UBaseUserWidget* Widget)
 {
 	if (!Widget)
 		return;
@@ -85,7 +85,7 @@ void UCoreHUDWidget::ToggleWidget(UWidget* Widget)
 	UpdateInputState();
 }
 
-void UCoreHUDWidget::ShowWidget(UWidget* Widget)
+void UCoreHUDWidget::ShowWidget(UBaseUserWidget* Widget)
 {
 	if (!Widget)
 		return;
@@ -97,7 +97,7 @@ void UCoreHUDWidget::ShowWidget(UWidget* Widget)
 	}
 }
 
-void UCoreHUDWidget::HideWidget(UWidget* Widget)
+void UCoreHUDWidget::HideWidget(UBaseUserWidget* Widget)
 {
 	if (!Widget)
 		return;
@@ -140,9 +140,9 @@ void UCoreHUDWidget::UpdateInputState()
 
 void UCoreHUDWidget::Hide(UBaseUserWidget* UserWidget)
 {
-	if (UserWidget == MainInvWidget)
+	if (UserWidget == MainInvWidget.Get())
 	{
-		HideWidget(MainInvWidget);
+		HideWidget(MainInvWidget.Get());
 	}
 	else if (UserWidget == EquipmentInvWidget)
 	{

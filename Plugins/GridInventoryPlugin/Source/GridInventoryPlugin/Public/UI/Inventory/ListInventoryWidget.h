@@ -44,11 +44,11 @@ protected:
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	// Widgets
-	UPROPERTY(meta=(BindWidgetOptional))
+	UPROPERTY(BlueprintReadOnly, meta=(BindWidgetOptional))
 	TObjectPtr<UItemFiltersPanel> ItemFiltersPanel;
-	UPROPERTY(meta=(BindWidgetOptional))
+	UPROPERTY(BlueprintReadOnly, meta=(BindWidgetOptional))
 	TObjectPtr<UScrollBox> ScrollBox;
-	UPROPERTY(meta=(BindWidgetOptional))
+	UPROPERTY(BlueprintReadOnly, meta=(BindWidgetOptional))
 	TObjectPtr<UListView> ItemsList;
 
 	//

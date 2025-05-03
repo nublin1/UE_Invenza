@@ -61,6 +61,8 @@ protected:
 	bool bIsShowTotalMoney = true;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = UI)
 	bool bIsShowWeight = true;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = UI)
+	bool bIsShowCloseButton = true;
 
 	//
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)

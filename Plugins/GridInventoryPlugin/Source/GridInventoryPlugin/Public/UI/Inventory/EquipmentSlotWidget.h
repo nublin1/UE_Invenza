@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "SlotbasedInventorySlot.h"
 #include "Data/EquipmentStructures.h"
 #include "UI/Inventory/InventorySlot.h"
 #include "EquipmentSlotWidget.generated.h"
@@ -11,7 +12,7 @@
  * 
  */
 UCLASS()
-class GRIDINVENTORYPLUGIN_API UEquipmentSlotWidget : public UInventorySlot
+class GRIDINVENTORYPLUGIN_API UEquipmentSlotWidget : public USlotbasedInventorySlot
 {
 	GENERATED_BODY()
 	
@@ -28,18 +29,12 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+	UEquipmentSlotWidget();
 	
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	// Widgets
-	UPROPERTY(meta=(BindWidget))
-	TObjectPtr<UCoreCellWidget> CoreCellWidget;
-
-	//
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Defaults")
-	TObjectPtr<UTexture2D> CellImage;
 
 	//====================================================================
 	// FUNCTIONS

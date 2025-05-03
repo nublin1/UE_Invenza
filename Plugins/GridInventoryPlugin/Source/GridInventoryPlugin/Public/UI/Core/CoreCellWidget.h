@@ -49,11 +49,14 @@ protected:
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	UPROPERTY(EditAnywhere,BlueprintReadWrite)
-	FVector2D StartSlotSize = FVector2d(100.0f);
+	FVector2D DefaultSlotSize = FVector2d(100.0f);
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UTexture2D> DefaultContent_Image;
 
 	//
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	FLinearColor InitialBorderColor;
+	FLinearColor DefaultBorderColor;
+	
 	
 	//====================================================================
 	// FUNCTIONS

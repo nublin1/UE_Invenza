@@ -4,12 +4,20 @@
 #include "UI/Inventory/InventorySlot.h"
 
 
-UInventorySlot::UInventorySlot(): SlotPosition(), UseAction(nullptr)
+UInventorySlot::UInventorySlot(): UseAction(nullptr)
 {
 	
 }
 
 void UInventorySlot::UpdateVisual(UItemBase* Item)
+{
+}
+
+void UInventorySlot::UpdateVisual(UTexture2D* NewTexture)
+{
+}
+
+void UInventorySlot::ResetVisual()
 {
 }
 

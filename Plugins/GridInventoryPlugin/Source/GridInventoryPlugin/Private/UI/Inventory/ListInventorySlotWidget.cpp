@@ -138,7 +138,7 @@ void UListInventorySlotWidget::NativeOnDragDetected(const FGeometry& InGeometry,
 
 	UInventoryItemWidget* DraggedWidget = CreateWidget<UInventoryItemWidget>(GetOwningPlayer(), InventoryManager->GetUISettings().DraggedWidgetClass);
 	if (!DraggedWidget) return;
-	DraggedWidget->SetVisibility(ESlateVisibility::Visible);
+	DraggedWidget->SetVisibility(ESlateVisibility::Hidden);
 	
 	UItemDragDropOperation* DragItemDragDropOperation = NewObject<UItemDragDropOperation>();
 	DragItemDragDropOperation->DefaultDragVisual = DraggedWidget;
@@ -147,6 +147,15 @@ void UListInventorySlotWidget::NativeOnDragDetected(const FGeometry& InGeometry,
 	DragItemDragDropOperation->ItemMoveData.SourceItem = LinkedItem;
 	DragItemDragDropOperation->ItemMoveData.SourceInventory = ParentInventoryWidget;
 	DragItemDragDropOperation->ItemMoveData.SourceItemPivotSlot = this;
+	
+	auto ShowDragVisual = [DraggedWidget]()
+	{
+		DraggedWidget->SetVisibility(ESlateVisibility::Visible);
+	};
+	FTimerManager& TimerManager = GetWorld()->GetTimerManager();
+	const FTimerDelegate TimerDelegate = FTimerDelegate::CreateLambda(ShowDragVisual);
+	FTimerHandle TimerHandle;
+	TimerManager.SetTimer(TimerHandle, TimerDelegate, 0.125f, false);
 
 	OutOperation = DragItemDragDropOperation;
 }

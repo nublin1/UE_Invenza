@@ -33,9 +33,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void InitializeWidget();
 	
-	void ToggleWidget(UWidget* Widget);
-	void ShowWidget(UWidget* Widget);
-	void HideWidget(UWidget* Widget);
+	void ToggleWidget(UBaseUserWidget* Widget);
+	void ShowWidget(UBaseUserWidget* Widget);
+	void HideWidget(UBaseUserWidget* Widget);
 	//Inventory
 	UFUNCTION(BlueprintCallable)
 	void ToggleInventoryLayout();

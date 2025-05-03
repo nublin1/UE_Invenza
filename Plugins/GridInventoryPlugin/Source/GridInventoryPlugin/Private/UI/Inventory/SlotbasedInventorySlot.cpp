@@ -3,10 +3,48 @@
 
 #include "UI/Inventory/SlotbasedInventorySlot.h"
 
+#include "Components/Image.h"
 #include "Components/TextBlock.h"
+#include "UI/Core/CoreCellWidget.h"
 
 USlotbasedInventorySlot::USlotbasedInventorySlot()
 {
+}
+void USlotbasedInventorySlot::NativeConstruct()
+{
+	Super::NativeConstruct();
+
+	SetItemUseKeyText(InUseKeyTextByDefault);
+
+	if (DefaultCellImage)
+	{
+		FSlateBrush Brush;
+		Brush.SetResourceObject(DefaultCellImage);
+		CoreCellWidget->Content_Image->SetBrush(Brush);
+	}
+}
+
+void USlotbasedInventorySlot::UpdateVisual(UTexture2D* NewTexture)
+{
+	Super::UpdateVisual(NewTexture);
+
+	if (!NewTexture)
+	{
+		CoreCellWidget->Content_Image->SetBrush(FSlateBrush());
+	}
+
+	FSlateBrush Brush;
+	Brush.SetResourceObject(NewTexture);
+	CoreCellWidget->Content_Image->SetBrush(Brush);
+}
+
+void USlotbasedInventorySlot::ResetVisual()
+{
+	Super::ResetVisual();
+
+	FSlateBrush Brush;
+	Brush.SetResourceObject(DefaultCellImage);
+	CoreCellWidget->Content_Image->SetBrush(Brush);
 }
 
 void USlotbasedInventorySlot::SetItemUseKeyText(FString InUseKeyText)
@@ -19,9 +57,3 @@ void USlotbasedInventorySlot::SetItemUseKeyText(FString InUseKeyText)
 	}
 }
 
-void USlotbasedInventorySlot::NativeConstruct()
-{
-	Super::NativeConstruct();
-
-	SetItemUseKeyText(InUseKeyTextByDefault);
-}

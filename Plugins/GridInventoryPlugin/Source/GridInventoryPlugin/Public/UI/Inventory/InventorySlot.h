@@ -34,6 +34,9 @@ public:
 	
 	UFUNCTION(BlueprintCallable)
 	virtual void UpdateVisual(UItemBase* Item);
+	virtual void UpdateVisual(UTexture2D* NewTexture);
+	UFUNCTION(BlueprintCallable)
+	virtual void ResetVisual();
 	
 	//Getters
 	FORCEINLINE FIntVector2 GetSlotPosition() const { return SlotPosition; }

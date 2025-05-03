@@ -70,7 +70,7 @@ void UInteractionComponent::PerformInteractionCheck()
 	QueryParams.AddIgnoredActor(OwnerCharacter);
 	FHitResult TraceHit;
 
-	DrawDebugLine(GetWorld(), TraceStart, TraceEnd, FColor::Red, false, 2.0f, 0, 2.0f);
+	//DrawDebugLine(GetWorld(), TraceStart, TraceEnd, FColor::Red, false, 2.0f, 0, 2.0f);
 	if (GetWorld()->LineTraceSingleByChannel(TraceHit, TraceStart, TraceEnd, TraceChannel, QueryParams))
 	{
 		AActor* HitActor = TraceHit.GetActor();

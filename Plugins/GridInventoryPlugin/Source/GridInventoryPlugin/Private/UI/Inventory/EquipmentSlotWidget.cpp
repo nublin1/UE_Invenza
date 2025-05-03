@@ -6,14 +6,11 @@
 #include "Components/Image.h"
 #include "UI/Core/CoreCellWidget.h"
 
+UEquipmentSlotWidget::UEquipmentSlotWidget(): AllowedCategory()
+{
+}
+
 void UEquipmentSlotWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
-
-	if (CellImage)
-	{
-		FSlateBrush Brush;
-		Brush.SetResourceObject(CellImage);
-		CoreCellWidget->Content_Image->SetBrush(Brush);
-	}
 }

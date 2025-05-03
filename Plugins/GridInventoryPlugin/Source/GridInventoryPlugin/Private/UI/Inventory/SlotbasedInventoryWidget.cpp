@@ -763,11 +763,22 @@ void USlotbasedInventoryWidget::ReplaceItem(UItemBase* Item, UInventorySlot* New
 	auto Mapping = InventoryData.ItemCollectionLink->FindItemMappingForItemInContainer(Item, this);
 	if (!Mapping)
 		return;
+
+	//Clear old slots
+	for (auto ItemSlot : Mapping->ItemSlots)
+	{
+		ItemSlot->ResetVisual();
+	}
 	
 	Mapping->ItemSlots[0] = NewSlot;
 
-	//UE_LOG(LogTemp, Warning, TEXT("ReplaceItem done!"))
+	for (auto ItemSlot : Mapping->ItemSlots)
+	{
+		UTexture2D* tempText= nullptr;
+		ItemSlot->UpdateVisual(tempText);
+	}
 
+	//UE_LOG(LogTemp, Warning, TEXT("ReplaceItem done!"))
 	ReplaceItemInPanel(*Mapping, Item);
 }
 
@@ -782,9 +793,8 @@ FVector2D USlotbasedInventoryWidget::CalculateItemVisualPosition(FIntVector2 Slo
 void USlotbasedInventoryWidget::AddItemToPanel( UItemBase* Item)
 {
 	auto Slots = GetItemMapping(Item);
-
-	auto ItemPivotSlot =Slots->ItemSlots[0];
-	const FVector2D VisualPosition = CalculateItemVisualPosition(ItemPivotSlot->GetSlotPosition());
+	
+	const FVector2D VisualPosition = CalculateItemVisualPosition(Slots->ItemSlots[0]->GetSlotPosition());
 
 	if (!UISettings.InventoryItemVisualClass)
 	{
@@ -796,10 +806,17 @@ void USlotbasedInventoryWidget::AddItemToPanel( UItemBase* Item)
 	auto SlotInCanvas = ItemsVisualsPanel->AddChildToCanvas(ItemVisual);
 	if (SlotInCanvas)
 		SlotInCanvas->SetSize(FVector2D(UISettings.SlotSize.X * 1, UISettings.SlotSize.Y *  1));
-
 	Slots->ItemVisualLinked = ItemVisual;
 
-	ItemVisual->UpdateVisualSize(UISettings.SlotSize, FIntVector2(1, 1));
+	for (auto ItemSlot : Slots->ItemSlots)
+	{
+		UTexture2D* tempText= nullptr;
+		ItemSlot->UpdateVisual(tempText);
+	}
+
+	FIntVector2 ItemSize =	FIntVector2(Item->GetItemRef().ItemNumeraticData.NumHorizontalSlots,
+		Item->GetItemRef().ItemNumeraticData.NumVerticalSlots);
+	ItemVisual->UpdateVisualSize(UISettings.SlotSize, ItemSize);
 	ItemVisual->UpdateItemName(Item->GetItemRef().ItemTextData.Name);
 	ItemVisual->UpdateQuantityText(Item->GetQuantity());
 	ItemVisual->UpdateVisual(Item);
@@ -837,6 +854,11 @@ void USlotbasedInventoryWidget::RemoveItemFromPanel(FItemMapping* FromSlots, UIt
 		return;
 
 	FromSlots->ItemVisualLinked->RemoveFromParent();
+
+	for (auto ItemSlot : FromSlots->ItemSlots)
+	{
+		ItemSlot->ResetVisual();
+	}
 }
 
 void USlotbasedInventoryWidget::NotifyAddItem(FItemMapping& FromSlots, UItemBase* NewItem, int32 ChangeQuantity)
@@ -851,7 +873,7 @@ void USlotbasedInventoryWidget::NotifyAddItem(FItemMapping& FromSlots, UItemBase
 void USlotbasedInventoryWidget::NotifyRemoveItem(FItemMapping& FromSlots, UItemBase* RemovedItem, int32 RemoveQuantity) 
 {
 	Super::NotifyRemoveItem(FromSlots, RemovedItem, RemoveQuantity);
-	if (RemovedItem->GetQuantity() <=0)
+	if (RemoveQuantity >= RemovedItem->GetQuantity())
 		RemoveItemFromPanel(&FromSlots, RemovedItem);
 	else
 		UpdateSlotInPanel(FromSlots, RemovedItem);

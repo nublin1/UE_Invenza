@@ -30,6 +30,10 @@ void UInvBaseContainerWidget::NativeConstruct()
 		TitleBar->SetParentWidget(this);
 		TitleBar->TitleName->SetText(Title);
 		TitleBar->Button_Close->OnClicked.AddDynamic(this, &UInvBaseContainerWidget::CloseButtonClicked);
+		if (!bIsShowCloseButton)
+			TitleBar->Button_Close->SetVisibility(ESlateVisibility::Collapsed);
+		if (!bIsShowTotalMoney)
+			TitleBar->Money->SetVisibility(ESlateVisibility::Collapsed);
 	}	
 
 	if (InvWeight)
@@ -64,8 +68,6 @@ void UInvBaseContainerWidget::NativeConstruct()
 
 void UInvBaseContainerWidget::CloseButtonClicked()
 {
-	SetVisibility(ESlateVisibility::Collapsed);
-	
 	if (OnClose.IsBound())
 		OnClose.Broadcast(this);
 }
@@ -89,7 +91,7 @@ void UInvBaseContainerWidget::UpdateWeightInfo(float InventoryTotalWeight, float
 {
 	if (bIsShowWeight)
 	{
-		FString RoundedString = FString::Printf(TEXT("%0.2f"), InventoryTotalWeight);
+		FString RoundedString = FString::Printf(TEXT("%0.1f"), InventoryTotalWeight);
 		FString Text = {" " + RoundedString + "/" + FString::SanitizeFloat(InventoryWeightCapacity)};
 		InvWeight->WeightInfo->SetText(FText::FromString(Text));
 	}
