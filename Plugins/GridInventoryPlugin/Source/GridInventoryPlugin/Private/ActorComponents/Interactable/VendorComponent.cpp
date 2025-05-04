@@ -43,11 +43,6 @@ void UVendorComponent::StopInteract(UInteractionComponent* InteractionComponent)
 	Trade->CloseTradeMenu();
 }
 
-void UVendorComponent::OnRegister()
-{
-	Super::OnRegister();
-}
-
 void UVendorComponent::InitializeInteractionComponent()
 {
 	Super::InitializeInteractionComponent();

@@ -34,33 +34,41 @@ void UCoreHUDWidget::InitializeWidget()
 		Inventory->SetUISettings(UISettings);
 		Inventory->InitializeInventory();
 
-		if (Widget->GetName() == UISettings.MainInvWidgetName)
+		UInvBaseContainerWidget* Inv = Cast<UInvBaseContainerWidget>(Widget);
+		if (Inv->GetInventoryType() == EInventoryType::MainInventory)
 		{
-			MainInvWidget = Cast<UInvBaseContainerWidget>(Widget);
+			MainInvWidget = Inv;
+			MainInvWidget->GetInventoryFromContainerSlot()->SetParentWidget(Inv);
 			MainInvWidget->GetInventoryFromContainerSlot()->SetItemCollection(PlayerCollection);
 			MainInvWidget->OnClose.AddDynamic(this, &UCoreHUDWidget::Hide);
 			continue;
 		}
-		if (Widget->GetName() == UISettings.ContainerInWorldWidgetName)
+		if (Inv->GetInventoryType() == EInventoryType::ContainerInventory)
 		{
-			ContainerInWorldWidget =Cast<UInvBaseContainerWidget>(Widget);
+			ContainerInWorldWidget = Inv;
+			ContainerInWorldWidget->GetInventoryFromContainerSlot()->SetParentWidget(Inv);
 			ContainerInWorldWidget->OnClose.AddDynamic(this, &UCoreHUDWidget::Hide);
 			continue;
 		}
-		if (Widget->GetName() == UISettings.VendorInvWidgetName)
+		if (Inv->GetInventoryType() == EInventoryType::VendorInventory)
 		{
-			VendorInvWidget =Cast<UInvBaseContainerWidget>(Widget);
+			VendorInvWidget = Inv;
+			VendorInvWidget->GetInventoryFromContainerSlot()->SetParentWidget(Inv);
+			VendorInvWidget = Cast<UInvBaseContainerWidget>(Widget);
+			VendorInvWidget->OnClose.AddDynamic(this, &UCoreHUDWidget::Hide);
 			continue;
 		}
-		if (Widget->GetName() == UISettings.HotbarInvWidgetName)
+		if (Inv->GetInventoryType() == EInventoryType::Hotbar)
 		{
-			HotbarInvWidget =Cast<UInvBaseContainerWidget>(Widget);
+			HotbarInvWidget =Inv;
+			HotbarInvWidget->GetInventoryFromContainerSlot()->SetParentWidget(Inv);
 			HotbarInvWidget->GetInventoryFromContainerSlot()->SetItemCollection(PlayerCollection);
 			continue;
 		}
-		if (Widget->GetName() == UISettings.EquipmentInvWidgetName)
+		if (Inv->GetInventoryType() == EInventoryType::EquipmentInventory)
 		{
-			EquipmentInvWidget = Cast<UInvBaseContainerWidget>(Widget);
+			EquipmentInvWidget = Inv;
+			EquipmentInvWidget->GetInventoryFromContainerSlot()->SetParentWidget(Inv);
 			EquipmentInvWidget->GetInventoryFromContainerSlot()->SetItemCollection(PlayerCollection);
 			EquipmentInvWidget->OnClose.AddDynamic(this, &UCoreHUDWidget::Hide);
 			continue;

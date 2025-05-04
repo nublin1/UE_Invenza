@@ -4,6 +4,7 @@
 #include "CoreMinimal.h"
 #include "Settings.generated.h"
 
+class UModalTradeWidget;
 class UItemTooltipWidget;
 class UInputMappingContext;
 class UInputAction;
@@ -45,20 +46,13 @@ struct FUISettings
 	TSubclassOf<UHighlightSlotWidget> HighlightSlotWidgetClass;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TSubclassOf<UItemTooltipWidget> ItemTooltipWidgetClass;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FName MainInvWidgetName;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FName ContainerInWorldWidgetName;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FName VendorInvWidgetName;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FName HotbarInvWidgetName = "Hotbar";
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FName EquipmentInvWidgetName = "";
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TSubclassOf<UModalTradeWidget> ModalTradeWidgetClass;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FVector2D SlotSize = FVector2D(0.f);
 
 	FUISettings(): GameplayMappingContext(nullptr), InventoryMappingContext(nullptr), ToggleInventoryAction(nullptr),
+	               ToggleEquipmentAction(nullptr),
 	               IA_Mod_QuickGrab(nullptr),
 	               IA_Mod_GrabAllSame(nullptr)
 	{

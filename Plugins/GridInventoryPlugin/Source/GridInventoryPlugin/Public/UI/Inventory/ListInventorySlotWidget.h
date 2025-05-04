@@ -43,8 +43,6 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UFUNCTION()
-	bool ExecuteItemChecks(EInventoryCheckType CheckType, UItemBase* Item);
 	virtual void UpdateVisual(UItemBase* Item) override;
 
 	//

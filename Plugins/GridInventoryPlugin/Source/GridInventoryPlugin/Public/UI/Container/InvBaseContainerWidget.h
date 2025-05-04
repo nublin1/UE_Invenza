@@ -4,8 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "UI/BaseUserWidget.h"
+#include "UI/Inventory/InventoryTypes.h"
 #include "InvBaseContainerWidget.generated.h"
 
+enum class EInventoryType : uint8;
 class UMovableTitleBar;
 class UUInventoryWidgetBase;
 class UAUIManagerActor;
@@ -38,6 +40,8 @@ public:
 
 	UFUNCTION()
 	virtual UMovableTitleBar* GetTitleBar() const{return TitleBar;}
+	UFUNCTION()
+	EInventoryType GetInventoryType() const {return InventoryType;}
 
 	UFUNCTION(BlueprintCallable)
 	virtual UUInventoryWidgetBase* GetInventoryFromContainerSlot();
@@ -56,7 +60,9 @@ protected:
 	UPROPERTY(meta=(BindWidgetOptional))
 	TObjectPtr<UInvWeightWidget> InvWeight;
 
-	//
+	// Settings
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	EInventoryType InventoryType = EInventoryType::None;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = UI)
 	bool bIsShowTotalMoney = true;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = UI)
@@ -67,6 +73,7 @@ protected:
 	//
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FText Title;
+
 	
 	//====================================================================
 	// FUNCTIONS

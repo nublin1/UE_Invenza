@@ -14,24 +14,8 @@
 #include "UI/HelpersWidgets/ItemTooltipWidget.h"
 #include "UI/Inventory/ListInventoryWidget.h"
 #include "UI/Item/InventoryItemWidget.h"
-
-bool UListInventorySlotWidget::ExecuteItemChecks(EInventoryCheckType CheckType, UItemBase* Item)
-{
-	if (ParentInventoryWidget->GetInventoryData().Checks.IsEmpty())
-		return true;
-	
-	for (const FInventoryCheck& Check : ParentInventoryWidget->GetInventoryData().Checks)
-	{
-		if (Check.CheckType == CheckType)
-		{
-			if (!Check.CheckFunction(Item))
-			{
-				return false;
-			}
-		}
-	}
-	return true;
-}
+#include "UI/ModalWidgets/BinaryPromptButtons.h"
+#include "UI/ModalWidgets/ModalTradeWidget.h"
 
 void UListInventorySlotWidget::UpdateVisual(UItemBase* Item)
 {
@@ -101,8 +85,7 @@ FReply UListInventorySlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeom
 	
 	if (InMouseEvent.IsMouseButtonDown(ParentInventoryWidget->GetUISettings().ItemSelectKey))
 	{
-		if (InventoryManager->GetInventoryModifierStates().bIsQuickGrabModifierActive
-			&& ExecuteItemChecks(EInventoryCheckType::PreTransfer, LinkedItem))
+		if (InventoryManager->GetInventoryModifierStates().bIsQuickGrabModifierActive)
 		{
 			FItemMoveData ItemMoveData;
 			ItemMoveData.SourceInventory = ParentInventoryWidget;
@@ -114,16 +97,47 @@ FReply UListInventorySlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeom
 			return FReply::Handled();
 		}
 
-		if (ExecuteItemChecks(EInventoryCheckType::PreTransfer, LinkedItem))
-			return FReply::Handled().DetectDrag(TakeWidget(), ParentInventoryWidget->GetUISettings().ItemSelectKey);
+		return FReply::Handled().DetectDrag(TakeWidget(), ParentInventoryWidget->GetUISettings().ItemSelectKey);
 	}
 
 	if (InMouseEvent.IsMouseButtonDown(ParentInventoryWidget->GetUISettings().ItemUseKey)
 		&& ParentInventoryWidget->GetInventorySettings().bCanUseItems)
 	{
+		if (auto ContainerWidget =Cast<UInvBaseContainerWidget>(ParentInventoryWidget->GetParent()->GetOuter()->GetOuter()))
+		{
+			if (ContainerWidget->GetInventoryType() == EInventoryType::VendorInventory)
+			{
+				if (!ParentInventoryWidget->GetUISettings().ModalTradeWidgetClass) return FReply::Unhandled();
+
+				auto TradeModal = CreateWidget<UModalTradeWidget>(this,
+					ParentInventoryWidget->GetUISettings().ModalTradeWidgetClass);
+				if (!TradeModal) return FReply::Unhandled();
+				FModalTradeData TradeData (FText::FromString("TradeData"),
+					5,
+					LinkedItem->GetItemRef().ItemTextData.Name,
+					LinkedItem->GetItemRef().ItemNumeraticData.BasePrice);
+				TradeModal->InitializeTradeWidget(TradeData);
+				TradeModal->AddToViewport();
+				TradeModal->SetPositionInViewport(FVector2D(500,500));
+
+				TradeModal->ConfirmCallback = [this, TradeModal](int32 Quantity)
+				{
+					UE_LOG(LogTemp, Log, TEXT("Trade confirmed: %d items"), Quantity);
+					TradeModal->RemoveFromParent();
+				};
+				TradeModal->CancelCallback = [this, TradeModal]()
+				{
+					TradeModal->RemoveFromParent();
+				};
+				
+				
+				/*FString ObjectName = ContainerWidget->GetName();
+				UE_LOG(LogTemp, Warning, TEXT("Object Name: %s"), *ObjectName);*/
+			}
+		}
 		LinkedItem->UseItem();
 	}
-
+	
 	return FReply::Unhandled();
 }
 

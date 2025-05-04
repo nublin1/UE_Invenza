@@ -45,8 +45,6 @@ protected:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	virtual void OnRegister() override;
-
 	virtual void InitializeInteractionComponent() override;
 	virtual void UpdateInteractableData() override;
 	

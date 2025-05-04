@@ -106,9 +106,9 @@ protected:
 	//====================================================================
 
 	UFUNCTION()
-	float CalculateAvailableMoney(UItemCollection* Collection);
+	static float CalculateAvailableMoney(UItemCollection* Collection);
 	UFUNCTION()
-	FMoneyCalculationResult AccumulatePayment(UItemCollection* ItemCollection, float FullPrice);
+	static FMoneyCalculationResult AccumulatePayment(UItemCollection* ItemCollection, float FullPrice);
 
 		
 };

@@ -6,6 +6,7 @@
 #include "SlotbasedInventorySlot.h"
 #include "InventoryTypes.generated.h"
 
+
 class UItemTooltipWidget;
 struct FInventoryCheck;
 class UInventoryItemWidget;
@@ -144,7 +145,7 @@ struct FInventorySettings
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ToolTip = "-1 means infinite capacity"))
 	float InventoryWeightCapacity = -1.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(tooltip="If true this container will be used as reference."))
 	bool bUseReferences = false;
@@ -160,7 +161,7 @@ USTRUCT(BlueprintType)
 struct FInventoryData
 {
 	GENERATED_BODY()
-
+	
 	UPROPERTY()
 	TArray<FInventoryCheck> Checks;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Inventory")
@@ -178,7 +179,19 @@ struct FInventoryData
 UENUM(BlueprintType)
 enum class EHighlightState : uint8
 {
-	Allowed UMETA(DisplayName = "Allowed"),
-	NotAllowed UMETA(DisplayName = "Not Allowed"),
-	Partial UMETA(DisplayName = "Partial")
+	Allowed		UMETA(DisplayName = "Allowed"),
+	NotAllowed	UMETA(DisplayName = "Not Allowed"),
+	Partial		UMETA(DisplayName = "Partial")
+};
+
+UENUM(BlueprintType)
+enum class EInventoryType : uint8
+{
+	None UMETA(DisplayName = "None"),
+	Hotbar UMETA(DisplayName = "Hotbar"),
+	Inventory UMETA(DisplayName = "Inventory"),
+	MainInventory UMETA(DisplayName = "MainInventory"),
+	VendorInventory UMETA(DisplayName = "VendorInventory"),
+	ContainerInventory UMETA(DisplayName = "ContainerInventory"),
+	EquipmentInventory UMETA(DisplayName = "EquipmentInventory"),
 };
