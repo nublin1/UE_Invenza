@@ -17,6 +17,7 @@
 #include "UI/Core/CoreHUDWidget.h"
 #include "UI/Interaction/InteractionWidget.h"
 #include "UI/Inventory/SlotbasedInventoryWidget.h"
+#include "UI/ModalWidgets/ModalTradeWidget.h"
 
 
 class UEnhancedInputLocalPlayerSubsystem;
@@ -24,6 +25,39 @@ class UEnhancedInputLocalPlayerSubsystem;
 UIInventoryManager::UIInventoryManager(): CoreHUDWidget(nullptr)
 {
 	
+}
+
+void UIInventoryManager::OpenTradeModal(bool bIsSaleOperation, UItemBase* Operationalitem)
+{
+	auto TradeComponent = CurrentInteractInvWidget->GetInventoryFromContainerSlot()->
+		GetInventoryData().ItemCollectionLink->GetOwner()->FindComponentByClass<UTradeComponent>();
+	if (!TradeComponent)
+		return;
+
+	FText OperationalText;
+	float PriceFactor = 1.0f;
+	int MaxAmount = 1.0f;
+	FItemMetaData ItemData = Operationalitem->GetItemRef();
+	if (bIsSaleOperation)
+	{
+		OperationalText = FText::FromString("Sale");
+		PriceFactor = TradeComponent->GetTradeSettings().SellPriceFactor;
+		if (TradeComponent->GetTradeSettings().RemoveItemAfterPurchase)
+			MaxAmount = Operationalitem->GetQuantity();
+		else
+			MaxAmount = ItemData.ItemNumeraticData.MaxStackSize;
+	}
+	else
+	{
+		OperationalText = FText::FromString("Buy");
+		PriceFactor = TradeComponent->GetTradeSettings().BuyPriceFactor;
+		MaxAmount = ItemData.ItemNumeraticData.MaxStackSize;
+	}
+	
+	FModalTradeData TradeData (FText::FromString("TradeData"),
+					MaxAmount,
+					ItemData.ItemTextData.Name,
+					ItemData.ItemNumeraticData.BasePrice * PriceFactor);
 }
 
 void UIInventoryManager::BeginPlay()

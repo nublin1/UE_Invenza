@@ -16,7 +16,7 @@ ETradeResult UTradeService::ExecuteBuy(const FTradeRequest& Request)
 		return ETradeResult::ItemCantBeSold;
 	
 	if (!Request.Vendor->TryBuyItem(Request.Item))
-		return ETradeResult::VendorOutOfStock;
+		return ETradeResult::NotEnoughMoney;
 
 	FItemMoveData MoveData (Request.Item, Request.BuyerInv, Request.VendorInv);
 	auto AddResult = Request.VendorInv->HandleAddItem(MoveData, true);
@@ -74,7 +74,7 @@ ETradeResult UTradeService::ExecuteSell(const FTradeRequest& Request)
 		return ETradeResult::NoSpaceInInventory;
 	
 	if (!Request.Vendor->TrySellItem(Request.Item))
-		return ETradeResult::VendorOutOfStock;
+		return ETradeResult::NotEnoughMoney;
 
 	Request.Vendor->Selltem(Request.Item);
 

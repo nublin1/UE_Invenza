@@ -10,6 +10,7 @@
 #include "UI/Inventory/InventoryTypes.h"
 #include "UIInventoryManager.generated.h"
 
+struct FItemMetaData;
 class FIteract;
 enum class EInteractableType : uint8;
 class UItemCollection;
@@ -40,6 +41,8 @@ public:
 	//====================================================================
 	UIInventoryManager();
 
+	UFUNCTION()
+	void OpenTradeModal(bool bIsSaleOperation,UItemBase* Operationalitem);
 	UFUNCTION(BlueprintCallable)
 	void OnQuickTransferItem(FItemMoveData ItemMoveData);
 	UFUNCTION(BlueprintCallable)
