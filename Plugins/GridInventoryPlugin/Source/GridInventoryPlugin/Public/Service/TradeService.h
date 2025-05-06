@@ -10,7 +10,7 @@ class UUInventoryWidgetBase;
 class UItemBase;
 class UTradeComponent;
 
-UENUM()
+UENUM(NotBlueprintType)
 enum class ETradeResult : uint8
 {
 	Success,
@@ -18,6 +18,7 @@ enum class ETradeResult : uint8
 	NotEnoughMoney,
 	NoSpaceInInventory,
 	VendorOutOfStock,
+	VendorDoesNotBuy,
 	UnknownError
 };
 

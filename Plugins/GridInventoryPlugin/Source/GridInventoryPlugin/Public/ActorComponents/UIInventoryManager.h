@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Service/TradeService.h"
 #include "Settings/Settings.h"
 #include "UI/Container/InvBaseContainerWidget.h"
 #include "UI/Core/CoreHUDWidget.h"
@@ -53,6 +54,8 @@ public:
 
 	FUISettings GetUISettings() {return UISettings;}
 	UCoreHUDWidget* GetCoreHUDWidget() {return CoreHUDWidget;}
+	UInvBaseContainerWidget* GetCurrentInteractInvWidget() const {return CurrentInteractInvWidget;}
+	
 	FInventoryModifierState GetInventoryModifierStates() const {return InventoryModifierState;}
 
 protected:
@@ -74,6 +77,10 @@ protected:
 	//
 	UPROPERTY(EditAnywhere, Category = "Item Initialization")
 	TObjectPtr<UDataTable>ItemDataTable;
+
+	//
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TObjectPtr<UModalTradeWidget> ModalTradeWidget;
 	
 	//====================================================================
 	// FUNCTIONS
@@ -81,7 +88,7 @@ protected:
 	virtual void BeginPlay() override;
 
 	UFUNCTION()
-	virtual void VendorRequest(FItemMoveData ItemMoveData);
+	virtual ETradeResult VendorRequest(FItemMoveData ItemMoveData);
 
 	UFUNCTION(BlueprintCallable)
 	void SetInteractableType(UInteractableComponent* IteractData);

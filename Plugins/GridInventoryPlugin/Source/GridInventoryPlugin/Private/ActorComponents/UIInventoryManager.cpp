@@ -34,6 +34,24 @@ void UIInventoryManager::OpenTradeModal(bool bIsSaleOperation, UItemBase* Operat
 	if (!TradeComponent)
 		return;
 
+	if (!ModalTradeWidget)
+	{
+		ModalTradeWidget = CreateWidget<UModalTradeWidget>(GetWorld()->GetFirstPlayerController(),
+					UISettings.ModalTradeWidgetClass);
+		ModalTradeWidget->AddToViewport();
+		ModalTradeWidget->ForceLayoutPrepass();
+
+		const FVector2D LocalSize = ModalTradeWidget->GetCachedGeometry().GetLocalSize();
+		const FVector2D ViewportSize = FVector2D(GEngine->GameViewport->Viewport->GetSizeXY());
+		const FVector2D ViewportCenter = ViewportSize * 0.5f;
+		const FVector2D Center = ViewportCenter - (LocalSize * 0.5f);
+		
+		ModalTradeWidget->SetPositionInViewport(Center, true);
+	}
+
+	if (!ModalTradeWidget)
+		return;
+
 	FText OperationalText;
 	float PriceFactor = 1.0f;
 	int MaxAmount = 1.0f;
@@ -54,10 +72,40 @@ void UIInventoryManager::OpenTradeModal(bool bIsSaleOperation, UItemBase* Operat
 		MaxAmount = ItemData.ItemNumeraticData.MaxStackSize;
 	}
 	
-	FModalTradeData TradeData (FText::FromString("TradeData"),
+	FModalTradeData TradeData (OperationalText,
 					MaxAmount,
 					ItemData.ItemTextData.Name,
 					ItemData.ItemNumeraticData.BasePrice * PriceFactor);
+
+	ModalTradeWidget->InitializeTradeWidget(TradeData);
+	ModalTradeWidget->SetVisibility(ESlateVisibility::Visible);
+
+	ModalTradeWidget->ConfirmCallback = [this, bIsSaleOperation, Operationalitem](int32 Quantity)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Trade confirmed: %d items"), Quantity);
+		FItemMoveData ItemMoveData;
+		ItemMoveData.SourceItem = Operationalitem;
+		if (bIsSaleOperation)
+		{
+			ItemMoveData.TargetInventory = CurrentInteractInvWidget->GetInventoryFromContainerSlot();
+			ItemMoveData.SourceInventory = GetMainInventory()->GetInventoryFromContainerSlot();
+		}
+		else
+		{
+			ItemMoveData.SourceInventory = CurrentInteractInvWidget->GetInventoryFromContainerSlot();
+			ItemMoveData.TargetInventory = GetMainInventory()->GetInventoryFromContainerSlot();
+		}
+			
+		auto Result = VendorRequest(ItemMoveData);
+		if (Result == ETradeResult::Success)
+			ModalTradeWidget->SetVisibility(ESlateVisibility::Collapsed);
+		
+			
+	};
+	ModalTradeWidget->CancelCallback = [this]()
+	{
+		ModalTradeWidget->SetVisibility(ESlateVisibility::Collapsed);
+	};
 }
 
 void UIInventoryManager::BeginPlay()
@@ -68,7 +116,7 @@ void UIInventoryManager::BeginPlay()
 		UItemFactory::Init(ItemDataTable);
 }
 
-void UIInventoryManager::VendorRequest(FItemMoveData ItemMoveData )
+ETradeResult UIInventoryManager::VendorRequest(FItemMoveData ItemMoveData )
 {
 	FTradeRequest Req;
 	Req.Vendor      = CoreHUDWidget->GetVendorInvWidget()->GetInventoryFromContainerSlot()->
@@ -77,12 +125,16 @@ void UIInventoryManager::VendorRequest(FItemMoveData ItemMoveData )
 	Req.VendorInv   = CoreHUDWidget->GetVendorInvWidget()->GetInventoryFromContainerSlot();
 	Req.Item		= ItemMoveData.SourceItem;
 	Req.Quantity	= ItemMoveData.SourceItem->GetQuantity();
-
+	
 	if (ItemMoveData.TargetInventory == CoreHUDWidget->GetVendorInvWidget()->GetInventoryFromContainerSlot())
+	{
 		ETradeResult Result = UTradeService::ExecuteBuy(Req);
+		return Result;
+	}
 	else
 	{
 		ETradeResult Result = UTradeService::ExecuteSell(Req);
+		return Result;
 	}
 }
 

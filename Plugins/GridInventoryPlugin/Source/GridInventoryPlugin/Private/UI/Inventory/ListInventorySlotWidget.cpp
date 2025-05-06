@@ -103,37 +103,18 @@ FReply UListInventorySlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeom
 	if (InMouseEvent.IsMouseButtonDown(ParentInventoryWidget->GetUISettings().ItemUseKey)
 		&& ParentInventoryWidget->GetInventorySettings().bCanUseItems)
 	{
-		if (auto ContainerWidget =Cast<UInvBaseContainerWidget>(ParentInventoryWidget->GetParent()->GetOuter()->GetOuter()))
+		if (InventoryManager->GetCurrentInteractInvWidget()
+			&& InventoryManager->GetCurrentInteractInvWidget()->GetInventoryType() == EInventoryType::VendorInventory)
 		{
-			if (ContainerWidget->GetInventoryType() == EInventoryType::VendorInventory)
+			if (ParentInventoryWidget->GetInventoryData().
+			                      ItemCollectionLink->GetOwner() == GetOwningPlayer()->GetPawn())
 			{
-				if (!ParentInventoryWidget->GetUISettings().ModalTradeWidgetClass) return FReply::Unhandled();
-
-				auto TradeModal = CreateWidget<UModalTradeWidget>(this,
-					ParentInventoryWidget->GetUISettings().ModalTradeWidgetClass);
-				if (!TradeModal) return FReply::Unhandled();
-				FModalTradeData TradeData (FText::FromString("TradeData"),
-					5,
-					LinkedItem->GetItemRef().ItemTextData.Name,
-					LinkedItem->GetItemRef().ItemNumeraticData.BasePrice);
-				TradeModal->InitializeTradeWidget(TradeData);
-				TradeModal->AddToViewport();
-				TradeModal->SetPositionInViewport(FVector2D(500,500));
-
-				TradeModal->ConfirmCallback = [this, TradeModal](int32 Quantity)
-				{
-					UE_LOG(LogTemp, Log, TEXT("Trade confirmed: %d items"), Quantity);
-					TradeModal->RemoveFromParent();
-				};
-				TradeModal->CancelCallback = [this, TradeModal]()
-				{
-					TradeModal->RemoveFromParent();
-				};
-				
-				
-				/*FString ObjectName = ContainerWidget->GetName();
-				UE_LOG(LogTemp, Warning, TEXT("Object Name: %s"), *ObjectName);*/
+				InventoryManager->OpenTradeModal(true, LinkedItem);
+				return FReply::Unhandled();
 			}
+				
+			InventoryManager->OpenTradeModal(false, LinkedItem);
+			return FReply::Unhandled();
 		}
 		LinkedItem->UseItem();
 	}

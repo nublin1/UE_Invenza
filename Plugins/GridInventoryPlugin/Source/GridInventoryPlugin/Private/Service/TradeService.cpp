@@ -14,6 +14,9 @@ ETradeResult UTradeService::ExecuteBuy(const FTradeRequest& Request)
 {
 	if (Request.Item->GetItemRef().ItemNumeraticData.bCanBeSold == false )
 		return ETradeResult::ItemCantBeSold;
+
+	if (Request.Vendor->GetTradeSettings().bSellOnly)
+		return ETradeResult::VendorDoesNotBuy;
 	
 	if (!Request.Vendor->TryBuyItem(Request.Item))
 		return ETradeResult::NotEnoughMoney;
