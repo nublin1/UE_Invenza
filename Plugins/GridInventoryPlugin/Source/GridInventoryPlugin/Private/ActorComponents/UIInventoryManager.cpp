@@ -2,6 +2,7 @@
 
 #include "ActorComponents/UIInventoryManager.h"
 
+#include "DelayAction.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "ActorComponents/InteractionComponent.h"
@@ -38,13 +39,13 @@ void UIInventoryManager::OpenTradeModal(bool bIsSaleOperation, UItemBase* Operat
 	{
 		ModalTradeWidget = CreateWidget<UModalTradeWidget>(GetWorld()->GetFirstPlayerController(),
 					UISettings.ModalTradeWidgetClass);
+		ModalTradeWidget->SetAnchorsInViewport(FAnchors(0.5f, 0.5f));
+		ModalTradeWidget->SetAlignmentInViewport(FVector2D(0.5f, 0.5f));
 		ModalTradeWidget->AddToViewport();
-		ModalTradeWidget->ForceLayoutPrepass();
-
-		const FVector2D LocalSize = ModalTradeWidget->GetCachedGeometry().GetLocalSize();
+		
 		const FVector2D ViewportSize = FVector2D(GEngine->GameViewport->Viewport->GetSizeXY());
 		const FVector2D ViewportCenter = ViewportSize * 0.5f;
-		const FVector2D Center = ViewportCenter - (LocalSize * 0.5f);
+		const FVector2D Center = ViewportCenter;
 		
 		ModalTradeWidget->SetPositionInViewport(Center, true);
 	}
