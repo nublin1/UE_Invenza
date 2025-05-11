@@ -134,41 +134,36 @@ void UInvBaseContainerWidget::UpdateMoneyInfo(int32 TotalMoney)
 
 void UInvBaseContainerWidget::TakeAll()
 {
-	UUInventoryWidgetBase* SourceInv = GetInventoryFromContainerSlot(); 
-	if (!SourceInv)
-		return;
-
 	UIInventoryManager* InventoryManager = GetOwningPlayerPawn()->FindComponentByClass<UIInventoryManager>();
 	if (!InventoryManager || !InventoryManager->GetCoreHUDWidget())
 		return;
     
-	UUInventoryWidgetBase* TargetInv = InventoryManager->GetMainInventory()->GetInventoryFromContainerSlot();
+	auto TargetInv = InventoryManager->GetMainInventory();
 	if (!TargetInv)
 		return;
     
-	TransferAllItems(SourceInv, TargetInv);
+	TransferAllItems(this, TargetInv);
 }
 
 void UInvBaseContainerWidget::PlaceAll()
 {
-	UUInventoryWidgetBase* TargetInv = GetInventoryFromContainerSlot(); 
-	if (!TargetInv)
-		return;
-
 	UIInventoryManager* InventoryManager = GetOwningPlayerPawn()->FindComponentByClass<UIInventoryManager>();
 	if (!InventoryManager || !InventoryManager->GetCoreHUDWidget())
 		return;
 
-	UUInventoryWidgetBase* SourceInv = InventoryManager->GetCoreHUDWidget()->GetMainInvWidget()->GetInventoryFromContainerSlot();
+	auto SourceInv = InventoryManager->GetCoreHUDWidget()->GetMainInvWidget();
 	if (!SourceInv)
 		return;
     
-	TransferAllItems(SourceInv, TargetInv);
+	TransferAllItems(SourceInv, this);
 }
 
-void UInvBaseContainerWidget::TransferAllItems(UUInventoryWidgetBase* SourceInv, UUInventoryWidgetBase* TargetInv)
+void UInvBaseContainerWidget::TransferAllItems(UInvBaseContainerWidget* SourceContainer, UInvBaseContainerWidget* TargetContainer)
 {
-	if (!SourceInv || !TargetInv) return;
+	if (!SourceContainer || !TargetContainer) return;
+
+	auto SourceInv = SourceContainer->GetInventoryFromContainerSlot();
+	auto TargetInv = TargetContainer->GetInventoryFromContainerSlot();
 	
 	UItemCollection* SourceCollection = SourceInv->GetInventoryData().ItemCollectionLink;
 	if (!SourceCollection)
@@ -176,7 +171,7 @@ void UInvBaseContainerWidget::TransferAllItems(UUInventoryWidgetBase* SourceInv,
 		return;
 	}
     
-	TArray<UItemBase*> AllItems = SourceCollection->GetAllItemsByContainer(SourceInv);
+	TArray<UItemBase*> AllItems = SourceCollection->GetAllItemsByContainer(SourceContainer);
 	if (AllItems.IsEmpty())
 	{
 		return;
@@ -204,7 +199,7 @@ void UInvBaseContainerWidget::SortItems()
 	if (!Inv)
 		return;
 
-	TArray<UItemBase*> AllItems = Inv->GetInventoryData().ItemCollectionLink->GetAllItemsByContainer(Inv);
+	TArray<UItemBase*> AllItems = Inv->GetInventoryData().ItemCollectionLink->GetAllItemsByContainer(this);
 	if (AllItems.IsEmpty())
 		return;
 	

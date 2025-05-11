@@ -42,20 +42,20 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Item Collection|Item Management")
 	void AddItem(UItemBase* NewItem, FItemMapping ItemMapping);
 	UFUNCTION(BlueprintCallable, Category = "Item Collection|Item Management")
-	void RemoveItem(UItemBase* Item, UUInventoryWidgetBase* Container);
+	void RemoveItem(UItemBase* Item, UInvBaseContainerWidget* Container);
 	UFUNCTION(BlueprintCallable, Category = "Item Collection|Item Management")
 	void RemoveItemFromAllContainers(UItemBase* Item);
 	
-	FItemMapping* FindItemMappingForItemInContainer(UItemBase* TargetItem, UUInventoryWidgetBase* InContainer);
-	bool HasItemInContainer(UItemBase* Item, USlotbasedInventoryWidget* Container) const;
+	FItemMapping* FindItemMappingForItemInContainer(UItemBase* TargetItem, UInvBaseContainerWidget* InContainer);
+	bool HasItemInContainer(UItemBase* Item, UInvBaseContainerWidget* Container) const;
 	
 	TMap<TStrongObjectPtr<UItemBase>, TArray<FItemMapping>> GetItemLocations() const {return ItemLocations;}
-	TArray<TObjectPtr<UInventorySlot>> CollectOccupiedSlotsByContainer(USlotbasedInventoryWidget* InContainer);
-	UItemBase* GetItemFromSlot(UInventorySlot* TargetSlot, UUInventoryWidgetBase* TargetContainer) const;
-	TArray<UItemBase*> GetAllItemsByContainer(UUInventoryWidgetBase* TargetContainer) const;
-	TArray<UItemBase*> GetAllSameItemsInContainer(UUInventoryWidgetBase* TargetContainer, UItemBase* ReferenceItem) const;
+	TArray<FInventorySlotData> CollectOccupiedSlotsByContainer(UInvBaseContainerWidget* InContainer);
+	UItemBase* GetItemFromSlot(FInventorySlotData TargetSlotData, UInvBaseContainerWidget* TargetContainer) const;
+	TArray<UItemBase*> GetAllItemsByContainer(UInvBaseContainerWidget* TargetContainer) const;
+	TArray<UItemBase*> GetAllSameItemsInContainer(UInvBaseContainerWidget* TargetContainer, UItemBase* ReferenceItem) const;
 	TArray<UItemBase*> GetAllItemsByCategory(EItemCategory ItemCategory);
-	UInventoryItemWidget* GetItemLinkedWidgetForSlot(UInventorySlot* _ItemSlot) const;
+	UInventoryItemWidget* GetItemLinkedWidgetForSlot(FInventorySlotData ItemSlotData);
 
 protected:
 	//====================================================================

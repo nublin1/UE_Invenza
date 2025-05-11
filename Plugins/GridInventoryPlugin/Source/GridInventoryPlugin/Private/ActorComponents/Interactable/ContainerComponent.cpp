@@ -10,6 +10,7 @@
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Factory/ItemFactory.h"
 #include "Kismet/GameplayStatics.h"
+#include "UI/Inventory/SlotbasedInventoryWidget.h"
 #include "UI/Inventory/UInventoryWidgetBase.h"
 
 
@@ -102,7 +103,7 @@ void UContainerComponent::InitializeItemCollection()
 {
 	if (!ContainerWidget) return;
 
-	if (WorldContainerInventoryWidgetClass)
+	/*if (WorldContainerInventoryWidgetClass)
 	{
 		ContainerWidget->ChangeInventoryInContainerSlot(WorldContainerInventoryWidgetClass);
 		InventoryWidget = ContainerWidget->GetInventoryFromContainerSlot();
@@ -118,10 +119,18 @@ void UContainerComponent::InitializeItemCollection()
 			return;
 
 		ContainerWidget->ChangeInventoryInContainerSlot(InventoryManager->GetUISettings().DefaultWorldContainerInventoryWidgetClass);
-		InventoryWidget = ContainerWidget->GetInventoryFromContainerSlot();
-	}
+	}*/
 
+	InventoryWidget = ContainerWidget->GetInventoryFromContainerSlot();
 	if (!InventoryWidget) return;
+
+	if (InventorySize != FVector2D::ZeroVector)
+	{
+		if (auto SlotBased = Cast<USlotbasedInventoryWidget>(InventoryWidget))
+		{
+			SlotBased->RebuildSlots(InventorySize.X, InventorySize.Y);
+		}
+	}
 	
 	InventoryWidget->SetItemCollection(ItemCollection);
 	InventoryWidget->InitItemsInItemsCollection();

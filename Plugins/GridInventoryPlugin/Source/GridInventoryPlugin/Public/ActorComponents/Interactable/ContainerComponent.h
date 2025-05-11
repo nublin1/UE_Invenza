@@ -44,8 +44,10 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UInvBaseContainerWidget> ContainerWidget;
 
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	//TSubclassOf<UBaseUserWidget> WorldContainerInventoryWidgetClass;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TSubclassOf<UBaseUserWidget> WorldContainerInventoryWidgetClass;
+	FVector2D InventorySize = FVector2D::ZeroVector; // Only for SlotBased 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bDestroyWhenEmpty = false;
 

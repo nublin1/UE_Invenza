@@ -70,8 +70,8 @@ void UEquipmentManagerComponent::BindWidgetsToSlots()
 void UEquipmentManagerComponent::EquipItemToSlot(FItemMapping ItemSlots, UItemBase* Item)
 {
 	// Имя виджета должно совподать с именем слота
-	auto SlotName = Cast<UEquipmentSlotWidget>(ItemSlots.ItemSlots[0])->SlotName;
-	if (!Item || !EquipmentSlots.Contains(SlotName)) return;
+	auto SlotName = ItemSlots.ItemSlotDatas[0].SlotName;
+	if (!Item || SlotName.IsNone() || !EquipmentSlots.Contains(SlotName)) return;
 
 	FEquipmentSlot& EquipmentSlot = EquipmentSlots[SlotName];
 	if (EquipmentSlot.AllowedCategory != Item->GetItemRef().ItemCategory)
@@ -118,8 +118,8 @@ void UEquipmentManagerComponent::EquipItem(UItemBase* Item)
 
 void UEquipmentManagerComponent::UnequipItem(FItemMapping ItemSlots, UItemBase* Item, int32 RemoveQuantity)
 {
-	auto SlotName = Cast<UEquipmentSlotWidget>(ItemSlots.ItemSlots[0])->SlotName;
-	if (!EquipmentSlots.Contains(SlotName)) return;
+	auto SlotName = ItemSlots.ItemSlotDatas[0].SlotName;
+	if (SlotName.IsNone() || !EquipmentSlots.Contains(SlotName)) return;
 
 	FEquipmentSlot& Slot = EquipmentSlots[SlotName];
 	if (Slot.EquippedItem == nullptr)

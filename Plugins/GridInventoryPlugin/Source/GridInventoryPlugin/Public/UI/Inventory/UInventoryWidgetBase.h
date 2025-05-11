@@ -7,6 +7,7 @@
 #include "Data/LogicChecks.h"
 #include "Settings/Settings.h"
 #include "UI/BaseUserWidget.h"
+#include "UI/Container/InvBaseContainerWidget.h"
 #include "UInventoryWidgetBase.generated.h"
 
 #pragma region Delegates
@@ -133,7 +134,9 @@ protected:
 	UFUNCTION()
 	virtual void UpdateMoneyInfo();
 
-	
+	//
+	UFUNCTION()
+	virtual UInvBaseContainerWidget* GetAsContainerWidget() { return Cast<UInvBaseContainerWidget>(ParentWidget);}
 	
 	
 	//====================================================================

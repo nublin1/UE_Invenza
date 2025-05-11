@@ -121,12 +121,12 @@ void UIInventoryManager::BeginPlay()
 ETradeResult UIInventoryManager::VendorRequest(FItemMoveData ItemMoveData )
 {
 	FTradeRequest Req;
-	Req.Vendor      = CoreHUDWidget->GetVendorInvWidget()->GetInventoryFromContainerSlot()->
+	Req.Vendor				= CoreHUDWidget->GetVendorInvWidget()->GetInventoryFromContainerSlot()->
 		GetInventoryData().ItemCollectionLink->GetOwner()->FindComponentByClass<UTradeComponent>();
-	Req.BuyerInv	= CoreHUDWidget->GetMainInvWidget()->GetInventoryFromContainerSlot();
-	Req.VendorInv   = CoreHUDWidget->GetVendorInvWidget()->GetInventoryFromContainerSlot();
-	Req.Item		= ItemMoveData.SourceItem;
-	Req.Quantity	= ItemMoveData.SourceItem->GetQuantity();
+	Req.BuyerContainer		= CoreHUDWidget->GetMainInvWidget();
+	Req.VendorContainer		= CoreHUDWidget->GetVendorInvWidget();
+	Req.Item				= ItemMoveData.SourceItem;
+	Req.Quantity			= ItemMoveData.SourceItem->GetQuantity();
 	
 	if (ItemMoveData.TargetInventory == CoreHUDWidget->GetVendorInvWidget()->GetInventoryFromContainerSlot())
 	{
@@ -168,8 +168,8 @@ void UIInventoryManager::ItemTransferRequest(FItemMoveData ItemMoveData)
 		}
 	}
 	
-	
 	auto Result = ItemMoveData.TargetInventory->HandleAddItem(ItemMoveData, false);
+	UE_LOG(LogTemp, Log, TEXT("Is ResultMessage: %s"), *Result.ResultMessage.ToString());
 	switch (Result.OperationResult)
 	{
 	case EItemAddResult::IAR_AllItemAdded:
@@ -207,6 +207,8 @@ void UIInventoryManager::ItemTransferRequest(FItemMoveData ItemMoveData)
 				}
 			}
 		}
+		
+		
 		break;
 	case EItemAddResult::IAR_PartialAmountItemAdded:
 		break;

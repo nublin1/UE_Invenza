@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+//  Nublin Studio 2025 All Rights Reserved.
 
 #pragma once
 
@@ -15,6 +15,8 @@ class GRIDINVENTORYPLUGIN_API UBaseUserWidget : public UUserWidget
 	GENERATED_BODY()
 	
 public:
+	UFUNCTION()
+	virtual void CalculateParentWidget();
 	
 	UFUNCTION()
 	virtual void SetParentWidget(UBaseUserWidget* Parent) {ParentWidget = Parent;}
@@ -23,7 +25,9 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UUserWidget> ParentWidget;
 
-
+	//
 	virtual void NativeConstruct() override;
+
+	
 	
 };

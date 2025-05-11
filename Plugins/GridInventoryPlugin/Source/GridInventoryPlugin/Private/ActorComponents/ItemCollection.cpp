@@ -2,6 +2,7 @@
 
 #include "ActorComponents/ItemCollection.h"
 #include "ActorComponents/Items/itemBase.h"
+#include "UI/Container/InvBaseContainerWidget.h"
 #include "UI/Inventory/SlotbasedInventoryWidget.h"
 
 UItemCollection::UItemCollection()
@@ -19,7 +20,7 @@ void UItemCollection::AddItem(UItemBase* NewItem, FItemMapping ItemMapping)
 	//UE_LOG(LogTemp, Warning, TEXT("Widget already exists for Item: %s"), *NewItem->GetName());
 }
 
-void UItemCollection::RemoveItem(UItemBase* Item, UUInventoryWidgetBase* Container)
+void UItemCollection::RemoveItem(UItemBase* Item, UInvBaseContainerWidget* Container)
 {
 	if (!Item)
 	{
@@ -40,7 +41,7 @@ void UItemCollection::RemoveItem(UItemBase* Item, UUInventoryWidgetBase* Contain
 	
 	int32 RemovedCount = Mappings->RemoveAll([Container](const FItemMapping& Mapping)
 	{
-		return Mapping.InventoryWidgetBaseLink == Container;
+		return Mapping.InventoryContainer == Container;
 	});
 
 	auto MappingsTwo = ItemLocations.Find(TStrongObjectPtr<UItemBase>(Item));
@@ -67,10 +68,10 @@ void UItemCollection::RemoveItemFromAllContainers(UItemBase* Item)
 	for (int32 i = Mappings->Num() - 1; i >= 0; --i)
 	{
 		const FItemMapping& Mapping = (*Mappings)[i];
-		if (Mapping.InventoryWidgetBaseLink)
+		if (Mapping.InventoryContainer)
 		{
 			//UE_LOG(LogTemp, Warning, TEXT("InventoryWidgetBaseLink %s"), *Mapping.InventoryWidgetBaseLink->GetName());
-			Mapping.InventoryWidgetBaseLink->HandleRemoveItemFromContainer(Item);
+			Mapping.InventoryContainer->GetInventoryFromContainerSlot()->HandleRemoveItemFromContainer(Item);
 		}
 		else
 		{
@@ -81,7 +82,7 @@ void UItemCollection::RemoveItemFromAllContainers(UItemBase* Item)
 	ItemLocations.Remove(TStrongObjectPtr<UItemBase>(Item));
 }
 
-FItemMapping* UItemCollection::FindItemMappingForItemInContainer(UItemBase* TargetItem, UUInventoryWidgetBase* InContainer)
+FItemMapping* UItemCollection::FindItemMappingForItemInContainer(UItemBase* TargetItem, UInvBaseContainerWidget* InContainer)
 {
 	if (!TargetItem)
 	{
@@ -103,7 +104,7 @@ FItemMapping* UItemCollection::FindItemMappingForItemInContainer(UItemBase* Targ
 	
 	for (FItemMapping& Mapping : *Mappings)
 	{
-		if (Mapping.InventoryWidgetBaseLink == InContainer)
+		if (Mapping.InventoryContainer == InContainer)
 		{
 			return &Mapping;
 		}
@@ -111,7 +112,7 @@ FItemMapping* UItemCollection::FindItemMappingForItemInContainer(UItemBase* Targ
 	return nullptr;
 }
 
-bool UItemCollection::HasItemInContainer(UItemBase* Item, USlotbasedInventoryWidget* Container) const
+bool UItemCollection::HasItemInContainer(UItemBase* Item, UInvBaseContainerWidget* Container) const
 {
 	if (!Item)
 	{
@@ -126,7 +127,7 @@ bool UItemCollection::HasItemInContainer(UItemBase* Item, USlotbasedInventoryWid
 	}
 	for (const FItemMapping& Mapping : *Mappings)
 	{
-		if (Mapping.InventoryWidgetBaseLink == Container)
+		if (Mapping.InventoryContainer == Container)
 		{
 			return true;
 		}
@@ -135,9 +136,9 @@ bool UItemCollection::HasItemInContainer(UItemBase* Item, USlotbasedInventoryWid
 	return false;
 }
 
-TArray<TObjectPtr<UInventorySlot>> UItemCollection::CollectOccupiedSlotsByContainer(USlotbasedInventoryWidget* InContainer)
+TArray<FInventorySlotData> UItemCollection::CollectOccupiedSlotsByContainer(UInvBaseContainerWidget* InContainer)
 {
-	TArray<TObjectPtr<UInventorySlot>> OccupiedSlots;
+	TArray<FInventorySlotData> OccupiedSlots;
 	if (!InContainer)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("GetOccupiedSlotsForContainer: TargetContainer is null."));
@@ -151,22 +152,21 @@ TArray<TObjectPtr<UInventorySlot>> UItemCollection::CollectOccupiedSlotsByContai
 	{
 		for (const FItemMapping& Mapping : Pair.Value)
 		{
-			if (Mapping.InventoryWidgetBaseLink == InContainer && !Mapping.ItemSlots.IsEmpty())
+			if (Mapping.InventoryContainer == InContainer && !Mapping.ItemSlotDatas.IsEmpty())
 			{
-				OccupiedSlots.Append(Mapping.ItemSlots);
+				OccupiedSlots.Append(Mapping.ItemSlotDatas);
 			}
 		}
 	}
-
-	OccupiedSlots.RemoveAll([](UInventorySlot* Slot) { return Slot == nullptr; });
+	
 	return OccupiedSlots;
 }
 
-UItemBase* UItemCollection::GetItemFromSlot(UInventorySlot* TargetSlot, UUInventoryWidgetBase* TargetContainer) const
+UItemBase* UItemCollection::GetItemFromSlot(FInventorySlotData TargetSlotData, UInvBaseContainerWidget* TargetContainer) const
 {
-	if (!TargetSlot || !TargetContainer)
+	if ( !TargetContainer)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GetItemFromSlot: %s"), !TargetSlot ? TEXT("TargetSlot is null.") : TEXT("TargetContainer is null."));
+		UE_LOG(LogTemp, Warning, TEXT("GetItemFromSlot: %s"), TEXT("TargetContainer is null."));
 		return nullptr;
 	}
 
@@ -177,7 +177,7 @@ UItemBase* UItemCollection::GetItemFromSlot(UInventorySlot* TargetSlot, UUInvent
 	{
 		for (const FItemMapping& Mapping : Pair.Value)
 		{
-			if (Mapping.InventoryWidgetBaseLink == TargetContainer && Mapping.ItemSlots.Contains(TargetSlot))
+			if (Mapping.InventoryContainer == TargetContainer && Mapping.ItemSlotDatas.Contains(TargetSlotData))
 			{
 				return Pair.Key.Get();
 			}
@@ -188,7 +188,7 @@ UItemBase* UItemCollection::GetItemFromSlot(UInventorySlot* TargetSlot, UUInvent
 	return nullptr;
 }
 
-TArray<UItemBase*> UItemCollection::GetAllItemsByContainer(UUInventoryWidgetBase* TargetContainer) const
+TArray<UItemBase*> UItemCollection::GetAllItemsByContainer(UInvBaseContainerWidget* TargetContainer) const
 {
 	TArray<UItemBase*> Result;
     
@@ -204,7 +204,7 @@ TArray<UItemBase*> UItemCollection::GetAllItemsByContainer(UUInventoryWidgetBase
 		
 		for (const FItemMapping& Mapping : Mappings)
 		{
-			if (Mapping.InventoryWidgetBaseLink == TargetContainer)
+			if (Mapping.InventoryContainer == TargetContainer)
 			{
 				if (!Result.Contains(Item.Get()))
 				{
@@ -218,7 +218,7 @@ TArray<UItemBase*> UItemCollection::GetAllItemsByContainer(UUInventoryWidgetBase
 	return Result;
 }
 
-TArray<UItemBase*> UItemCollection::GetAllSameItemsInContainer(UUInventoryWidgetBase* TargetContainer,
+TArray<UItemBase*> UItemCollection::GetAllSameItemsInContainer(UInvBaseContainerWidget* TargetContainer,
                                                                UItemBase* ReferenceItem) const
 {
 	TArray<UItemBase*> SameItems;
@@ -240,7 +240,7 @@ TArray<UItemBase*> UItemCollection::GetAllSameItemsInContainer(UUInventoryWidget
 		{
 			for (const FItemMapping& Mapping : Pair.Value)
 			{
-				if (Mapping.InventoryWidgetBaseLink == TargetContainer)
+				if (Mapping.InventoryContainer == TargetContainer)
 				{
 					SameItems.AddUnique(Item.Get());
 					break;
@@ -267,20 +267,14 @@ TArray<UItemBase*> UItemCollection::GetAllItemsByCategory(EItemCategory ItemCate
 	return SameItems;
 }
 
-UInventoryItemWidget* UItemCollection::GetItemLinkedWidgetForSlot(UInventorySlot* _ItemSlot) const
-{
-	if (!_ItemSlot)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("GetItemLinkedWidget: TargetItem or InContainer is null."));
-		return nullptr;
-	}
-	
+UInventoryItemWidget* UItemCollection::GetItemLinkedWidgetForSlot(FInventorySlotData ItemSlotData)
+{	
 	for (const auto& Pair : ItemLocations)
 	{
 		const TArray<FItemMapping>& Mappings = Pair.Value;
 		for (const FItemMapping& Mapping : Mappings)
 		{
-			if (Mapping.ItemSlots.Contains(_ItemSlot))
+			if (Mapping.ItemSlotDatas.Contains(ItemSlotData))
 			{
 				return Mapping.ItemVisualLinked;
 			}

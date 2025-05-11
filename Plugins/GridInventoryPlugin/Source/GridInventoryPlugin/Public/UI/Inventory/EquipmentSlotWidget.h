@@ -21,9 +21,6 @@ public:
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FName SlotName;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	EItemCategory AllowedCategory;
 
 	//====================================================================

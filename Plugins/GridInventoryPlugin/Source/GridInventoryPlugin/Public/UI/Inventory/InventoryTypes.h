@@ -6,6 +6,8 @@
 #include "InventoryTypes.generated.h"
 
 
+class UInvBaseContainerWidget;
+struct FInventorySlotData;
 class UInputAction;
 class UInventorySlot;
 class UItemTooltipWidget;
@@ -15,27 +17,6 @@ class UItemBase;
 class UUInventoryWidgetBase;
 class UItemCollection;
 
-USTRUCT(Blueprintable)
-struct FItemMapping
-{
-	GENERATED_BODY()
-
-	UPROPERTY()
-	TObjectPtr<UUInventoryWidgetBase> InventoryWidgetBaseLink;
-	UPROPERTY()
-	TArray<TObjectPtr<UInventorySlot>> ItemSlots;
-	UPROPERTY()
-	TObjectPtr<UInventoryItemWidget> ItemVisualLinked;
-
-	FItemMapping() {}
-	explicit FItemMapping(UInventorySlot* Slot)
-	{
-		if (Slot)
-		{
-			ItemSlots.Add(Slot);
-		}
-	}
-};
 
 UENUM(BlueprintType)
 enum class EItemAddResult : uint8
@@ -181,12 +162,41 @@ USTRUCT(BlueprintType)
 struct FInventorySlotData
 {
 	GENERATED_BODY()
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName SlotName;
 
 	UPROPERTY(VisibleAnywhere)
 	FIntVector2 SlotPosition{};
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UInputAction> UseAction;
+
+	bool operator==(const FInventorySlotData& Other) const
+	{
+		return SlotName == Other.SlotName
+			&& SlotPosition == Other.SlotPosition
+			&& UseAction == Other.UseAction;
+	}
+};
+
+USTRUCT(Blueprintable)
+struct FItemMapping
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	TObjectPtr<UInvBaseContainerWidget> InventoryContainer;
+	UPROPERTY()
+	TArray<FInventorySlotData> ItemSlotDatas;
+	UPROPERTY()
+	TObjectPtr<UInventoryItemWidget> ItemVisualLinked;
+
+	FItemMapping() {}
+	explicit FItemMapping(FInventorySlotData SlotData)
+	{
+		ItemSlotDatas.Add(SlotData);
+	}
 };
 
 UENUM(BlueprintType)

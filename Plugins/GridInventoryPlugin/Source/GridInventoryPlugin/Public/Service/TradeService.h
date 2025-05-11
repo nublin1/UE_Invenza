@@ -6,6 +6,7 @@
 #include "TradeService.generated.h"
 
 
+class UInvBaseContainerWidget;
 class UUInventoryWidgetBase;
 class UItemBase;
 class UTradeComponent;
@@ -29,8 +30,8 @@ struct FTradeRequest
 
 	UPROPERTY()
 	TObjectPtr<UTradeComponent> Vendor;			// Торговый компонент продавца
-	TObjectPtr<UUInventoryWidgetBase> VendorInv;
-	TObjectPtr<UUInventoryWidgetBase> BuyerInv;
+	TObjectPtr<UInvBaseContainerWidget> VendorContainer;
+	TObjectPtr<UInvBaseContainerWidget> BuyerContainer;
 	UPROPERTY()
 	TObjectPtr<UItemBase> Item;					// Что покупаем / продаём
 	int32 Quantity;						// Сколько

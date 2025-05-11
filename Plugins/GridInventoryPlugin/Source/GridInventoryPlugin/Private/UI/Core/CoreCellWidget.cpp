@@ -26,7 +26,7 @@ void UCoreCellWidget::NativePreConstruct()
 	SizeBox->SetWidthOverride(DefaultSlotSize.X);
 	SizeBox->SetHeightOverride(DefaultSlotSize.Y);
 
-	DefaultBorderColor = Left_Border->GetBrushColor();
+	//DefaultBorderColor = Left_Border->GetBrushColor();
 	if (DefaultContent_Image)
 	{
 		FSlateBrush Brush;

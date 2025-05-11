@@ -95,7 +95,7 @@ protected:
 	UFUNCTION()
 	virtual void PlaceAll();
 	UFUNCTION()
-	void TransferAllItems(UUInventoryWidgetBase* SourceInv, UUInventoryWidgetBase* TargetInv);
+	static void TransferAllItems(UInvBaseContainerWidget* SourceContainer, UInvBaseContainerWidget* TargetContainer);
 	UFUNCTION()
 	virtual void SortItems();
 	

@@ -4,6 +4,7 @@
 #include "CoreMinimal.h"
 #include "Settings.generated.h"
 
+class USlotbasedInventorySlot;
 class UModalTradeWidget;
 class UItemTooltipWidget;
 class UInputMappingContext;
@@ -41,6 +42,8 @@ struct FUISettings
 	TSubclassOf<AActor> PickupClass;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TSubclassOf<UBaseUserWidget> DefaultWorldContainerInventoryWidgetClass;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TSubclassOf<USlotbasedInventorySlot> DefaultSlotbasedInventorySlotClass;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TSubclassOf<UInventoryItemWidget> InventoryItemVisualClass;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)

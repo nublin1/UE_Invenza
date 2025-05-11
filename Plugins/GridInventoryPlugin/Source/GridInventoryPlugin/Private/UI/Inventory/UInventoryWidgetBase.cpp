@@ -6,6 +6,7 @@
 #include "ActorComponents/ItemCollection.h"
 #include "ActorComponents/UIInventoryManager.h"
 #include "Factory/ItemFactory.h"
+#include "UI/Inventory/InventorySlot.h"
 
 void UUInventoryWidgetBase::InitItemsInItemsCollection()
 {
@@ -34,7 +35,7 @@ void UUInventoryWidgetBase::InitItemsInItemsCollection()
 
 void UUInventoryWidgetBase::UseSlot(UInventorySlot* UsedSlot)
 {
-	auto Item = InventoryData.ItemCollectionLink->GetItemFromSlot(UsedSlot, this);
+	auto Item = InventoryData.ItemCollectionLink->GetItemFromSlot(UsedSlot->GetSlotData(), GetAsContainerWidget());
 	if (!Item)
 		return;
 	
@@ -65,7 +66,8 @@ FItemMapping* UUInventoryWidgetBase::GetItemMapping(UItemBase* Item)
 	{
 		return nullptr;
 	}
-	auto Mapping = InventoryData.ItemCollectionLink->FindItemMappingForItemInContainer(Item, this);
+	auto CastedInvContainer = Cast<UInvBaseContainerWidget>(ParentWidget);
+	auto Mapping = InventoryData.ItemCollectionLink->FindItemMappingForItemInContainer(Item, GetAsContainerWidget());
 	return Mapping;
 }
 
@@ -97,7 +99,7 @@ void UUInventoryWidgetBase::UpdateWeightInfo()
 	if (OnWightUpdatedDelegate.IsBound() && InventoryData.ItemCollectionLink)
 	{
 		InventoryData.InventoryTotalWeight = 0;
-		auto AllItems = InventoryData.ItemCollectionLink->GetAllItemsByContainer(this);
+		auto AllItems = InventoryData.ItemCollectionLink->GetAllItemsByContainer(GetAsContainerWidget());
 		if (AllItems.IsEmpty())
 		{
 			OnWightUpdatedDelegate.Broadcast(0, InventorySettings.InventoryWeightCapacity);
@@ -128,7 +130,7 @@ void UUInventoryWidgetBase::UpdateMoneyInfo()
 	{
 		InventoryData.InventoryTotalMoney = 0;
 	}
-	auto AllItems = InventoryData.ItemCollectionLink->GetAllItemsByContainer(this);
+	auto AllItems = InventoryData.ItemCollectionLink->GetAllItemsByContainer(GetAsContainerWidget());
 	if (AllItems.IsEmpty())
 	{
 		OnMoneyUpdatedDelegate.Broadcast(0);
