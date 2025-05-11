@@ -182,15 +182,14 @@ void UInteractionComponent::BeginInteract()
 
 void UInteractionComponent::EndInteract()
 {
-	if (bHoldToInteract)
+	if (IsValid(TargetInteractableComponent) && TargetInteractableComponent->InteractableData.bHoldToInteract)
 	{
 		GetWorld()->GetTimerManager().ClearTimer(TimerHandle_Interaction);	
-		if (IsValid(TargetInteractableComponent))
-		{
-			TargetInteractableComponent->EndInteract(this);
-			EndIteractNotify();
-			return;
-		}
+		
+		TargetInteractableComponent->EndInteract(this);
+		EndIteractNotify();
+		return;
+		
 	}
 	
 }

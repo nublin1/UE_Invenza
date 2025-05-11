@@ -62,7 +62,7 @@ void UEquipmentManagerComponent::BindWidgetsToSlots()
 
 	EquipmentInvWidget->GetInventoryFromContainerSlot()->OnAddItemDelegate.AddDynamic(
 		this, &UEquipmentManagerComponent::EquipItemToSlot);
-	EquipmentInvWidget->GetInventoryFromContainerSlot()->OnRemoveItemDelegate.AddDynamic(
+	EquipmentInvWidget->GetInventoryFromContainerSlot()->OnPreRemoveItemDelegate.AddDynamic(
 		this, &UEquipmentManagerComponent::UnequipItem);
 	
 }

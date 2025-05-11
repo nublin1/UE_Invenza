@@ -1,6 +1,6 @@
 //  Nublin Studio 2025 All Rights Reserved.
 
-#include "ActorComponents/Interactable/InteractableContainerComponent.h"
+#include "ActorComponents/Interactable/ContainerComponent.h"
 
 #include "ActorComponents/InteractionComponent.h"
 #include "ActorComponents/ItemCollection.h"
@@ -15,11 +15,11 @@
 
 class UIInventoryManager;
 
-UInteractableContainerComponent::UInteractableContainerComponent()
+UContainerComponent::UContainerComponent()
 {
 }
 
-void UInteractableContainerComponent::BeginFocus()
+void UContainerComponent::BeginFocus()
 {
 	Super::BeginFocus();
 	if (auto StaticMesh = GetOwner()->FindComponentByClass<UStaticMeshComponent>())
@@ -28,7 +28,7 @@ void UInteractableContainerComponent::BeginFocus()
 	}
 }
 
-void UInteractableContainerComponent::EndFocus()
+void UContainerComponent::EndFocus()
 {
 	Super::EndFocus();
 	if (auto StaticMesh = GetOwner()->FindComponentByClass<UStaticMeshComponent>())
@@ -37,18 +37,20 @@ void UInteractableContainerComponent::EndFocus()
 	}
 }
 
-void UInteractableContainerComponent::Interact(UInteractionComponent* InteractionComponent)
+void UContainerComponent::Interact(UInteractionComponent* InteractionComponent)
 {
 	Super::Interact(InteractionComponent);
 
 	if (!ItemCollection) return;
-	InitializeItemCollection();	
-
+	
 	FindContainerWidget();
+	InitializeItemCollection();	
+	
 	if (!InventoryWidget) return;
 
 	CurrentInteractionComponent = InteractionComponent;
-	InventoryWidget->OnVisibilityChanged.AddDynamic(this, &UInteractableContainerComponent::ContainerWidgetVisibilityChanged);
+	InventoryWidget->OnVisibilityChanged.AddDynamic(this, &UContainerComponent::ContainerWidgetVisibilityChanged);
+	InventoryWidget->OnPostRemoveItemDelegate.AddDynamic(this, &UContainerComponent::DestroyWhenEmpty);
 	
 	if (bIsInteracting == false)
 	{
@@ -61,26 +63,27 @@ void UInteractableContainerComponent::Interact(UInteractionComponent* Interactio
 	}
 }
 
-void UInteractableContainerComponent::StopInteract(UInteractionComponent* InteractionComponent)
+void UContainerComponent::StopInteract(UInteractionComponent* InteractionComponent)
 {
 	Super::StopInteract(InteractionComponent);
 
 	if (InventoryWidget)
 	{
-		InventoryWidget->OnVisibilityChanged.RemoveDynamic(this, &UInteractableContainerComponent::ContainerWidgetVisibilityChanged);
+		InventoryWidget->OnVisibilityChanged.RemoveDynamic(this, &UContainerComponent::ContainerWidgetVisibilityChanged);
+		InventoryWidget->OnPostRemoveItemDelegate.RemoveDynamic(this, &UContainerComponent::DestroyWhenEmpty);
 	}
 	ContainerWidget=nullptr;
 	bIsInteracting = false;
 	CurrentInteractionComponent = nullptr;
 }
 
-void UInteractableContainerComponent::OnRegister()
+void UContainerComponent::OnRegister()
 {
 	Super::OnRegister();
 	InitializeInteractionComponent();
 }
 
-void UInteractableContainerComponent::ContainerWidgetVisibilityChanged(ESlateVisibility NewVisibility)
+void UContainerComponent::ContainerWidgetVisibilityChanged(ESlateVisibility NewVisibility)
 {
 	if (NewVisibility != ESlateVisibility::Visible)
 	{
@@ -88,36 +91,43 @@ void UInteractableContainerComponent::ContainerWidgetVisibilityChanged(ESlateVis
 	}
 }
 
-void UInteractableContainerComponent::InitializeInteractionComponent()
+void UContainerComponent::InitializeInteractionComponent()
 {
 	Super::InitializeInteractionComponent();
 	ItemCollection = GetOwner()->FindComponentByClass<UItemCollection>();
 	UpdateInteractableData();
 }
 
-void UInteractableContainerComponent::InitializeItemCollection() 
+void UContainerComponent::InitializeItemCollection() 
 {
-	FindContainerWidget();
-	if (!InventoryWidget ||! ContainerWidget) return;
-	InventoryWidget->SetItemCollection(ItemCollection);
+	if (!ContainerWidget) return;
 
-	if (ItemCollection->InitItems.IsEmpty())
-		return;
-	
-	for (const auto& Item : ItemCollection->InitItems)
+	if (WorldContainerInventoryWidgetClass)
 	{
-		FItemMoveData ItemMoveData;
-		ItemMoveData.SourceItem =  UItemFactory::CreateItemByID(this, Item.ItemName, Item.ItemCount);
-		if (ItemMoveData.SourceItem)
-		{
-			InventoryWidget->HandleAddItem(ItemMoveData);
-		}
+		ContainerWidget->ChangeInventoryInContainerSlot(WorldContainerInventoryWidgetClass);
+		InventoryWidget = ContainerWidget->GetInventoryFromContainerSlot();
 	}
+	else
+	{
+		auto* PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+		if (!PlayerPawn)
+			return;
+		
+		UIInventoryManager* InventoryManager = PlayerPawn->FindComponentByClass<UIInventoryManager>();
+		if (!InventoryManager)
+			return;
+
+		ContainerWidget->ChangeInventoryInContainerSlot(InventoryManager->GetUISettings().DefaultWorldContainerInventoryWidgetClass);
+		InventoryWidget = ContainerWidget->GetInventoryFromContainerSlot();
+	}
+
+	if (!InventoryWidget) return;
 	
-	ItemCollection->InitItems.Empty();
+	InventoryWidget->SetItemCollection(ItemCollection);
+	InventoryWidget->InitItemsInItemsCollection();
 }
 
-void UInteractableContainerComponent::UpdateInteractableData()
+void UContainerComponent::UpdateInteractableData()
 {
 	Super::UpdateInteractableData();
 
@@ -126,7 +136,7 @@ void UInteractableContainerComponent::UpdateInteractableData()
 	InteractableData.Quantity = -1;
 }
 
-void UInteractableContainerComponent::FindContainerWidget()
+void UContainerComponent::FindContainerWidget()
 {
 	auto* PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
 	if (!PlayerPawn)
@@ -150,4 +160,14 @@ void UInteractableContainerComponent::FindContainerWidget()
 
 	ContainerWidget = FoundContainerWidget;
 	InventoryWidget = FoundInventoryWidget;
+}
+
+void UContainerComponent::DestroyWhenEmpty()
+{
+	if (ItemCollection->GetItemLocations().IsEmpty()
+		&& this->bDestroyWhenEmpty)
+	{
+		CurrentInteractionComponent->StopInteract();
+		GetOwner()->K2_DestroyActor();
+	}
 }

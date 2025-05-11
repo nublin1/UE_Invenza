@@ -12,6 +12,7 @@ class UInventorySlot;
 class UHighlightSlotWidget;
 class APickup;
 class UInventoryItemWidget;
+class UBaseUserWidget;
 
 USTRUCT(Blueprintable)
 struct FUISettings
@@ -38,6 +39,8 @@ struct FUISettings
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TSubclassOf<AActor> PickupClass;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TSubclassOf<UBaseUserWidget> DefaultWorldContainerInventoryWidgetClass;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TSubclassOf<UInventoryItemWidget> InventoryItemVisualClass;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)

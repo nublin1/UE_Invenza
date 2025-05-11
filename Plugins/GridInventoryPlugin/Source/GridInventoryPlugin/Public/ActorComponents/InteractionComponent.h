@@ -77,8 +77,6 @@ protected:
 #pragma region Input
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interaction|Input")
 	TObjectPtr<UInputAction> InteractAction;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction|Input")
-	bool bHoldToInteract = true;
 #pragma endregion
 	
 	//

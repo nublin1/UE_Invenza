@@ -22,6 +22,7 @@
 #include "UI/Drag/HighlightSlotWidget.h"
 #include "UI/HelpersWidgets/ItemTooltipWidget.h"
 #include "UI/Inventory/ListInventoryWidget.h"
+#include "UI/Inventory/SlotbasedInventorySlot.h"
 #include "UI/Item/InventoryItemWidget.h"
 
 USlotbasedInventoryWidget::USlotbasedInventoryWidget(): SlotsGridPanel(nullptr)
@@ -291,7 +292,10 @@ void USlotbasedInventoryWidget::HandleRemoveItem(UItemBase* Item, int32 RemoveQu
 	
 	auto Slots = GetItemMapping(Item);
 	if (Slots)
-		NotifyRemoveItem(*Slots, Item, RemoveQuantity);
+	{
+		NotifyPreRemoveItem(*Slots, Item, RemoveQuantity);
+		NotifyPostRemoveItem();
+	}
 	else
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Unable to find occupied slots for item %s"), *Item->GetName());
@@ -308,13 +312,15 @@ void USlotbasedInventoryWidget::HandleRemoveItemFromContainer(UItemBase* Item)
 	auto Mapping = GetItemMapping(Item);
 	if (!Mapping) return;
 
-	NotifyRemoveItem(*Mapping, Item, Item->GetQuantity());
+	NotifyPreRemoveItem(*Mapping, Item, Item->GetQuantity());
 
 	Mapping->ItemVisualLinked->RemoveFromParent();
 	if (InventoryData.ItemCollectionLink)
 	{
 		InventoryData.ItemCollectionLink->RemoveItem(Item, this);
 	}
+
+	NotifyPostRemoveItem();
 }
 
 FItemAddResult USlotbasedInventoryWidget::HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck)
@@ -870,13 +876,14 @@ void USlotbasedInventoryWidget::NotifyAddItem(FItemMapping& FromSlots, UItemBase
 		UpdateSlotInPanel(FromSlots, NewItem);
 }
 
-void USlotbasedInventoryWidget::NotifyRemoveItem(FItemMapping& FromSlots, UItemBase* RemovedItem, int32 RemoveQuantity) 
+void USlotbasedInventoryWidget::NotifyPreRemoveItem(FItemMapping& FromSlots, UItemBase* RemovedItem, int32 RemoveQuantity) 
 {
-	Super::NotifyRemoveItem(FromSlots, RemovedItem, RemoveQuantity);
+	Super::NotifyPreRemoveItem(FromSlots, RemovedItem, RemoveQuantity);
 	if (RemoveQuantity >= RemovedItem->GetQuantity())
 		RemoveItemFromPanel(&FromSlots, RemovedItem);
 	else
 		UpdateSlotInPanel(FromSlots, RemovedItem);
+	
 }
 
 void USlotbasedInventoryWidget::CreateHighlightWidget()
@@ -1019,6 +1026,9 @@ FReply USlotbasedInventoryWidget::NativeOnMouseButtonDown(const FGeometry& InGeo
 		
 		auto ItemInSlot = InventoryData.ItemCollectionLink->GetItemFromSlot(SlotUnderMouse, this);
 		if (!ItemInSlot) return FReply::Unhandled();
+
+		if (HandleTradeModalOpening(ItemInSlot))
+			return FReply::Handled();
 		
 		ItemInSlot->UseItem();
 		

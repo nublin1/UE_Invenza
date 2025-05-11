@@ -122,7 +122,7 @@ protected:
 	virtual void RemoveItemFromPanel(FItemMapping* FromSlots, UItemBase* Item);
 	
 	virtual void NotifyAddItem(FItemMapping& FromSlots, UItemBase* NewItem, int32 ChangeQuantity) override;
-	virtual void NotifyRemoveItem(FItemMapping& FromSlots, UItemBase* RemovedItem, int32 RemoveQuantity) override;
+	virtual void NotifyPreRemoveItem(FItemMapping& FromSlots, UItemBase* RemovedItem, int32 RemoveQuantity) override;
 	//void NotifyUseSlot(UBaseInventorySlot* FromSlot);
 
 	UFUNCTION()

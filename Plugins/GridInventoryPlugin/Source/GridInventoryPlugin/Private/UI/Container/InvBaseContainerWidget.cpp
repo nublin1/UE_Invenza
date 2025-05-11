@@ -20,6 +20,21 @@ UInvBaseContainerWidget::UInvBaseContainerWidget()
 {
 }
 
+void UInvBaseContainerWidget::ChangeInventoryInContainerSlot(TSubclassOf<UBaseUserWidget> NewInventory)
+{
+	if (!NewInventory) return;
+
+	auto NewInvWidget = CreateWidget<UUInventoryWidgetBase>(GetWorld(), NewInventory);
+	if (!NewInvWidget) return;
+	
+	NewInvWidget->SetUISettings(GetInventoryFromContainerSlot()->GetUISettings());
+	NewInvWidget->InitializeInventory();
+
+	ContainerSlot->ClearChildren();
+	ContainerSlot->AddChild(NewInvWidget);
+	
+}
+
 void UInvBaseContainerWidget::NativeConstruct()
 {
 	Super::NativeConstruct();

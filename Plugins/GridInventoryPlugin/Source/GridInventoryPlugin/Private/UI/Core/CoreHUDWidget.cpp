@@ -40,6 +40,7 @@ void UCoreHUDWidget::InitializeWidget()
 			MainInvWidget = Inv;
 			MainInvWidget->GetInventoryFromContainerSlot()->SetParentWidget(Inv);
 			MainInvWidget->GetInventoryFromContainerSlot()->SetItemCollection(PlayerCollection);
+			MainInvWidget->GetInventoryFromContainerSlot()->InitItemsInItemsCollection();
 			MainInvWidget->OnClose.AddDynamic(this, &UCoreHUDWidget::Hide);
 			continue;
 		}

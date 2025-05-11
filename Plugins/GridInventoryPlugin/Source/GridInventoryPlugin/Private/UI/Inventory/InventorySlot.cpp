@@ -4,7 +4,7 @@
 #include "UI/Inventory/InventorySlot.h"
 
 
-UInventorySlot::UInventorySlot(): UseAction(nullptr)
+UInventorySlot::UInventorySlot()
 {
 	
 }

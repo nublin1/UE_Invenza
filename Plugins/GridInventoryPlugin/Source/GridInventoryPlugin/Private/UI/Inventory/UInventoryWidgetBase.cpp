@@ -4,16 +4,17 @@
 #include "UI/Inventory/UInventoryWidgetBase.h"
 
 #include "ActorComponents/ItemCollection.h"
+#include "ActorComponents/UIInventoryManager.h"
 #include "Factory/ItemFactory.h"
 
-
-void UUInventoryWidgetBase::ChangeItemCollectionLink(UItemCollection* NewItemCollection)
+void UUInventoryWidgetBase::InitItemsInItemsCollection()
 {
-	InventoryData.ItemCollectionLink = NewItemCollection;
+	if (!InventoryData.ItemCollectionLink)
+		return;
 	
-	if (NewItemCollection->InitItems.Num() > 0)
+	if (InventoryData.ItemCollectionLink->InitItems.Num() > 0)
 	{
-		for (const auto& Item : NewItemCollection->InitItems)
+		for (const auto& Item : InventoryData.ItemCollectionLink->InitItems)
 		{
 			FItemMoveData ItemMoveData;
 			ItemMoveData.TargetInventory = this;
@@ -25,9 +26,8 @@ void UUInventoryWidgetBase::ChangeItemCollectionLink(UItemCollection* NewItemCol
 			}
 		}
 
-		NewItemCollection->InitItems.Empty();
+		InventoryData.ItemCollectionLink->InitItems.Empty();
 	}
-
 	
 	ReDrawAllItems();
 }
@@ -145,6 +145,25 @@ void UUInventoryWidgetBase::UpdateMoneyInfo()
 	}
 }
 
+bool UUInventoryWidgetBase::HandleTradeModalOpening(UItemBase* Item)
+{
+	UIInventoryManager* InventoryManager = GetOwningPlayerPawn()->FindComponentByClass<UIInventoryManager>();
+	
+	if (InventoryManager->GetCurrentInteractInvWidget()
+			&& InventoryManager->GetCurrentInteractInvWidget()->GetInventoryType() == EInventoryType::VendorInventory)
+	{
+		if (InventoryData.ItemCollectionLink->GetOwner() == GetOwningPlayer()->GetPawn())
+		{
+			InventoryManager->OpenTradeModal(true, Item);
+			return true;
+		}
+				
+		InventoryManager->OpenTradeModal(false, Item);
+		return true;
+	}
+	return false;
+}
+
 void UUInventoryWidgetBase::NotifyAddItem(FItemMapping& FromSlots, UItemBase* NewItem, int32 ChangeQuantity)
 {
 	UpdateWeightInfo();
@@ -153,13 +172,19 @@ void UUInventoryWidgetBase::NotifyAddItem(FItemMapping& FromSlots, UItemBase* Ne
 		OnAddItemDelegate.Broadcast(FromSlots, NewItem);
 }
 
-void UUInventoryWidgetBase::NotifyRemoveItem(FItemMapping& FromSlots, UItemBase* RemovedItem, int32 RemoveQuantity)
+void UUInventoryWidgetBase::NotifyPreRemoveItem(FItemMapping& FromSlots, UItemBase* RemovedItem, int32 RemoveQuantity)
 {
 	UpdateWeightInfo();
 	UpdateMoneyInfo();
-	if (OnRemoveItemDelegate.IsBound())
-		OnRemoveItemDelegate.Broadcast(FromSlots, RemovedItem, RemoveQuantity);
+	if (OnPreRemoveItemDelegate.IsBound())
+		OnPreRemoveItemDelegate.Broadcast(FromSlots, RemovedItem, RemoveQuantity);
 	
+}
+
+void UUInventoryWidgetBase::NotifyPostRemoveItem()
+{
+	if (OnPostRemoveItemDelegate.IsBound())
+		OnPostRemoveItemDelegate.Broadcast();
 }
 
 void UUInventoryWidgetBase::NotifyUseSlot(UInventorySlot* UsedSlot)

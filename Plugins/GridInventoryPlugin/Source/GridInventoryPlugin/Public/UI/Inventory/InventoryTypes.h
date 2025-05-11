@@ -3,10 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "SlotbasedInventorySlot.h"
 #include "InventoryTypes.generated.h"
 
 
+class UInputAction;
+class UInventorySlot;
 class UItemTooltipWidget;
 struct FInventoryCheck;
 class UInventoryItemWidget;
@@ -174,6 +175,18 @@ struct FInventoryData
 	float InventoryTotalWeight = 0;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
 	int32 InventoryTotalMoney = 0;
+};
+
+USTRUCT(BlueprintType)
+struct FInventorySlotData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(VisibleAnywhere)
+	FIntVector2 SlotPosition{};
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UInputAction> UseAction;
 };
 
 UENUM(BlueprintType)

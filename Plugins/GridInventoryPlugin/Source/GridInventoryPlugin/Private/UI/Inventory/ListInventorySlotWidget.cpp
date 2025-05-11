@@ -103,19 +103,9 @@ FReply UListInventorySlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeom
 	if (InMouseEvent.IsMouseButtonDown(ParentInventoryWidget->GetUISettings().ItemUseKey)
 		&& ParentInventoryWidget->GetInventorySettings().bCanUseItems)
 	{
-		if (InventoryManager->GetCurrentInteractInvWidget()
-			&& InventoryManager->GetCurrentInteractInvWidget()->GetInventoryType() == EInventoryType::VendorInventory)
-		{
-			if (ParentInventoryWidget->GetInventoryData().
-			                      ItemCollectionLink->GetOwner() == GetOwningPlayer()->GetPawn())
-			{
-				InventoryManager->OpenTradeModal(true, LinkedItem);
-				return FReply::Unhandled();
-			}
-				
-			InventoryManager->OpenTradeModal(false, LinkedItem);
-			return FReply::Unhandled();
-		}
+		if (ParentInventoryWidget->HandleTradeModalOpening(LinkedItem))
+			return FReply::Handled();
+		
 		LinkedItem->UseItem();
 	}
 	

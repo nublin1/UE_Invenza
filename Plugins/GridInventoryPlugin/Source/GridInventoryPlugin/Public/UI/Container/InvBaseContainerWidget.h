@@ -32,11 +32,13 @@ public:
 	UPROPERTY(BlueprintAssignable,BlueprintCallable)
 	FWidgetClose OnClose;
 	
-
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
 	UInvBaseContainerWidget();
+
+	UFUNCTION(BlueprintCallable)
+	virtual void ChangeInventoryInContainerSlot(TSubclassOf<UBaseUserWidget> NewInventory);
 
 	UFUNCTION()
 	virtual UMovableTitleBar* GetTitleBar() const{return TitleBar;}

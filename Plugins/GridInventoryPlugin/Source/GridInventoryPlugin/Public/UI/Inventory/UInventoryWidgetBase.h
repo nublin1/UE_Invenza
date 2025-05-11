@@ -13,7 +13,8 @@
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnItemDropped, FItemMoveData, ItemMoveData);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnItemUpdateDelegate, FItemMapping, ItemSlots, UItemBase*, Item);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAddItemDelegate, FItemMapping, ItemSlots, UItemBase*, Item);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnRemoveItemDelegate, FItemMapping, ItemSlots, UItemBase*, Item, int32, RemoveQuantity);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnPreRemoveItemDelegate, FItemMapping, ItemSlots, UItemBase*, Item, int32, RemoveQuantity);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPostRemoveItemDelegate);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUseSlotDelegate, UInventorySlot*, ItemSlot);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnWightUpdatedDelegate, float, InventoryTotalWeight, float, InventoryWeightCapacity);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMoneyUpdatedDelegate, int32, InventoryTotalMoney);
@@ -33,12 +34,21 @@ public:
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	// Delegates
+	UPROPERTY(BlueprintAssignable)
 	FOnItemDropped OnItemDroppedDelegate;
+	UPROPERTY(BlueprintAssignable)
 	FOnItemUpdateDelegate OnItemUpdateDelegate;
-	FOnAddItemDelegate OnAddItemDelegate;	
-	FOnRemoveItemDelegate OnRemoveItemDelegate;
+	UPROPERTY(BlueprintAssignable)
+	FOnAddItemDelegate OnAddItemDelegate;
+	UPROPERTY(BlueprintAssignable)
+	FOnPreRemoveItemDelegate OnPreRemoveItemDelegate;
+	UPROPERTY(BlueprintAssignable)
+	FOnPostRemoveItemDelegate OnPostRemoveItemDelegate;
+	UPROPERTY(BlueprintAssignable)
 	FOnUseSlotDelegate OnUseSlotDelegate;
+	UPROPERTY(BlueprintAssignable)
 	FOnWightUpdatedDelegate OnWightUpdatedDelegate;
+	UPROPERTY(BlueprintAssignable)
 	FOnMoneyUpdatedDelegate OnMoneyUpdatedDelegate;
 	
 	//====================================================================
@@ -47,12 +57,14 @@ public:
 	UFUNCTION(Category="Inventory")
 	virtual void InitializeInventory() PURE_VIRTUAL(UUInventoryWidgetBase::InitializeInventory,);
 	UFUNCTION(Category="Inventory")
-	virtual void ChangeItemCollectionLink(UItemCollection* NewItemCollection);
+	virtual void InitItemsInItemsCollection();
 	UFUNCTION(Category="Inventory")
 	virtual void ReDrawAllItems() PURE_VIRTUAL(UUInventoryWidgetBase::ReDrawAllItems,);
 	UFUNCTION()
 	virtual void UseSlot(UInventorySlot* UsedSlot);
-	
+
+	UFUNCTION()
+	virtual bool HandleTradeModalOpening(UItemBase* Item);
 	UFUNCTION(Category="Inventory")
 	virtual void HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity) PURE_VIRTUAL(UUInventoryWidgetBase::HandleRemoveItem,);
 	UFUNCTION(Category="Inventory")
@@ -120,13 +132,16 @@ protected:
 	virtual void UpdateWeightInfo();
 	UFUNCTION()
 	virtual void UpdateMoneyInfo();
+
+	
 	
 	
 	//====================================================================
 	// Event Notifiers
 	//====================================================================
 	virtual void NotifyAddItem(FItemMapping& FromSlots, UItemBase* NewItem, int32 ChangeQuantity);
-	virtual void NotifyRemoveItem(FItemMapping& FromSlots, UItemBase* RemovedItem, int32 RemoveQuantity);
+	virtual void NotifyPreRemoveItem(FItemMapping& FromSlots, UItemBase* RemovedItem, int32 RemoveQuantity);
+	virtual void NotifyPostRemoveItem();
 	virtual void NotifyUseSlot(UInventorySlot* UsedSlot);
 
 	

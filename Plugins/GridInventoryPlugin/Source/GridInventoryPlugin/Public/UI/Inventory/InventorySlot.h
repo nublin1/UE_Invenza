@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "InputAction.h"
+#include "InventoryTypes.h"
 #include "UI/BaseUserWidget.h"
 #include "InventorySlot.generated.h"
 
@@ -29,7 +30,7 @@ public:
 
 	bool operator==(const UInventorySlot& other) const
 	{
-		return SlotPosition == other.GetSlotPosition();
+		return SlotData.SlotPosition == other.GetSlotPosition();
 	}
 	
 	UFUNCTION(BlueprintCallable)
@@ -39,22 +40,19 @@ public:
 	virtual void ResetVisual();
 	
 	//Getters
-	FORCEINLINE FIntVector2 GetSlotPosition() const { return SlotPosition; }
-	FORCEINLINE UInputAction* GetUseAction() const { return UseAction; }	
+	FORCEINLINE FIntVector2 GetSlotPosition() const { return SlotData.SlotPosition; }
+	FORCEINLINE UInputAction* GetUseAction() const { return SlotData.UseAction; }	
 	
 	//Setters	
-	FORCEINLINE void SetSlotPosition(const FIntVector2 InSlotPosition) { this->SlotPosition = InSlotPosition; }
+	FORCEINLINE void SetSlotPosition(const FIntVector2 InSlotPosition) { this->SlotData.SlotPosition = InSlotPosition; }
 	FORCEINLINE virtual void SetItemUseKeyText(FString InUseKeyText);
 	
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================	
-	UPROPERTY(VisibleAnywhere)
-	FIntVector2 SlotPosition{};
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TObjectPtr<UInputAction> UseAction;
+	FInventorySlotData SlotData;
 	
 	//====================================================================
 	// FUNCTIONS

@@ -43,6 +43,15 @@ void UInteractionWidget::NativeConstruct()
 void UInteractionWidget::UpdateText(FInteractableData& NewInteractableData)
 {
 	ActionText->SetText(NewInteractableData.Action);
+
+	if (NewInteractableData.bHoldToInteract)
+	{
+		KeyPressText->SetText(FText::FromString("Hold"));
+	}
+	else
+	{
+		KeyPressText->SetText(FText::FromString("Press"));
+	}
 	
 	if (NewInteractableData.Quantity >= 0)
 	{

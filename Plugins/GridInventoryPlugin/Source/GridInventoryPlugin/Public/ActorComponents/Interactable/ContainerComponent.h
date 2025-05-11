@@ -5,14 +5,15 @@
 #include "CoreMinimal.h"
 #include "ActorComponents/ItemCollection.h"
 #include "ActorComponents/Interactable/InteractableComponent.h"
-#include "InteractableContainerComponent.generated.h"
+#include "ContainerComponent.generated.h"
 
+class UBaseUserWidget;
 class UInvBaseContainerWidget;
 /**
  * 
  */
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class GRIDINVENTORYPLUGIN_API UInteractableContainerComponent : public UInteractableComponent
+class GRIDINVENTORYPLUGIN_API UContainerComponent : public UInteractableComponent
 {
 	GENERATED_BODY()
 
@@ -24,7 +25,7 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UInteractableContainerComponent();
+	UContainerComponent();
 	virtual void BeginFocus() override;
 	virtual void EndFocus() override;
 	
@@ -43,6 +44,11 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UInvBaseContainerWidget> ContainerWidget;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TSubclassOf<UBaseUserWidget> WorldContainerInventoryWidgetClass;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bDestroyWhenEmpty = false;
+
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
@@ -58,5 +64,7 @@ protected:
 	virtual void UpdateInteractableData() override;
 	UFUNCTION(BlueprintCallable)
 	virtual void FindContainerWidget();
-
+	
+	UFUNCTION()
+	virtual void DestroyWhenEmpty();
 };

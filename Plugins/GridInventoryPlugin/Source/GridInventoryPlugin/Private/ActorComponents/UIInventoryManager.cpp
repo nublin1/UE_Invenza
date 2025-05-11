@@ -17,6 +17,7 @@
 #include "UI/Container/InvBaseContainerWidget.h"
 #include "UI/Core/CoreHUDWidget.h"
 #include "UI/Interaction/InteractionWidget.h"
+#include "UI/Inventory/InventorySlot.h"
 #include "UI/Inventory/SlotbasedInventoryWidget.h"
 #include "UI/ModalWidgets/ModalTradeWidget.h"
 
@@ -235,7 +236,10 @@ void UIInventoryManager::SetInteractableType(UInteractableComponent* IteractData
 		if (!CurrentInteractInvWidget)
 			break;
 		if (auto Collection = IteractData->GetOwner()->FindComponentByClass<UItemCollection>())
-			CurrentInteractInvWidget->GetInventoryFromContainerSlot()->ChangeItemCollectionLink(Collection);
+		{
+			CurrentInteractInvWidget->GetInventoryFromContainerSlot()->SetItemCollection(Collection);
+			CurrentInteractInvWidget->GetInventoryFromContainerSlot()->InitItemsInItemsCollection();
+		}
 		CoreHUDWidget->ToggleWidget(CurrentInteractInvWidget);
 		break;
 	case EInteractableType::None:
@@ -305,12 +309,7 @@ void UIInventoryManager::BindEvents(AActor* TargetActor)
 		return;
 	}
 	CoreHUDWidget->GetMainInvWidget()->GetInventoryFromContainerSlot()->SetItemCollection(ItemCollection);
-	for (auto Item : ItemCollection->InitItems)
-	{
-		FItemMoveData ItemMoveData;
-		ItemMoveData.SourceItem = UItemFactory::CreateItemByID(this, Item.ItemName, Item.ItemCount);
-		CoreHUDWidget->GetMainInvWidget()->GetInventoryFromContainerSlot()->HandleAddItem(ItemMoveData);
-	}
+	CoreHUDWidget->GetMainInvWidget()->GetInventoryFromContainerSlot()->InitItemsInItemsCollection();
 
 	CoreHUDWidget->GetMainInvWidget()->GetInventoryFromContainerSlot()->OnItemDroppedDelegate.AddDynamic(this, &UIInventoryManager::ItemTransferRequest);
 	if (auto ContainerInWorldWidget = CoreHUDWidget->GetContainerInWorldWidget())
