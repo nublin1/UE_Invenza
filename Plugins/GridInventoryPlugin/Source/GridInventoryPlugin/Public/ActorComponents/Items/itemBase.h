@@ -22,7 +22,7 @@ struct FItemEntry
 	FName ItemName;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 ItemCount;
+	int32 ItemCount = 1;
 };
 
 /**

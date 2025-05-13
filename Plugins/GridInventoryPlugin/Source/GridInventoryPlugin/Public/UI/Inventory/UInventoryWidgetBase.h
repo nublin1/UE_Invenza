@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "InventoryTypes.h"
-#include "Data/LogicChecks.h"
 #include "Settings/Settings.h"
 #include "UI/BaseUserWidget.h"
 #include "UI/Container/InvBaseContainerWidget.h"
@@ -80,16 +79,6 @@ public:
 	//Setters
 	FORCEINLINE void SetItemCollection(UItemCollection* _ItemCollection) {InventoryData.ItemCollectionLink = _ItemCollection;}
 	FORCEINLINE virtual void SetUISettings(FUISettings NewSettings) {UISettings = NewSettings;}
-	
-	FORCEINLINE void AddCheck(EInventoryCheckType CheckType, FName CheckID, TFunction<bool(UItemBase*)> CheckFunction) { InventoryData.Checks.Emplace(CheckType, CheckID, CheckFunction);	}
-	FORCEINLINE void RemoveAllCheck() { InventoryData.Checks.Empty();	}
-	void RemoveCheck(EInventoryCheckType Type, FName CheckID)
-	{
-		InventoryData.Checks.RemoveAll([=](const FInventoryCheck& Check)
-		{
-			return Check.CheckType == Type && Check.CheckID == CheckID;
-		});
-	}
 
 protected:
 	//====================================================================
@@ -108,10 +97,7 @@ protected:
 	
 	//====================================================================
 	// FUNCTIONS
-	//====================================================================
-	UFUNCTION()
-	virtual bool ExecuteItemChecks(EInventoryCheckType CheckType, UItemBase* Item);
-	
+	//====================================================================	
 	virtual FItemMapping* GetItemMapping(UItemBase* Item);
 	virtual int32 CalculateActualAmountToAdd(int32 InAmountToAdd, float ItemSingleWeight);
 	

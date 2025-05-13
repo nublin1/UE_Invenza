@@ -57,6 +57,8 @@ public:
 	TArray<UItemBase*> GetAllItemsByCategory(EItemCategory ItemCategory);
 	UInventoryItemWidget* GetItemLinkedWidgetForSlot(FInventorySlotData ItemSlotData);
 
+	virtual void SortInContainer(UInvBaseContainerWidget* ContainerToSort);
+
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
@@ -67,6 +69,5 @@ protected:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-
-
+	
 };

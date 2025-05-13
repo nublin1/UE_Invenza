@@ -144,8 +144,6 @@ struct FInventoryData
 {
 	GENERATED_BODY()
 	
-	UPROPERTY()
-	TArray<FInventoryCheck> Checks;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Inventory")
 	TObjectPtr<UItemCollection> ItemCollectionLink;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Inventory")

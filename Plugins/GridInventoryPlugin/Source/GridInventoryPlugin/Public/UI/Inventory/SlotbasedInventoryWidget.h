@@ -68,6 +68,7 @@ protected:
 	// Data
 	int NumberRows = 0;
 	int NumColumns = 0;
+	FMargin SlotSpacing;
 	
 	// Highlight
 	TObjectPtr<UHighlightSlotWidget> HighlightWidgetPreview = nullptr;

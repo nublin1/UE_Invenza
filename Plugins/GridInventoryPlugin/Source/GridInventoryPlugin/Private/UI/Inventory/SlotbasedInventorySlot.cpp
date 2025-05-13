@@ -31,6 +31,7 @@ void USlotbasedInventorySlot::UpdateVisual(UTexture2D* NewTexture)
 	if (!NewTexture)
 	{
 		CoreCellWidget->Content_Image->SetBrush(FSlateBrush());
+		return;
 	}
 
 	FSlateBrush Brush;

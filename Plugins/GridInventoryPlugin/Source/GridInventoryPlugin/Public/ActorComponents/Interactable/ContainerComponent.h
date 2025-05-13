@@ -47,7 +47,7 @@ protected:
 	//UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	//TSubclassOf<UBaseUserWidget> WorldContainerInventoryWidgetClass;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	FVector2D InventorySize = FVector2D::ZeroVector; // Only for SlotBased 
+	FVector2D InventorySize = FVector2D(5,4); // Only for SlotBased 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bDestroyWhenEmpty = false;
 

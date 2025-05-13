@@ -93,7 +93,7 @@ struct FItemMetaData
 	FItemNumeraticData ItemNumeraticData;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Data")
-	EItemCategory ItemCategory;
+	EItemCategory ItemCategory = EItemCategory::Armor;
 
 	// Later
 	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Data", meta = (Bitmask, BitmaskEnum = "/Script/GridInventoryPlugin.EItemCategory"))

@@ -16,7 +16,7 @@ struct FEquipmentSlot
 	FName SlotName;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	EItemCategory AllowedCategory;
+	EItemCategory AllowedCategory = EItemCategory::None;
 
 	UPROPERTY(BlueprintReadWrite)
 	UItemBase* EquippedItem = nullptr;

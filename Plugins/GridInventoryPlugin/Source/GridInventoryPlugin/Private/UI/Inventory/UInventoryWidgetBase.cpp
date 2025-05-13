@@ -42,24 +42,6 @@ void UUInventoryWidgetBase::UseSlot(UInventorySlot* UsedSlot)
 	Item->UseItem();
 }
 
-bool UUInventoryWidgetBase::ExecuteItemChecks(EInventoryCheckType CheckType, UItemBase* Item)
-{
-	if (InventoryData.Checks.IsEmpty())
-		return true;
-	
-	for (const FInventoryCheck& Check : InventoryData.Checks)
-	{
-		if (Check.CheckType == CheckType)
-		{
-			if (!Check.CheckFunction(Item))
-			{
-				return false;
-			}
-		}
-	}
-	return true;
-}
-
 FItemMapping* UUInventoryWidgetBase::GetItemMapping(UItemBase* Item)
 {
 	if (!Item)

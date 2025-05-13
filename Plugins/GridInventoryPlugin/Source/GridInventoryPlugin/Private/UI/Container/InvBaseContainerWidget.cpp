@@ -199,6 +199,9 @@ void UInvBaseContainerWidget::SortItems()
 	if (!Inv)
 		return;
 
+	Inv->GetInventoryData().ItemCollectionLink->SortInContainer(this);
+	
+	/*
 	TArray<UItemBase*> AllItems = Inv->GetInventoryData().ItemCollectionLink->GetAllItemsByContainer(this);
 	if (AllItems.IsEmpty())
 		return;
@@ -231,5 +234,5 @@ void UInvBaseContainerWidget::SortItems()
 		MoveData.SourceItem = DupItem;
 		MoveData.SourceInventory = Inv;
 		auto Result = Inv->HandleAddItem(MoveData, false);
-	}
+	}*/
 }
