@@ -285,77 +285,48 @@ UInventoryItemWidget* UItemCollection::GetItemLinkedWidgetForSlot(FInventorySlot
 
 void UItemCollection::SortInContainer(UInvBaseContainerWidget* ContainerToSort)
 {
-	TMap<UInvBaseContainerWidget*, TArray<TPair<TStrongObjectPtr<UItemBase>, FItemMapping>>> GroupedByContainer;
-
+	TArray<TPair<TStrongObjectPtr<UItemBase>, FItemMapping>> Mappings;
 	for (auto& Pair : ItemLocations)
 	{
-		TStrongObjectPtr<UItemBase> ItemPtr = Pair.Key;
-		for (const FItemMapping& Mapping : Pair.Value)
-		{
-			if (Mapping.InventoryContainer)
-			{
-				auto& ArrayRef = GroupedByContainer.FindOrAdd(Mapping.InventoryContainer);
-				ArrayRef.Emplace(ItemPtr, Mapping);
-			}
-		}
-	}
-
-	auto ToSortArr  = GroupedByContainer.Find(ContainerToSort);
-	ToSortArr ->Sort([](const TPair<TStrongObjectPtr<UItemBase>, FItemMapping>& A,
-			   const TPair<TStrongObjectPtr<UItemBase>, FItemMapping>& B)
-    {
-	   const FString NameA = A.Key->GetItemRef().ItemTextData.Name.ToString();
-	   const FString NameB = B.Key->GetItemRef().ItemTextData.Name.ToString();
-	   return NameA < NameB;
-    });
-
-	auto SortedList = ToSortArr;
-
-	TMap<TStrongObjectPtr<UItemBase>, TArray<FItemMapping>> SortedItemLocations;
-	for (auto& GroupPair : GroupedByContainer)
-	{
-		for (auto& Pair : GroupPair.Value)
-		{
-			SortedItemLocations.FindOrAdd(Pair.Key).Add(Pair.Value);
-		}
-	}
-
-	ItemLocations = MoveTemp(SortedItemLocations);
-
-	for (auto It = ItemLocations.CreateIterator(); It; ++It)
-	{
-		const TArray<FItemMapping>& Mappings = It->Value;
-		bool bShouldRemove = false;
-		for (const FItemMapping& Mapping : Mappings)
+		for (auto& Mapping : Pair.Value)
 		{
 			if (Mapping.InventoryContainer == ContainerToSort)
 			{
-				bShouldRemove = true;
-				break;
+				Mappings.Emplace(Pair.Key, Mapping);
 			}
-		}
-    
-		if (bShouldRemove)
-		{
-			if (It->Key.IsValid())
-			{
-				It->Key->RemoveFromRoot();
-			}
-			It.RemoveCurrent();
 		}
 	}
-	
-	ContainerToSort->GetInventoryFromContainerSlot()->ReDrawAllItems();
 
-	for (auto i =0;  i< SortedList->Num();  i++)
+	if (Mappings.Num() == 0)
+	{
+		return;
+	}
+	
+	Mappings.Sort([](auto& A, auto& B) {
+		const FString NameA = A.Key->GetItemRef().ItemTextData.Name.ToString();
+		const FString NameB = B.Key->GetItemRef().ItemTextData.Name.ToString();
+		return NameA < NameB;
+	});
+	
+	for (auto& Pair : ItemLocations)
+	{
+		Pair.Value.RemoveAll([ContainerToSort](const FItemMapping& M) {
+			return M.InventoryContainer == ContainerToSort;
+		});
+	}
+
+	if (auto Inv = ContainerToSort->GetInventoryFromContainerSlot())
+	{
+		Inv->ReDrawAllItems();
+	}
+
+	for (auto i =0;  i< Mappings.Num();  i++)
 	{
 		FItemMoveData ItemMoveData = FItemMoveData();
-		TPair<TStrongObjectPtr<UItemBase>, FItemMapping>& Pair = (*SortedList)[i];
+		const TPair<TStrongObjectPtr<UItemBase>, FItemMapping>& Pair = Mappings[i];
 		ItemMoveData.SourceItem = Pair.Key.Get();
 		ItemMoveData.TargetInventory = ContainerToSort->GetInventoryFromContainerSlot();
 
 		ContainerToSort->GetInventoryFromContainerSlot()->HandleAddItem(ItemMoveData);
 	}
-	
-
 }

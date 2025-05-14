@@ -10,6 +10,8 @@
 #include "UInventoryWidgetBase.generated.h"
 
 #pragma region Delegates
+class UUIButton;
+enum class EItemCategory : uint8;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnItemDropped, FItemMoveData, ItemMoveData);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnItemUpdateDelegate, FItemMapping, ItemSlots, UItemBase*, Item);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAddItemDelegate, FItemMapping, ItemSlots, UItemBase*, Item);
@@ -94,13 +96,28 @@ protected:
 	//
 	UPROPERTY()
 	TObjectPtr<UInventorySlot> SlotUnderMouse = nullptr;
+
+	//
+	UPROPERTY()
+	TSet<EItemCategory> ActiveFilters;
 	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================	
 	virtual FItemMapping* GetItemMapping(UItemBase* Item);
 	virtual int32 CalculateActualAmountToAdd(int32 InAmountToAdd, float ItemSingleWeight);
-	
+
+	// Filters
+	UFUNCTION()
+	virtual void ClearFilters() PURE_VIRTUAL(UUInventoryWidgetBase::ClearFilters,);
+	UFUNCTION()
+	virtual void OnFilterStatusChanged(UUIButton* ItemCategoryButton) PURE_VIRTUAL(UUInventoryWidgetBase::OnFilterStatusChanged,);
+	UFUNCTION()
+	virtual void RefreshFilteredItemsList() PURE_VIRTUAL(UUInventoryWidgetBase::RefreshFilteredItemsList,);
+	UFUNCTION()
+	virtual void SearchTextChanged(const FText& NewText) PURE_VIRTUAL(UUInventoryWidgetBase::SearchTextChanged,);
+
+	//
 	UFUNCTION()
 	virtual FItemAddResult HandleNonStackableItems(FItemMoveData& ItemMoveData, bool bOnlyCheck = false) PURE_VIRTUAL(UUInventoryWidgetBase::HandleNonStackableItems, return FItemAddResult(););
 	UFUNCTION()

@@ -76,10 +76,6 @@ protected:
 	// Settings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
 	bool bHasSlotSpacing = false;
-
-	//
-	UPROPERTY()
-	TArray<EItemCategory> ActiveFilters;
 	
 	//====================================================================
 	// FUNCTIONS
@@ -89,13 +85,13 @@ protected:
 	UFUNCTION()
 	virtual void InitSlots();
 
-	UFUNCTION()
-	virtual void ClearFilters();
-	UFUNCTION()
-	virtual void OnFilterStatusChanged(UUIButton* ItemCategoryButton);
-	UFUNCTION()
-	virtual void SearchTextChanged(const FText& NewText);
+	//
+	virtual void ClearFilters() override;
+	virtual void OnFilterStatusChanged(UUIButton* ItemCategoryButton) override;
+	virtual void RefreshFilteredItemsList() override;
+	virtual void SearchTextChanged(const FText& NewText) override;
 	
+	//
 	virtual UInventorySlot* GetSlotByPosition(FIntVector2 SlotPosition);
 	virtual bool bIsSlotEmpty(const FIntVector2 SlotPosition);
 	virtual bool bIsSlotEmpty(const UInventorySlot* SlotCheck);

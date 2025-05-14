@@ -7,6 +7,7 @@
 #include "UI/BaseUserWidget.h"
 #include "ListInventoryWidget.generated.h"
 
+enum class EItemCategory : uint8;
 class UItemCategoryButton;
 class UUIButton;
 class UItemFiltersPanel;
@@ -56,21 +57,20 @@ protected:
 	TArray<TObjectPtr<UInventoryListEntry>> InvSlotsArray;
 	UPROPERTY(BlueprintReadOnly)
 	TArray<TObjectPtr<UInventoryListEntry>> FiltredInvSlotsArray;
-	UPROPERTY()
-	int32 FiltersEnabledCount = 0;
+	
 
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
 	virtual void NativeConstruct() override;
 
-	UFUNCTION()
-	virtual void ClearFilters();
-	UFUNCTION()
-	virtual void OnFilterStatusChanged(UUIButton* ItemCategoryButton);
-	UFUNCTION()
-	virtual void SearchTextChanged(const FText& NewText);
+	//
+	virtual void ClearFilters() override;
+	virtual void OnFilterStatusChanged(UUIButton* ItemCategoryButton) override;
+	virtual void RefreshFilteredItemsList() override;
+	virtual void SearchTextChanged(const FText& NewText) override;
 
+	//
 	virtual FItemAddResult HandleNonStackableItems(FItemMoveData& ItemMoveData, bool bOnlyCheck = false) override;
 	virtual int32 HandleStackableItems(FItemMoveData& ItemMoveData, int32 RequestedAddAmount,
 												bool bOnlyCheck) override;

@@ -48,7 +48,6 @@ FItemMapping* UUInventoryWidgetBase::GetItemMapping(UItemBase* Item)
 	{
 		return nullptr;
 	}
-	auto CastedInvContainer = Cast<UInvBaseContainerWidget>(ParentWidget);
 	auto Mapping = InventoryData.ItemCollectionLink->FindItemMappingForItemInContainer(Item, GetAsContainerWidget());
 	return Mapping;
 }

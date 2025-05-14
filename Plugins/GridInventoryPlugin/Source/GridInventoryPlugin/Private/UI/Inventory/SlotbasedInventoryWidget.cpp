@@ -42,6 +42,10 @@ void USlotbasedInventoryWidget::ReDrawAllItems()
 		return;
 
 	ItemsVisualsPanel->ClearChildren();
+	for (auto& InventorySlot : InventoryData.InventorySlots)
+	{
+		InventorySlot->ResetVisual();
+	}
 
 	auto AllItems =InventoryData.ItemCollectionLink->GetAllItemsByContainer(GetAsContainerWidget());
 	for (auto Item : AllItems)
@@ -183,51 +187,51 @@ void USlotbasedInventoryWidget::OnFilterStatusChanged(UUIButton* ItemCategoryBut
 	if (!CastedCategoryButton)
 		return;
 
-	for (auto Item : InventoryData.ItemCollectionLink->GetAllItemsByContainer(GetAsContainerWidget()))
-	{
-		auto ItemMapping = InventoryData.ItemCollectionLink->FindItemMappingForItemInContainer(Item, GetAsContainerWidget());
-		if (!ItemMapping)
-			continue;
-
-		ItemMapping->ItemVisualLinked->ChangeOpacity(ItemFiltersPanel->FilterOpacity);
-	}
-
+	const EItemCategory Category = CastedCategoryButton->GetItemCategory();
 	if (CastedCategoryButton->GetToggleStatus())
 	{
-		ActiveFilters.Add(CastedCategoryButton->GetItemCategory());
-		
+		ActiveFilters.Add(Category);
 	}
 	else
 	{
-		ActiveFilters.Remove(CastedCategoryButton->GetItemCategory());
-		for (auto Item : InventoryData.ItemCollectionLink->GetAllItemsByCategory(CastedCategoryButton->GetItemCategory()))
-		{
-			auto ItemMapping = InventoryData.ItemCollectionLink->FindItemMappingForItemInContainer(Item, GetAsContainerWidget());
-			if (!ItemMapping)
-				continue;
-
-			ItemMapping->ItemVisualLinked->GetCoreCellWidget()->ResetBorderColor();
-			ItemMapping->ItemVisualLinked->ChangeOpacity(ItemFiltersPanel->FilterOpacity);
-		}
+		ActiveFilters.Remove(Category);
 	}
 
+	// Перерисовываем все слоты под текущие ActiveFilters
+	RefreshFilteredItemsList();
+}
+
+void USlotbasedInventoryWidget::RefreshFilteredItemsList()
+{
 	if (ActiveFilters.Num() == 0)
 	{
 		ClearFilters();
 		return;
 	}
 
-	for (auto ActiveFilter : ActiveFilters)
+	// Сначала затемняем все и сбрасываем бордер у тех, кто был ранее подсвечен
+	for (auto& Item : InventoryData.ItemCollectionLink->GetAllItemsByContainer(GetAsContainerWidget()))
 	{
-		for (auto Item : InventoryData.ItemCollectionLink->GetAllItemsByCategory(ActiveFilter))
+		if (auto Mapping = InventoryData.ItemCollectionLink->FindItemMappingForItemInContainer(Item, GetAsContainerWidget()))
 		{
-			auto ItemMapping = InventoryData.ItemCollectionLink->FindItemMappingForItemInContainer(Item, GetAsContainerWidget());
-			if (!ItemMapping)
-				continue;
+			Mapping->ItemVisualLinked->ChangeOpacity(ItemFiltersPanel->FilterOpacity);
+			Mapping->ItemVisualLinked->GetCoreCellWidget()->ResetBorderColor();
+		}
+	}
 
-			if (ItemFiltersPanel->bUseFilterColor)
-				ItemMapping->ItemVisualLinked->ChangeBorderColor(ItemFiltersPanel->ItemFilterBorderColor);
-			ItemMapping->ItemVisualLinked->ChangeOpacity(1.0f);
+	// Потом для каждой активной категории — подсвечиваем и делаем полную opacity
+	for (auto ActiveCategory : ActiveFilters)
+	{
+		for (auto& Item : InventoryData.ItemCollectionLink->GetAllItemsByCategory(ActiveCategory))
+		{
+			if (auto Mapping = InventoryData.ItemCollectionLink->FindItemMappingForItemInContainer(Item, GetAsContainerWidget()))
+			{
+				if (ItemFiltersPanel->bUseFilterColor)
+				{
+					Mapping->ItemVisualLinked->ChangeBorderColor(ItemFiltersPanel->ItemFilterBorderColor);
+				}
+				Mapping->ItemVisualLinked->ChangeOpacity(1.0f);
+			}
 		}
 	}
 }
@@ -287,7 +291,6 @@ UInventorySlot* USlotbasedInventoryWidget::GetSlotByPosition(FIntVector2 SlotPos
 	{
 		if (Elem->GetSlotPosition() == SlotPosition)
 			return Elem;
-		
 	}
 
 	return nullptr;
@@ -876,6 +879,13 @@ void USlotbasedInventoryWidget::AddItemToPanel( UItemBase* Item)
 	
 	//ItemVisual->SetPivotSlot(ItemPivotSlot);			
 	SlotInCanvas->SetPosition(VisualPosition);
+
+	RefreshFilteredItemsList();
+	auto SearchText = ItemFiltersPanel->GetSearchText()->GetText();
+	if (!SearchText.IsEmpty())
+	{
+		SearchTextChanged(SearchText);
+	}
 }
 
 void USlotbasedInventoryWidget::ReplaceItemInPanel(FItemMapping& FromSlots, UItemBase* Item)
