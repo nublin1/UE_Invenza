@@ -200,39 +200,4 @@ void UInvBaseContainerWidget::SortItems()
 		return;
 
 	Inv->GetInventoryData().ItemCollectionLink->SortInContainer(this);
-	
-	/*
-	TArray<UItemBase*> AllItems = Inv->GetInventoryData().ItemCollectionLink->GetAllItemsByContainer(this);
-	if (AllItems.IsEmpty())
-		return;
-	
-	AllItems.Sort([](UItemBase& A, UItemBase& B)
-	{
-		return A.GetItemRef().ItemTextData.Name.ToString() < B.GetItemRef().ItemTextData.Name.ToString();
-	});
-	
-	TArray<UItemBase*> DuplicatedItems;
-	for (UItemBase* Item : AllItems)
-	{
-		if (Item)
-		{
-			if (UItemBase* DuplicatedItem = Item->DuplicateItem())
-			{
-				DuplicatedItems.Add(DuplicatedItem);
-			}
-		}
-	}
-
-	for (auto Item : AllItems)
-	{
-		Inv->HandleRemoveItem(Item, Item->GetQuantity());
-	}
-
-	for (const auto DupItem : DuplicatedItems)
-	{
-		FItemMoveData MoveData;
-		MoveData.SourceItem = DupItem;
-		MoveData.SourceInventory = Inv;
-		auto Result = Inv->HandleAddItem(MoveData, false);
-	}*/
 }

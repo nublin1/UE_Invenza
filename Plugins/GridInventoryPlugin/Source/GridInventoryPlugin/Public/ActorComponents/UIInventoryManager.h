@@ -22,7 +22,7 @@ class UInteractableComponent;
 class UCoreHUDWidget;
 
 #pragma region Delegates
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOninitializationComplete, bool, Status);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInitializationComplete, bool, Status);
 #pragma endregion Delegates
 
 UCLASS(ClassGroup=(Custom), Blueprintable, meta=(BlueprintSpawnableComponent))
@@ -32,85 +32,93 @@ class GRIDINVENTORYPLUGIN_API UIInventoryManager : public UActorComponent
 
 public:
 	//====================================================================
-	// PROPERTIES AND VARIABLES
+	// Delegates
 	//====================================================================
-	UPROPERTY(BlueprintAssignable, BlueprintCallable)
-	FOninitializationComplete OninitializationCompleteDelegate;
+	/** Событие по завершению инициализации */
+	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "Inventory|Events")
+	FOnInitializationComplete OnInitializationCompleteDelegate;
 
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
 	UIInventoryManager();
 
-	UFUNCTION()
-	void OpenTradeModal(bool bIsSaleOperation,UItemBase* Operationalitem);
-	UFUNCTION(BlueprintCallable)
-	void OnQuickTransferItem(FItemMoveData ItemMoveData);
-	UFUNCTION(BlueprintCallable)
-	void ItemTransferRequest(FItemMoveData ItemMoveData);
-
-	UFUNCTION()
-	UInvBaseContainerWidget* GetMainInventory() {return CoreHUDWidget->GetMainInvWidget();}
-
-	FUISettings GetUISettings() {return UISettings;}
-	UCoreHUDWidget* GetCoreHUDWidget() {return CoreHUDWidget;}
-	UInvBaseContainerWidget* GetCurrentInteractInvWidget() const {return CurrentInteractInvWidget;}
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Trade")
+	void OpenTradeModal(bool bIsSaleOperation, UItemBase* OperationalItem);
 	
-	FInventoryModifierState GetInventoryModifierStates() const {return InventoryModifierState;}
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Transfer")
+	void OnQuickTransferItem(FItemMoveData ItemMoveData);
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Transfer")
+	void ItemTransferRequest(FItemMoveData ItemMoveData);
+	
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Query")
+	UInvBaseContainerWidget* GetMainInventory() const { return CoreHUDWidget ? CoreHUDWidget->GetMainInvWidget() : nullptr; }
+	
+	UFUNCTION(BlueprintPure, Category = "Inventory|Settings")
+	FUISettings GetUISettings() const { return UISettings; }
+	UFUNCTION(BlueprintPure, Category = "Inventory|Settings")
+	UCoreHUDWidget* GetCoreHUDWidget() const { return CoreHUDWidget; }
+	
+	UFUNCTION(BlueprintPure, Category = "Inventory|Query")
+	UInvBaseContainerWidget* GetCurrentInteractInvWidget() const { return CurrentInteractInvWidget.Get(); }
+	
+	UFUNCTION(BlueprintPure, Category = "Inventory|Settings")
+	FInventoryModifierState GetInventoryModifierStates() const { return InventoryModifierState; }
 
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	// Widgets
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = UI)
-	UCoreHUDWidget* CoreHUDWidget;
-
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Inventory|Widgets")
+	TObjectPtr<UCoreHUDWidget> CoreHUDWidget;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
 	TObjectPtr<UInvBaseContainerWidget> CurrentInteractInvWidget;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Settings")
 	FUISettings UISettings;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Settings")
 	FInventoryModifierState InventoryModifierState;
-
-	//
-	UPROPERTY(EditAnywhere, Category = "Item Initialization")
-	TObjectPtr<UDataTable>ItemDataTable;
-
-	//
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Data")
+	TObjectPtr<UDataTable> ItemDataTable;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
 	TObjectPtr<UModalTradeWidget> ModalTradeWidget;
+
+	//====================================================================
+	// Lifecycle
+	//====================================================================
+	virtual void BeginPlay() override;
 	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	virtual void BeginPlay() override;
-
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Trade")
 	virtual ETradeResult VendorRequest(FItemMoveData ItemMoveData);
 
-	UFUNCTION(BlueprintCallable)
-	void SetInteractableType(UInteractableComponent* IteractData);
-	UFUNCTION(BlueprintCallable)
-	void ClearInteractableType(UInteractableComponent* IteractData = nullptr);
-
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
+	void SetInteractableType(UInteractableComponent* InteractData);
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
+	void ClearInteractableType(UInteractableComponent* InteractData = nullptr);
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
 	void BindEvents(AActor* TargetActor);
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
 	void UIIteract(UInteractableComponent* TargetInteractableComponent);
+	
 	UFUNCTION()
 	void OnQuickGrabPressed(const FInputActionInstance& Instance);
 	UFUNCTION()
 	void OnQuickGrabReleased(const FInputActionInstance& Instance);
-	void OnGrabAllPressed(const FInputActionInstance& Instance);
-	void OnGrabAllReleased(const FInputActionInstance& Instance);
-	UFUNCTION(BlueprintCallable)
-	void InitializeBindings();
 	UFUNCTION()
-	void InitializeInvSlotsBindings();
-
+	void OnGrabAllPressed(const FInputActionInstance& Instance);
+	UFUNCTION()
+	void OnGrabAllReleased(const FInputActionInstance& Instance);
 	
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Initialization")
+	void InitializeBindings();
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Initialization")
+	void InitializeInvSlotsBindings();
 
 public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,

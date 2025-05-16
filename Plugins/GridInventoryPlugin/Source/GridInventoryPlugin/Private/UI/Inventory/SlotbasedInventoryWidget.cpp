@@ -881,11 +881,15 @@ void USlotbasedInventoryWidget::AddItemToPanel( UItemBase* Item)
 	SlotInCanvas->SetPosition(VisualPosition);
 
 	RefreshFilteredItemsList();
-	auto SearchText = ItemFiltersPanel->GetSearchText()->GetText();
-	if (!SearchText.IsEmpty())
+	if (ItemFiltersPanel)
 	{
-		SearchTextChanged(SearchText);
+		auto SearchText = ItemFiltersPanel->GetSearchText()->GetText();
+		if (!SearchText.IsEmpty())
+		{
+			SearchTextChanged(SearchText);
+		}
 	}
+	
 }
 
 void USlotbasedInventoryWidget::ReplaceItemInPanel(FItemMapping& FromSlots, UItemBase* Item)

@@ -387,11 +387,7 @@ void UIInventoryManager::InitializeBindings()
 
 	UEnhancedInputComponent* Input = Cast<UEnhancedInputComponent>(PlayerController->InputComponent);
 	if (!Input) return;
-
-	if (UISettings.GameplayMappingContext)
-	{
-		InputSubsystem->AddMappingContext(UISettings.GameplayMappingContext, 0);
-	}
+	
 	if (UISettings.InventoryMappingContext)
 	{
 		InputSubsystem->AddMappingContext(UISettings.InventoryMappingContext, 1);
@@ -399,12 +395,12 @@ void UIInventoryManager::InitializeBindings()
 	
 	if (UISettings.ToggleInventoryAction)
 	{
-		Input->BindAction(UISettings.ToggleInventoryAction, ETriggerEvent::Started, CoreHUDWidget, &UCoreHUDWidget::ToggleInventoryLayout);
+		Input->BindAction(UISettings.ToggleInventoryAction, ETriggerEvent::Started, CoreHUDWidget.Get(), &UCoreHUDWidget::ToggleInventoryLayout);
 	}
 
 	if (UISettings.ToggleEquipmentAction)
 	{
-		Input->BindAction(UISettings.ToggleEquipmentAction, ETriggerEvent::Started, CoreHUDWidget, &UCoreHUDWidget::ToggleEquipmentLayout);
+		Input->BindAction(UISettings.ToggleEquipmentAction, ETriggerEvent::Started, CoreHUDWidget.Get(), &UCoreHUDWidget::ToggleEquipmentLayout);
 	}
 
 	if (UISettings.IA_Mod_QuickGrab)

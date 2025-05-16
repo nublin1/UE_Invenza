@@ -19,45 +19,45 @@ USTRUCT(Blueprintable)
 struct FUISettings
 {
 	GENERATED_BODY()
+	
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Input")
+    UInputMappingContext* InventoryMappingContext;
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Input")
+    UInputAction* ToggleInventoryAction;
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Input")
+    UInputAction* ToggleEquipmentAction;
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Input")
+    UInputAction* IA_Mod_QuickGrab;
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Input")
+    UInputAction* IA_Mod_GrabAllSame;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Input")
+    FKey ItemSelectKey = EKeys::LeftMouseButton;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Input")
+    FKey ItemUseKey = EKeys::RightMouseButton;
+	
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|World")
+    TSubclassOf<AActor> PickupClass;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|World")
+    TSubclassOf<UBaseUserWidget> DefaultWorldContainerInventoryWidgetClass;
+	
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
+    TSubclassOf<USlotbasedInventorySlot> DefaultSlotbasedInventorySlotClass;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
+    TSubclassOf<UInventoryItemWidget> InventoryItemVisualClass;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
+    TSubclassOf<UInventoryItemWidget> DraggedWidgetClass;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
+    TSubclassOf<UHighlightSlotWidget> HighlightSlotWidgetClass;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
+    TSubclassOf<UItemTooltipWidget> ItemTooltipWidgetClass;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
+    TSubclassOf<UModalTradeWidget> ModalTradeWidgetClass;
+	
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Layout")
+    FVector2D SlotSize = FVector2D(0.f);
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
-	UInputMappingContext* GameplayMappingContext;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
-	UInputMappingContext* InventoryMappingContext;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
-	UInputAction* ToggleInventoryAction;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
-	UInputAction* ToggleEquipmentAction;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
-	UInputAction* IA_Mod_QuickGrab;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
-	UInputAction* IA_Mod_GrabAllSame ;
-	UPROPERTY(EditAnywhere, Category = "Inventory|Input")
-	FKey ItemSelectKey = EKeys::LeftMouseButton;
-	UPROPERTY(EditAnywhere, Category = "Inventory|Input")
-	FKey ItemUseKey = EKeys::RightMouseButton;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TSubclassOf<AActor> PickupClass;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TSubclassOf<UBaseUserWidget> DefaultWorldContainerInventoryWidgetClass;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TSubclassOf<USlotbasedInventorySlot> DefaultSlotbasedInventorySlotClass;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TSubclassOf<UInventoryItemWidget> InventoryItemVisualClass;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TSubclassOf<UInventoryItemWidget> DraggedWidgetClass;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TSubclassOf<UHighlightSlotWidget> HighlightSlotWidgetClass;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TSubclassOf<UItemTooltipWidget> ItemTooltipWidgetClass;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TSubclassOf<UModalTradeWidget> ModalTradeWidgetClass;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	FVector2D SlotSize = FVector2D(0.f);
-
-	FUISettings(): GameplayMappingContext(nullptr), InventoryMappingContext(nullptr), ToggleInventoryAction(nullptr),
+	FUISettings(): InventoryMappingContext(nullptr), ToggleInventoryAction(nullptr),
 	               ToggleEquipmentAction(nullptr),
 	               IA_Mod_QuickGrab(nullptr),
 	               IA_Mod_GrabAllSame(nullptr)
@@ -70,8 +70,9 @@ struct FInventoryModifierState
 {
 	GENERATED_BODY()
 
-	UPROPERTY(BlueprintReadWrite)
+	UPROPERTY(BlueprintReadWrite, Category = "Inventory|Input")
 	bool bIsQuickGrabModifierActive = false;
-	UPROPERTY(BlueprintReadWrite)
+	
+	UPROPERTY(BlueprintReadWrite, Category = "Inventory|Input")
 	bool bIsGrabAllSameModifierActive = false;
 };
