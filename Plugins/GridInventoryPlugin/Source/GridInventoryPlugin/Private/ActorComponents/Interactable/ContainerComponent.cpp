@@ -103,24 +103,6 @@ void UContainerComponent::InitializeItemCollection()
 {
 	if (!ContainerWidget) return;
 
-	/*if (WorldContainerInventoryWidgetClass)
-	{
-		ContainerWidget->ChangeInventoryInContainerSlot(WorldContainerInventoryWidgetClass);
-		InventoryWidget = ContainerWidget->GetInventoryFromContainerSlot();
-	}
-	else
-	{
-		auto* PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
-		if (!PlayerPawn)
-			return;
-		
-		UIInventoryManager* InventoryManager = PlayerPawn->FindComponentByClass<UIInventoryManager>();
-		if (!InventoryManager)
-			return;
-
-		ContainerWidget->ChangeInventoryInContainerSlot(InventoryManager->GetUISettings().DefaultWorldContainerInventoryWidgetClass);
-	}*/
-
 	InventoryWidget = ContainerWidget->GetInventoryFromContainerSlot();
 	if (!InventoryWidget) return;
 

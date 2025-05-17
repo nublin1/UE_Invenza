@@ -25,15 +25,17 @@ public:
 	// FUNCTIONS
 	//====================================================================
 	UPickupComponent();
+	
 	virtual void BeginFocus() override;
 	virtual void EndFocus() override;
-	
 	virtual void Interact(UInteractionComponent* InteractionComponent) override;
-	UFUNCTION()
+	
+	UFUNCTION(BlueprintCallable, Category = "Pickup | Initialization")
 	virtual void InitializeDrop(UItemBase* ItemToDrop);
 
 	//Getters
-	UItemBase* GetItemBase() {return ItemBase;}
+	UFUNCTION(BlueprintCallable, Category = "Pickup | Getters")
+	UItemBase* GetItemBase() { return ItemBase; }
 
 protected:
 	//====================================================================
@@ -46,7 +48,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Pickup | Item Reference")
 	int InitQuantity = 1;
 	
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category = "Pickup | Debug")
 	bool bIsDebug = false;
 
 	//====================================================================

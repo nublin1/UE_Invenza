@@ -329,29 +329,7 @@ void UIInventoryManager::UIIteract( UInteractableComponent* TargetInteractableCo
 {
 	if (!TargetInteractableComponent) return;
 
-	if (auto* PickupComp = Cast<UPickupComponent>(TargetInteractableComponent))
-	{
-		auto Inv = CoreHUDWidget->GetMainInvWidget()->GetInventoryFromContainerSlot();
-		auto Item = PickupComp->GetItemBase();
-
-		if (!Inv)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("MainInventory is NULL!"));
-			return;
-		}
-		if (!Item)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Item is NULL!"));
-			return;
-		}
-
-		FItemMoveData Data;
-		Data.SourceItem = Item;
-		Data.TargetInventory = Inv;
-		
-		FItemAddResult Result = Inv->HandleAddItem(Data);
-		//UE_LOG(LogTemp, Warning, TEXT("USpecialInteractableComponent"));
-	}
+	
 }
 
 void UIInventoryManager::OnQuickGrabPressed(const FInputActionInstance& Instance)

@@ -2,10 +2,13 @@
 
 #include "ActorComponents/Interactable/PickupComponent.h"
 
+#include "ActorComponents/InteractionComponent.h"
+#include "ActorComponents/UIInventoryManager.h"
 #include "ActorComponents/Items/itemBase.h"
 #include "Components/BoxComponent.h"
 #include "Data/ItemData.h"
 #include "Factory/ItemFactory.h"
+#include "UI/Inventory/UInventoryWidgetBase.h"
 
 UPickupComponent::UPickupComponent()
 {
@@ -84,6 +87,30 @@ void UPickupComponent::InitializePickupComponent()
 
 void UPickupComponent::TakePickup(const UInteractionComponent* Taker)
 {
+	UIInventoryManager* InventoryManager = Taker->GetOwner()->FindComponentByClass<UIInventoryManager>();
+	if (!InventoryManager)
+		return;
+
+	auto Inv = InventoryManager->GetMainInventory()->GetInventoryFromContainerSlot();
+
+	if (!Inv)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("MainInventory is NULL!"));
+		return;
+	}
+	if (!ItemBase)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Item is NULL!"));
+		return;
+	}
+
+	FItemMoveData Data;
+	Data.SourceItem = ItemBase;
+	Data.TargetInventory = Inv;
+
+	FItemAddResult Result = Inv->HandleAddItem(Data);
+	//UE_LOG(LogTemp, Warning, TEXT("USpecialInteractableComponent"));
+
 	GetOwner()->Destroy();
 }
 
