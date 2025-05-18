@@ -5,10 +5,8 @@
 #include "ActorComponents/InteractionComponent.h"
 #include "ActorComponents/ItemCollection.h"
 #include "ActorComponents/UIInventoryManager.h"
-#include "ActorComponents/Items/itemBase.h"
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
-#include "Factory/ItemFactory.h"
 #include "Kismet/GameplayStatics.h"
 #include "UI/Inventory/SlotbasedInventoryWidget.h"
 #include "UI/Inventory/UInventoryWidgetBase.h"
@@ -125,6 +123,7 @@ void UContainerComponent::UpdateInteractableData()
 	InteractableData.DefaultInteractableType = EInteractableType::Container;
 	InteractableData.Action = FText::FromString(TEXT("Open"));
 	InteractableData.Quantity = -1;
+	
 }
 
 void UContainerComponent::FindContainerWidget()

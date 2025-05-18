@@ -44,17 +44,20 @@ public:
 	void EquipItem(UItemBase* Item);
 
 	UFUNCTION(BlueprintCallable)
-	void UnequipItem(FItemMapping ItemSlots, UItemBase* Item, int32 RemoveQuantity);
+	void UnequipItemFromSlot(FItemMapping ItemSlots, UItemBase* Item, int32 RemoveQuantity);
+
+	UFUNCTION(BlueprintCallable)
+	TMap<UItemBase*, FEquipmentSlot> GetEquippedItemsData();
 
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TMap<FName, FEquipmentSlot> EquipmentSlots;
 
 	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly, Category="Config")
-	UDataTable* SlotDefinitionTable;
+	TObjectPtr<UDataTable> SlotDefinitionTable;
 	
 	//====================================================================
 	// FUNCTIONS

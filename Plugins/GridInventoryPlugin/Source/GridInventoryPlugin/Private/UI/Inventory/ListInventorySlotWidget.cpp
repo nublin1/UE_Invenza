@@ -4,6 +4,7 @@
 #include "UI/Inventory/ListInventorySlotWidget.h"
 
 #include "ActorComponents/ItemCollection.h"
+#include "ActorComponents/TradeComponent.h"
 #include "ActorComponents/UIInventoryManager.h"
 #include "ActorComponents/Items/itemBase.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
@@ -39,14 +40,37 @@ void UListInventorySlotWidget::UpdateVisual(UItemBase* Item)
 	}
 }
 
+void UListInventorySlotWidget::UpdatePriceText()
+{
+	if (!CachedEntry || !PriceText)
+		return;
+
+	PriceText->SetText(FText::AsNumber(CachedEntry->Item->GetItemRef().ItemTradeData.BasePrice * CachedEntry->Item->GetQuantity()));
+	
+	UIInventoryManager* InventoryManager = GetOwningPlayerPawn()->FindComponentByClass<UIInventoryManager>();
+	if (!InventoryManager || !InventoryManager->GetCurrentInteractInvWidget())
+		return;
+
+	if (InventoryManager->GetCurrentInteractInvWidget()->GetInventoryType() == EInventoryType::VendorInventory)
+	{
+		auto OwnerAc = CachedEntry->ParentInventoryWidget->GetInventoryData().ItemCollectionLink->GetOwner();
+		auto TradeComp = OwnerAc->FindComponentByClass<UTradeComponent>();
+		if (!TradeComp) return;
+
+		FText FullPriceText = FText::AsNumber(TradeComp->GetTotalSellPrice(CachedEntry->Item));
+		PriceText->SetText(FullPriceText);
+	}
+}
+
 void UListInventorySlotWidget::NativeOnListItemObjectSet(UObject* ListItemObject)
 {
 	IUserObjectListEntry::NativeOnListItemObjectSet(ListItemObject);
+	
 	if (UInventoryListEntry* ListEntry = Cast<UInventoryListEntry>(ListItemObject))
 	{
+		CachedEntry = ListEntry;
 		UpdateVisual(ListEntry->Item);
-		ParentInventoryWidget = ListEntry->ParentInventoryWidget;
-		LinkedItem = ListEntry->Item;
+		UpdatePriceText();
 	}
 }
 
@@ -54,16 +78,16 @@ FReply UListInventorySlotWidget::NativeOnMouseMove(const FGeometry& InGeometry, 
 {
 	FReply Reply = Super::NativeOnMouseMove(InGeometry, InMouseEvent);
 
-	if (!ParentInventoryWidget)
+	if (!CachedEntry || !CachedEntry->ParentInventoryWidget)
 		return Reply;
 
-	if (LinkedItem && ParentInventoryWidget->GetInventoryData().ItemTooltipWidget)
+	if (CachedEntry->Item && CachedEntry->ParentInventoryWidget->GetInventoryData().ItemTooltipWidget)
 	{
-		ParentInventoryWidget->GetInventoryData().ItemTooltipWidget->SetTooltipData(LinkedItem);
-		 ParentInventoryWidget->GetInventoryData().ItemTooltipWidget->SetVisibility(ESlateVisibility::Visible);
+		CachedEntry->ParentInventoryWidget->GetInventoryData().ItemTooltipWidget->SetTooltipData(CachedEntry->Item);
+		 CachedEntry->ParentInventoryWidget->GetInventoryData().ItemTooltipWidget->SetVisibility(ESlateVisibility::Visible);
 	}
-	else if ( ParentInventoryWidget->GetInventoryData().ItemTooltipWidget)
-		 ParentInventoryWidget->GetInventoryData().ItemTooltipWidget->SetVisibility(ESlateVisibility::Collapsed);
+	else if ( CachedEntry->ParentInventoryWidget->GetInventoryData().ItemTooltipWidget)
+		 CachedEntry->ParentInventoryWidget->GetInventoryData().ItemTooltipWidget->SetVisibility(ESlateVisibility::Collapsed);
 
 	return Reply;
 }
@@ -71,8 +95,8 @@ FReply UListInventorySlotWidget::NativeOnMouseMove(const FGeometry& InGeometry, 
 void UListInventorySlotWidget::NativeOnMouseLeave(const FPointerEvent& InMouseEvent)
 {
 	Super::NativeOnMouseLeave(InMouseEvent);
-	if ( ParentInventoryWidget->GetInventoryData().ItemTooltipWidget)
-		ParentInventoryWidget->GetInventoryData().ItemTooltipWidget->SetVisibility(ESlateVisibility::Collapsed);
+	if ( CachedEntry->ParentInventoryWidget->GetInventoryData().ItemTooltipWidget)
+		CachedEntry->ParentInventoryWidget->GetInventoryData().ItemTooltipWidget->SetVisibility(ESlateVisibility::Collapsed);
 }
 
 FReply UListInventorySlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
@@ -80,33 +104,33 @@ FReply UListInventorySlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeom
 	FReply Reply = Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
 	
 	UIInventoryManager* InventoryManager = GetOwningPlayerPawn()->FindComponentByClass<UIInventoryManager>();
-	if (!InventoryManager || !ParentInventoryWidget || !LinkedItem)
+	if (!InventoryManager ||  !CachedEntry || !CachedEntry->Item || !CachedEntry->ParentInventoryWidget)
 		return FReply::Unhandled();
 	
-	if (InMouseEvent.IsMouseButtonDown(ParentInventoryWidget->GetUISettings().ItemSelectKey))
+	if (InMouseEvent.IsMouseButtonDown(CachedEntry->ParentInventoryWidget->GetUISettings().ItemSelectKey))
 	{
 		if (InventoryManager->GetInventoryModifierStates().bIsQuickGrabModifierActive)
 		{
 			FItemMoveData ItemMoveData;
-			ItemMoveData.SourceInventory = ParentInventoryWidget;
+			ItemMoveData.SourceInventory = CachedEntry->ParentInventoryWidget;
 			ItemMoveData.SourceItemPivotSlot = this;
-			ItemMoveData.SourceItem = LinkedItem;
+			ItemMoveData.SourceItem = CachedEntry->Item;
 
 			InventoryManager->OnQuickTransferItem(ItemMoveData);
 				
 			return FReply::Handled();
 		}
 
-		return FReply::Handled().DetectDrag(TakeWidget(), ParentInventoryWidget->GetUISettings().ItemSelectKey);
+		return FReply::Handled().DetectDrag(TakeWidget(), CachedEntry->ParentInventoryWidget->GetUISettings().ItemSelectKey);
 	}
 
-	if (InMouseEvent.IsMouseButtonDown(ParentInventoryWidget->GetUISettings().ItemUseKey)
-		&& ParentInventoryWidget->GetInventorySettings().bCanUseItems)
+	if (InMouseEvent.IsMouseButtonDown(CachedEntry->ParentInventoryWidget->GetUISettings().ItemUseKey)
+		&& CachedEntry->ParentInventoryWidget->GetInventorySettings().bCanUseItems)
 	{
-		if (ParentInventoryWidget->HandleTradeModalOpening(LinkedItem))
+		if (CachedEntry->ParentInventoryWidget->HandleTradeModalOpening(CachedEntry->Item))
 			return FReply::Handled();
 		
-		LinkedItem->UseItem();
+		CachedEntry->Item->UseItem();
 	}
 	
 	return FReply::Unhandled();
@@ -118,7 +142,7 @@ void UListInventorySlotWidget::NativeOnDragDetected(const FGeometry& InGeometry,
 	Super::NativeOnDragDetected(InGeometry, InMouseEvent, OutOperation);
 	
 	UIInventoryManager* InventoryManager = GetOwningPlayerPawn()->FindComponentByClass<UIInventoryManager>();
-	if (!InventoryManager || !ParentInventoryWidget)
+	if (!InventoryManager || !CachedEntry || !CachedEntry->ParentInventoryWidget)
 		return;
 
 	UInventoryItemWidget* DraggedWidget = CreateWidget<UInventoryItemWidget>(GetOwningPlayer(), InventoryManager->GetUISettings().DraggedWidgetClass);
@@ -128,9 +152,8 @@ void UListInventorySlotWidget::NativeOnDragDetected(const FGeometry& InGeometry,
 	UItemDragDropOperation* DragItemDragDropOperation = NewObject<UItemDragDropOperation>();
 	DragItemDragDropOperation->DefaultDragVisual = DraggedWidget;
 	DragItemDragDropOperation->Pivot = EDragPivot::CenterCenter;
-
-	DragItemDragDropOperation->ItemMoveData.SourceItem = LinkedItem;
-	DragItemDragDropOperation->ItemMoveData.SourceInventory = ParentInventoryWidget;
+	DragItemDragDropOperation->ItemMoveData.SourceItem = CachedEntry->Item;
+	DragItemDragDropOperation->ItemMoveData.SourceInventory = CachedEntry->ParentInventoryWidget;
 	DragItemDragDropOperation->ItemMoveData.SourceItemPivotSlot = this;
 	
 	auto ShowDragVisual = [DraggedWidget]()
@@ -143,4 +166,8 @@ void UListInventorySlotWidget::NativeOnDragDetected(const FGeometry& InGeometry,
 	TimerManager.SetTimer(TimerHandle, TimerDelegate, 0.125f, false);
 
 	OutOperation = DragItemDragDropOperation;
+
+	
 }
+
+

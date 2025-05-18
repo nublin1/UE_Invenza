@@ -36,16 +36,14 @@ protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TObjectPtr<UItemCollection> ItemCollection;
 	
 	UPROPERTY()
 	TObjectPtr<UUInventoryWidgetBase> InventoryWidget;
 	UPROPERTY()
 	TObjectPtr<UInvBaseContainerWidget> ContainerWidget;
-
-	//UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	//TSubclassOf<UBaseUserWidget> WorldContainerInventoryWidgetClass;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FVector2D InventorySize = FVector2D(5,4); // Only for SlotBased 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)

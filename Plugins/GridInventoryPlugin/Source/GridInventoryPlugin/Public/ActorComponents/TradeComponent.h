@@ -58,7 +58,6 @@ public:
 	FOnBoughtItem OnBoughtItemDelegate;
 	FOnFaildToBuyItem OnFaildToBuyItemDelegate;
 	FOnFaildToSellItem OnFaildToSellItemDelegate;
-
 	
 	//====================================================================
 	// FUNCTIONS
@@ -82,6 +81,7 @@ public:
 	UFUNCTION()
 	virtual float GetTotalSellPrice(UItemBase* ItemsToSell);
 
+	UFUNCTION()
 	FTradeSettings GetTradeSettings() const {return TradeSettings;}
 
 protected:

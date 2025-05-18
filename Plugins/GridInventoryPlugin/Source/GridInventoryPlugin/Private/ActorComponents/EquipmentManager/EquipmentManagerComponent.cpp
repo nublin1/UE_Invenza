@@ -14,12 +14,11 @@ UEquipmentManagerComponent::UEquipmentManagerComponent(): SlotDefinitionTable(nu
 	PrimaryComponentTick.bCanEverTick = true;
 }
 
-
 void UEquipmentManagerComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	
 }
+
 void UEquipmentManagerComponent::Initialize()
 {
 	InitializeSlotsFromTable();
@@ -63,13 +62,13 @@ void UEquipmentManagerComponent::BindWidgetsToSlots()
 	EquipmentInvWidget->GetInventoryFromContainerSlot()->OnAddItemDelegate.AddDynamic(
 		this, &UEquipmentManagerComponent::EquipItemToSlot);
 	EquipmentInvWidget->GetInventoryFromContainerSlot()->OnPreRemoveItemDelegate.AddDynamic(
-		this, &UEquipmentManagerComponent::UnequipItem);
+		this, &UEquipmentManagerComponent::UnequipItemFromSlot);
 	
 }
 
 void UEquipmentManagerComponent::EquipItemToSlot(FItemMapping ItemSlots, UItemBase* Item)
 {
-	// Имя виджета должно совподать с именем слота
+	// Widget name must match slot name
 	auto SlotName = ItemSlots.ItemSlotDatas[0].SlotName;
 	if (!Item || SlotName.IsNone() || !EquipmentSlots.Contains(SlotName)) return;
 
@@ -81,7 +80,6 @@ void UEquipmentManagerComponent::EquipItemToSlot(FItemMapping ItemSlots, UItemBa
 
 	if (EquipmentSlot.EquippedItem != nullptr)
 	{
-		// TODO: Remove from inventory
 		return ;
 	}
 
@@ -104,7 +102,6 @@ void UEquipmentManagerComponent::EquipItem(UItemBase* Item)
 		if (Slot.EquippedItem == nullptr && Slot.AllowedCategory == Item->GetItemRef().ItemCategory)
 		{
 			Slot.EquippedItem = Item;
-			// TODO: Remove from ItemCollection
 			// TODO: Apply effect / logic
 
 			// Broadcast
@@ -116,7 +113,7 @@ void UEquipmentManagerComponent::EquipItem(UItemBase* Item)
 	return; // No suitable slot found
 }
 
-void UEquipmentManagerComponent::UnequipItem(FItemMapping ItemSlots, UItemBase* Item, int32 RemoveQuantity)
+void UEquipmentManagerComponent::UnequipItemFromSlot(FItemMapping ItemSlots, UItemBase* Item, int32 RemoveQuantity)
 {
 	auto SlotName = ItemSlots.ItemSlotDatas[0].SlotName;
 	if (SlotName.IsNone() || !EquipmentSlots.Contains(SlotName)) return;
@@ -129,7 +126,7 @@ void UEquipmentManagerComponent::UnequipItem(FItemMapping ItemSlots, UItemBase* 
 
 	if (Item->GetQuantity() >= RemoveQuantity)
 	{
-		// TODO: Add item back to inventory, remove effects
+		// TODO: remove effects
 		UItemBase* RemovedItem = Slot.EquippedItem;
 		Slot.EquippedItem = nullptr;
 
@@ -137,6 +134,25 @@ void UEquipmentManagerComponent::UnequipItem(FItemMapping ItemSlots, UItemBase* 
 		OnUnequippedItem.Broadcast(SlotName, nullptr);
 		return;
 	}
+}
+
+TMap<UItemBase*, FEquipmentSlot> UEquipmentManagerComponent::GetEquippedItemsData()
+{
+	TMap<UItemBase*, FEquipmentSlot> EquipmentItems;
+	if (EquipmentSlots.Num() == 0)
+	{
+		return EquipmentItems;
+	}
+
+	for (const auto& EquipmentSlot : EquipmentSlots)
+	{
+		if (EquipmentSlot.Value.EquippedItem)
+		{
+			EquipmentItems.Add(EquipmentSlot.Value.EquippedItem, EquipmentSlot.Value);
+		}
+	}
+
+	return EquipmentItems;
 }
 
 void UEquipmentManagerComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)

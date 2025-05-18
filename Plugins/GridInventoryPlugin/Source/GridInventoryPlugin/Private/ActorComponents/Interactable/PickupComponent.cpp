@@ -77,7 +77,8 @@ void UPickupComponent::InitializePickupComponent()
 	}
 
 	InteractableData.Quantity = ItemBase->GetQuantity();
-	InteractableData.Name = ItemBase->GetItemRef().ItemTextData.Name;
+	if (InteractableData.Name.IsEmpty())
+		InteractableData.Name = ItemBase->GetItemRef().ItemTextData.Name;
 
 	if (auto StaticMesh = GetOwner()->FindComponentByClass<UStaticMeshComponent>())
 	{

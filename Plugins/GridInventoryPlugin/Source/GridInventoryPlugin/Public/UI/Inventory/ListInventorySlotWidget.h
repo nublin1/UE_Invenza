@@ -45,8 +45,8 @@ public:
 	//====================================================================
 	virtual void UpdateVisual(UItemBase* Item) override;
 
-	//
-	void SetParentInventoryWidget(UListInventoryWidget* InventoryWidget){ParentInventoryWidget = InventoryWidget;}
+	UFUNCTION()
+	virtual void UpdatePriceText();
 
 protected:
 	//====================================================================
@@ -58,11 +58,14 @@ protected:
 	UPROPERTY(meta=(BindWidgetOptional))
 	TObjectPtr<UTextBlock> ItemName;
 
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UImage> MoneyIcon;
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UTextBlock> PriceText;
+	
 	//
-	UPROPERTY(BlueprintReadWrite)
-	TObjectPtr<UListInventoryWidget> ParentInventoryWidget;
-	UPROPERTY(BlueprintReadOnly)
-	TObjectPtr<UItemBase> LinkedItem;
+	UPROPERTY()
+	TObjectPtr<UInventoryListEntry> CachedEntry = nullptr;
 
 	//====================================================================
 	// FUNCTIONS
@@ -73,4 +76,5 @@ protected:
 	virtual void NativeOnMouseLeave(const FPointerEvent& InMouseEvent) override;
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	virtual void NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation) override;
+	
 };

@@ -1,6 +1,5 @@
 // Nublin Studio 2025 All Rights Reserved.
 
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -10,7 +9,6 @@
 #include "InteractionComponent.generated.h"
 
 #pragma region delegates
-class UItemBase;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FBeginFocus, FInteractableData&, InteractableData);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FEndFocus, FInteractableData&, InteractableData);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FIteract, UInteractableComponent*, TargetInteractableComponent);
@@ -19,6 +17,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FEndIteract, UInteractableComponent*
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FInteractionProgressDelegate, float, Progress);
 #pragma endregion
 
+class UItemBase;
 enum class EInteractableType : uint8;
 class UInteractableComponent;
 class UInputAction;
@@ -70,8 +69,6 @@ protected:
 	float InteractionCheckDistance;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction|Trace")
 	TEnumAsByte<ECollisionChannel> TraceChannel;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction|Trace")
-	float BaseEyeHeight;
 #pragma endregion
 
 #pragma region Input

@@ -12,7 +12,7 @@
 
 ETradeResult UTradeService::ExecuteBuy(const FTradeRequest& Request)
 {
-	if (Request.Item->GetItemRef().ItemNumeraticData.bCanBeSold == false )
+	if (Request.Item->GetItemRef().ItemTradeData.bCanBeSold == false )
 		return ETradeResult::ItemCantBeSold;
 
 	if (Request.Vendor->GetTradeSettings().bSellOnly)
@@ -39,7 +39,10 @@ ETradeResult UTradeService::ExecuteBuy(const FTradeRequest& Request)
 	
 	Request.Vendor->BuyItem(Request.Item);
 	BuyerInv->HandleRemoveItem(Request.Item, Request.Item->GetQuantity());
-	
+
+	if (FullPrice == 0)
+		return ETradeResult::Success;
+		
 	UItemBase* MoneyItem = UItemFactory::CreateItemByID(Request.Vendor, FName("Money"), FullPrice);
 	FItemMoveData MoneyData (MoneyItem, VendorInv, BuyerInv);
 	BuyerInv->HandleAddItem(MoneyData, false);
@@ -71,7 +74,7 @@ ETradeResult UTradeService::ExecuteBuy(const FTradeRequest& Request)
 
 ETradeResult UTradeService::ExecuteSell(const FTradeRequest& Request)
 {
-	if (Request.Item->GetItemRef().ItemNumeraticData.bCanBeSold == false )
+	if (Request.Item->GetItemRef().ItemTradeData.bCanBeSold == false )
 		return ETradeResult::ItemCantBeSold;
 	
 	auto VendorInv = Request.VendorContainer->GetInventoryFromContainerSlot();
@@ -92,6 +95,9 @@ ETradeResult UTradeService::ExecuteSell(const FTradeRequest& Request)
 	if (Request.Vendor->GetTradeSettings().RemoveItemAfterPurchase)
 		VendorInv->HandleRemoveItem(Request.Item, Request.Quantity);	
 
+	if (FullPrice == 0)
+		return ETradeResult::Success;
+	
 	UItemBase* MoneyItem = UItemFactory::CreateItemByID(VendorInv, FName("Money"), FullPrice);
 	FItemMoveData MoneyData (MoneyItem, VendorInv, BuyerInv);
 	VendorInv->HandleAddItem(MoneyData, false);

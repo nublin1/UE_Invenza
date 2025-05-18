@@ -15,7 +15,6 @@ UInteractionComponent::UInteractionComponent(): TraceChannel(), TargetInteractab
 	PrimaryComponentTick.bCanEverTick = true;
 	InteractionCheckInterval = 0.1f;
 	InteractionCheckDistance = 500.0f;
-	BaseEyeHeight = 74.0f;
 
 	ComponentTags.Add(FName("InteractionComponent"));
 }

@@ -31,7 +31,7 @@ float UTradeComponent::CalculateAvailableMoney(UItemCollection* Collection)
 	{
 		if (MoneyItem)
 		{
-			AvailableMoney += MoneyItem->GetItemRef().ItemNumeraticData.BasePrice * MoneyItem->GetQuantity();
+			AvailableMoney += MoneyItem->GetItemRef().ItemTradeData.BasePrice * MoneyItem->GetQuantity();
 		}
 	}
 
@@ -42,6 +42,11 @@ FMoneyCalculationResult UTradeComponent::AccumulatePayment(UItemCollection* Item
 {
 	FMoneyCalculationResult Result;
 	Result.AvailableMoney  = CalculateAvailableMoney(ItemCollection);
+	if (FullPrice == 0)
+	{
+		Result.bHasEnough = true;
+		return Result;
+	}
 	
 	TArray<UItemBase*> MoneyItems = ItemCollection->GetAllItemsByCategory(EItemCategory::Money);
 	if (MoneyItems.IsEmpty())
@@ -53,7 +58,7 @@ FMoneyCalculationResult UTradeComponent::AccumulatePayment(UItemCollection* Item
 	for (UItemBase* MoneyItem : MoneyItems)
 	{
 		int32 Quantity = MoneyItem->GetQuantity();
-		float UnitValue = MoneyItem->GetItemRef().ItemNumeraticData.BasePrice;
+		float UnitValue = MoneyItem->GetItemRef().ItemTradeData.BasePrice;
 		int32 NeededQuantity = FMath::CeilToInt((FullPrice - Result.AccumulatedRequiredValue) / UnitValue);
 		int32 RemoveQuantity = FMath::Min(Quantity, NeededQuantity);
 
@@ -93,7 +98,10 @@ void UTradeComponent::BuyItem(UItemBase* ItemToBuy)
 }
 
 bool UTradeComponent::TrySellItem(UItemBase* ItemForSale)
-{	
+{
+	if (ItemForSale->GetItemRef().ItemCategory == EItemCategory::Money)
+		return false;
+	
 	auto Result = AccumulatePayment(BuyerItemCollection, GetTotalSellPrice(ItemForSale));
 	
 	if (Result.bHasEnough)
@@ -115,12 +123,12 @@ void UTradeComponent::Selltem(UItemBase* ItemsToSell)
 
 float UTradeComponent::GetTotalBuyPrice(UItemBase* ItemToBuy)
 {
-	auto FullPrice = ItemToBuy->GetItemRef().ItemNumeraticData.BasePrice * TradeSettings.BuyPriceFactor * ItemToBuy->GetQuantity();
+	auto FullPrice = ItemToBuy->GetItemRef().ItemTradeData.BasePrice * TradeSettings.BuyPriceFactor * ItemToBuy->GetQuantity();
 	return FullPrice;
 }
 
 float UTradeComponent::GetTotalSellPrice(UItemBase* ItemsToSell)
 {
-	auto FullPrice = ItemsToSell->GetItemRef().ItemNumeraticData.BasePrice * TradeSettings.SellPriceFactor * ItemsToSell->GetQuantity();
+	auto FullPrice = ItemsToSell->GetItemRef().ItemTradeData.BasePrice * TradeSettings.SellPriceFactor * ItemsToSell->GetQuantity();
 	return FullPrice;
 }

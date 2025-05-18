@@ -40,14 +40,14 @@ struct FInteractableData
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interactable")
 	EInteractableType DefaultInteractableType;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interactable")
-	bool bHoldToInteract = false;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interactable")
 	FText Name;	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interactable")
-	FText Action;	
+	FText Action;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interactable")
+	int32 Quantity;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interactable")
 	float InteractableDuration;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interactable")
-	int32 Quantity;
+	bool bHoldToInteract = false;
 };
 

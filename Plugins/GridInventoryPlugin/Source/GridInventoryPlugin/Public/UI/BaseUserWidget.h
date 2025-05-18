@@ -28,6 +28,4 @@ protected:
 	//
 	virtual void NativeConstruct() override;
 
-	
-	
 };

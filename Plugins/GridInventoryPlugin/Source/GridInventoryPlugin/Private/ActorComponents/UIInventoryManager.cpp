@@ -77,7 +77,7 @@ void UIInventoryManager::OpenTradeModal(bool bIsSaleOperation, UItemBase* Operat
 	FModalTradeData TradeData (OperationalText,
 					MaxAmount,
 					ItemData.ItemTextData.Name,
-					ItemData.ItemNumeraticData.BasePrice * PriceFactor);
+					ItemData.ItemTradeData.BasePrice * PriceFactor);
 
 	ModalTradeWidget->InitializeTradeWidget(TradeData);
 	ModalTradeWidget->SetVisibility(ESlateVisibility::Visible);

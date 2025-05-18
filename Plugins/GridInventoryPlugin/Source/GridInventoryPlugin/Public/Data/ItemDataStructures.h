@@ -43,8 +43,8 @@ struct FItemAssetData
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<UTexture2D> Icon;
 
-	UPROPERTY(EditAnywhere, meta = (ToolTip = "Used in ItemSlots"))
-	TObjectPtr<UTexture2D> AlternativeIcon;
+	/*UPROPERTY(EditAnywhere, meta = (ToolTip = "Used in ItemSlots"))
+	TObjectPtr<UTexture2D> AlternativeIcon;*/
 
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<UStaticMesh> Mesh;
@@ -66,16 +66,22 @@ struct FItemNumeraticData
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (ToolTip = "Number of vertical slots occupied by the item"))
 	int32 NumVerticalSlots = 1;
+	
+	FItemNumeraticData()
+		: Weight(1), MaxStackSize(1)
+	{
+	}
+};
+
+USTRUCT(BlueprintType)
+struct FItemTradeData
+{
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	bool bCanBeSold = true;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float BasePrice = 0.0f;
-
-	FItemNumeraticData()
-		: Weight(1), MaxStackSize(1)
-	{
-	}
 };
 
 USTRUCT(BlueprintType)
@@ -91,6 +97,9 @@ struct FItemMetaData
 
 	UPROPERTY(EditAnywhere, Category = "Item Data")
 	FItemNumeraticData ItemNumeraticData;
+
+	UPROPERTY(EditAnywhere, Category = "Item Data")
+	FItemTradeData ItemTradeData;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Data")
 	EItemCategory ItemCategory = EItemCategory::Armor;
