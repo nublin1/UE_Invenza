@@ -17,28 +17,26 @@ ETradeResult UTradeService::ExecuteBuy(const FTradeRequest& Request)
 
 	if (Request.Vendor->GetTradeSettings().bSellOnly)
 		return ETradeResult::VendorDoesNotBuy;
-	
-	if (!Request.Vendor->TryBuyItem(Request.Item))
+
+	auto ItemToCheck = Request.Item->DuplicateItem();
+	ItemToCheck->SetQuantity(Request.Quantity);
+	if (!Request.Vendor->TryBuyItem(ItemToCheck))
 		return ETradeResult::NotEnoughMoney;
 
 	auto VendorInv = Request.VendorContainer->GetInventoryFromContainerSlot();
 	auto BuyerInv = Request.BuyerContainer->GetInventoryFromContainerSlot();
 
-	FItemMoveData MoveData (Request.Item, BuyerInv, VendorInv);
+	FItemMoveData MoveData (Request.Item->DuplicateItem(), BuyerInv, VendorInv);
+	MoveData.SourceItem->SetQuantity(Request.Quantity);
 	auto AddResult = VendorInv->HandleAddItem(MoveData, true);
 	if (AddResult.OperationResult != EItemAddResult::IAR_AllItemAdded)
 		return ETradeResult::NoSpaceInInventory;
 
-	auto FullPrice = Request.Vendor->GetTotalBuyPrice(Request.Item);
-
-	FItemMoveData ItemToBuyMoveData;
-	ItemToBuyMoveData.SourceItem = Request.Item;
-	ItemToBuyMoveData.SourceInventory =BuyerInv;
-	ItemToBuyMoveData.TargetInventory = VendorInv;
-	VendorInv->HandleAddItem(ItemToBuyMoveData);
+	auto FullPrice = Request.Vendor->GetTotalBuyPrice(ItemToCheck);
+	VendorInv->HandleAddItem(MoveData);
 	
 	Request.Vendor->BuyItem(Request.Item);
-	BuyerInv->HandleRemoveItem(Request.Item, Request.Item->GetQuantity());
+	BuyerInv->HandleRemoveItem(Request.Item, Request.Quantity);
 
 	if (FullPrice == 0)
 		return ETradeResult::Success;
@@ -74,23 +72,25 @@ ETradeResult UTradeService::ExecuteBuy(const FTradeRequest& Request)
 
 ETradeResult UTradeService::ExecuteSell(const FTradeRequest& Request)
 {
-	if (Request.Item->GetItemRef().ItemTradeData.bCanBeSold == false )
-		return ETradeResult::ItemCantBeSold;
+	/*if (Request.Item->GetItemRef().ItemTradeData.bCanBeSold == false )
+		return ETradeResult::ItemCantBeSold;*/
 	
 	auto VendorInv = Request.VendorContainer->GetInventoryFromContainerSlot();
 	auto BuyerInv = Request.BuyerContainer->GetInventoryFromContainerSlot();
-	
-	FItemMoveData ItemMoveData (Request.Item, VendorInv, BuyerInv);
+
+	auto ItemToCheck = Request.Item->DuplicateItem();
+	ItemToCheck->SetQuantity(Request.Quantity);
+	FItemMoveData ItemMoveData (ItemToCheck, VendorInv, BuyerInv);
 	auto AddResult = BuyerInv->HandleAddItem(ItemMoveData, true);
 	if (AddResult.OperationResult != EItemAddResult::IAR_AllItemAdded)
 		return ETradeResult::NoSpaceInInventory;
 	
-	if (!Request.Vendor->TrySellItem(Request.Item))
+	if (!Request.Vendor->TrySellItem(ItemToCheck))
 		return ETradeResult::NotEnoughMoney;
 
 	Request.Vendor->Selltem(Request.Item);
 
-	auto FullPrice = Request.Vendor->GetTotalSellPrice(Request.Item);
+	auto FullPrice = Request.Vendor->GetTotalSellPrice(ItemToCheck);
 	BuyerInv->HandleAddItem(ItemMoveData, false);
 	if (Request.Vendor->GetTradeSettings().RemoveItemAfterPurchase)
 		VendorInv->HandleRemoveItem(Request.Item, Request.Quantity);	

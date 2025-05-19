@@ -23,18 +23,44 @@ enum class ETradeResult : uint8
 	UnknownError
 };
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FTradeRequest
 {
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
-	TObjectPtr<UTradeComponent> Vendor;			// Торговый компонент продавца
+	bool bIsSaleOperation = false;
+	UPROPERTY()
+	TObjectPtr<UTradeComponent> Vendor;
+	UPROPERTY()
 	TObjectPtr<UInvBaseContainerWidget> VendorContainer;
+	UPROPERTY()
 	TObjectPtr<UInvBaseContainerWidget> BuyerContainer;
 	UPROPERTY()
-	TObjectPtr<UItemBase> Item;					// Что покупаем / продаём
-	int32 Quantity;						// Сколько
+	TObjectPtr<UItemBase> Item;
+	UPROPERTY()
+	int32 Quantity;
+
+	FTradeRequest(): Quantity(0)
+	{
+	}
+
+	FTradeRequest(
+		TObjectPtr<UTradeComponent> InVendor,
+		TObjectPtr<UInvBaseContainerWidget> InVendorContainer,
+		TObjectPtr<UInvBaseContainerWidget> InBuyerContainer,
+		TObjectPtr<UItemBase> InItem,
+		int32 InQuantity,
+		bool bInIsSaleOperation)
+
+		: bIsSaleOperation(bInIsSaleOperation)
+		  , Vendor(InVendor)
+		  , VendorContainer(InVendorContainer)
+		  , BuyerContainer(InBuyerContainer)
+		  , Item(InItem)
+		  , Quantity(InQuantity)
+	{
+	}
 };
 
 /**

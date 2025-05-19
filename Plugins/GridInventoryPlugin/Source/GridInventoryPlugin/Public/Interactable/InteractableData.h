@@ -33,7 +33,7 @@ struct FInteractableData
 		DefaultInteractableType(EInteractableType::Pickup),
 		Name(FText::GetEmpty()),
 		Action(FText::GetEmpty()),
-		InteractableDuration(0.0f), Quantity(0)
+		Quantity(0), InteractableDuration(0.0f)
 	{
 	}
 

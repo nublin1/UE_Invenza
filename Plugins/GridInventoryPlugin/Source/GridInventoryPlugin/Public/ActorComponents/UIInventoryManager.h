@@ -95,7 +95,7 @@ protected:
 	// FUNCTIONS
 	//====================================================================
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Trade")
-	virtual ETradeResult VendorRequest(FItemMoveData ItemMoveData);
+	virtual ETradeResult VendorRequest(FTradeRequest TradeRequest);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
 	void SetInteractableType(UInteractableComponent* InteractData);

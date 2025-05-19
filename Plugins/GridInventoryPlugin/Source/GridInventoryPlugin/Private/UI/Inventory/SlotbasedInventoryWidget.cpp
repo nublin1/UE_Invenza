@@ -591,7 +591,8 @@ int32 USlotbasedInventoryWidget::HandleStackableItems(FItemMoveData& ItemMoveDat
 					Item->GetItemRef().ItemNumeraticData.MaxStackSize - Item->GetQuantity());
 				int32 ActualAmountToAdd = CalculateActualAmountToAdd(AmountToAddToStack, ItemMoveData.SourceItem->GetItemSingleWeight());
 
-				InsertToStackItem(Item, ActualAmountToAdd);
+				if (!bOnlyCheck)
+					InsertToStackItem(Item, ActualAmountToAdd);
 				AmountToDistribute -= ActualAmountToAdd;
 				TotalAddedAmount += ActualAmountToAdd;
 			}
@@ -636,7 +637,6 @@ int32 USlotbasedInventoryWidget::HandleStackableItems(FItemMoveData& ItemMoveDat
 		FItemMapping Slots(ItemMoveData.TargetSlot->GetSlotData());
 		FItemMoveData NewItemMoveData;
 		NewItemMoveData.SourceItem = ItemMoveData.SourceItem;
-		//ItemMoveData.SourceInventory->HandleRemoveItem(ItemMoveData.SourceItem, ActualAmountToAdd);
 
 		if (bOnlyCheck)
 			return ActualAmountToAdd;
@@ -660,7 +660,6 @@ int32 USlotbasedInventoryWidget::HandleStackableItems(FItemMoveData& ItemMoveDat
 		
 		InsertToStackItem(ItemFromSlot, ActualAmountToAdd);
 		AmountToDistribute -= ActualAmountToAdd;
-		//ItemMoveData.SourceInventory->HandleRemoveItem(ItemMoveData.SourceItem, ActualAmountToAdd);
 		return ActualAmountToAdd;
 	}
 }
@@ -1117,7 +1116,7 @@ FReply USlotbasedInventoryWidget::NativeOnMouseMove(const FGeometry& InGeometry,
 	
 	if (ItemInSlot && InventoryData.ItemTooltipWidget)
 	{
-		InventoryData.ItemTooltipWidget->SetTooltipData(ItemInSlot);
+		InventoryData.ItemTooltipWidget->SetTooltipData(ItemInSlot, this);
 		InventoryData.ItemTooltipWidget->SetVisibility(ESlateVisibility::Visible);
 	}
 	else if (InventoryData.ItemTooltipWidget)

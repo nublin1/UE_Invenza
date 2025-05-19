@@ -4,8 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "UI/BaseUserWidget.h"
+#include "Components/Image.h"
 #include "ItemTooltipWidget.generated.h"
 
+class UUInventoryWidgetBase;
 class UItemBase;
 struct FItemMetaData;
 class UTextBlock;
@@ -27,7 +29,7 @@ public:
 	//====================================================================
 	UItemTooltipWidget();
 	
-	virtual void SetTooltipData(UItemBase* Item);
+	virtual void SetTooltipData(UItemBase* Item, UUInventoryWidgetBase* Inventory = nullptr);
 
 protected:
 	//====================================================================
@@ -46,6 +48,11 @@ protected:
 	TObjectPtr<UTextBlock> StackSizeValue;
 	UPROPERTY(meta=(BindWidgetOptional))
 	TObjectPtr<UTextBlock> StackWeightValue;
+
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UImage> MoneyIcon;
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UTextBlock> PriceText;
 
 	//====================================================================
 	// FUNCTIONS
