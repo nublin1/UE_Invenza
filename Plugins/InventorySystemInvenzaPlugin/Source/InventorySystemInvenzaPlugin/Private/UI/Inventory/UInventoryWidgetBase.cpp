@@ -130,6 +130,10 @@ void UUInventoryWidgetBase::UpdateMoneyInfo()
 
 bool UUInventoryWidgetBase::HandleTradeModalOpening(UItemBase* Item)
 {
+	if (!Item) return false;
+
+	if (Item->GetItemRef().ItemCategory == EItemCategory::Money) return false;
+	
 	UIInventoryManager* InventoryManager = GetOwningPlayerPawn()->FindComponentByClass<UIInventoryManager>();
 	
 	if (InventoryManager->GetCurrentInteractInvWidget()
@@ -157,8 +161,6 @@ void UUInventoryWidgetBase::NotifyAddItem(FItemMapping& FromSlots, UItemBase* Ne
 
 void UUInventoryWidgetBase::NotifyPreRemoveItem(FItemMapping& FromSlots, UItemBase* RemovedItem, int32 RemoveQuantity)
 {
-	UpdateWeightInfo();
-	UpdateMoneyInfo();
 	if (OnPreRemoveItemDelegate.IsBound())
 		OnPreRemoveItemDelegate.Broadcast(FromSlots, RemovedItem, RemoveQuantity);
 	
@@ -166,6 +168,8 @@ void UUInventoryWidgetBase::NotifyPreRemoveItem(FItemMapping& FromSlots, UItemBa
 
 void UUInventoryWidgetBase::NotifyPostRemoveItem()
 {
+	UpdateWeightInfo();
+	UpdateMoneyInfo();
 	if (OnPostRemoveItemDelegate.IsBound())
 		OnPostRemoveItemDelegate.Broadcast();
 }
