@@ -16,7 +16,7 @@
 #include "UI/Item/InventoryItemWidget.h"
 
 
-void UListInventorySlotWidget::UpdateVisualWithItem(UItemBase* Item)
+void UListInventorySlotWidget::UpdateVisual(UItemBase* Item)
 {
 	if (ItemIcon)
 	{
@@ -82,7 +82,7 @@ void UListInventorySlotWidget::NativeOnListItemObjectSet(UObject* ListItemObject
 	if (UInventoryListEntry* ListEntry = Cast<UInventoryListEntry>(ListItemObject))
 	{
 		CachedEntry = ListEntry;
-		UpdateVisualWithItem(ListEntry->Item);
+		UpdateVisual(ListEntry->Item);
 		UpdatePriceText();
 	}
 }
