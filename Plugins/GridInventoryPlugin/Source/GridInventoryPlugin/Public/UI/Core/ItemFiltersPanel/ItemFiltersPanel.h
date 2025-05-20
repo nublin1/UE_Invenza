@@ -26,15 +26,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ToolTip = "Enable filter color override"))
 	bool bUseFilterColor = false;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ToolTip = "Only for Grid inventory", EditCondition = "bUseFilterColor"))
-	FLinearColor ItemFilterBorderColor;
+	FLinearColor ItemFilterBorderColor = FLinearColor::Green;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ToolTip="Only for Grid inventory"))
 	float FilterOpacity = 0.15f;
 
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UItemFiltersPanel();
-	
 	UUIButton* GetClearFiltersButton() const {return ClearFiltersButton; }
 	TArray<TObjectPtr<UItemCategoryButton>> GetFilteredCategores() const {return CategoryButtonList;}
 	UEditableText* GetSearchText() const {return SearchText; }
@@ -61,7 +59,7 @@ protected:
 	//
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bIsShowSearchField = true;
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TArray<TObjectPtr<UItemCategoryButton>> CategoryButtonList;
 	
 	/** Whether to search in filtered inventory slots instead of the full inventory slots array */

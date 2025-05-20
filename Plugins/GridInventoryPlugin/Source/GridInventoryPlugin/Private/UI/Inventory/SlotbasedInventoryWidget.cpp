@@ -814,7 +814,7 @@ void USlotbasedInventoryWidget::ReplaceItem(UItemBase* Item, UInventorySlot* New
 		UTexture2D* tempText= nullptr;
 		auto ItemSlot = GetSlotByPosition(ItemSlotData.SlotPosition);
 		if (ItemSlot && !bIsSlotEmpty(ItemSlotData.SlotPosition))
-			ItemSlot->UpdateVisualWithTexture(tempText);
+			ItemSlot->UpdateVisual(tempText);
 	}
 	
 	//UE_LOG(LogTemp, Warning, TEXT("ReplaceItem done!"))
@@ -865,7 +865,7 @@ void USlotbasedInventoryWidget::AddItemToPanel( UItemBase* Item)
 		auto ItemSlot = GetSlotByPosition(ItemSlotData.SlotPosition);
 		if(ItemSlot && !bIsSlotEmpty(ItemSlotData.SlotPosition))
 		{
-			ItemSlot->UpdateVisualWithTexture(tempText);
+			ItemSlot->UpdateVisual(tempText);
 		}
 	}
 
