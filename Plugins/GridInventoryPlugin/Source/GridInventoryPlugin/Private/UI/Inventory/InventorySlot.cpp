@@ -9,11 +9,11 @@ UInventorySlot::UInventorySlot()
 	
 }
 
-void UInventorySlot::UpdateVisual(UItemBase* Item)
+void UInventorySlot::UpdateVisualWithItem(UItemBase* Item)
 {
 }
 
-void UInventorySlot::UpdateVisual(UTexture2D* NewTexture)
+void UInventorySlot::UpdateVisualWithTexture(UTexture2D* NewTexture)
 {
 }
 

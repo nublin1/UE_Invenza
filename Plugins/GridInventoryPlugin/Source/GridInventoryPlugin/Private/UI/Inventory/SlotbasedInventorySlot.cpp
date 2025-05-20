@@ -24,9 +24,9 @@ void USlotbasedInventorySlot::NativeConstruct()
 	}
 }
 
-void USlotbasedInventorySlot::UpdateVisual(UTexture2D* NewTexture)
+void USlotbasedInventorySlot::UpdateVisualWithTexture(UTexture2D* NewTexture)
 {
-	Super::UpdateVisual(NewTexture);
+	Super::UpdateVisualWithTexture(NewTexture);
 
 	if (!NewTexture)
 	{

@@ -34,8 +34,9 @@ public:
 	}
 	
 	UFUNCTION(BlueprintCallable)
-	virtual void UpdateVisual(UItemBase* Item);
-	virtual void UpdateVisual(UTexture2D* NewTexture);
+	virtual void UpdateVisualWithItem(UItemBase* Item);
+	UFUNCTION(BlueprintCallable)
+	virtual void UpdateVisualWithTexture(UTexture2D* NewTexture);
 	UFUNCTION(BlueprintCallable)
 	virtual void ResetVisual();
 	

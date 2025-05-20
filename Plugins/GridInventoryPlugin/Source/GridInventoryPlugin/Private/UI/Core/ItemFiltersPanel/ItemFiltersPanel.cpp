@@ -49,6 +49,10 @@ void UItemFiltersPanel::OnClearFiltersButtonPressed()
 	DisableAllFilters();
 }
 
+UItemFiltersPanel::UItemFiltersPanel(): ItemFilterBorderColor(FLinearColor::Green), bSearchInFilteredSlots(false)
+{
+}
+
 void UItemFiltersPanel::DisableAllFilters()
 {
 	if (CategoryButtonList.IsEmpty())

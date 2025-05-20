@@ -32,7 +32,7 @@ public:
 	//====================================================================
 	USlotbasedInventorySlot();
 
-	virtual void UpdateVisual(UTexture2D* NewTexture) override;
+	virtual void UpdateVisualWithTexture(UTexture2D* NewTexture) override;
 	virtual void ResetVisual() override;
 
 	virtual void SetItemUseKeyText(FString InUseKeyText)override;
