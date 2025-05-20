@@ -29,7 +29,7 @@ UIInventoryManager::UIInventoryManager(): CoreHUDWidget(nullptr)
 	
 }
 
-void UIInventoryManager::OpenTradeModal(bool bIsSaleOperation, UItemBase* OperationalItem)
+void UIInventoryManager::OpenTradeModal(bool bIsSaleOperation, UItemBase* Operationalitem)
 {
 	auto TradeComponent = CurrentInteractInvWidget->GetInventoryFromContainerSlot()->
 		GetInventoryData().ItemCollectionLink->GetOwner()->FindComponentByClass<UTradeComponent>();
@@ -57,13 +57,13 @@ void UIInventoryManager::OpenTradeModal(bool bIsSaleOperation, UItemBase* Operat
 	FText OperationalText;
 	float PriceFactor = 1.0f;
 	int MaxAmount = 1.0f;
-	FItemMetaData ItemData = OperationalItem->GetItemRef();
+	FItemMetaData ItemData = Operationalitem->GetItemRef();
 	if (bIsSaleOperation)
 	{
 		OperationalText = FText::FromString("Sale");
 		PriceFactor = TradeComponent->GetTradeSettings().SellPriceFactor;
 		if (TradeComponent->GetTradeSettings().RemoveItemAfterPurchase)
-			MaxAmount = OperationalItem->GetQuantity();
+			MaxAmount = Operationalitem->GetQuantity();
 		else
 			MaxAmount = ItemData.ItemNumeraticData.MaxStackSize;
 	}
@@ -82,23 +82,27 @@ void UIInventoryManager::OpenTradeModal(bool bIsSaleOperation, UItemBase* Operat
 	ModalTradeWidget->InitializeTradeWidget(TradeData);
 	ModalTradeWidget->SetVisibility(ESlateVisibility::Visible);
 
-	ModalTradeWidget->ConfirmCallback = [this, bIsSaleOperation, OperationalItem](int32 Quantity)
+	ModalTradeWidget->ConfirmCallback = [this, bIsSaleOperation, Operationalitem](int32 Quantity)
 	{
 		UE_LOG(LogTemp, Log, TEXT("Trade confirmed: %d items"), Quantity);
-		
-		FTradeRequest Req;
-		Req.Vendor				= CoreHUDWidget->GetVendorInvWidget()->GetInventoryFromContainerSlot()->
-			GetInventoryData().ItemCollectionLink->GetOwner()->FindComponentByClass<UTradeComponent>();
-		Req.BuyerContainer		= CoreHUDWidget->GetMainInvWidget();
-		Req.VendorContainer		= CoreHUDWidget->GetVendorInvWidget();
-		Req.Item				= OperationalItem;
-		Req.Quantity			= Quantity;
-		Req.bIsSaleOperation	= bIsSaleOperation;
-		
+		FItemMoveData ItemMoveData;
+		ItemMoveData.SourceItem = Operationalitem;
+		if (bIsSaleOperation)
+		{
+			ItemMoveData.TargetInventory = CurrentInteractInvWidget->GetInventoryFromContainerSlot();
+			ItemMoveData.SourceInventory = GetMainInventory()->GetInventoryFromContainerSlot();
+		}
+		else
+		{
+			ItemMoveData.SourceInventory = CurrentInteractInvWidget->GetInventoryFromContainerSlot();
+			ItemMoveData.TargetInventory = GetMainInventory()->GetInventoryFromContainerSlot();
+		}
 			
-		auto Result = VendorRequest(Req);
+		auto Result = VendorRequest(ItemMoveData);
 		if (Result == ETradeResult::Success)
 			ModalTradeWidget->SetVisibility(ESlateVisibility::Collapsed);
+		
+			
 	};
 	ModalTradeWidget->CancelCallback = [this]()
 	{
@@ -114,16 +118,24 @@ void UIInventoryManager::BeginPlay()
 		UItemFactory::Init(ItemDataTable);
 }
 
-ETradeResult UIInventoryManager::VendorRequest(const FTradeRequest TradeRequest )
+ETradeResult UIInventoryManager::VendorRequest(FItemMoveData ItemMoveData )
 {
-	if (TradeRequest.bIsSaleOperation)
+	FTradeRequest Req;
+	Req.Vendor				= CoreHUDWidget->GetVendorInvWidget()->GetInventoryFromContainerSlot()->
+		GetInventoryData().ItemCollectionLink->GetOwner()->FindComponentByClass<UTradeComponent>();
+	Req.BuyerContainer		= CoreHUDWidget->GetMainInvWidget();
+	Req.VendorContainer		= CoreHUDWidget->GetVendorInvWidget();
+	Req.Item				= ItemMoveData.SourceItem;
+	Req.Quantity			= ItemMoveData.SourceItem->GetQuantity();
+	
+	if (ItemMoveData.TargetInventory == CoreHUDWidget->GetVendorInvWidget()->GetInventoryFromContainerSlot())
 	{
-		ETradeResult Result = UTradeService::ExecuteSell(TradeRequest);
+		ETradeResult Result = UTradeService::ExecuteBuy(Req);
 		return Result;
 	}
 	else
 	{
-		ETradeResult Result = UTradeService::ExecuteBuy(TradeRequest);
+		ETradeResult Result = UTradeService::ExecuteSell(Req);
 		return Result;
 	}
 }
@@ -151,16 +163,7 @@ void UIInventoryManager::ItemTransferRequest(FItemMoveData ItemMoveData)
 		if (ItemMoveData.TargetInventory == CoreHUDWidget->GetVendorInvWidget()->GetInventoryFromContainerSlot()
 		|| (ItemMoveData.SourceInventory && ItemMoveData.SourceInventory == CoreHUDWidget->GetVendorInvWidget()->GetInventoryFromContainerSlot()))
 		{
-			bool IsSale = (ItemMoveData.TargetInventory != CoreHUDWidget->GetVendorInvWidget()->GetInventoryFromContainerSlot());
-			
-			FTradeRequest Req(CoreHUDWidget->GetVendorInvWidget()->GetInventoryFromContainerSlot()->
-				GetInventoryData().ItemCollectionLink->GetOwner()->FindComponentByClass<UTradeComponent>(),
-				CoreHUDWidget->GetVendorInvWidget(),
-				GetMainInventory(),
-				ItemMoveData.SourceItem,
-				ItemMoveData.SourceItem->GetQuantity(), IsSale);
-			
-			VendorRequest(Req);
+			VendorRequest(ItemMoveData);
 			return;
 		}
 	}
@@ -204,6 +207,8 @@ void UIInventoryManager::ItemTransferRequest(FItemMoveData ItemMoveData)
 				}
 			}
 		}
+		
+		
 		break;
 	case EItemAddResult::IAR_PartialAmountItemAdded:
 		break;
@@ -238,7 +243,6 @@ void UIInventoryManager::SetInteractableType(UInteractableComponent* IteractData
 			CurrentInteractInvWidget->GetInventoryFromContainerSlot()->InitItemsInItemsCollection();
 		}
 		CoreHUDWidget->ToggleWidget(CurrentInteractInvWidget);
-		GetMainInventory()->GetInventoryFromContainerSlot()->ReDrawAllItems();
 		break;
 	case EInteractableType::None:
 		if (CurrentInteractInvWidget)

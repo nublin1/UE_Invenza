@@ -11,10 +11,12 @@
 #include "Components/ListView.h"
 #include "Components/TextBlock.h"
 #include "DragDrop/ItemDragDropOperation.h"
+#include "Kismet/GameplayStatics.h"
 #include "UI/HelpersWidgets/ItemTooltipWidget.h"
 #include "UI/Inventory/ListInventoryWidget.h"
 #include "UI/Item/InventoryItemWidget.h"
-
+#include "UI/ModalWidgets/BinaryPromptButtons.h"
+#include "UI/ModalWidgets/ModalTradeWidget.h"
 
 void UListInventorySlotWidget::UpdateVisual(UItemBase* Item)
 {
@@ -49,28 +51,13 @@ void UListInventorySlotWidget::UpdatePriceText()
 	if (!InventoryManager || !InventoryManager->GetCurrentInteractInvWidget())
 		return;
 
-	if (InventoryManager->GetCurrentInteractInvWidget()->GetInventoryType() != EInventoryType::VendorInventory)
-		return;
-	
-	if (!CachedEntry->ParentInventoryWidget->GetInventoryData().ItemCollectionLink) return;
-	auto OwnerAc = InventoryManager->GetCurrentInteractInvWidget()->GetInventoryFromContainerSlot()->GetInventoryData().ItemCollectionLink->GetOwner();
-	if (!OwnerAc) return;
-	auto TradeComp = OwnerAc->FindComponentByClass<UTradeComponent>();
-	if (!TradeComp)
+	if (InventoryManager->GetCurrentInteractInvWidget()->GetInventoryType() == EInventoryType::VendorInventory)
 	{
-		return;
-	}
+		auto OwnerAc = CachedEntry->ParentInventoryWidget->GetInventoryData().ItemCollectionLink->GetOwner();
+		auto TradeComp = OwnerAc->FindComponentByClass<UTradeComponent>();
+		if (!TradeComp) return;
 
-	if (CachedEntry->ParentInventoryWidget == InventoryManager->GetCurrentInteractInvWidget()->GetInventoryFromContainerSlot())
-	{
 		FText FullPriceText = FText::AsNumber(TradeComp->GetTotalSellPrice(CachedEntry->Item));
-		PriceText->SetText(FullPriceText);
-		return;
-	}
-
-	else if (InventoryManager->GetMainInventory()->GetInventoryFromContainerSlot() == CachedEntry->ParentInventoryWidget)
-	{
-		FText FullPriceText = FText::AsNumber(TradeComp->GetTotalBuyPrice(CachedEntry->Item));
 		PriceText->SetText(FullPriceText);
 	}
 }
@@ -96,8 +83,7 @@ FReply UListInventorySlotWidget::NativeOnMouseMove(const FGeometry& InGeometry, 
 
 	if (CachedEntry->Item && CachedEntry->ParentInventoryWidget->GetInventoryData().ItemTooltipWidget)
 	{
-		
-		CachedEntry->ParentInventoryWidget->GetInventoryData().ItemTooltipWidget->SetTooltipData(CachedEntry->Item, CachedEntry->ParentInventoryWidget);
+		CachedEntry->ParentInventoryWidget->GetInventoryData().ItemTooltipWidget->SetTooltipData(CachedEntry->Item);
 		 CachedEntry->ParentInventoryWidget->GetInventoryData().ItemTooltipWidget->SetVisibility(ESlateVisibility::Visible);
 	}
 	else if ( CachedEntry->ParentInventoryWidget->GetInventoryData().ItemTooltipWidget)

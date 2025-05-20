@@ -55,9 +55,20 @@ FMoneyCalculationResult UTradeComponent::AccumulatePayment(UItemCollection* Item
 		return Result;
 	}
 	
+	for (UItemBase* MoneyItem : MoneyItems)
+	{
+		int32 Quantity = MoneyItem->GetQuantity();
+		float UnitValue = MoneyItem->GetItemRef().ItemTradeData.BasePrice;
+		int32 NeededQuantity = FMath::CeilToInt((FullPrice - Result.AccumulatedRequiredValue) / UnitValue);
+		int32 RemoveQuantity = FMath::Min(Quantity, NeededQuantity);
 
+		if (RemoveQuantity > 0)
+		{
+			Result.AccumulatedRequiredValue += RemoveQuantity * UnitValue;
+		}
+	}
 
-	Result.bHasEnough = Result.AvailableMoney >= FullPrice;
+	Result.bHasEnough = Result.AvailableMoney >= Result.AccumulatedRequiredValue;
 
 	return Result;
 }
@@ -65,9 +76,6 @@ FMoneyCalculationResult UTradeComponent::AccumulatePayment(UItemCollection* Item
 bool UTradeComponent::TryBuyItem(UItemBase* ItemToBuy)
 {
 	if (TradeSettings.bSellOnly)
-		return false;
-
-	if (ItemToBuy->GetItemRef().ItemCategory == EItemCategory::Money)
 		return false;
 	
 	auto Result =  AccumulatePayment(VendorItemCollection, GetTotalBuyPrice(ItemToBuy));
@@ -116,11 +124,11 @@ void UTradeComponent::Selltem(UItemBase* ItemsToSell)
 float UTradeComponent::GetTotalBuyPrice(UItemBase* ItemToBuy)
 {
 	auto FullPrice = ItemToBuy->GetItemRef().ItemTradeData.BasePrice * TradeSettings.BuyPriceFactor * ItemToBuy->GetQuantity();
-	return FMath::RoundToInt(FullPrice);
+	return FullPrice;
 }
 
 float UTradeComponent::GetTotalSellPrice(UItemBase* ItemsToSell)
 {
 	auto FullPrice = ItemsToSell->GetItemRef().ItemTradeData.BasePrice * TradeSettings.SellPriceFactor * ItemsToSell->GetQuantity();
-	return FMath::RoundToInt(FullPrice);
+	return FullPrice;
 }

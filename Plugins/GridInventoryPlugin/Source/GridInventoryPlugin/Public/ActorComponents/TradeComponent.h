@@ -26,6 +26,7 @@ struct FMoneyCalculationResult
 	GENERATED_USTRUCT_BODY()
 	
 	float AvailableMoney = 0.0f;
+	float AccumulatedRequiredValue = 0.0f;
 	bool bHasEnough = false;
 };
 
