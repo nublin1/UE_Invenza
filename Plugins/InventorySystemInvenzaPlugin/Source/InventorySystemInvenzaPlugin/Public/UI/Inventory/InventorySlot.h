@@ -34,20 +34,21 @@ public:
 	}
 	
 	UFUNCTION(BlueprintCallable)
-	virtual void UpdateVisual(UItemBase* Item);
-	virtual void UpdateVisual(UTexture2D* NewTexture);
+	virtual void UpdateVisualWithItemInfo(UItemBase* Item);
+	UFUNCTION(BlueprintCallable)
+	virtual void UpdateVisualWithTexture(UTexture2D* NewTexture);
 	UFUNCTION(BlueprintCallable)
 	virtual void ResetVisual();
 	
 	//Getters
-	FORCEINLINE FInventorySlotData GetSlotData() const {return SlotData;}
-	FORCEINLINE FIntVector2 GetSlotPosition() const { return SlotData.SlotPosition; }
-	FORCEINLINE UInputAction* GetUseAction() const { return SlotData.UseAction; }	
+	FInventorySlotData GetSlotData() const {return SlotData;}
+	FIntVector2 GetSlotPosition() const { return SlotData.SlotPosition; }
+	UInputAction* GetUseAction() const { return SlotData.UseAction; }	
 	
 	//Setters
-	FORCEINLINE void SetSlotData(const FInventorySlotData NewSlotData) { this->SlotData = NewSlotData; }
-	FORCEINLINE void SetSlotPosition(const FIntVector2 InSlotPosition) { this->SlotData.SlotPosition = InSlotPosition; }
-	FORCEINLINE virtual void SetItemUseKeyText(FString InUseKeyText);
+	void SetSlotData(const FInventorySlotData NewSlotData) { this->SlotData = NewSlotData; }
+	void SetSlotPosition(const FIntVector2 InSlotPosition) { this->SlotData.SlotPosition = InSlotPosition; }
+	virtual void SetSlotNameText(FString InUseKeyText);
 	
 protected:
 	//====================================================================

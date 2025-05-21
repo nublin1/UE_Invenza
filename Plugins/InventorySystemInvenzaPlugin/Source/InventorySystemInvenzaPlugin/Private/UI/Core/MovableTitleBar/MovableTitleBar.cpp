@@ -3,6 +3,7 @@
 
 #include "UI/Core/MovableTitleBar/MovableTitleBar.h"
 
+#include "ActorComponents/UIInventoryManager.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Components/PanelWidget.h"
@@ -48,7 +49,7 @@ FReply UMovableTitleBar::NativeOnMouseButtonDown(const FGeometry& InGeometry, co
 {
 	if (InMouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton))
 	{
-		if (ParentWidget)
+		if (ParentWidget && bAllowDragging)
 		{
 			return UWidgetBlueprintLibrary::DetectDragIfPressed(InMouseEvent, this, EKeys::LeftMouseButton).NativeReply;
 		}		
@@ -59,7 +60,10 @@ FReply UMovableTitleBar::NativeOnMouseButtonDown(const FGeometry& InGeometry, co
 void UMovableTitleBar::NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent,
 	UDragDropOperation*& OutOperation)
 {
-	DragContainer_Temp = CreateWidget<UCoreCellWidget>(GetWorld(), DragContainerWidgetClass);
+	auto InventoryManager = GetOwningPlayerPawn()->FindComponentByClass<UIInventoryManager>();
+	if (!InventoryManager) return;
+	
+	DragContainer_Temp = CreateWidget<UCoreCellWidget>(GetWorld(), InventoryManager->GetUISettings().DragContainerWidgetClass);
 	if (DragContainer_Temp)
 	{
 		DragContainer_Temp->AddToPlayerScreen(1);

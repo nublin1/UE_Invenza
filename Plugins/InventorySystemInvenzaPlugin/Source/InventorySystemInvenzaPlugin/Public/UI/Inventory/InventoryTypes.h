@@ -162,13 +162,15 @@ struct FInventorySlotData
 	GENERATED_BODY()
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FName SlotName;
+	FName SlotName = " ";
 
 	UPROPERTY(VisibleAnywhere)
 	FIntVector2 SlotPosition{};
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UInputAction> UseAction;
+
+	FInventorySlotData() {}
 
 	bool operator==(const FInventorySlotData& Other) const
 	{

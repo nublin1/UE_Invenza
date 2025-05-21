@@ -25,25 +25,22 @@ public:
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UCoreCellWidget> CoreCellWidget;
 	UPROPERTY(meta=(BindWidgetOptional))
-	TObjectPtr<UTextBlock> ItemUseKey;
+	TObjectPtr<UTextBlock> SlotName;
 	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
 	USlotbasedInventorySlot();
 
-	virtual void UpdateVisual(UTexture2D* NewTexture) override;
+	virtual void UpdateVisualWithTexture(UTexture2D* NewTexture) override;
 	virtual void ResetVisual() override;
 
-	virtual void SetItemUseKeyText(FString InUseKeyText)override;
+	virtual void SetSlotNameText(FString InUseKeyText) override;
 
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FString InUseKeyTextByDefault;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Defaults")
 	TObjectPtr<UTexture2D> DefaultCellImage;
 	

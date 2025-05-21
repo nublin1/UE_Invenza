@@ -23,11 +23,11 @@ public:
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	//Widgets
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|TitleBar", meta = (BindWidget))
 	TObjectPtr<UTextBlock> TitleName;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidgetOptional))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|TitleBar", meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> Money;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidgetOptional))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|TitleBar", meta = (BindWidgetOptional))
 	TObjectPtr<UButton> Button_Close;
 
 	//====================================================================
@@ -39,10 +39,12 @@ protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|TitleBar")
 	FText Title;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<UBaseUserWidget> DragContainerWidgetClass;
+
+	//
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Drag")
+	bool bAllowDragging = true;
 
 	//
 	UPROPERTY()

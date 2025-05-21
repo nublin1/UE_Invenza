@@ -52,6 +52,8 @@ struct FUISettings
     TSubclassOf<UItemTooltipWidget> ItemTooltipWidgetClass;
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
     TSubclassOf<UModalTradeWidget> ModalTradeWidgetClass;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Widgets")
+	TSubclassOf<UBaseUserWidget> DragContainerWidgetClass;
 	
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Layout")
     FVector2D SlotSize = FVector2D(0.f);

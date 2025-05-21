@@ -14,7 +14,7 @@ void USlotbasedInventorySlot::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	SetItemUseKeyText(InUseKeyTextByDefault);
+	SetSlotNameText(SlotData.SlotName.ToString());
 
 	if (DefaultCellImage)
 	{
@@ -24,9 +24,9 @@ void USlotbasedInventorySlot::NativeConstruct()
 	}
 }
 
-void USlotbasedInventorySlot::UpdateVisual(UTexture2D* NewTexture)
+void USlotbasedInventorySlot::UpdateVisualWithTexture(UTexture2D* NewTexture)
 {
-	Super::UpdateVisual(NewTexture);
+	Super::UpdateVisualWithTexture(NewTexture);
 
 	if (!NewTexture)
 	{
@@ -48,13 +48,19 @@ void USlotbasedInventorySlot::ResetVisual()
 	CoreCellWidget->Content_Image->SetBrush(Brush);
 }
 
-void USlotbasedInventorySlot::SetItemUseKeyText(FString InUseKeyText)
+void USlotbasedInventorySlot::SetSlotNameText(FString SlotNameText)
 {
-	Super::SetItemUseKeyText(InUseKeyText);
-	if (ItemUseKey)
+	Super::SetSlotNameText(SlotNameText);
+	if (SlotName)
 	{
-		ItemUseKey->SetText(FText::FromString(InUseKeyText));
-		ItemUseKey->SetVisibility(ESlateVisibility::Visible);
+		if (SlotNameText.IsEmpty() || SlotNameText.Equals("None"))
+		{
+			SlotName->SetText(FText::GetEmpty());
+			return;
+		}
+		
+		SlotName->SetText(FText::FromString(SlotNameText));
+		SlotName->SetVisibility(ESlateVisibility::Visible);
 	}
 }
 
