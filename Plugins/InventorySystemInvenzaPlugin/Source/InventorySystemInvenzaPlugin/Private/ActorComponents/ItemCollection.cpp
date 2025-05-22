@@ -2,6 +2,7 @@
 
 #include "ActorComponents/ItemCollection.h"
 #include "ActorComponents/Items/itemBase.h"
+#include "ActorComponents/SaveLoad/SaveLoadStructs.h"
 #include "UI/Container/InvBaseContainerWidget.h"
 #include "UI/Inventory/SlotbasedInventoryWidget.h"
 
@@ -328,5 +329,26 @@ void UItemCollection::SortInContainer(UInvBaseContainerWidget* ContainerToSort)
 		ItemMoveData.TargetInventory = ContainerToSort->GetInventoryFromContainerSlot();
 
 		ContainerToSort->GetInventoryFromContainerSlot()->HandleAddItem(ItemMoveData);
+	}
+}
+
+void UItemCollection::SerializeForSave(TMap<FItemSaveData, FItemMappingSaveDataArray>& OutData)
+{
+	OutData.Empty();
+
+	for (const auto& Pair : ItemLocations)
+	{
+		FItemSaveData Key(Pair.Key.Get());
+		TArray<FItemMappingSaveData> SaveMappings;
+
+		for (const FItemMapping& Mapping : Pair.Value)
+		{
+			SaveMappings.Add(FItemMappingSaveData(Mapping));
+		}
+
+		FItemMappingSaveDataArray MappingSaveData;
+		MappingSaveData.Containers = SaveMappings;
+
+		OutData.Add(Key, MappingSaveData);
 	}
 }

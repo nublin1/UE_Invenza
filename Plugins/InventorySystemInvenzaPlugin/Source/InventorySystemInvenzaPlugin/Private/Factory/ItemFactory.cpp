@@ -21,6 +21,6 @@ UItemBase* UItemFactory::CreateItemByID(UObject* Outer, FName ID, int32 Quantity
 	if (!Row) return nullptr;
 
 	UItemBase* NewItem = NewObject<UItemBase>(Outer);
-	NewItem->InitItem(*Row, Quantity);
+	NewItem->InitItem(ID, *Row, Quantity);
 	return NewItem;
 }

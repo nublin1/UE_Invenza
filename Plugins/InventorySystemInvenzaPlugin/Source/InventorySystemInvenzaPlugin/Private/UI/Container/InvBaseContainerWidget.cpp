@@ -39,6 +39,8 @@ void UInvBaseContainerWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
+	//UE_LOG(LogTemp, Log, TEXT("FName %s"), *GetFName().ToString());
+
 	UUInventoryWidgetBase* Inventory = GetInventoryFromContainerSlot();
 	if (TitleBar)
 	{

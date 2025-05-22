@@ -10,6 +10,9 @@
 #include "ItemCollection.generated.h"
 
 
+struct FItemMappingSaveDataArray;
+struct FItemMappingSaveData;
+struct FItemSaveData;
 class UUInventoryWidgetBase;
 class UInventorySlot;
 class UInventoryItemWidget;
@@ -58,6 +61,8 @@ public:
 	UInventoryItemWidget* GetItemLinkedWidgetForSlot(FInventorySlotData ItemSlotData);
 
 	virtual void SortInContainer(UInvBaseContainerWidget* ContainerToSort);
+	
+	void SerializeForSave(TMap<FItemSaveData, FItemMappingSaveDataArray>& OutData);
 
 protected:
 	//====================================================================

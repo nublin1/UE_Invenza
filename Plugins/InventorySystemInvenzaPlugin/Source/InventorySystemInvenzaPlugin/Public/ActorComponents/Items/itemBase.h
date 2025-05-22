@@ -28,7 +28,7 @@ struct FItemEntry
 /**
  * Base class for inventory items
  */
-UCLASS()
+UCLASS(Blueprintable)
 class INVENTORYSYSTEMINVENZAPLUGIN_API UItemBase : public UObject
 {
 	GENERATED_BODY()
@@ -56,7 +56,7 @@ public:
     // FUNCTIONS
     //====================================================================
 	UFUNCTION()
-	virtual void InitItem(FItemData Data, int32 InQuantity);
+	virtual void InitItem(FName ID, FItemData Data, int32 InQuantity);
 	
 	UFUNCTION()
 	virtual void UseItem();
@@ -91,6 +91,7 @@ public:
 	FORCEINLINE FString CategoryToString();
 
     /** Get and set methods */
+	FName GetItemID() {return ItemID;}
     FItemMetaData& GetItemRef() { return ItemRef; }
     int32 GetQuantity() const { return Quantity; }
     void SetItemRef(const FItemMetaData& NewItemRef) { this->ItemRef = NewItemRef; }
@@ -100,9 +101,10 @@ protected:
     //====================================================================
     // PROPERTIES AND VARIABLES
     //====================================================================
-    UPROPERTY(VisibleAnywhere, Category = "Item|Data")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Data")
+	FName ItemID;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item|Data")
     FItemMetaData ItemRef;
-
-    UPROPERTY(VisibleAnywhere, Category = "Item|Data")
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Item|Data")
     int32 Quantity;
 };

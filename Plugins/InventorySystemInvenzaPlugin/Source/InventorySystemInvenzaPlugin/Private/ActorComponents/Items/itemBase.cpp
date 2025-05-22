@@ -24,8 +24,9 @@ bool UItemBase::bIsSameItems(UItemBase* FirstItem, UItemBase* SecondItem)
 	return false;
 }
 
-void UItemBase::InitItem(FItemData Data, int32 InQuantity)
+void UItemBase::InitItem(const FName ID, FItemData Data, int32 InQuantity)
 {
+	this->ItemID = ID;
 	this->SetItemRef(Data.ItemMetaData);
 	if (InQuantity <= 0)
 		InQuantity = 1;
