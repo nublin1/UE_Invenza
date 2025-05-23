@@ -2,7 +2,7 @@
 
 #include "InventorySystemInvenzaPlugin.h"
 
-#define LOCTEXT_NAMESPACE "FGridInventoryPluginModule"
+#define LOCTEXT_NAMESPACE "FInventorySystemInvenzaPluginModule"
 
 void FInventorySystemInvenzaPluginModule::StartupModule()
 {
@@ -17,4 +17,4 @@ void FInventorySystemInvenzaPluginModule::ShutdownModule()
 
 #undef LOCTEXT_NAMESPACE
 	
-IMPLEMENT_MODULE(FInventorySystemInvenzaPluginModule, GridInventoryPlugin)
+IMPLEMENT_MODULE(FInventorySystemInvenzaPluginModule, InventorySystemInvenzaPlugin)

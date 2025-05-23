@@ -89,6 +89,18 @@ struct FItemAddResult
 	};	
 };
 
+UENUM(BlueprintType)
+enum class EInventoryType : uint8
+{
+	None UMETA(DisplayName = "None"),
+	Hotbar UMETA(DisplayName = "Hotbar"),
+	Inventory UMETA(DisplayName = "Inventory"),
+	MainInventory UMETA(DisplayName = "MainInventory"),
+	VendorInventory UMETA(DisplayName = "VendorInventory"),
+	ContainerInventory UMETA(DisplayName = "ContainerInventory"),
+	EquipmentInventory UMETA(DisplayName = "EquipmentInventory"),
+};
+
 USTRUCT(BlueprintType)
 struct FItemMoveData 
 {
@@ -186,14 +198,19 @@ struct FItemMapping
 	GENERATED_BODY()
 
 	UPROPERTY()
-	TObjectPtr<UInvBaseContainerWidget> InventoryContainer;
+	FName InventoryContainerName;
+	UPROPERTY()
+	EInventoryType InventoryType;
 	UPROPERTY()
 	TArray<FInventorySlotData> ItemSlotDatas;
 	UPROPERTY()
 	TObjectPtr<UInventoryItemWidget> ItemVisualLinked;
 
-	FItemMapping() {}
-	explicit FItemMapping(FInventorySlotData SlotData)
+	FItemMapping(): InventoryType()
+	{
+	}
+
+	explicit FItemMapping(FInventorySlotData SlotData): InventoryType()
 	{
 		ItemSlotDatas.Add(SlotData);
 	}
@@ -207,14 +224,4 @@ enum class EHighlightState : uint8
 	Partial		UMETA(DisplayName = "Partial")
 };
 
-UENUM(BlueprintType)
-enum class EInventoryType : uint8
-{
-	None UMETA(DisplayName = "None"),
-	Hotbar UMETA(DisplayName = "Hotbar"),
-	Inventory UMETA(DisplayName = "Inventory"),
-	MainInventory UMETA(DisplayName = "MainInventory"),
-	VendorInventory UMETA(DisplayName = "VendorInventory"),
-	ContainerInventory UMETA(DisplayName = "ContainerInventory"),
-	EquipmentInventory UMETA(DisplayName = "EquipmentInventory"),
-};
+

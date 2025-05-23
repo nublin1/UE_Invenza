@@ -48,6 +48,7 @@ UItemBase* UItemBase::DuplicateItem()
 	UItemBase* NewItem = NewObject<UItemBase>();
 	if (NewItem && this)
 	{
+		NewItem->ItemID = this->ItemID;
 		NewItem->ItemRef = this->ItemRef;
 		NewItem->Quantity = this->Quantity;
 	}

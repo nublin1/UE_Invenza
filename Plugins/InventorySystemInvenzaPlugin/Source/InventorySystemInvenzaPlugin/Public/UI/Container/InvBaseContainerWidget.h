@@ -48,6 +48,17 @@ public:
 	UFUNCTION(BlueprintCallable)
 	virtual UUInventoryWidgetBase* GetInventoryFromContainerSlot();
 
+	UFUNCTION(BlueprintCallable, Category = "Container|Comparison")
+	bool EqualsByNameAndType(FName InName, EInventoryType InType) const
+	{
+		return GetFName() == InName && InventoryType == InType;
+	}
+	
+	bool operator==(const UInvBaseContainerWidget& other) const
+	{
+		return (GetFName() == other.GetFName() && InventoryType == other.InventoryType);
+	}
+
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES

@@ -1,8 +1,13 @@
 ﻿//  Nublin Studio 2025 All Rights Reserved.
 
 #include "ActorComponents/ItemCollection.h"
+
+#include "ActorComponents/UIInventoryManager.h"
 #include "ActorComponents/Items/itemBase.h"
 #include "ActorComponents/SaveLoad/SaveLoadStructs.h"
+#include "Blueprint/WidgetTree.h"
+#include "Factory/ItemFactory.h"
+#include "Kismet/GameplayStatics.h"
 #include "UI/Container/InvBaseContainerWidget.h"
 #include "UI/Inventory/SlotbasedInventoryWidget.h"
 
@@ -11,14 +16,21 @@ UItemCollection::UItemCollection()
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
+}
 
-	// ...
+void UItemCollection::BeginPlay()
+{
+	Super::BeginPlay();
+
+	auto Manager = UGameplayStatics::GetPlayerPawn(GetWorld(), 0)->FindComponentByClass<UIInventoryManager>();
+	if (Manager)
+		InvManager = Manager;
 }
 
 void UItemCollection::AddItem(UItemBase* NewItem, FItemMapping ItemMapping)
 {
 	ItemLocations.FindOrAdd(TStrongObjectPtr<UItemBase>(NewItem)).Add(ItemMapping);
-	//UE_LOG(LogTemp, Warning, TEXT("Widget already exists for Item: %s"), *NewItem->GetName());
+	
 }
 
 void UItemCollection::RemoveItem(UItemBase* Item, UInvBaseContainerWidget* Container)
@@ -42,7 +54,7 @@ void UItemCollection::RemoveItem(UItemBase* Item, UInvBaseContainerWidget* Conta
 	
 	int32 RemovedCount = Mappings->RemoveAll([Container](const FItemMapping& Mapping)
 	{
-		return Mapping.InventoryContainer == Container;
+		return Mapping.InventoryContainerName == Container->GetFName();
 	});
 
 	auto MappingsTwo = ItemLocations.Find(TStrongObjectPtr<UItemBase>(Item));
@@ -69,14 +81,14 @@ void UItemCollection::RemoveItemFromAllContainers(UItemBase* Item)
 	for (int32 i = Mappings->Num() - 1; i >= 0; --i)
 	{
 		const FItemMapping& Mapping = (*Mappings)[i];
-		if (Mapping.InventoryContainer)
+		
+		//UE_LOG(LogTemp, Warning, TEXT("InventoryWidgetBaseLink %s"), *Mapping.InventoryWidgetBaseLink->GetName());
+		if (UWidget* FoundWidget = InvManager->GetCoreHUDWidget()->WidgetTree->FindWidget(Mapping.InventoryContainerName))
 		{
-			//UE_LOG(LogTemp, Warning, TEXT("InventoryWidgetBaseLink %s"), *Mapping.InventoryWidgetBaseLink->GetName());
-			Mapping.InventoryContainer->GetInventoryFromContainerSlot()->HandleRemoveItemFromContainer(Item);
-		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("RemoveItemFromAllContainers: Invalid container in mapping for item %s."), *Item->GetName());
+			if (auto InvBaseContainerWidget = Cast<UInvBaseContainerWidget>(FoundWidget))
+			{
+				InvBaseContainerWidget->GetInventoryFromContainerSlot()->HandleRemoveItemFromContainer(Item);
+			}
 		}
 	}
 	
@@ -105,7 +117,7 @@ FItemMapping* UItemCollection::FindItemMappingForItemInContainer(UItemBase* Targ
 	
 	for (FItemMapping& Mapping : *Mappings)
 	{
-		if (Mapping.InventoryContainer == InContainer)
+		if (InContainer->EqualsByNameAndType(Mapping.InventoryContainerName, Mapping.InventoryType))
 		{
 			return &Mapping;
 		}
@@ -128,7 +140,7 @@ bool UItemCollection::HasItemInContainer(UItemBase* Item, UInvBaseContainerWidge
 	}
 	for (const FItemMapping& Mapping : *Mappings)
 	{
-		if (Mapping.InventoryContainer == Container)
+		if (Container->EqualsByNameAndType(Mapping.InventoryContainerName, Mapping.InventoryType))
 		{
 			return true;
 		}
@@ -153,7 +165,7 @@ TArray<FInventorySlotData> UItemCollection::CollectOccupiedSlotsByContainer(UInv
 	{
 		for (const FItemMapping& Mapping : Pair.Value)
 		{
-			if (Mapping.InventoryContainer == InContainer && !Mapping.ItemSlotDatas.IsEmpty())
+			if (InContainer->EqualsByNameAndType(Mapping.InventoryContainerName, Mapping.InventoryType) && !Mapping.ItemSlotDatas.IsEmpty())
 			{
 				OccupiedSlots.Append(Mapping.ItemSlotDatas);
 			}
@@ -178,7 +190,7 @@ UItemBase* UItemCollection::GetItemFromSlot(FInventorySlotData TargetSlotData, U
 	{
 		for (const FItemMapping& Mapping : Pair.Value)
 		{
-			if (Mapping.InventoryContainer == TargetContainer && Mapping.ItemSlotDatas.Contains(TargetSlotData))
+			if (TargetContainer->EqualsByNameAndType(Mapping.InventoryContainerName, Mapping.InventoryType) && Mapping.ItemSlotDatas.Contains(TargetSlotData))
 			{
 				return Pair.Key.Get();
 			}
@@ -205,7 +217,7 @@ TArray<UItemBase*> UItemCollection::GetAllItemsByContainer(UInvBaseContainerWidg
 		
 		for (const FItemMapping& Mapping : Mappings)
 		{
-			if (Mapping.InventoryContainer == TargetContainer)
+			if (TargetContainer->EqualsByNameAndType(Mapping.InventoryContainerName, Mapping.InventoryType))
 			{
 				if (!Result.Contains(Item.Get()))
 				{
@@ -241,7 +253,7 @@ TArray<UItemBase*> UItemCollection::GetAllSameItemsInContainer(UInvBaseContainer
 		{
 			for (const FItemMapping& Mapping : Pair.Value)
 			{
-				if (Mapping.InventoryContainer == TargetContainer)
+				if (TargetContainer->EqualsByNameAndType(Mapping.InventoryContainerName, Mapping.InventoryType))
 				{
 					SameItems.AddUnique(Item.Get());
 					break;
@@ -291,7 +303,7 @@ void UItemCollection::SortInContainer(UInvBaseContainerWidget* ContainerToSort)
 	{
 		for (auto& Mapping : Pair.Value)
 		{
-			if (Mapping.InventoryContainer == ContainerToSort)
+			if (ContainerToSort->EqualsByNameAndType(Mapping.InventoryContainerName, Mapping.InventoryType))
 			{
 				Mappings.Emplace(Pair.Key, Mapping);
 			}
@@ -312,7 +324,7 @@ void UItemCollection::SortInContainer(UInvBaseContainerWidget* ContainerToSort)
 	for (auto& Pair : ItemLocations)
 	{
 		Pair.Value.RemoveAll([ContainerToSort](const FItemMapping& M) {
-			return M.InventoryContainer == ContainerToSort;
+			return ContainerToSort->EqualsByNameAndType(M.InventoryContainerName, M.InventoryType);
 		});
 	}
 
@@ -332,23 +344,70 @@ void UItemCollection::SortInContainer(UInvBaseContainerWidget* ContainerToSort)
 	}
 }
 
-void UItemCollection::SerializeForSave(TMap<FItemSaveData, FItemMappingSaveDataArray>& OutData)
+void UItemCollection::SerializeForSave(TArray<FItemSaveEntry>& OutData)
 {
 	OutData.Empty();
 
 	for (const auto& Pair : ItemLocations)
 	{
 		FItemSaveData Key(Pair.Key.Get());
+		//UE_LOG(LogTemp, Warning, TEXT("ItemID: %s"), *Pair.Key->GetItemID().ToString());
 		TArray<FItemMappingSaveData> SaveMappings;
 
 		for (const FItemMapping& Mapping : Pair.Value)
 		{
-			SaveMappings.Add(FItemMappingSaveData(Mapping));
+			auto ContainerType = Mapping.InventoryType;
+			if (ContainerType != EInventoryType::VendorInventory && ContainerType!= EInventoryType::ContainerInventory)
+				SaveMappings.Add(FItemMappingSaveData(Mapping));
 		}
 
-		FItemMappingSaveDataArray MappingSaveData;
-		MappingSaveData.Containers = SaveMappings;
+		FItemSaveEntry ItemSaveEntry;
+		ItemSaveEntry.Item = Key;
+		ItemSaveEntry.Containers = SaveMappings;
 
-		OutData.Add(Key, MappingSaveData);
+		OutData.Add(ItemSaveEntry);
 	}
 }
+
+void UItemCollection::DeserializeFromSave(TArray<FItemSaveEntry>& InData)
+{
+	//ItemLocations.Empty();
+
+	for (const auto& Data : InData)
+	{
+		UItemBase* Item = nullptr;
+		UItemFactory::CreateItemByID(GetOwner(), Data.Item.ItemID, Data.Item.Quantity);
+		if (!Item) continue;
+
+		TArray<FItemMapping> RestoredMappings;
+		for (FItemMappingSaveData SaveMapping : Data.Containers)
+		{
+			FItemMapping Mapping;
+			Mapping.InventoryContainerName = SaveMapping.InventoryContainerName;
+			Mapping.InventoryType = SaveMapping.InventoryType;
+			for (auto SlotPosition : SaveMapping.SlotPositions)
+			{
+				FInventorySlotData SlotData;
+				SlotData.SlotPosition = FIntVector2(SlotPosition.X, SlotPosition.Y);
+				Mapping.ItemSlotDatas.Add(SlotData);
+			}
+
+			RestoredMappings.Add(Mapping);
+		}
+
+		ItemLocations.Add(TStrongObjectPtr<UItemBase>(Item), RestoredMappings);
+
+		for (auto RestoredMapping : RestoredMappings)
+		{
+			if (UWidget* FoundWidget = InvManager->GetCoreHUDWidget()->WidgetTree->FindWidget(RestoredMapping.InventoryContainerName))
+			{
+				if (auto InvBaseContainerWidget = Cast<UInvBaseContainerWidget>(FoundWidget))
+				{
+					InvBaseContainerWidget->GetInventoryFromContainerSlot()->ReDrawAllItems();
+				}
+			}
+		}
+	}
+}
+
+

@@ -19,7 +19,7 @@ struct FItemSaveData
 	int32 Quantity = 0;
 
 	FItemSaveData() {}
-	explicit FItemSaveData(UItemBase* Item)
+	FItemSaveData(UItemBase* Item)
 	{
 		if (Item)
 		{
@@ -50,16 +50,19 @@ struct FItemMappingSaveData
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FName InventoryContainerName;
+	UPROPERTY()
+	EInventoryType InventoryType;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FIntVector> SlotPositions;
 
-	FItemMappingSaveData(): SlotPositions()
+	FItemMappingSaveData(): InventoryType(), SlotPositions()
 	{
 	}
 
-	explicit FItemMappingSaveData(const FItemMapping& Mapping)
+	explicit FItemMappingSaveData(const FItemMapping& Mapping): InventoryType()
 	{
-		InventoryContainerName = Mapping.InventoryContainer ? Mapping.InventoryContainer->GetFName() : NAME_None;
+		InventoryContainerName = Mapping.InventoryContainerName;
+		InventoryType = Mapping.InventoryType;
 
 		TArray<FIntVector> SlotPositionsTemp;
 		for (auto SlotData : Mapping.ItemSlotDatas)
@@ -71,9 +74,12 @@ struct FItemMappingSaveData
 };
 
 USTRUCT(BlueprintType)
-struct FItemMappingSaveDataArray
+struct FItemSaveEntry
 {
 	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FItemSaveData Item;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
 	TArray<FItemMappingSaveData> Containers;
@@ -85,6 +91,6 @@ struct FInventorySlotSaveData
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TMap<FItemSaveData, FItemMappingSaveDataArray> SavedItemLocations;
+	TArray<FItemSaveEntry> SavedItemLocations;
 };
 

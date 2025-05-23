@@ -779,14 +779,14 @@ void USlotbasedInventoryWidget::AddNewItem(FItemMoveData& ItemMoveData, FItemMap
 	}
 	else
 	{
-		FinalItem = NewObject<UItemBase>(GetAsContainerWidget());
+		FinalItem = ItemMoveData.SourceItem->DuplicateItem();
 		FinalItem->SetQuantity(AddAmount);
-		FinalItem->SetItemRef(ItemMoveData.SourceItem->GetItemRef());
 	}
 	
 	if (InventoryData.ItemCollectionLink)
 	{
-		OccupiedSlots.InventoryContainer = GetAsContainerWidget();
+		OccupiedSlots.InventoryContainerName = GetAsContainerWidget()->GetFName();
+		OccupiedSlots.InventoryType = GetAsContainerWidget()->GetInventoryType();
 		InventoryData.ItemCollectionLink->AddItem(FinalItem, OccupiedSlots);
 	}
 

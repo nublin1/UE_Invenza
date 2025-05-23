@@ -4,8 +4,11 @@
 #include "ActorComponents/SaveLoad/InavenzaSaveManager.h"
 
 #include "EnhancedInputComponent.h"
+#include "JsonObjectConverter.h"
 #include "ActorComponents/ItemCollection.h"
 #include "Kismet/GameplayStatics.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
 #include "SaveLoad/InvenzaSaveGame.h"
 
 UInavenzaSaveManager::UInavenzaSaveManager()
@@ -43,6 +46,11 @@ void UInavenzaSaveManager::SaveGame_Implementation(bool Async)
 	else
 	{
 		UGameplayStatics::SaveGameToSlot(LoadedSaveData,SaveSlotName.ToString(), SaveUserIndex);
+		UE_LOG(LogTemp, Warning, TEXT("Saved to slot: %s"), *SaveSlotName.ToString());
+
+		FString DebugJson;
+		FJsonObjectConverter::UStructToJsonObjectString(LoadedSaveData->PlayerSavedInventories, DebugJson);
+		FFileHelper::SaveStringToFile(DebugJson, *(FPaths::ProjectSavedDir() + TEXT("InventoryDebug.json")));
 	}
 }
 
@@ -87,6 +95,14 @@ void UInavenzaSaveManager::OnSaveGameLoaded(const FString& SlotName, const int32
 
 	if (OnGameLoaded.IsBound())
 		OnGameLoaded.Broadcast();
+
+	auto Collection = GetOwner()->FindComponentByClass<UItemCollection>();
+	if (!Collection)
+	{
+		return;
+	}
+
+	Collection->DeserializeFromSave(LoadedSaveData->PlayerSavedInventories.SavedItemLocations);
 }
 
 void UInavenzaSaveManager::HandleSaveInput()
@@ -98,9 +114,10 @@ void UInavenzaSaveManager::HandleSaveInput()
 	}
 
 	Collection->SerializeForSave(LoadedSaveData->PlayerSavedInventories.SavedItemLocations);
-	
+	SaveGame_Implementation(false);
 }
 
 void UInavenzaSaveManager::HandleLoadInput()
 {
+	LoadGame_Implementation(false);
 }

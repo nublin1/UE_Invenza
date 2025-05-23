@@ -10,7 +10,8 @@
 #include "ItemCollection.generated.h"
 
 
-struct FItemMappingSaveDataArray;
+struct FItemSaveEntry;
+class UIInventoryManager;
 struct FItemMappingSaveData;
 struct FItemSaveData;
 class UUInventoryWidgetBase;
@@ -62,7 +63,12 @@ public:
 
 	virtual void SortInContainer(UInvBaseContainerWidget* ContainerToSort);
 	
-	void SerializeForSave(TMap<FItemSaveData, FItemMappingSaveDataArray>& OutData);
+	void SerializeForSave(TArray<FItemSaveEntry>& OutData);
+	void DeserializeFromSave(TArray<FItemSaveEntry>& InData);
+
+	//
+	UPROPERTY()
+	TObjectPtr<UIInventoryManager> InvManager = nullptr;
 
 protected:
 	//====================================================================
@@ -74,5 +80,6 @@ protected:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	
+
+	virtual void BeginPlay() override;
 };
