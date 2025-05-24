@@ -34,7 +34,7 @@ void UInavenzaSaveManager::BeginPlay()
 		}
 	}
 
-	LoadGame_Implementation(false);
+	//LoadGame_Implementation(false);
 }
 
 void UInavenzaSaveManager::SaveGame_Implementation(bool Async)

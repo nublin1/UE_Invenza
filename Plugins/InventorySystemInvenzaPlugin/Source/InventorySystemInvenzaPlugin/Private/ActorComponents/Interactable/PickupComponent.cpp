@@ -56,6 +56,11 @@ void UPickupComponent::Interact(UInteractionComponent* InteractionComponent)
 void UPickupComponent::InitializeDrop(UItemBase* ItemToDrop)
 {
 	ItemBase = ItemToDrop;
+	
+	InteractableData.Quantity = ItemBase->GetQuantity();
+	if (InteractableData.Name.IsEmpty())
+		InteractableData.Name = ItemBase->GetItemRef().ItemTextData.Name;
+	
 	if (auto StaticMesh = GetOwner()->FindComponentByClass<UStaticMeshComponent>())
 	{
 		StaticMesh->SetStaticMesh(ItemBase->GetItemRef().ItemAssetData.Mesh);

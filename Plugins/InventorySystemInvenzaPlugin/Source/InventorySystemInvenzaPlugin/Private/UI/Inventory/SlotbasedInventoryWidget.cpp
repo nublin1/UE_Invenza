@@ -174,8 +174,11 @@ void USlotbasedInventoryWidget::ClearFilters()
 		if (!ItemMapping)
 			continue;
 
-		ItemMapping->ItemVisualLinked->GetCoreCellWidget()->ResetBorderColor();
-		ItemMapping->ItemVisualLinked->ChangeOpacity(1.0f);
+		if (ItemMapping->ItemVisualLinked)
+		{
+			ItemMapping->ItemVisualLinked->GetCoreCellWidget()->ResetBorderColor();
+			ItemMapping->ItemVisualLinked->ChangeOpacity(1.0f);
+		}
 	}
 
 	ActiveFilters.Empty();
@@ -490,19 +493,34 @@ FItemAddResult USlotbasedInventoryWidget::HandleAddItem(FItemMoveData ItemMoveDa
 	return TryAddStackableItem(ItemMoveData, bOnlyCheck);
 }
 
+TObjectPtr<UInventorySlot> USlotbasedInventoryWidget::GetAvailableSlotForItem(UItemBase* Item)
+{
+	// Free slot
+	TObjectPtr<UInventorySlot> FreeSlot;
+	
+	for (int32 i = 0; i < NumColumns; i++)
+	{
+		for (int32 j = 0; j < NumberRows; j++)
+		{
+			auto CheckPos = FIntPoint(i, j);
+			if (bIsGridPositionValid(CheckPos) && bIsSlotEmpty(FIntVector2(CheckPos.X, CheckPos.Y)))
+			{
+				FreeSlot = GetSlotByPosition(FIntVector2(CheckPos.X, CheckPos.Y));
+				
+				return FreeSlot;
+			}
+		}
+	}
+
+	return FreeSlot;
+}
+
 FItemAddResult USlotbasedInventoryWidget::HandleNonStackableItems(FItemMoveData& ItemMoveData, bool bOnlyCheck)
 {
 	if (!ItemMoveData.TargetSlot)
 	{
-		TObjectPtr<UInventorySlot> EmptySlot = nullptr;
-		for (const auto InventorySlot : InventoryData.InventorySlots )
-		{
-			if (bIsSlotEmpty(InventorySlot))
-			{
-				EmptySlot = InventorySlot;
-				break;
-			}
-		}
+		TObjectPtr<UInventorySlot> EmptySlot = GetAvailableSlotForItem(ItemMoveData.SourceItem);
+		
 
 		if (EmptySlot == nullptr)
 			return FItemAddResult::AddedNone(FText::Format(FText::FromString("Can't be added {0} of {1} to inventory. No Empty slots"),

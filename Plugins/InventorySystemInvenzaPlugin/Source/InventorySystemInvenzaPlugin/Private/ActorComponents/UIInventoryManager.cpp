@@ -324,7 +324,6 @@ void UIInventoryManager::BindEvents(AActor* TargetActor)
 void UIInventoryManager::UIIteract( UInteractableComponent* TargetInteractableComponent)
 {
 	if (!TargetInteractableComponent) return;
-
 	
 }
 

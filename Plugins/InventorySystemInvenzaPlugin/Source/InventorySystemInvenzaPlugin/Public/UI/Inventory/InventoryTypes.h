@@ -42,9 +42,8 @@ struct FItemAddResult
 	// Actual amount of item that was added to the inventory
 	UPROPERTY(BlueprintReadOnly, Category="Item Add Result")
 	int32 ActualAmountAdded;
-
+	UPROPERTY()
 	bool bIsUsedReferences;
-
 	UPROPERTY(BlueprintReadOnly, Category="Item Add Result")
 	EItemAddResult OperationResult;
 

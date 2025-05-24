@@ -53,7 +53,7 @@ public:
 	FItemMapping* FindItemMappingForItemInContainer(UItemBase* TargetItem, UInvBaseContainerWidget* InContainer);
 	bool HasItemInContainer(UItemBase* Item, UInvBaseContainerWidget* Container) const;
 	
-	TMap<TStrongObjectPtr<UItemBase>, TArray<FItemMapping>> GetItemLocations() const {return ItemLocations;}
+	TMap<TObjectPtr<UItemBase>, TArray<FItemMapping>> GetItemLocations() const {return ItemLocations;}
 	TArray<FInventorySlotData> CollectOccupiedSlotsByContainer(UInvBaseContainerWidget* InContainer);
 	UItemBase* GetItemFromSlot(FInventorySlotData TargetSlotData, UInvBaseContainerWidget* TargetContainer) const;
 	TArray<UItemBase*> GetAllItemsByContainer(UInvBaseContainerWidget* TargetContainer) const;
@@ -64,7 +64,7 @@ public:
 	virtual void SortInContainer(UInvBaseContainerWidget* ContainerToSort);
 	
 	void SerializeForSave(TArray<FItemSaveEntry>& OutData);
-	void DeserializeFromSave(TArray<FItemSaveEntry>& InData);
+	void DeserializeFromSave(TArray<FItemSaveEntry> InData);
 
 	//
 	UPROPERTY()
@@ -75,7 +75,7 @@ protected:
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 
-	TMap<TStrongObjectPtr<UItemBase>, TArray<FItemMapping>> ItemLocations; //ItemLocations
+	TMap<TObjectPtr<UItemBase>, TArray<FItemMapping>> ItemLocations; //ItemLocations
 	
 	//====================================================================
 	// FUNCTIONS

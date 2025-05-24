@@ -33,7 +33,8 @@ public:
 	//====================================================================
 	UListInventoryWidget();
 
-	virtual void InitializeInventory() override;	
+	virtual void InitializeInventory() override;
+	virtual void SortInventory();
 	virtual void ReDrawAllItems() override;
 
 	virtual void HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity) override;	

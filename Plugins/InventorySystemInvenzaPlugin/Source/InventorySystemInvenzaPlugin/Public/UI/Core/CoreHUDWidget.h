@@ -48,6 +48,7 @@ public:
 	void UpdateInputState();
 	
 	//Getters
+	UCanvasPanel* GetContentPanel() {return ContentPanel;}
 	UInteractionWidget* GetInteractionWidget() {return InteractionWidget;}
 	UInvBaseContainerWidget* GetMainInvWidget() {return MainInvWidget.Get();}
 	UInvBaseContainerWidget* GetContainerInWorldWidget() {return ContainerInWorldWidget.Get();}

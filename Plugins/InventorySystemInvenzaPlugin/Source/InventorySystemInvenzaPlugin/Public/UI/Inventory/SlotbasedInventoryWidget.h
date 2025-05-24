@@ -46,6 +46,8 @@ public:
 	virtual void HandleRemoveItemFromContainer(UItemBase* Item) override;	
 	virtual FItemAddResult HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck = false) override;
 
+	virtual TObjectPtr<UInventorySlot> GetAvailableSlotForItem(UItemBase* Item);
+
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
