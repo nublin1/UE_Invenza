@@ -1,21 +1,22 @@
 // Nublin Studio 2025 All Rights Reserved.
 
 
-#include "ActorComponents/SaveLoad/InavenzaSaveManager.h"
+#include "ActorComponents/SaveLoad/InvenzaSaveManager.h"
 
 #include "EnhancedInputComponent.h"
 #include "JsonObjectConverter.h"
 #include "ActorComponents/ItemCollection.h"
+#include "ActorComponents/UIInventoryManager.h"
 #include "Kismet/GameplayStatics.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "SaveLoad/InvenzaSaveGame.h"
 
-UInavenzaSaveManager::UInavenzaSaveManager()
+UInvenzaSaveManager::UInvenzaSaveManager()
 {
 }
 
-void UInavenzaSaveManager::BeginPlay()
+void UInvenzaSaveManager::BeginPlay()
 {
 	Super::BeginPlay();
 
@@ -26,18 +27,28 @@ void UInavenzaSaveManager::BeginPlay()
 	{
 		if (SaveAction)
 		{
-			EnhancedInput->BindAction(SaveAction, ETriggerEvent::Started, this, &UInavenzaSaveManager::HandleSaveInput);
+			EnhancedInput->BindAction(SaveAction, ETriggerEvent::Started, this, &UInvenzaSaveManager::HandleSaveInput);
 		}
 		if (LoadAction)
 		{
-			EnhancedInput->BindAction(LoadAction, ETriggerEvent::Started, this, &UInavenzaSaveManager::HandleLoadInput);
+			EnhancedInput->BindAction(LoadAction, ETriggerEvent::Started, this, &UInvenzaSaveManager::HandleLoadInput);
 		}
 	}
+
+	auto InvManager = GetOwner()->FindComponentByClass<UIInventoryManager>();
+	if (!InvManager) return;
+
+	InvManager->OnInitializationCompleteDelegate.AddDynamic(this, &UInvenzaSaveManager::OnInitializationComplete);
 
 	//LoadGame_Implementation(false);
 }
 
-void UInavenzaSaveManager::SaveGame_Implementation(bool Async)
+void UInvenzaSaveManager::OnInitializationComplete()
+{
+	LoadGame_Implementation(false);
+}
+
+void UInvenzaSaveManager::SaveGame_Implementation(bool Async)
 {
 	if (Async)
 	{
@@ -54,7 +65,7 @@ void UInavenzaSaveManager::SaveGame_Implementation(bool Async)
 	}
 }
 
-void UInavenzaSaveManager::LoadGame_Implementation(bool Async)
+void UInvenzaSaveManager::LoadGame_Implementation(bool Async)
 {
 	bool bExists = UGameplayStatics::DoesSaveGameExist(SaveSlotName.ToString(), SaveUserIndex);
 
@@ -63,8 +74,9 @@ void UInavenzaSaveManager::LoadGame_Implementation(bool Async)
 		TObjectPtr<UInvenzaSaveGame> InvenzaSaveGame = Cast<UInvenzaSaveGame>(
 		UGameplayStatics::CreateSaveGameObject(UInvenzaSaveGame::StaticClass()));
 
+		LoadedSaveData = InvenzaSaveGame;
 		UGameplayStatics::SaveGameToSlot(InvenzaSaveGame.Get(), SaveSlotName.ToString(), SaveUserIndex);
-		return;
+		
 	}
 
 	if (Async)
@@ -72,7 +84,7 @@ void UInavenzaSaveManager::LoadGame_Implementation(bool Async)
 		UGameplayStatics::AsyncLoadGameFromSlot(
 		SaveSlotName.ToString(),
 		SaveUserIndex,
-		FAsyncLoadGameFromSlotDelegate::CreateUObject(this, &UInavenzaSaveManager::OnSaveGameLoaded));
+		FAsyncLoadGameFromSlotDelegate::CreateUObject(this, &UInvenzaSaveManager::OnSaveGameLoaded));
 	}
 	else
 	{
@@ -82,7 +94,7 @@ void UInavenzaSaveManager::LoadGame_Implementation(bool Async)
 	
 }
 
-void UInavenzaSaveManager::OnSaveGameLoaded(const FString& SlotName, const int32 UserIndex, USaveGame* LoadedGame)
+void UInvenzaSaveManager::OnSaveGameLoaded(const FString& SlotName, const int32 UserIndex, USaveGame* LoadedGame)
 {
 	UInvenzaSaveGame* Loaded = Cast<UInvenzaSaveGame>(LoadedGame);
 	if (!Loaded){
@@ -93,19 +105,23 @@ void UInavenzaSaveManager::OnSaveGameLoaded(const FString& SlotName, const int32
 	UE_LOG(LogTemp, Log, TEXT("Save loaded from slot: %s"), *SlotName);
 	LoadedSaveData = Loaded;
 
-	if (OnGameLoaded.IsBound())
-		OnGameLoaded.Broadcast();
-
 	auto Collection = GetOwner()->FindComponentByClass<UItemCollection>();
 	if (!Collection)
 	{
 		return;
 	}
 
-	Collection->DeserializeFromSave(LoadedSaveData->PlayerSavedInventories.SavedItemLocations);
+	if (!LoadedSaveData->PlayerSavedInventories.SavedItemLocations.IsEmpty())
+	{
+		Collection->DeserializeFromSave(LoadedSaveData->PlayerSavedInventories.SavedItemLocations);
+	}
+
+	if (OnGameLoaded.IsBound())
+		OnGameLoaded.Broadcast();
+
 }
 
-void UInavenzaSaveManager::HandleSaveInput()
+void UInvenzaSaveManager::HandleSaveInput()
 {
 	auto Collection = GetOwner()->FindComponentByClass<UItemCollection>();
 	if (!Collection)
@@ -117,7 +133,7 @@ void UInavenzaSaveManager::HandleSaveInput()
 	SaveGame_Implementation(false);
 }
 
-void UInavenzaSaveManager::HandleLoadInput()
+void UInvenzaSaveManager::HandleLoadInput()
 {
 	LoadGame_Implementation(false);
 }

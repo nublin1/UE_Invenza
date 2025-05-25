@@ -40,6 +40,8 @@ void UUInventoryWidgetBase::UseSlot(UInventorySlot* UsedSlot)
 		return;
 	
 	Item->UseItem();
+
+	NotifyUseSlot(UsedSlot);
 }
 
 FItemMapping* UUInventoryWidgetBase::GetItemMapping(UItemBase* Item)
@@ -178,5 +180,11 @@ void UUInventoryWidgetBase::NotifyUseSlot(UInventorySlot* UsedSlot)
 {
 	if (OnUseSlotDelegate.IsBound())
 		OnUseSlotDelegate.Broadcast(UsedSlot);
+}
+
+void UUInventoryWidgetBase::NotifyReplaceItem(TArray<FInventorySlotData> OldItemSlots, TArray<FInventorySlotData> NewItemSlots, UItemBase* Item)
+{
+	if (OnItemReplaceDelegate.IsBound())
+		OnItemReplaceDelegate.Broadcast(OldItemSlots, NewItemSlots, Item);
 }
 

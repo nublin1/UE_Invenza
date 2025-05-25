@@ -22,7 +22,7 @@ class UInteractableComponent;
 class UCoreHUDWidget;
 
 #pragma region Delegates
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInitializationComplete, bool, Status);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInitializationComplete);
 #pragma endregion Delegates
 
 UCLASS(ClassGroup=(Custom), Blueprintable, meta=(BlueprintSpawnableComponent))

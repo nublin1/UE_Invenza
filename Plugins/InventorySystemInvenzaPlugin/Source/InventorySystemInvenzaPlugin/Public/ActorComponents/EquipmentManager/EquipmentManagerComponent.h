@@ -7,6 +7,8 @@
 #include "Data/EquipmentStructures.h"
 #include "EquipmentManagerComponent.generated.h"
 
+class UInvBaseContainerWidget;
+struct FInventorySlotData;
 struct FItemMapping;
 class UItemBase;
 
@@ -38,13 +40,21 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Equipment")
 	virtual void Initialize();
 
+	UFUNCTION()
+	void ValidateEquippedItems();
 	UFUNCTION(BlueprintCallable)
-	void EquipItemToSlot(FItemMapping ItemSlots, UItemBase* Item);
+	void HandleReplaceItem(TArray<FInventorySlotData> OldItemSlots, TArray<FInventorySlotData> NewItemSlots, UItemBase* Item);
+	UFUNCTION(BlueprintCallable)
+	void HandleItemEquippedFromMapping(FItemMapping ItemSlots, UItemBase* Item);
+	UFUNCTION(BlueprintCallable)
+	void EquipItemToSlot(TArray<FInventorySlotData>& ItemSlotsData, UItemBase* Item);
 	UFUNCTION(BlueprintCallable)
 	void EquipItem(UItemBase* Item);
 
 	UFUNCTION(BlueprintCallable)
-	void UnequipItemFromSlot(FItemMapping ItemSlots, UItemBase* Item, int32 RemoveQuantity);
+	void HandleItemUnequippedFromMapping(FItemMapping ItemSlots, UItemBase* Item, int32 RemoveQuantity);
+	UFUNCTION(BlueprintCallable)
+	void UnequipItemFromSlot(TArray<FInventorySlotData>& ItemSlotsData, UItemBase* Item, int32 RemoveQuantity);
 
 	UFUNCTION(BlueprintCallable)
 	TMap<UItemBase*, FEquipmentSlot> GetEquippedItemsData();
@@ -56,8 +66,12 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TMap<FName, FEquipmentSlot> EquipmentSlots;
 
-	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly, Category="Config")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Config")
 	TObjectPtr<UDataTable> SlotDefinitionTable;
+
+	//
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category="Config")
+	TObjectPtr<UInvBaseContainerWidget> CharacterEquipmentWidget = nullptr;
 	
 	//====================================================================
 	// FUNCTIONS

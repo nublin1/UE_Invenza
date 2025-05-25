@@ -18,5 +18,5 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UInvenzaSaveGame : public USaveGame
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FInventorySlotSaveData PlayerSavedInventories;
+	FInvSaveData PlayerSavedInventories;
 };

@@ -13,7 +13,7 @@
 class UUIButton;
 enum class EItemCategory : uint8;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnItemDropped, FItemMoveData, ItemMoveData);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnItemUpdateDelegate, FItemMapping, ItemSlots, UItemBase*, Item);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnItemReplaceDelegate, TArray<FInventorySlotData>, OldItemSlots, TArray<FInventorySlotData>, NewItemSlots, UItemBase*, Item);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAddItemDelegate, FItemMapping, ItemSlots, UItemBase*, Item);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnPreRemoveItemDelegate, FItemMapping, ItemSlots, UItemBase*, Item, int32, RemoveQuantity);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPostRemoveItemDelegate);
@@ -39,7 +39,7 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnItemDropped OnItemDroppedDelegate;
 	UPROPERTY(BlueprintAssignable)
-	FOnItemUpdateDelegate OnItemUpdateDelegate;
+	FOnItemReplaceDelegate OnItemReplaceDelegate;
 	UPROPERTY(BlueprintAssignable)
 	FOnAddItemDelegate OnAddItemDelegate;
 	UPROPERTY(BlueprintAssignable)
@@ -149,6 +149,6 @@ protected:
 	virtual void NotifyPreRemoveItem(FItemMapping& FromSlots, UItemBase* RemovedItem, int32 RemoveQuantity);
 	virtual void NotifyPostRemoveItem();
 	virtual void NotifyUseSlot(UInventorySlot* UsedSlot);
-
+	virtual void NotifyReplaceItem(TArray<FInventorySlotData> OldItemSlots, TArray<FInventorySlotData> NewItemSlots, UItemBase* Item);
 	
 };

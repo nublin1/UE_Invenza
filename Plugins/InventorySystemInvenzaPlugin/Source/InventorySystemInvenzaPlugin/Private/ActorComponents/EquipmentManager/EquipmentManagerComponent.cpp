@@ -2,8 +2,10 @@
 
 #include "ActorComponents/EquipmentManager/EquipmentManagerComponent.h"
 
+#include "ActorComponents/ItemCollection.h"
 #include "ActorComponents/UIInventoryManager.h"
 #include "ActorComponents/Items/itemBase.h"
+#include "ActorComponents/SaveLoad/InvenzaSaveManager.h"
 #include "Data/EquipmentSlotData.h"
 #include "Data/EquipmentStructures.h"
 #include "UI/Inventory/EquipmentInventoryWidget.h"
@@ -25,13 +27,42 @@ void UEquipmentManagerComponent::Initialize()
 	BindWidgetsToSlots();
 }
 
+void UEquipmentManagerComponent::ValidateEquippedItems()
+{
+	if(!CharacterEquipmentWidget)
+	{
+		return;
+	}
+
+	auto ItemCollection = GetOwner()->FindComponentByClass<UItemCollection>();
+	if(!ItemCollection)
+		return;
+
+	auto ItemsInCollection = ItemCollection->GetAllItemsByContainer(CharacterEquipmentWidget);
+
+	if (EquipmentSlots.IsEmpty())
+		return;
+		
+	for (auto& Pair : EquipmentSlots)
+	{
+		Pair.Value.EquippedItem = nullptr;
+	}
+
+	for (auto& Item : ItemsInCollection)
+	{
+		auto Mapping = ItemCollection->FindItemMappingForItemInContainer(Item, CharacterEquipmentWidget);
+		if (!Mapping)
+			continue;
+
+		EquipItemToSlot(Mapping->ItemSlotDatas, Item);
+	}
+}
+
 void UEquipmentManagerComponent::InitializeSlotsFromTable()
 {
 	if (!SlotDefinitionTable) return;
 
 	EquipmentSlots.Empty();
-
-	static const FString Context = TEXT("EquipmentSlotInit");
 	for (auto& Row : SlotDefinitionTable->GetRowMap())
 	{
 		if (const FEquipmentSlotData* SlotData = reinterpret_cast<FEquipmentSlotData*>(Row.Value))
@@ -53,23 +84,44 @@ void UEquipmentManagerComponent::BindWidgetsToSlots()
 		return;
 	}
 
-	auto EquipmentInvWidget = InventoryManager->GetCoreHUDWidget()->GetEquipmentInvWidget();
-	if (!EquipmentInvWidget)
+	auto SaveManager = GetOwner()->FindComponentByClass<UInvenzaSaveManager>();
+	if (SaveManager)
+	{
+		SaveManager->OnGameLoaded.AddDynamic(
+			this, &UEquipmentManagerComponent::ValidateEquippedItems);
+	}
+
+	CharacterEquipmentWidget = InventoryManager->GetCoreHUDWidget()->GetEquipmentInvWidget();
+	if (!CharacterEquipmentWidget)
 	{
 		return;
 	}
-
-	EquipmentInvWidget->GetInventoryFromContainerSlot()->OnAddItemDelegate.AddDynamic(
-		this, &UEquipmentManagerComponent::EquipItemToSlot);
-	EquipmentInvWidget->GetInventoryFromContainerSlot()->OnPreRemoveItemDelegate.AddDynamic(
-		this, &UEquipmentManagerComponent::UnequipItemFromSlot);
+	
+	CharacterEquipmentWidget->GetInventoryFromContainerSlot()->OnItemReplaceDelegate.AddDynamic(
+		this, &UEquipmentManagerComponent::HandleReplaceItem);
+	CharacterEquipmentWidget->GetInventoryFromContainerSlot()->OnAddItemDelegate.AddDynamic(
+		this, &UEquipmentManagerComponent::HandleItemEquippedFromMapping);
+	CharacterEquipmentWidget->GetInventoryFromContainerSlot()->OnPreRemoveItemDelegate.AddDynamic(
+		this, &UEquipmentManagerComponent::HandleItemUnequippedFromMapping);
 	
 }
 
-void UEquipmentManagerComponent::EquipItemToSlot(FItemMapping ItemSlots, UItemBase* Item)
+void UEquipmentManagerComponent::HandleReplaceItem(TArray<FInventorySlotData> OldItemSlots,
+	TArray<FInventorySlotData> NewItemSlots, UItemBase* Item)
+{
+	UnequipItemFromSlot(OldItemSlots, Item, Item->GetQuantity());
+	EquipItemToSlot(NewItemSlots, Item);
+}
+
+void UEquipmentManagerComponent::HandleItemEquippedFromMapping(FItemMapping ItemSlots, UItemBase* Item)
+{
+	EquipItemToSlot(ItemSlots.ItemSlotDatas, Item);
+}
+
+void UEquipmentManagerComponent::EquipItemToSlot(TArray<FInventorySlotData>& ItemSlotsData, UItemBase* Item)
 {
 	// Widget name must match slot name
-	auto SlotName = ItemSlots.ItemSlotDatas[0].SlotName;
+	auto SlotName = ItemSlotsData[0].SlotName;
 	if (!Item || SlotName.IsNone() || !EquipmentSlots.Contains(SlotName)) return;
 
 	FEquipmentSlot& EquipmentSlot = EquipmentSlots[SlotName];
@@ -113,9 +165,14 @@ void UEquipmentManagerComponent::EquipItem(UItemBase* Item)
 	return; // No suitable slot found
 }
 
-void UEquipmentManagerComponent::UnequipItemFromSlot(FItemMapping ItemSlots, UItemBase* Item, int32 RemoveQuantity)
+void UEquipmentManagerComponent::HandleItemUnequippedFromMapping(FItemMapping ItemSlots, UItemBase* Item, int32 RemoveQuantity)
 {
-	auto SlotName = ItemSlots.ItemSlotDatas[0].SlotName;
+	UnequipItemFromSlot(ItemSlots.ItemSlotDatas, Item, RemoveQuantity);
+}
+
+void UEquipmentManagerComponent::UnequipItemFromSlot(TArray<FInventorySlotData>& ItemSlotsData, UItemBase* Item, int32 RemoveQuantity)
+{
+	auto SlotName = ItemSlotsData[0].SlotName;
 	if (SlotName.IsNone() || !EquipmentSlots.Contains(SlotName)) return;
 
 	FEquipmentSlot& Slot = EquipmentSlots[SlotName];

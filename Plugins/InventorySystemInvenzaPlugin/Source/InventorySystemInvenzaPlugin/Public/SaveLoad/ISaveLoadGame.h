@@ -25,9 +25,9 @@ public:
 	// FUNCTIONS
 	//====================================================================
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "SaveGame")
-	void SaveGame(bool Async);
+	void SaveGame(bool Async = false);
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "SaveGame")
-	void LoadGame(bool Async);
+	void LoadGame(bool Async = false);
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "SaveGame")
 	void GetGameData();
 

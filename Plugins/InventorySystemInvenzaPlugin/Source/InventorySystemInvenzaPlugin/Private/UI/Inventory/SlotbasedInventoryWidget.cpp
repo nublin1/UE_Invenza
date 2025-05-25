@@ -498,9 +498,9 @@ TObjectPtr<UInventorySlot> USlotbasedInventoryWidget::GetAvailableSlotForItem(UI
 	// Free slot
 	TObjectPtr<UInventorySlot> FreeSlot;
 	
-	for (int32 i = 0; i < NumColumns; i++)
+	for (int32 i = 0; i <= NumColumns; i++)
 	{
-		for (int32 j = 0; j < NumberRows; j++)
+		for (int32 j = 0; j <= NumberRows; j++)
 		{
 			auto CheckPos = FIntPoint(i, j);
 			if (bIsGridPositionValid(CheckPos) && bIsSlotEmpty(FIntVector2(CheckPos.X, CheckPos.Y)))
@@ -824,7 +824,6 @@ void USlotbasedInventoryWidget::ReplaceItem(UItemBase* Item, UInventorySlot* New
 
 	//Clear old slots
 	auto OldSlots = Mapping->ItemSlotDatas;
-	
 	Mapping->ItemSlotDatas[0] = NewSlot->GetSlotData();
 
 	for (auto ItemSlotData : Mapping->ItemSlotDatas)
@@ -834,6 +833,8 @@ void USlotbasedInventoryWidget::ReplaceItem(UItemBase* Item, UInventorySlot* New
 		if (ItemSlot && !bIsSlotEmpty(ItemSlotData.SlotPosition))
 			ItemSlot->UpdateVisualWithTexture(tempText);
 	}
+
+	NotifyReplaceItem(OldSlots, Mapping->ItemSlotDatas, Item );
 	
 	//UE_LOG(LogTemp, Warning, TEXT("ReplaceItem done!"))
 	ReplaceItemInPanel(*Mapping, Item);

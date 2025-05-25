@@ -185,9 +185,7 @@ struct FInventorySlotData
 
 	bool operator==(const FInventorySlotData& Other) const
 	{
-		return SlotName == Other.SlotName
-			&& SlotPosition == Other.SlotPosition
-			&& UseAction == Other.UseAction;
+		return SlotPosition == Other.SlotPosition;
 	}
 };
 
@@ -213,6 +211,15 @@ struct FItemMapping
 	{
 		ItemSlotDatas.Add(SlotData);
 	}
+};
+
+USTRUCT(BlueprintType)
+struct FItemMappingArrayWrapper
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<FItemMapping> Mappings;
 };
 
 UENUM(BlueprintType)

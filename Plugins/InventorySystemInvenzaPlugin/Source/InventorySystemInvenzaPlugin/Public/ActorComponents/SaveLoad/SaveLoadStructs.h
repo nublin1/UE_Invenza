@@ -44,39 +44,56 @@ FORCEINLINE uint32 GetTypeHash(const FItemSaveData& Data)
 }
 
 USTRUCT(BlueprintType)
+struct FInventorySlotSaveData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName SlotName = " ";
+
+	UPROPERTY(VisibleAnywhere)
+	FIntVector2 SlotPosition{};
+};
+
+USTRUCT(BlueprintType)
 struct FItemMappingSaveData
 {
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FName InventoryContainerName;
-	UPROPERTY()
-	EInventoryType InventoryType;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<FIntVector> SlotPositions;
+	EInventoryType InventoryType;
 
-	FItemMappingSaveData(): InventoryType(), SlotPositions()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<FInventorySlotSaveData> SlotSaveDatas;
+
+	FItemMappingSaveData(): InventoryType()
 	{
 	}
-
-	explicit FItemMappingSaveData(const FItemMapping& Mapping): InventoryType()
+	
+	void InitializeFromMapping(const FItemMapping& Mapping)
 	{
 		InventoryContainerName = Mapping.InventoryContainerName;
-		InventoryType = Mapping.InventoryType;
+		InventoryType          = Mapping.InventoryType;
 
-		TArray<FIntVector> SlotPositionsTemp;
-		for (auto SlotData : Mapping.ItemSlotDatas)
+		SlotSaveDatas.Empty();
+		SlotSaveDatas.Reserve(Mapping.ItemSlotDatas.Num());
+
+		for (const FInventorySlotData& SlotData : Mapping.ItemSlotDatas)
 		{
-			SlotPositionsTemp.Add(FIntVector(SlotData.SlotPosition.X, SlotData.SlotPosition.Y, 0));
+			FInventorySlotSaveData InventorySlotSaveData;
+			InventorySlotSaveData.SlotName     = SlotData.SlotName;
+			InventorySlotSaveData.SlotPosition = SlotData.SlotPosition;
+			SlotSaveDatas.Add(MoveTemp(InventorySlotSaveData));
 		}
-		SlotPositions = SlotPositionsTemp;
 	}
 };
 
 USTRUCT(BlueprintType)
 struct FItemSaveEntry
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FItemSaveData Item;
@@ -86,9 +103,9 @@ struct FItemSaveEntry
 };
 
 USTRUCT(BlueprintType)
-struct FInventorySlotSaveData
+struct FInvSaveData
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FItemSaveEntry> SavedItemLocations;

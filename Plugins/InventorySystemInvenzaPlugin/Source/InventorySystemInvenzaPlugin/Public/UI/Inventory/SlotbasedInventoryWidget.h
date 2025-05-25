@@ -73,6 +73,7 @@ protected:
 	FMargin SlotSpacing;
 	
 	// Highlight
+	UPROPERTY()
 	TObjectPtr<UHighlightSlotWidget> HighlightWidgetPreview = nullptr;
 
 	// Settings

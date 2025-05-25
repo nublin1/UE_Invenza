@@ -5,9 +5,10 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "SaveLoad/ISaveLoadGame.h"
-#include "InavenzaSaveManager.generated.h"
+#include "InvenzaSaveManager.generated.h"
 
 
+class USaveGame;
 class UInputAction;
 class UInvenzaSaveGame;
 
@@ -16,7 +17,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnGameLoaded);
 #pragma endregion Delegates
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
-class INVENTORYSYSTEMINVENZAPLUGIN_API UInavenzaSaveManager : public UActorComponent, public IISaveLoadGame
+class INVENTORYSYSTEMINVENZAPLUGIN_API UInvenzaSaveManager : public UActorComponent, public IISaveLoadGame
 {
 	GENERATED_BODY()
 
@@ -30,10 +31,10 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UInavenzaSaveManager();
+	UInvenzaSaveManager();
 	
-	virtual void SaveGame_Implementation(bool Async) override;
-	virtual void LoadGame_Implementation(bool Async) override;
+	virtual void SaveGame_Implementation(bool Async = false) override;
+	virtual void LoadGame_Implementation(bool Async = false) override;
 
 protected:
 	//====================================================================
@@ -55,7 +56,10 @@ protected:
 	// FUNCTIONS
 	//====================================================================
 	virtual void BeginPlay() override;
-	
+
+	UFUNCTION()
+	void OnInitializationComplete();
+
 	UFUNCTION()
 	void OnSaveGameLoaded(const FString& SlotName, const int32 UserIndex, USaveGame* LoadedGame);
 

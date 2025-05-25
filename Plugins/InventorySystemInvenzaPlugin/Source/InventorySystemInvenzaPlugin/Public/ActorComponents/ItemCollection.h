@@ -53,7 +53,7 @@ public:
 	FItemMapping* FindItemMappingForItemInContainer(UItemBase* TargetItem, UInvBaseContainerWidget* InContainer);
 	bool HasItemInContainer(UItemBase* Item, UInvBaseContainerWidget* Container) const;
 	
-	TMap<TObjectPtr<UItemBase>, TArray<FItemMapping>> GetItemLocations() const {return ItemLocations;}
+	TMap<TObjectPtr<UItemBase>, FItemMappingArrayWrapper> GetItemLocations() const {return ItemLocations;}
 	TArray<FInventorySlotData> CollectOccupiedSlotsByContainer(UInvBaseContainerWidget* InContainer);
 	UItemBase* GetItemFromSlot(FInventorySlotData TargetSlotData, UInvBaseContainerWidget* TargetContainer) const;
 	TArray<UItemBase*> GetAllItemsByContainer(UInvBaseContainerWidget* TargetContainer) const;
@@ -74,8 +74,8 @@ protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-
-	TMap<TObjectPtr<UItemBase>, TArray<FItemMapping>> ItemLocations; //ItemLocations
+	UPROPERTY()
+	TMap<TObjectPtr<UItemBase>, FItemMappingArrayWrapper> ItemLocations; //ItemLocations
 	
 	//====================================================================
 	// FUNCTIONS
