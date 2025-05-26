@@ -100,8 +100,8 @@ void USlotbasedInventoryWidget::NativeConstruct()
 	if (ItemFiltersPanel)
 	{
 		if (ItemFiltersPanel->GetSearchText())
-		{
 			ItemFiltersPanel->GetSearchText()->OnTextChanged.AddDynamic(this, &USlotbasedInventoryWidget::SearchTextChanged);
+		{
 		}
 		
 		for (auto FilterButton : ItemFiltersPanel->GetFilteredCategores())
@@ -828,10 +828,12 @@ void USlotbasedInventoryWidget::ReplaceItem(UItemBase* Item, UInventorySlot* New
 
 	for (auto ItemSlotData : Mapping->ItemSlotDatas)
 	{
-		UTexture2D* tempText= nullptr;
+		//UTexture2D* tempText= nullptr;
 		auto ItemSlot = GetSlotByPosition(ItemSlotData.SlotPosition);
 		if (ItemSlot && !bIsSlotEmpty(ItemSlotData.SlotPosition))
-			ItemSlot->UpdateVisualWithTexture(tempText);
+		{
+			//ItemSlot->UpdateVisualWithTexture(tempText);
+		}
 	}
 
 	NotifyReplaceItem(OldSlots, Mapping->ItemSlotDatas, Item );
@@ -880,11 +882,11 @@ void USlotbasedInventoryWidget::AddItemToPanel( UItemBase* Item)
 
 	for (auto ItemSlotData : Slots->ItemSlotDatas)
 	{
-		UTexture2D* tempText= nullptr;
+		//UTexture2D* tempText= nullptr;
 		auto ItemSlot = GetSlotByPosition(ItemSlotData.SlotPosition);
 		if(ItemSlot && !bIsSlotEmpty(ItemSlotData.SlotPosition))
 		{
-			ItemSlot->UpdateVisualWithTexture(tempText);
+			//ItemSlot->UpdateVisualWithTexture(tempText);
 		}
 	}
 
@@ -1239,6 +1241,11 @@ bool USlotbasedInventoryWidget::NativeOnDragOver(const FGeometry& InGeometry, co
 			HighlightWidgetPreview->SetHighlightState(EHighlightState::Allowed);
 			break;
 		}
+	}
+	else
+	{
+		if (HighlightWidgetPreview)
+			HighlightWidgetPreview->SetVisibility(ESlateVisibility::Collapsed);
 	}
 	
 	return Super::NativeOnDragOver(InGeometry, InDragDropEvent, InOperation);

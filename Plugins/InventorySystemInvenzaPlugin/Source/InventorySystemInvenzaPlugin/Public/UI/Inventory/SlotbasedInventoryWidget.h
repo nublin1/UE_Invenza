@@ -79,6 +79,19 @@ protected:
 	// Settings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
 	bool bHasSlotSpacing = false;
+
+	//
+	
+	/** Default image used for slot background when not overridden by individual slots. */
+	UPROPERTY()
+	TObjectPtr<UTexture2D> DefaultCellImage = nullptr;
+	/** 
+ * Image displayed when this slot contains an item. 
+ * Overrides the default background image when the slot is not empty.
+ */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Defaults", meta = (ToolTip =
+		"Image to display when this slot contains an item. Used instead of the default cell image."))
+	TObjectPtr<UTexture2D> OccupiedCellImage;
 	
 	//====================================================================
 	// FUNCTIONS

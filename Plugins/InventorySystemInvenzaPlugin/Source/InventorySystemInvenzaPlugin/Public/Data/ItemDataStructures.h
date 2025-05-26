@@ -3,7 +3,7 @@
 #include "CoreMinimal.h"
 #include "ItemDataStructures.generated.h"
 
-UENUM()
+UENUM(BlueprintType)
 enum class EOrientationType : uint8
 {
 	Vertical UMETA(DisplayName = "Vertical"),
@@ -20,18 +20,18 @@ enum class EItemCategory : uint8
 	Armor       UMETA(DisplayName = "Armor"),
 };
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FItemTextData
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FText Name;
 
-	UPROPERTY(EditAnywhere)
-	FText InteractionText;
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	//FText InteractionText;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FText ItemDescription;
 };
 

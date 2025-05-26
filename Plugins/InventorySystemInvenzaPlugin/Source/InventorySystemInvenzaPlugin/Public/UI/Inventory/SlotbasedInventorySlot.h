@@ -26,7 +26,7 @@ public:
 	TObjectPtr<UCoreCellWidget> CoreCellWidget;
 	UPROPERTY(meta=(BindWidgetOptional))
 	TObjectPtr<UTextBlock> SlotName;
-	
+
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
@@ -41,9 +41,17 @@ protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Defaults")
+
+	/** 
+	* Override for slot background image.
+	* If set, this texture will be used instead of the default image defined in the inventory widget.
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Defaults",
+		meta = (ToolTip =
+			"Override texture for this slot. Takes priority over the default slot texture defined in the inventory widget."
+		))
 	TObjectPtr<UTexture2D> DefaultCellImage;
-	
+
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================

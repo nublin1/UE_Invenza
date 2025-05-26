@@ -323,13 +323,13 @@ void UItemCollection::SortInContainer(UInvBaseContainerWidget* ContainerToSort)
 	}
 	
 	Mappings.Sort([](auto& A, auto& B) {
-		const FString NameA = A.Key->GetItemRef().ItemTextData.Name.ToString();
-		const FString NameB = B.Key->GetItemRef().ItemTextData.Name.ToString();
+		const FString NameA = A.Key->GetItemID().ToString();
+		const FString NameB = B.Key->GetItemID().ToString();
 		//UE_LOG(LogTemp, Log, TEXT("Comparing %s and %s"), *NameA, *NameB);
 		return NameA.Compare(NameB, ESearchCase::IgnoreCase) < 0;
 	});
 
-	UE_LOG(LogTemp, Log, TEXT("Data after sorting:"));
+	/*UE_LOG(LogTemp, Log, TEXT("Data after sorting:"));
 	for (const auto& Pair : Mappings) {
 		if (Pair.Key) {
 			FString ItemName;
@@ -341,7 +341,7 @@ void UItemCollection::SortInContainer(UInvBaseContainerWidget* ContainerToSort)
 		} else {
 			UE_LOG(LogTemp, Log, TEXT("  Item: NULL"));
 		}
-	}
+	}*/
 
 	if (auto Inv = ContainerToSort->GetInventoryFromContainerSlot())
 	{
@@ -354,14 +354,24 @@ void UItemCollection::SortInContainer(UInvBaseContainerWidget* ContainerToSort)
 		{
 			auto& Pair = Mappings[i];
 			Pair.Value->ItemSlotDatas.Empty();
+		}
+	}
+
+	if (auto SlotbasedInventory = Cast<USlotbasedInventoryWidget>(ContainerToSort->GetInventoryFromContainerSlot()))
+	{
+		for (auto i =0; i < Mappings.Num();  i++)
+		{
+			auto& Pair = Mappings[i];
 			auto AvSlot = SlotbasedInventory->GetAvailableSlotForItem(Pair.Key.Get());
 			if (AvSlot)
-			{				
+			{
 				Pair.Value->ItemSlotDatas.Add(AvSlot->GetSlotData());
 			}
 		}
 
 		SlotbasedInventory->ReDrawAllItems();
+		SlotbasedInventory->UpdateMoneyInfo();
+		SlotbasedInventory->UpdateMoneyInfo();
 	}
 }
 
@@ -432,6 +442,8 @@ void UItemCollection::DeserializeFromSave(TArray<FItemSaveEntry> InData)
 				if (auto InvBaseContainerWidget = Cast<UInvBaseContainerWidget>(FoundWidget))
 				{
 					InvBaseContainerWidget->GetInventoryFromContainerSlot()->ReDrawAllItems();
+					InvBaseContainerWidget->GetInventoryFromContainerSlot()->UpdateMoneyInfo();
+					InvBaseContainerWidget->GetInventoryFromContainerSlot()->UpdateMoneyInfo();
 				}
 			}
 		}

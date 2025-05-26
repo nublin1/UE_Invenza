@@ -59,9 +59,9 @@ void UInvenzaSaveManager::SaveGame_Implementation(bool Async)
 		UGameplayStatics::SaveGameToSlot(LoadedSaveData,SaveSlotName.ToString(), SaveUserIndex);
 		UE_LOG(LogTemp, Warning, TEXT("Saved to slot: %s"), *SaveSlotName.ToString());
 
-		FString DebugJson;
+		/*FString DebugJson;
 		FJsonObjectConverter::UStructToJsonObjectString(LoadedSaveData->PlayerSavedInventories, DebugJson);
-		FFileHelper::SaveStringToFile(DebugJson, *(FPaths::ProjectSavedDir() + TEXT("InventoryDebug.json")));
+		FFileHelper::SaveStringToFile(DebugJson, *(FPaths::ProjectSavedDir() + TEXT("InventoryDebug.json")));*/
 	}
 }
 

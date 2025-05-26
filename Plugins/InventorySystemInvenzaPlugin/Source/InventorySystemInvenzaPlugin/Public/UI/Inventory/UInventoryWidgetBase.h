@@ -86,11 +86,11 @@ protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory")
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category="Inventory")
 	FInventoryData InventoryData;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory")
 	FInventorySettings InventorySettings;
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Inventory")
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category="Inventory")
 	FUISettings UISettings;
 
 	//
@@ -132,11 +132,13 @@ protected:
 
 	virtual void AddItemToPanel(UItemBase* Item)  PURE_VIRTUAL(UUInventoryWidgetBase::AddItemToPanel, );
 
+public:
 	UFUNCTION()
 	virtual void UpdateWeightInfo();
 	UFUNCTION()
 	virtual void UpdateMoneyInfo();
-
+	
+protected:
 	//
 	UFUNCTION()
 	virtual UInvBaseContainerWidget* GetAsContainerWidget() { return Cast<UInvBaseContainerWidget>(ParentWidget);}
