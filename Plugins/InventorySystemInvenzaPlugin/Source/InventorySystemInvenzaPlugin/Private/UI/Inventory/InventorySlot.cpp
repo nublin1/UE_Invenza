@@ -21,6 +21,10 @@ void UInventorySlot::ResetVisual()
 {
 }
 
+void UInventorySlot::ClearVisual()
+{
+}
+
 void UInventorySlot::SetSlotNameText(FString InUseKeyText)
 {
 }

@@ -48,6 +48,14 @@ void USlotbasedInventorySlot::ResetVisual()
 	CoreCellWidget->Content_Image->SetBrush(Brush);
 }
 
+void USlotbasedInventorySlot::ClearVisual()
+{
+	Super::ClearVisual();
+	FSlateBrush Brush = CoreCellWidget->Content_Image->GetBrush();
+	Brush.SetResourceObject(nullptr);
+	CoreCellWidget->Content_Image->SetBrush(Brush);
+}
+
 void USlotbasedInventorySlot::SetSlotNameText(FString SlotNameText)
 {
 	Super::SetSlotNameText(SlotNameText);

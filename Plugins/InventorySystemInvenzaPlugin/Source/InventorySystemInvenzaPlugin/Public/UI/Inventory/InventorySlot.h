@@ -39,6 +39,8 @@ public:
 	virtual void UpdateVisualWithTexture(UTexture2D* NewTexture);
 	UFUNCTION(BlueprintCallable)
 	virtual void ResetVisual();
+	UFUNCTION(BlueprintCallable)
+	virtual void ClearVisual();
 	
 	//Getters
 	FInventorySlotData GetSlotData() const {return SlotData;}

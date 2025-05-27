@@ -88,9 +88,6 @@ void USlotbasedInventoryWidget::RebuildSlots(int32 InRows, int32 InColumns)
 	NumColumns  = InColumns;
 	InventoryData.InventoryTotalWeight = 0; 
 	InventoryData.InventoryTotalMoney  = 0;
-
-	//UE_LOG(LogTemp, Log, TEXT("RebuildSlots: создано %d x %d = %d ячеек"),
-		//InRows, InColumns, InRows * InColumns);
 }
 
 void USlotbasedInventoryWidget::NativeConstruct()
@@ -101,8 +98,6 @@ void USlotbasedInventoryWidget::NativeConstruct()
 	{
 		if (ItemFiltersPanel->GetSearchText())
 			ItemFiltersPanel->GetSearchText()->OnTextChanged.AddDynamic(this, &USlotbasedInventoryWidget::SearchTextChanged);
-		{
-		}
 		
 		for (auto FilterButton : ItemFiltersPanel->GetFilteredCategores())
 		{
@@ -133,6 +128,8 @@ void USlotbasedInventoryWidget::InitSlots()
 			{
 				if (auto InventorySlot = Cast<USlotbasedInventorySlot>(ChildWidget))
 				{
+					if (!InventorySlot->GetDefaultCellImage() && DefaultCellImage)
+						InventorySlot->UpdateVisualWithTexture(DefaultCellImage);
 					NewInvSlots.Add(InventorySlot);
 				}
 			}
@@ -241,6 +238,20 @@ void USlotbasedInventoryWidget::RefreshFilteredItemsList()
 
 void USlotbasedInventoryWidget::SearchTextChanged(const FText& NewText)
 {
+	if (NewText.IsEmpty())
+	{
+		for (auto Item : InventoryData.ItemCollectionLink->GetAllItemsByContainer(GetAsContainerWidget()))
+		{
+			auto ItemMapping = InventoryData.ItemCollectionLink->FindItemMappingForItemInContainer(Item, GetAsContainerWidget());
+			if (!ItemMapping)
+				continue;
+
+			ItemMapping->ItemVisualLinked->GetCoreCellWidget()->ResetBorderColor();
+			ItemMapping->ItemVisualLinked->ChangeOpacity(1.0f);
+		}
+		return;
+	}
+	
 	if (ItemFiltersPanel->IsSearchInFilteredSlots())
 	{
 		for (auto ActiveFilter : ActiveFilters)
@@ -324,7 +335,7 @@ bool USlotbasedInventoryWidget::bIsSlotEmpty(const UInventorySlot* SlotCheck)
 
 bool USlotbasedInventoryWidget::bIsGridPositionValid(FIntPoint& GridPosition)
 {
-	return GridPosition.X >= 0 && GridPosition.Y >= 0 && GridPosition.X<=NumberRows && GridPosition.Y<=NumColumns;
+	return GridPosition.X >= 0 && GridPosition.Y >= 0 && GridPosition.X<NumberRows && GridPosition.Y<NumColumns;
 }
 
 void USlotbasedInventoryWidget::HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity)
@@ -495,17 +506,21 @@ FItemAddResult USlotbasedInventoryWidget::HandleAddItem(FItemMoveData ItemMoveDa
 
 TObjectPtr<UInventorySlot> USlotbasedInventoryWidget::GetAvailableSlotForItem(UItemBase* Item)
 {
-	// Free slot
 	TObjectPtr<UInventorySlot> FreeSlot;
-	
+
 	for (int32 i = 0; i <= NumColumns; i++)
 	{
 		for (int32 j = 0; j <= NumberRows; j++)
 		{
 			auto CheckPos = FIntPoint(i, j);
+			//UE_LOG(LogTemp, Log, TEXT("CheckPos %i and %i"),CheckPos.X, CheckPos.Y);
 			if (bIsGridPositionValid(CheckPos) && bIsSlotEmpty(FIntVector2(CheckPos.X, CheckPos.Y)))
 			{
 				FreeSlot = GetSlotByPosition(FIntVector2(CheckPos.X, CheckPos.Y));
+				if (!FreeSlot)
+				{
+					continue;
+				}
 				
 				return FreeSlot;
 			}
@@ -520,7 +535,6 @@ FItemAddResult USlotbasedInventoryWidget::HandleNonStackableItems(FItemMoveData&
 	if (!ItemMoveData.TargetSlot)
 	{
 		TObjectPtr<UInventorySlot> EmptySlot = GetAvailableSlotForItem(ItemMoveData.SourceItem);
-		
 
 		if (EmptySlot == nullptr)
 			return FItemAddResult::AddedNone(FText::Format(FText::FromString("Can't be added {0} of {1} to inventory. No Empty slots"),
@@ -828,11 +842,13 @@ void USlotbasedInventoryWidget::ReplaceItem(UItemBase* Item, UInventorySlot* New
 
 	for (auto ItemSlotData : Mapping->ItemSlotDatas)
 	{
-		//UTexture2D* tempText= nullptr;
 		auto ItemSlot = GetSlotByPosition(ItemSlotData.SlotPosition);
 		if (ItemSlot && !bIsSlotEmpty(ItemSlotData.SlotPosition))
 		{
-			//ItemSlot->UpdateVisualWithTexture(tempText);
+			if (bHideBackgroundWhenOccupied)
+				ItemSlot->ClearVisual();
+			else if (OccupiedCellImage)
+				ItemSlot->UpdateVisualWithTexture(OccupiedCellImage);
 		}
 	}
 
@@ -862,9 +878,15 @@ FVector2D USlotbasedInventoryWidget::CalculateItemVisualPosition(FIntVector2 Slo
 	return FVector2D(Y, X);
 }
 
-void USlotbasedInventoryWidget::AddItemToPanel( UItemBase* Item)
+void USlotbasedInventoryWidget::AddItemToPanel(UItemBase* Item)
 {
 	auto Slots = GetItemMapping(Item);
+
+	if (Slots->ItemSlotDatas.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ItemSlotDatas Is empty!"));
+		return;
+	}
 	
 	const FVector2D VisualPosition = CalculateItemVisualPosition(Slots->ItemSlotDatas[0].SlotPosition);
 
@@ -882,11 +904,13 @@ void USlotbasedInventoryWidget::AddItemToPanel( UItemBase* Item)
 
 	for (auto ItemSlotData : Slots->ItemSlotDatas)
 	{
-		//UTexture2D* tempText= nullptr;
 		auto ItemSlot = GetSlotByPosition(ItemSlotData.SlotPosition);
 		if(ItemSlot && !bIsSlotEmpty(ItemSlotData.SlotPosition))
 		{
-			//ItemSlot->UpdateVisualWithTexture(tempText);
+			if (bHideBackgroundWhenOccupied)
+				ItemSlot->ClearVisual();
+			else if (OccupiedCellImage)
+				ItemSlot->UpdateVisualWithTexture(OccupiedCellImage);
 		}
 	}
 
@@ -909,7 +933,6 @@ void USlotbasedInventoryWidget::AddItemToPanel( UItemBase* Item)
 			SearchTextChanged(SearchText);
 		}
 	}
-	
 }
 
 void USlotbasedInventoryWidget::ReplaceItemInPanel(FItemMapping& FromSlots, UItemBase* Item)

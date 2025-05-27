@@ -83,14 +83,22 @@ protected:
 	//
 	
 	/** Default image used for slot background when not overridden by individual slots. */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UTexture2D> DefaultCellImage = nullptr;
+	/** 
+ * If true, the background image of the slot will be hidden when it contains an item.
+ * When enabled, the OccupiedCellImage will not be used.
+ */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (
+		ToolTip = "If true, hides the slot background image when an item is present. Disables OccupiedCellImage."))
+	bool bHideBackgroundWhenOccupied = false;
 	/** 
  * Image displayed when this slot contains an item. 
  * Overrides the default background image when the slot is not empty.
  */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Defaults", meta = (ToolTip =
-		"Image to display when this slot contains an item. Used instead of the default cell image."))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (
+		EditCondition = "!bHideBackgroundWhenOccupied",
+		ToolTip = "Image to display when this slot contains an item. Used instead of the default cell image."))
 	TObjectPtr<UTexture2D> OccupiedCellImage;
 	
 	//====================================================================

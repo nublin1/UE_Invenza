@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "InventorySlot.h"
-#include "UI/BaseUserWidget.h"
 #include "SlotbasedInventorySlot.generated.h"
 
 class UTextBlock;
@@ -34,6 +33,10 @@ public:
 
 	virtual void UpdateVisualWithTexture(UTexture2D* NewTexture) override;
 	virtual void ResetVisual() override;
+	virtual void ClearVisual() override;
+
+	UFUNCTION(BlueprintCallable)
+	UTexture2D* GetDefaultCellImage() {return DefaultCellImage;}
 
 	virtual void SetSlotNameText(FString InUseKeyText) override;
 

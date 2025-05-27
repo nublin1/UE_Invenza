@@ -50,7 +50,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 SaveUserIndex = 0;
 
-	UPROPERTY()
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly)
 	TObjectPtr<UInvenzaSaveGame> LoadedSaveData;
 	//====================================================================
 	// FUNCTIONS
