@@ -196,8 +196,7 @@ void USlotbasedInventoryWidget::OnFilterStatusChanged(UUIButton* ItemCategoryBut
 	{
 		ActiveFilters.Remove(Category);
 	}
-
-	// Перерисовываем все слоты под текущие ActiveFilters
+	
 	RefreshFilteredItemsList();
 }
 
@@ -208,8 +207,7 @@ void USlotbasedInventoryWidget::RefreshFilteredItemsList()
 		ClearFilters();
 		return;
 	}
-
-	// Сначала затемняем все и сбрасываем бордер у тех, кто был ранее подсвечен
+	
 	for (auto& Item : InventoryData.ItemCollectionLink->GetAllItemsByContainer(GetAsContainerWidget()))
 	{
 		if (auto Mapping = InventoryData.ItemCollectionLink->FindItemMappingForItemInContainer(Item, GetAsContainerWidget()))
@@ -218,8 +216,7 @@ void USlotbasedInventoryWidget::RefreshFilteredItemsList()
 			Mapping->ItemVisualLinked->GetCoreCellWidget()->ResetBorderColor();
 		}
 	}
-
-	// Потом для каждой активной категории — подсвечиваем и делаем полную opacity
+	
 	for (auto ActiveCategory : ActiveFilters)
 	{
 		for (auto& Item : InventoryData.ItemCollectionLink->GetAllItemsByCategory(ActiveCategory))
@@ -248,6 +245,8 @@ void USlotbasedInventoryWidget::SearchTextChanged(const FText& NewText)
 
 			ItemMapping->ItemVisualLinked->GetCoreCellWidget()->ResetBorderColor();
 			ItemMapping->ItemVisualLinked->ChangeOpacity(1.0f);
+
+			RefreshFilteredItemsList();
 		}
 		return;
 	}

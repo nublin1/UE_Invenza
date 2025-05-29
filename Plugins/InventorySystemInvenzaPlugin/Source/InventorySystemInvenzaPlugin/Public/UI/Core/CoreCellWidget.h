@@ -52,6 +52,9 @@ protected:
 	FVector2D DefaultSlotSize = FVector2d(100.0f);
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UTexture2D> DefaultContent_Image;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UTexture2D> DefaultBrush_Image;
+	
 
 	//
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
