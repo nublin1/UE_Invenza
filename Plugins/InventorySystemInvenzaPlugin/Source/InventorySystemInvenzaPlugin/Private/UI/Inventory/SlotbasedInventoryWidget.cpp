@@ -1173,13 +1173,23 @@ void USlotbasedInventoryWidget::NativeOnDragDetected(const FGeometry& InGeometry
 {
 	Super::NativeOnDragDetected(InGeometry, InMouseEvent, OutOperation);
 
-	UInventoryItemWidget* DraggedWidget = CreateWidget<UInventoryItemWidget>(GetOwningPlayer(), UISettings.DraggedWidgetClass);
-	if (!DraggedWidget) return;
+	auto DraggedWidget = CreateWidget<UInventoryItemWidget>(GetOwningPlayer(), UISettings.DraggedWidgetClass);
+	auto Item = InventoryData.ItemCollectionLink->GetItemFromSlot(SlotUnderMouse->GetSlotData(), GetAsContainerWidget());
+	if (!DraggedWidget || !Item) return;
+
+	DraggedWidget->AddToPlayerScreen(1);
+	DraggedWidget->SetPositionInViewport(FVector2D(-10000, -10000));
+
+	FIntVector2 ItemSize =	FIntVector2(Item->GetItemRef().ItemNumeraticData.NumHorizontalSlots,
+		Item->GetItemRef().ItemNumeraticData.NumVerticalSlots);
+	DraggedWidget->UpdateVisual(Item);
+	
 	DraggedWidget->SetVisibility(ESlateVisibility::Hidden);
+	
 	
 	UItemDragDropOperation* DragItemDragDropOperation = NewObject<UItemDragDropOperation>();
 	DragItemDragDropOperation->DefaultDragVisual = DraggedWidget;
-	DragItemDragDropOperation->Pivot = EDragPivot::CenterCenter;
+	DragItemDragDropOperation->Pivot = EDragPivot::TopLeft;
 
 	DragItemDragDropOperation->ItemMoveData.SourceItem = InventoryData.ItemCollectionLink->GetItemFromSlot(SlotUnderMouse->GetSlotData(), GetAsContainerWidget());
 	DragItemDragDropOperation->ItemMoveData.SourceInventory = this;
@@ -1246,6 +1256,8 @@ bool USlotbasedInventoryWidget::NativeOnDragOver(const FGeometry& InGeometry, co
 		auto TargetSlot = GetSlotByPosition(FIntVector2(GridPosition.X, GridPosition.Y));
 		DragOp->ItemMoveData.TargetInventory = this;
 		DragOp->ItemMoveData.TargetSlot = TargetSlot;
+
+		HighlightWidgetPreview->UpdateVisualWithTexture(DragOp->ItemMoveData.SourceItem->GetItemRef().ItemAssetData.Icon);
 
 		auto Result = HandleAddItem(DragOp->ItemMoveData, true);
 		switch (Result.OperationResult)

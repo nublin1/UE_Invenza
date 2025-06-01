@@ -1,14 +1,22 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+//  Nublin Studio 2025 All Rights Reserved.
 
 
 #include "UI/Drag/HighlightSlotWidget.h"
 
 #include "Components/Border.h"
+#include "Components/Image.h"
 #include "UI/Core/CoreCellWidget.h"
 #include "UI/Inventory/InventoryTypes.h"
 
 UHighlightSlotWidget::UHighlightSlotWidget()
 {
+}
+
+void UHighlightSlotWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+
+	SetHighlightState(CurrentState);
 }
 
 void UHighlightSlotWidget::SetHighlightState(EHighlightState NewState)
@@ -35,11 +43,15 @@ void UHighlightSlotWidget::SetHighlightState(EHighlightState NewState)
 	}
 }
 
-void UHighlightSlotWidget::NativeConstruct()
+void UHighlightSlotWidget::UpdateVisualWithTexture(UTexture2D* NewTexture)
 {
-	Super::NativeConstruct();
-
-	SetHighlightState(CurrentState);
+	if (!NewTexture)
+	{
+		CoreCellWidget->Content_Image->SetBrush(FSlateBrush());
+		return;
+	}
+	
+	CoreCellWidget->Content_Image->SetBrushFromTexture(NewTexture);
 }
 
 void UHighlightSlotWidget::SetBordersColor(const FLinearColor& Color)

@@ -48,7 +48,7 @@ protected:
 
 	//
 	UPROPERTY()
-	UCoreCellWidget* DragContainer_Temp;
+	TObjectPtr<UCoreCellWidget> DragContainer_Temp;
 
 	//====================================================================
 	// FUNCTIONS

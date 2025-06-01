@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+//  Nublin Studio 2025 All Rights Reserved.
 
 #pragma once
 
@@ -29,6 +29,9 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Highlight")
 	void SetHighlightState(EHighlightState NewState);
+
+	UFUNCTION(BlueprintCallable, Category = "Highlight")
+	virtual void UpdateVisualWithTexture(UTexture2D* NewTexture);
 
 protected:
 	//====================================================================

@@ -9,7 +9,6 @@
 #include "Components/Image.h"
 #include "Components/SizeBox.h"
 #include "Components/TextBlock.h"
-#include "DragDrop/ItemDragDropOperation.h"
 #include "UI/Core/CoreCellWidget.h"
 
 UInventoryItemWidget::UInventoryItemWidget()
@@ -20,7 +19,7 @@ void UInventoryItemWidget::UpdateVisual(UItemBase* Item)
 {
 	if (Item->GetItemRef().ItemAssetData.Icon)
 	{
-		CoreCellWidget->Content_Image->SetBrushFromTexture(Item->GetItemRef().ItemAssetData.Icon);
+		CoreCellWidget->SetContentImage(Item->GetItemRef().ItemAssetData.Icon);
 	}
 }
 
@@ -84,21 +83,5 @@ void UInventoryItemWidget::NativeOnDragDetected(const FGeometry& InGeometry, con
 	UDragDropOperation*& OutOperation)
 {
 	Super::NativeOnDragDetected(InGeometry, InMouseEvent, OutOperation);
-
-	/*auto Manager = GetOwningPlayerPawn()->FindComponentByClass<UUIManagerComponent>();
-	if (!Manager)
-		return;
-
-	UInventoryItemWidget* DraggedWidget = CreateWidget<UInventoryItemWidget>(GetOwningPlayer(),Manager->GetUISettings().DraggedWidgetClass);
-	if (!DraggedWidget) return;
-
 	
-	//CreateWidget<UItemDragDropOperation>(this, UItemDragDropOperationClass);	
-	UItemDragDropOperation* DragItemDragDropOperation = NewObject<UItemDragDropOperation>();
-	DragItemDragDropOperation->DefaultDragVisual = DraggedWidget;
-	DragItemDragDropOperation->Pivot = EDragPivot::MouseDown;
-
-	//DragItemDragDropOperation->ItemMoveData.SourceItem =
-
-	OutOperation = DragItemDragDropOperation;*/
 }

@@ -1,5 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
+//  Nublin Studio 2025 All Rights Reserved.
 
 #include "UI/Core/CoreCellWidget.h"
 
@@ -7,7 +6,7 @@
 #include "Components/Image.h"
 #include "Components/SizeBox.h"
 
-UCoreCellWidget::UCoreCellWidget(): DefaultBorderColor()
+UCoreCellWidget::UCoreCellWidget(): DefaultTintColor(), DefaultColorAndOpacity(), DefaultBorderColor()
 {
 }
 
@@ -28,12 +27,65 @@ void UCoreCellWidget::NativePreConstruct()
 		SizeBox->SetWidthOverride(DefaultSlotSize.X);
 		SizeBox->SetHeightOverride(DefaultSlotSize.Y);
 	}
+	
+	ResetBorderColor();
+	
+	ApplyDefaultContentImageStyle();
+}
 
-	//DefaultBorderColor = Left_Border->GetBrushColor();
-	if (DefaultContent_Image)
+void UCoreCellWidget::ResetContentImage()
+{
+	if (!Content_Image)
 	{
-		FSlateBrush Brush;
-		Brush.SetResourceObject(DefaultContent_Image);
-		Content_Image->SetBrush(Brush);
+		return;
 	}
+
+	FSlateBrush EmptyBrush;
+	Content_Image->SetBrush(EmptyBrush);
+	Content_Image->SetBrushTintColor(DefaultTintColor);
+	Content_Image->SetColorAndOpacity(DefaultColorAndOpacity);
+}
+
+void UCoreCellWidget::SetContentImage(UTexture2D* NewTexture)
+{
+	if (!Content_Image)
+	{
+		return;
+	}
+
+	if (!NewTexture)
+	{
+		ResetContentImage();
+		return;
+	}
+
+	FSlateBrush NewBrush;
+	NewBrush.SetResourceObject(NewTexture);
+	NewBrush.ImageSize = DefaultSlotSize;
+
+	Content_Image->SetBrush(NewBrush);
+	Content_Image->SetBrushTintColor(DefaultTintColor);
+	Content_Image->SetColorAndOpacity(DefaultColorAndOpacity);
+}
+
+void UCoreCellWidget::ApplyDefaultContentImageStyle()
+{
+	if (!Content_Image)
+	{
+		return;
+	}
+
+	if (!DefaultContent_Image)
+	{
+		ResetContentImage();
+		return;
+	}
+
+	FSlateBrush Brush;
+	Brush.SetResourceObject(DefaultContent_Image);
+	Brush.ImageSize = DefaultSlotSize;
+
+	Content_Image->SetBrush(Brush);
+	Content_Image->SetBrushTintColor(DefaultTintColor);
+	Content_Image->SetColorAndOpacity(DefaultColorAndOpacity);
 }

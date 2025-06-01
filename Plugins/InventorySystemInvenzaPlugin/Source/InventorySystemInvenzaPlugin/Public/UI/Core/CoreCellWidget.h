@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+//  Nublin Studio 2025 All Rights Reserved.
 
 #pragma once
 
@@ -42,7 +42,13 @@ public:
 	//====================================================================
 	UCoreCellWidget();
 
+	UFUNCTION()
 	virtual void ResetBorderColor();
+	UFUNCTION()
+	virtual void ResetContentImage();
+
+	UFUNCTION()
+	virtual void SetContentImage(UTexture2D* NewTexture);
 
 protected:
 	//====================================================================
@@ -53,11 +59,11 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UTexture2D> DefaultContent_Image;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TObjectPtr<UTexture2D> DefaultBrush_Image;
+	FLinearColor DefaultTintColor;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FLinearColor DefaultColorAndOpacity;
 	
-
-	//
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FLinearColor DefaultBorderColor;
 	
 	
@@ -65,5 +71,8 @@ protected:
 	// FUNCTIONS
 	//====================================================================
 	virtual void NativePreConstruct() override;
+
+	UFUNCTION()
+	virtual void ApplyDefaultContentImageStyle();
 	
 };
