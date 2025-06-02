@@ -47,7 +47,7 @@ protected:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FName SaveSlotName = "InventorySave";
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
 	int32 SaveUserIndex = 0;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly)
