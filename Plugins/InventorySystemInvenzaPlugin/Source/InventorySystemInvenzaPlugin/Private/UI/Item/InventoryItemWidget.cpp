@@ -49,7 +49,10 @@ void UInventoryItemWidget::UpdateQuantityText(int Quantity)
 		return;
 	
 	if (Quantity > 1)
+	{
 		ItemQuantity->SetText(FText::AsNumber(Quantity));
+		ItemQuantity->SetVisibility(ESlateVisibility::Visible);
+	}
 	else
 		ItemQuantity->SetVisibility(ESlateVisibility::Collapsed);
 }

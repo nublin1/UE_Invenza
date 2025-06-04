@@ -986,9 +986,9 @@ void USlotbasedInventoryWidget::NotifyAddItem(FItemMapping& FromSlots, UItemBase
 void USlotbasedInventoryWidget::NotifyPreRemoveItem(FItemMapping& FromSlots, UItemBase* RemovedItem, int32 RemoveQuantity) 
 {
 	Super::NotifyPreRemoveItem(FromSlots, RemovedItem, RemoveQuantity);
-	if (RemoveQuantity >= RemovedItem->GetQuantity())
+	/*if (RemoveQuantity >= RemovedItem->GetQuantity())
 		RemoveItemFromPanel(&FromSlots, RemovedItem);
-	else
+	else*/
 		UpdateSlotInPanel(FromSlots, RemovedItem);
 	
 }

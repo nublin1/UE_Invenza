@@ -6,7 +6,7 @@
 #include "InventoryTypes.h"
 #include "UInventoryWidgetBase.h"
 #include "Components/ActorComponent.h"
-#include "Settings/Settings.h"
+#include "Settings/InvnzaSettings.h"
 #include "UI/BaseUserWidget.h"
 #include "SlotbasedInventoryWidget.generated.h"
 

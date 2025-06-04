@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Service/TradeService.h"
-#include "Settings/Settings.h"
+#include "Settings/InvnzaSettings.h"
 #include "UI/Container/InvBaseContainerWidget.h"
 #include "UI/Core/CoreHUDWidget.h"
 #include "UI/Inventory/InventoryTypes.h"

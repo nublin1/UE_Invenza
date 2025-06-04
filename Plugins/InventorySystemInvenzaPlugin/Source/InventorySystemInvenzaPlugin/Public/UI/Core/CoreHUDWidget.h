@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/CanvasPanel.h"
-#include "Settings/Settings.h"
+#include "Settings/InvnzaSettings.h"
 #include "UI/BaseUserWidget.h"
 #include "CoreHUDWidget.generated.h"
 

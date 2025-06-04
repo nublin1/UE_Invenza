@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Interaction/InteractionData.h"
-#include "Settings/Settings.h"
+#include "Settings/InvnzaSettings.h"
 #include "InteractionComponent.generated.h"
 
 #pragma region delegates

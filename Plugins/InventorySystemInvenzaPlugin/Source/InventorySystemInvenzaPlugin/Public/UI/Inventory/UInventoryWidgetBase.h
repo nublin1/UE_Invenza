@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "InventoryTypes.h"
-#include "Settings/Settings.h"
+#include "Settings/InvnzaSettings.h"
 #include "UI/BaseUserWidget.h"
 #include "UI/Container/InvBaseContainerWidget.h"
 #include "UInventoryWidgetBase.generated.h"

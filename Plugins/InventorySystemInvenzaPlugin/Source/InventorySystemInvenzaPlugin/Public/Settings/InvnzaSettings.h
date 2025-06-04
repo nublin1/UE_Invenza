@@ -2,7 +2,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Settings.generated.h"
+#include "InvnzaSettings.generated.h"
 
 class USlotbasedInventorySlot;
 class UModalTradeWidget;

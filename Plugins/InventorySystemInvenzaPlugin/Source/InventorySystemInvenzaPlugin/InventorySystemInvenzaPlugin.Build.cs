@@ -25,7 +25,7 @@ public class InventorySystemInvenzaPlugin : ModuleRules
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
-				"Core", "UMG","Json","JsonUtilities"   
+				"Core", "UMG","Json","JsonUtilities", "EnhancedInput"
 			}
 			);
 			
@@ -37,8 +37,6 @@ public class InventorySystemInvenzaPlugin : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
-				"UMG",
-				"EnhancedInput",
 				"InputCore", "AIModule"
 			}
 			);
