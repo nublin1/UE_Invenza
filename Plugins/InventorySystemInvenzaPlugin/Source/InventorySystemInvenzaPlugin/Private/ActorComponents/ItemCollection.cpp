@@ -443,7 +443,7 @@ void UItemCollection::DeserializeFromSave(TArray<FItemSaveEntry> InData)
 				{
 					InvBaseContainerWidget->GetInventoryFromContainerSlot()->ReDrawAllItems();
 					InvBaseContainerWidget->GetInventoryFromContainerSlot()->UpdateMoneyInfo();
-					InvBaseContainerWidget->GetInventoryFromContainerSlot()->UpdateMoneyInfo();
+					InvBaseContainerWidget->GetInventoryFromContainerSlot()->UpdateWeightInfo();
 				}
 			}
 		}
