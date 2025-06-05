@@ -20,12 +20,15 @@ class UInvBaseContainerWidget;
 class UItemCollection;
 class UItemBase;
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FMoneyCalculationResult
 {
 	GENERATED_USTRUCT_BODY()
-	
+
+	UPROPERTY(Category = "Money Calculation", VisibleAnywhere, BlueprintReadWrite)
 	float AvailableMoney = 0.0f;
+
+	UPROPERTY(Category = "Money Calculation", VisibleAnywhere, BlueprintReadWrite)
 	bool bHasEnough = false;
 };
 
@@ -34,13 +37,13 @@ struct FTradeSettings
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category = "Trade Settings", EditAnywhere, BlueprintReadOnly)
 	float BuyPriceFactor = 1.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category = "Trade Settings", EditAnywhere, BlueprintReadOnly)
 	float SellPriceFactor = 1.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category = "Trade Settings", EditAnywhere, BlueprintReadOnly)
 	bool RemoveItemAfterPurchase = false;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category = "Trade Settings", EditAnywhere, BlueprintReadOnly)
 	bool bSellOnly = false;
 };
 
@@ -53,17 +56,21 @@ public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
+	UPROPERTY(BlueprintAssignable, Category = "Trade|Events")
 	FOnSoldItem OnSoldItemDelegate;
+	UPROPERTY(BlueprintAssignable, Category = "Trade|Events")
 	FOnBoughtItem OnBoughtItemDelegate;
+	UPROPERTY(BlueprintAssignable, Category = "Trade|Events")
 	FOnFaildToBuyItem OnFaildToBuyItemDelegate;
+	UPROPERTY(BlueprintAssignable, Category = "Trade|Events")
 	FOnFaildToSellItem OnFaildToSellItemDelegate;
 	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UFUNCTION(BlueprintCallable, Category = "Trade")
+	UFUNCTION(BlueprintCallable, Category = "Trade|UI")
 	void OpenTradeMenu(AActor* Vendor, AActor* Buyer);
-	UFUNCTION(BlueprintCallable, Category = "Trade")
+	UFUNCTION(BlueprintCallable, Category = "Trade|UI")
 	void CloseTradeMenu();
 
 	UFUNCTION()
@@ -97,17 +104,14 @@ protected:
 	UItemCollection* BuyerItemCollection = nullptr;
 
 	//Settings
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trade|Config")
 	FTradeSettings TradeSettings;
 	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-
 	UFUNCTION()
 	static float CalculateAvailableMoney(UItemCollection* Collection);
 	UFUNCTION()
 	static FMoneyCalculationResult AccumulatePayment(UItemCollection* ItemCollection, float FullPrice);
-
-		
 };

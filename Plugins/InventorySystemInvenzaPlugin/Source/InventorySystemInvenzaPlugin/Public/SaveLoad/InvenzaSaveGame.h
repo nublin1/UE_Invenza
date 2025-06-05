@@ -17,6 +17,6 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UInvenzaSaveGame : public USaveGame
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="SaveLoad")
 	FInvSaveData PlayerSavedInventories;
 };

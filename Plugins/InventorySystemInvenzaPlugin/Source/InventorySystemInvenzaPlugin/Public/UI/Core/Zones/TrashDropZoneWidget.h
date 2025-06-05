@@ -29,15 +29,15 @@ protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(meta = (BindWidget))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI", meta = (BindWidget))
 	TObjectPtr<UBorder> TrashBorder;
 	
-	UPROPERTY(meta=(BindWidgetOptional))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI", meta=(BindWidgetOptional))
 	TObjectPtr<UImage> MainImage;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Visuals")
 	FLinearColor ColorByDefault;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Visuals")
 	FLinearColor ColorOnDrag = FLinearColor::Red;
 
 	//====================================================================

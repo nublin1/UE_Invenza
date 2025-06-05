@@ -25,7 +25,7 @@ public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(BlueprintAssignable, BlueprintCallable)
+	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "Save System|Events")
 	FOnGameLoaded OnGameLoaded;
 	
 	//====================================================================
@@ -40,17 +40,19 @@ protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Save System|Inputs")
 	TObjectPtr<UInputAction> SaveAction;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Save System|Inputs")
 	TObjectPtr<UInputAction> LoadAction;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Save System|Config")
 	FName SaveSlotName = "InventorySave";
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category = "Save System|Config")
 	int32 SaveUserIndex = 0;
 
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly)
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Save System|Data")
 	TObjectPtr<UInvenzaSaveGame> LoadedSaveData;
 	//====================================================================
 	// FUNCTIONS

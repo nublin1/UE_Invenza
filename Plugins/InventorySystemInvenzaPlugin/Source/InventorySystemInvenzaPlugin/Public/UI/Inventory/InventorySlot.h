@@ -33,13 +33,13 @@ public:
 		return SlotData.SlotPosition == other.GetSlotPosition();
 	}
 	
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Visual")
 	virtual void UpdateVisualWithItemInfo(UItemBase* Item);
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Visual")
 	virtual void UpdateVisualWithTexture(UTexture2D* NewTexture);
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Visual")
 	virtual void ResetVisual();
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Visual")
 	virtual void ClearVisual();
 	
 	//Getters
@@ -56,7 +56,7 @@ protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory Data")
 	FInventorySlotData SlotData;
 	
 	//====================================================================

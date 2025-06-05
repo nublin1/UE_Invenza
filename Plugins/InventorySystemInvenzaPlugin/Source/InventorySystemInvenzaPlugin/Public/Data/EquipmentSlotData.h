@@ -9,9 +9,9 @@ struct FEquipmentSlotData : public FTableRowBase
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment")
 	FName SlotName = "";
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment")
 	EItemCategory AllowedCategory = EItemCategory::None;
 };

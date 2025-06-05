@@ -103,7 +103,7 @@ protected:
 	void BeginInteract();
 	UFUNCTION()
 	void EndInteract();
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = "Interaction")
 	void Interact();
 public:
 	UFUNCTION()

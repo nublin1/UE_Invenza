@@ -9,7 +9,7 @@
 #include "EquipmentSlotWidget.generated.h"
 
 /**
- * 
+ * Equipment Slot Widget - Represents an equipment slot within the inventory system.
  */
 UCLASS()
 class INVENTORYSYSTEMINVENZAPLUGIN_API UEquipmentSlotWidget : public USlotbasedInventorySlot
@@ -20,7 +20,7 @@ public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment")
 	EItemCategory AllowedCategory;
 
 	//====================================================================

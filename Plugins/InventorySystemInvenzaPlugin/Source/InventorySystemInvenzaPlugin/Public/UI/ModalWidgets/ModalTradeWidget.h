@@ -15,13 +15,13 @@ struct FModalTradeData
 {
 	GENERATED_BODY()
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(Category = "Trade Data", BlueprintReadOnly)
 	FText ActionText;
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(Category = "Trade Data", BlueprintReadOnly)
 	int32 MaxAmount;
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(Category = "Trade Data", BlueprintReadOnly)
 	FText ItemName;
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(Category = "Trade Data", BlueprintReadOnly)
 	float UnitPrice;
 	
 	FModalTradeData(): MaxAmount(0), UnitPrice(0)
@@ -49,6 +49,7 @@ public:
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	
+	// Callbacks
 	TFunction<void(int32)> ConfirmCallback;
 	TFunction<void()> CancelCallback;
 	
@@ -57,7 +58,7 @@ public:
 	//====================================================================
 	UModalTradeWidget();
 
-	UFUNCTION(BlueprintImplementableEvent)
+	UFUNCTION(BlueprintImplementableEvent, Category = "Trade UI|Setup")
 	void InitializeTradeWidget(FModalTradeData ModalTradeData);
 
 	//UModalBaseWidget* GetModalBaseWidget() {return ModalWindowBase;}
@@ -67,11 +68,11 @@ protected:
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	// Widgets
-	UPROPERTY(BlueprintReadWrite, meta=(BindWidget))
+	UPROPERTY(BlueprintReadWrite, Category = "Trade UI|Widgets", meta=(BindWidget))
 	TObjectPtr<USlider> QuantitySlider;
-	UPROPERTY(BlueprintReadWrite, meta=(BindWidget))
+	UPROPERTY(BlueprintReadWrite, Category = "Trade UI|Widgets", meta=(BindWidget))
 	TObjectPtr<UModalBaseWidget> ModalWindowBase;
-	UPROPERTY(BlueprintReadWrite, meta=(BindWidgetOptional))
+	UPROPERTY(BlueprintReadWrite, Category = "Trade UI|Widgets", meta=(BindWidgetOptional))
 	TObjectPtr<UBinaryPromptButtons> PromtButtomsWidget;
 	
 	//====================================================================

@@ -38,7 +38,7 @@ protected:
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	// Widgets
-	UPROPERTY(VisibleAnywhere, meta=(BindWidget))
+	UPROPERTY(VisibleAnywhere, blueprintReadOnly, Category = "Highlight", meta=(BindWidget))
 	TObjectPtr<UCoreCellWidget> CoreCellWidget;
 
 	//

@@ -26,10 +26,10 @@ public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(BlueprintAssignable, Category = "Equipment")
+	UPROPERTY(BlueprintAssignable, BlueprintCallable,Category = "Equipment|Events")
 	FOnEquippedItem OnEquippedItem;
 	
-	UPROPERTY(BlueprintAssignable, Category = "Equipment")
+	UPROPERTY(BlueprintAssignable, BlueprintCallable,Category = "Equipment|Events")
 	FOnUnequippedItem OnUnequippedItem;
 
 	//====================================================================
@@ -37,40 +37,40 @@ public:
 	//====================================================================
 	UEquipmentManagerComponent();
 
-	UFUNCTION(BlueprintCallable, Category = "Equipment")
+	UFUNCTION(BlueprintCallable, Category = "Equipment|Initialization")
 	virtual void Initialize();
 
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable, Category = "Equipment|Validation")
 	void ValidateEquippedItems();
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = "Equipment|Management")
 	void HandleReplaceItem(TArray<FInventorySlotData> OldItemSlots, TArray<FInventorySlotData> NewItemSlots, UItemBase* Item);
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = "Equipment|Management")
 	void HandleItemEquippedFromMapping(FItemMapping ItemSlots, UItemBase* Item);
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = "Equipment|Management")
 	void EquipItemToSlot(TArray<FInventorySlotData>& ItemSlotsData, UItemBase* Item);
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = "Equipment|Management")
 	void EquipItem(UItemBase* Item);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = "Equipment|Management")
 	void HandleItemUnequippedFromMapping(FItemMapping ItemSlots, UItemBase* Item, int32 RemoveQuantity);
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = "Equipment|Management")
 	void UnequipItemFromSlot(TArray<FInventorySlotData>& ItemSlotsData, UItemBase* Item, int32 RemoveQuantity);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = "Equipment|Data")
 	TMap<UItemBase*, FEquipmentSlot> GetEquippedItemsData();
 
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Equipment|Slots")
 	TMap<FName, FEquipmentSlot> EquipmentSlots;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Config")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Equipment|Config")
 	TObjectPtr<UDataTable> SlotDefinitionTable;
 
 	//
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category="Config")
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category="Equipment|Config")
 	TObjectPtr<UInvBaseContainerWidget> CharacterEquipmentWidget = nullptr;
 	
 	//====================================================================
@@ -78,9 +78,9 @@ protected:
 	//====================================================================
 	virtual void BeginPlay() override;
 
-	UFUNCTION()
+	UFUNCTION(Category = "Equipment|Initialization")
 	virtual void InitializeSlotsFromTable();
-	UFUNCTION()
+	UFUNCTION(Category = "Equipment|Initialization")
 	virtual void BindWidgetsToSlots();
 
 public:	

@@ -23,11 +23,11 @@ public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ToolTip = "Enable filter color override"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Filters|Settings", meta = (ToolTip = "Enable filter color override"))
 	bool bUseFilterColor = false;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ToolTip = "Only for Grid inventory", EditCondition = "bUseFilterColor"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Filters|Settings", meta = (ToolTip = "Only for Grid inventory", EditCondition = "bUseFilterColor"))
 	FLinearColor ItemFilterBorderColor = FLinearColor::Green;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ToolTip="Only for Grid inventory"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Filters|Settings", meta=(ToolTip="Only for Grid inventory"))
 	float FilterOpacity = 0.15f;
 
 	//====================================================================
@@ -46,24 +46,24 @@ protected:
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	// Widgets
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(BlueprintReadWrite, Category = "Filters|UI Elements", meta = (BindWidgetOptional))
 	TObjectPtr<UHorizontalBox> HorizontalContentBox;
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(BlueprintReadWrite, Category = "Filters|UI Elements", meta = (BindWidgetOptional))
 	TObjectPtr<UVerticalBox> VerticalContentBox;
-	UPROPERTY(meta=(BindWidgetOptional))
+	UPROPERTY(BlueprintReadWrite, Category = "Filters|UI Elements", meta = (BindWidgetOptional))
 	TObjectPtr<UEditableText> SearchText;
 
-	UPROPERTY(BlueprintReadWrite, meta = (BindWidgetOptional))
+	UPROPERTY(BlueprintReadWrite, Category = "Filters|UI Elements", meta = (BindWidgetOptional))
 	TObjectPtr<UUIButton> ClearFiltersButton;
 
 	//
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(Category = "Filters",EditAnywhere, BlueprintReadWrite)
 	bool bIsShowSearchField = true;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category = "Filters", VisibleAnywhere, BlueprintReadOnly)
 	TArray<TObjectPtr<UItemCategoryButton>> CategoryButtonList;
 	
 	/** Whether to search in filtered inventory slots instead of the full inventory slots array */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ToolTip="If true, search will be performed in the filtered inventory slots"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Filters", meta=(ToolTip="If true, search will be performed in the filtered inventory slots"))
 	bool bSearchInFilteredSlots;
 
 	//====================================================================

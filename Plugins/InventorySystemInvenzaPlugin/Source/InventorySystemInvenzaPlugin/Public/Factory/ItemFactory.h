@@ -25,9 +25,9 @@ public:
 	// FUNCTIONS
 	//====================================================================
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = "Initialization")
 	static void Init(UDataTable* InTable);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = "Item Creation")
 	static UItemBase* CreateItemByID(UObject* Outer, FName ID, int32 Quantity = 1);
 };

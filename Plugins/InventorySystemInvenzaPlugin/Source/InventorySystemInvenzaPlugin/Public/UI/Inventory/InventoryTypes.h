@@ -138,11 +138,11 @@ struct FInventorySettings
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ToolTip = "-1 means infinite capacity"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory", meta = (ToolTip = "-1 means infinite capacity"))
 	float InventoryWeightCapacity = -1.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(tooltip="If true this container will be used as reference."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory", meta=(tooltip="If true this container will be used as reference."))
 	bool bUseReferences = false;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(tooltip="Can the items be referenced from this container"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory", meta=(tooltip="Can the items be referenced from this container"))
 	bool bCanReferenceItems = false;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
 	bool bCanUseItems = true;
@@ -172,13 +172,13 @@ struct FInventorySlotData
 {
 	GENERATED_BODY()
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
 	FName SlotName = " ";
 
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Inventory")
 	FIntVector2 SlotPosition{};
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
 	TObjectPtr<UInputAction> UseAction;
 
 	FInventorySlotData() {}
@@ -218,7 +218,7 @@ struct FItemMappingArrayWrapper
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
 	TArray<FItemMapping> Mappings;
 };
 

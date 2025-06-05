@@ -15,8 +15,9 @@ class UTextBlock;
 #pragma region Delegates
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnButtonClicked, UUIButton*, UIButton);
 #pragma endregion Delegates
+
 /**
- * 
+ * UI Button Widget - A customizable button with optional toggle functionality.
  */
 UCLASS()
 class INVENTORYSYSTEMINVENZAPLUGIN_API UUIButton : public UBaseUserWidget
@@ -28,17 +29,17 @@ public:
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	// Delegates
-	UPROPERTY(BlueprintAssignable, BlueprintCallable)
+	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "UI|Events")
 	FOnButtonClicked OnButtonClicked;
 	
 	// Widgets
-	UPROPERTY(meta=(BindWidgetOptional))
+	UPROPERTY(BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
 	TObjectPtr<USizeBox> MainBox;
-	UPROPERTY(meta=(BindWidgetOptional))
+	UPROPERTY(BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> MainLabel;
-	UPROPERTY(meta=(BindWidgetOptional))
+	UPROPERTY(BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
 	TObjectPtr<UImage> MainImage;
-	UPROPERTY(meta=(BindWidget))
+	UPROPERTY(BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
 	TObjectPtr<UButton> MainButton;
 
 	//====================================================================
@@ -46,32 +47,34 @@ public:
 	//====================================================================
 	UUIButton();
 
+	UFUNCTION(BlueprintCallable, Category = "UI|State")
 	bool GetToggleStatus() const {return bIsToggleOn;}
 
+	UFUNCTION(BlueprintCallable, Category = "UI|State")
 	void SetToggleStatus(const bool bNewStatus);
 
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI|Input")
 	TObjectPtr<UInputAction> ClickAction;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI|State")
 	bool bIsToggleButton;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|State")
 	bool bIsToggleOn;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Settings")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|State")
 	FLinearColor ToggleColor = FLinearColor(FColor::FromHex(TEXT("FFD369FF")));
 
 	//
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Defaults")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Defaults")
 	FText DefaultText = FText::FromString(" ");
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Defaults")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Defaults")
 	FVector2D DefaultSize = FVector2D(64.f, 64.f);
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Defaults")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Defaults")
 	TObjectPtr<UTexture2D> DefaultImage;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Defaults")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Defaults")
 	FLinearColor DefaultButtonBackgroundImage;
 
 	//====================================================================

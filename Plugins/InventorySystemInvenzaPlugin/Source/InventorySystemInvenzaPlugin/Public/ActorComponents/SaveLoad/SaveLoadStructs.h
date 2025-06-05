@@ -13,9 +13,9 @@ struct FItemSaveData
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Save Data")
 	FName ItemID;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Save Data")
 	int32 Quantity = 0;
 
 	FItemSaveData() {}
@@ -48,10 +48,10 @@ struct FInventorySlotSaveData
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Slot Save Data")
 	FName SlotName = " ";
 
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Slot Save Data")
 	FIntVector2 SlotPosition{};
 };
 
@@ -60,12 +60,12 @@ struct FItemMappingSaveData
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mapping Data")
 	FName InventoryContainerName;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mapping Data")
 	EInventoryType InventoryType;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mapping Data")
 	TArray<FInventorySlotSaveData> SlotSaveDatas;
 
 	FItemMappingSaveData(): InventoryType()
@@ -95,10 +95,10 @@ struct FItemSaveEntry
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Save Entry")
 	FItemSaveData Item;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Save Entry")
 	TArray<FItemMappingSaveData> Containers;
 };
 
@@ -107,7 +107,7 @@ struct FInvSaveData
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Save Data")
 	TArray<FItemSaveEntry> SavedItemLocations;
 };
 
