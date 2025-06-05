@@ -36,7 +36,7 @@ protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Inventory|Container")
 	TObjectPtr<UItemCollection> ItemCollection;
 	
 	UPROPERTY()
@@ -44,9 +44,9 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UInvBaseContainerWidget> ContainerWidget;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Container")
 	FVector2D InventorySize = FVector2D(5,4); // Only for SlotBased 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Container")
 	bool bDestroyWhenEmpty = false;
 
 	//====================================================================
@@ -62,7 +62,7 @@ protected:
 	void InitializeItemCollection();
 	
 	virtual void UpdateInteractableData() override;
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Container")
 	virtual void FindContainerWidget();
 	
 	UFUNCTION()

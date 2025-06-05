@@ -13,8 +13,9 @@ class UHorizontalBox;
 class UCoreCellWidget;
 class USizeBox;
 class USlotbasedInventorySlot;
+
 /**
- * 
+ * Inventory Item Widget - Handles visual updates and interactions for inventory items.
  */
 UCLASS()
 class INVENTORYSYSTEMINVENZAPLUGIN_API UInventoryItemWidget : public UBaseUserWidget
@@ -43,9 +44,9 @@ public:
 	UFUNCTION()
 	void UpdateQuantityText(int Quantity);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Styling")
 	void ChangeBorderColor(FLinearColor NewColor) const;
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Styling")
 	void ChangeOpacity(float NewValue);
 	
 protected:
@@ -53,17 +54,17 @@ protected:
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	// Widgets
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta=(BindWidget))
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Inventory|UI Elements", meta=(BindWidget))
 	TObjectPtr<UCoreCellWidget> CoreCellWidget;
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta=(BindWidgetOptional))
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Inventory|UI Elements", meta=(BindWidget))
 	TObjectPtr<USizeBox> SizeBoxText;
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Inventory Slot", meta=(BindWidgetOptional))
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Inventory|UI Elements", meta=(BindWidget))
 	TObjectPtr<UHorizontalBox> HBoxName;
-	UPROPERTY(VisibleAnywhere,BlueprintReadWrite, Category="Inventory Slot", meta=(BindWidgetOptional))
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Inventory|UI Elements", meta=(BindWidget))
 	TObjectPtr<UTextBlock> ItemName;
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Inventory Slot", meta=(BindWidgetOptional))
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Inventory|UI Elements", meta=(BindWidget))
 	TObjectPtr<UHorizontalBox> HBoxQuantity;
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Inventory Slot", meta=(BindWidgetOptional))
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Inventory|UI Elements", meta=(BindWidget))
 	TObjectPtr<UTextBlock> ItemQuantity;
 		
 	//====================================================================

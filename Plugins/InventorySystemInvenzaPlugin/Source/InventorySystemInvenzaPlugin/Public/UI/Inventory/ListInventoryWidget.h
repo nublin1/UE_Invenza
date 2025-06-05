@@ -15,6 +15,7 @@ class UEditableText;
 class UInventoryListEntry;
 class UListView;
 class UScrollBox;
+
 /**
  * 
  */
@@ -46,17 +47,17 @@ protected:
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	// Widgets
-	UPROPERTY(BlueprintReadOnly, meta=(BindWidgetOptional))
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory|UI", meta=(BindWidgetOptional))
 	TObjectPtr<UItemFiltersPanel> ItemFiltersPanel;
-	UPROPERTY(BlueprintReadOnly, meta=(BindWidgetOptional))
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory|UI", meta=(BindWidgetOptional))
 	TObjectPtr<UScrollBox> ScrollBox;
-	UPROPERTY(BlueprintReadOnly, meta=(BindWidgetOptional))
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory|UI", meta=(BindWidgetOptional))
 	TObjectPtr<UListView> ItemsList;
 
 	//
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Data")
 	TArray<TObjectPtr<UInventoryListEntry>> InvSlotsArray;
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Data")
 	TArray<TObjectPtr<UInventoryListEntry>> FiltredInvSlotsArray;
 	
 

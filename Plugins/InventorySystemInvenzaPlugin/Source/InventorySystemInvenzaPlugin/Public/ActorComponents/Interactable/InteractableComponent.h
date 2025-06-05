@@ -36,7 +36,7 @@ public:
 	UFUNCTION()
 	virtual void StopInteract(UInteractionComponent* InteractionComponent);
 
-	UPROPERTY(EditAnywhere,BlueprintReadWrite)
+	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category="Interactable")
 	FInteractableData InteractableData;
 
 protected:

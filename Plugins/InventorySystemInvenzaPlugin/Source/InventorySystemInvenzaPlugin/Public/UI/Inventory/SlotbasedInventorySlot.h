@@ -35,7 +35,7 @@ public:
 	virtual void ResetVisual() override;
 	virtual void ClearVisual() override;
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category="Inventory")
 	UTexture2D* GetDefaultCellImage() {return DefaultCellImage;}
 
 	virtual void SetSlotNameText(FString InUseKeyText) override;

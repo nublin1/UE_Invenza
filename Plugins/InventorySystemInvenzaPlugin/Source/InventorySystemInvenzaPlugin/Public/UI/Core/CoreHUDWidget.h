@@ -30,17 +30,17 @@ public:
 	//====================================================================
 	UCoreHUDWidget();
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = "HUD|Setup")
 	void InitializeWidget();
 	
 	void ToggleWidget(UBaseUserWidget* Widget);
 	void ShowWidget(UBaseUserWidget* Widget);
 	void HideWidget(UBaseUserWidget* Widget);
 	//Inventory
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = "HUD")
 	void ToggleInventoryLayout();
 	// Equipment
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable,Category = "HUD")
 	void ToggleEquipmentLayout();
 
 	//
@@ -64,9 +64,9 @@ protected:
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	//Widgets
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HUD|UI", meta = (BindWidget))
 	TObjectPtr<UCanvasPanel> ContentPanel;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidgetOptional))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HUD|UI", meta = (BindWidget))
 	TObjectPtr<UInteractionWidget> InteractionWidget;
 	
 	//
@@ -82,9 +82,9 @@ protected:
 	TObjectPtr<UInvBaseContainerWidget> EquipmentInvWidget;
 	
 	//	
-	UPROPERTY(BlueprintReadWrite)
+	UPROPERTY(BlueprintReadWrite, Category = "HUD|Settings")
 	FUISettings UISettings;
-	UPROPERTY()
+	UPROPERTY(VisibleInstanceOnly, Category = "HUD|Settings")
 	int32 OpenMenuCount = 0;
 	
 	//====================================================================

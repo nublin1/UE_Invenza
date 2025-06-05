@@ -20,10 +20,10 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UInventoryListEntry : public UObject
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(BlueprintReadWrite)
+	UPROPERTY(BlueprintReadWrite, Category="Inventory")
 	TObjectPtr<UItemBase> Item = nullptr;
 
-	UPROPERTY(BlueprintReadWrite)
+	UPROPERTY(BlueprintReadWrite, Category="Inventory")
 	TObjectPtr<UListInventoryWidget> ParentInventoryWidget = nullptr;
 };
 

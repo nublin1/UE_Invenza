@@ -19,10 +19,10 @@ public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(BlueprintReadWrite)
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Drag & Drop")
 	FItemMoveData ItemMoveData;
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Drag & Drop")
 	FVector2D DragOffset;
 	
 	//====================================================================
@@ -33,7 +33,7 @@ protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Drag & Drop")
 	TObjectPtr<UUserWidget> WidgetReference;
 	
 	//===================================================================

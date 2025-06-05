@@ -18,10 +18,10 @@ struct FItemEntry
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
 	FName ItemName;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
 	int32 ItemCount = 1;
 };
 
@@ -37,7 +37,7 @@ public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(BlueprintAssignable)
+	UPROPERTY(BlueprintAssignable, Category = "Item|Events")
 	FOnUseItemDelegate OnUseItemDelegate;
 	
 	//====================================================================

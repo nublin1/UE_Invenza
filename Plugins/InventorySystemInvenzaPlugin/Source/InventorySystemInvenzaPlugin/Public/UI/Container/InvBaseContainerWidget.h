@@ -29,7 +29,7 @@ public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(BlueprintAssignable,BlueprintCallable)
+	UPROPERTY(BlueprintAssignable,BlueprintCallable, Category = "Container|Events" )
 	FWidgetClose OnClose;
 	
 	//====================================================================
@@ -37,7 +37,7 @@ public:
 	//====================================================================
 	UInvBaseContainerWidget();
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = "Container")
 	virtual void ChangeInventoryInContainerSlot(TSubclassOf<UBaseUserWidget> NewInventory);
 
 	UFUNCTION()
@@ -45,7 +45,7 @@ public:
 	UFUNCTION()
 	EInventoryType GetInventoryType() const {return InventoryType;}
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = "Container")
 	virtual UUInventoryWidgetBase* GetInventoryFromContainerSlot();
 
 	UFUNCTION(BlueprintCallable, Category = "Container|Comparison")
@@ -64,27 +64,27 @@ protected:
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	//Widgets
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = UI, meta=(BindWidgetOptional))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Container", meta=(BindWidgetOptional))
 	TObjectPtr<UMovableTitleBar> TitleBar;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = UI, meta=(BindWidgetOptional))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Container", meta=(BindWidgetOptional))
 	TObjectPtr<UNamedSlot> ContainerSlot;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = UI, meta=(BindWidgetOptional))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Container", meta=(BindWidgetOptional))
 	TObjectPtr<UNamedSlot> OperationsSlot;
 	UPROPERTY(meta=(BindWidgetOptional))
 	TObjectPtr<UInvWeightWidget> InvWeight;
 
 	// Settings
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Container")
 	EInventoryType InventoryType = EInventoryType::None;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = UI)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 	bool bIsShowTotalMoney = true;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = UI)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Container")
 	bool bIsShowWeight = true;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = UI)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Container")
 	bool bIsShowCloseButton = true;
 
 	//
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Container")
 	FText Title;
 
 	

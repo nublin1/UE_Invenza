@@ -17,7 +17,7 @@ public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Drag & Drop")
 	FVector2D DragOffset;
 	
 	//====================================================================

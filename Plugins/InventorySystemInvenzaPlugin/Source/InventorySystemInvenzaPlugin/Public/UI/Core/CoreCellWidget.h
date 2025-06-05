@@ -23,19 +23,18 @@ public:
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	// Widgets
-	UPROPERTY(VisibleAnywhere, meta=(BindWidget))
+	UPROPERTY(VisibleAnywhere, Category = "Cell UI|Components", meta=(BindWidget))
 	TObjectPtr<USizeBox> SizeBox;
-	UPROPERTY(VisibleAnywhere, meta=(BindWidget))
+	UPROPERTY(VisibleAnywhere, Category = "Cell UI|Components", meta=(BindWidget))
 	TObjectPtr<UBorder>	 Left_Border;
-	UPROPERTY(VisibleAnywhere, meta=(BindWidget))
+	UPROPERTY(VisibleAnywhere, Category = "Cell UI|Components", meta=(BindWidget))
 	TObjectPtr<UBorder>  Right_Border;
-	UPROPERTY(VisibleAnywhere, meta=(BindWidget))
+	UPROPERTY(VisibleAnywhere, Category = "Cell UI|Components", meta=(BindWidget))
 	TObjectPtr<UBorder>  Top_Border;
-	UPROPERTY(VisibleAnywhere, meta=(BindWidget))
+	UPROPERTY(VisibleAnywhere, Category = "Cell UI|Components", meta=(BindWidget))
 	TObjectPtr<UBorder>  BottomBorder;
-	UPROPERTY(VisibleAnywhere, meta=(BindWidget))
+	UPROPERTY(VisibleAnywhere, Category = "Cell UI|Components", meta=(BindWidget))
 	TObjectPtr<UImage>	 Content_Image;
-	
 	
 	//====================================================================
 	// FUNCTIONS
@@ -54,18 +53,17 @@ protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(EditAnywhere,BlueprintReadWrite)
+	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category = "Cell UI|Defaults")
 	FVector2D DefaultSlotSize = FVector2d(100.0f);
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category = "Cell UI|Defaults")
 	TObjectPtr<UTexture2D> DefaultContent_Image;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category = "Cell UI|Defaults")
 	FLinearColor DefaultTintColor;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category = "Cell UI|Defaults")
 	FLinearColor DefaultColorAndOpacity;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category = "Cell UI|Defaults")
 	FLinearColor DefaultBorderColor;
-	
 	
 	//====================================================================
 	// FUNCTIONS
@@ -74,5 +72,4 @@ protected:
 
 	UFUNCTION()
 	virtual void ApplyDefaultContentImageStyle();
-	
 };
