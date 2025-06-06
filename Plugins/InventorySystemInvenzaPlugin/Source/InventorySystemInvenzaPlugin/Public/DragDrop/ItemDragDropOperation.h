@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Blueprint/DragDropOperation.h"
 #include "UI/Inventory/InventoryTypes.h"
+#include "Blueprint/UserWidget.h"
 #include "ItemDragDropOperation.generated.h"
 
 /**

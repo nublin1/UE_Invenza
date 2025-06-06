@@ -2,6 +2,7 @@
 
 #include "UI/Core/CoreCellWidget.h"
 
+#include "Engine/Texture2D.h"
 #include "Components/Border.h"
 #include "Components/Image.h"
 #include "Components/SizeBox.h"

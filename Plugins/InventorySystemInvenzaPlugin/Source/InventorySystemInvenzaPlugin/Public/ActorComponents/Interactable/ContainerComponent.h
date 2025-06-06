@@ -3,6 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameFramework/Actor.h"
+#include "Engine/StaticMesh.h"
 #include "ActorComponents/ItemCollection.h"
 #include "ActorComponents/Interactable/InteractableComponent.h"
 #include "ContainerComponent.generated.h"

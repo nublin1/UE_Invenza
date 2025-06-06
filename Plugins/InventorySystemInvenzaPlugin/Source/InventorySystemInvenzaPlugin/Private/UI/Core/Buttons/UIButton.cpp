@@ -4,12 +4,12 @@
 #include "UI/Core/Buttons/UIButton.h"
 
 #include "EnhancedInputComponent.h"
-#include "ViewportWorldInteraction.h"
 #include "Components/Button.h"
 #include "Components/Image.h"
 #include "Components/SizeBox.h"
 #include "Components/TextBlock.h"
-#include "Kismet/GameplayStatics.h"
+#include "Engine/Texture2D.h"
+
 
 UUIButton::UUIButton(): bIsToggleButton(false), bIsToggleOn(false), DefaultButtonBackgroundImage()
 {
@@ -35,7 +35,7 @@ void UUIButton::NativePreConstruct()
 		if (DefaultImage)
 		{
 			FSlateBrush Brush;
-			Brush.SetResourceObject(DefaultImage);
+			Brush.SetResourceObject(Cast<UObject>(DefaultImage.Get()));
 			Brush.ImageSize = FVector2D(DefaultSize.X, DefaultSize.Y);
 			MainImage->SetBrush(Brush);
 		}

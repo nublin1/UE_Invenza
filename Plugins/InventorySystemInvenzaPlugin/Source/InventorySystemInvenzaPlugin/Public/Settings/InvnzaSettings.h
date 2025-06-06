@@ -1,7 +1,12 @@
 //  Nublin Studio 2025 All Rights Reserved.
+
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Engine/DataTable.h"
+#include "InputCoreTypes.h"
+#include "GameFramework/Actor.h"
+#include "UObject/ObjectPtr.h"
 #include "InvnzaSettings.generated.h"
 
 class USlotbasedInventorySlot;
@@ -31,9 +36,9 @@ struct FUISettings
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Input")
     UInputAction* IA_Mod_GrabAllSame;
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Input")
-    FKey ItemSelectKey = EKeys::LeftMouseButton;
+    FKey ItemSelectKey;
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Input")
-    FKey ItemUseKey = EKeys::RightMouseButton;
+    FKey ItemUseKey;
 	
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|World")
     TSubclassOf<AActor> PickupClass;
@@ -58,11 +63,13 @@ struct FUISettings
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Layout")
     FVector2D SlotSize = FVector2D(0.f);
 
-
-	FUISettings(): InventoryMappingContext(nullptr), ToggleInventoryAction(nullptr),
+	FUISettings(): InventoryMappingContext(nullptr),
+	               ToggleInventoryAction(nullptr),
 	               ToggleEquipmentAction(nullptr),
 	               IA_Mod_QuickGrab(nullptr),
-	               IA_Mod_GrabAllSame(nullptr)
+	               IA_Mod_GrabAllSame(nullptr),
+					ItemSelectKey(EKeys::LeftMouseButton),
+	               ItemUseKey(EKeys::RightMouseButton)
 	{
 	}
 };

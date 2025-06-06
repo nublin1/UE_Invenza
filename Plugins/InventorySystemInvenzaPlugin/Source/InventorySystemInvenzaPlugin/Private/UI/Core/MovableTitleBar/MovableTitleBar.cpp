@@ -6,11 +6,11 @@
 #include "ActorComponents/UIInventoryManager.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Components/CanvasPanelSlot.h"
-#include "Components/PanelWidget.h"
 #include "Components/SizeBox.h"
 #include "Components/TextBlock.h"
 #include "DragDrop/InvContainerDragDropOperation.h"
 #include "DragDrop/ItemDragDropOperation.h"
+#include "Framework/Application/SlateApplication.h"
 #include "UI/Core/CoreCellWidget.h"
 
 UMovableTitleBar::UMovableTitleBar(): DragContainer_Temp(nullptr)

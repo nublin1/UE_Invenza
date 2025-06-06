@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Containers/Map.h"
+#include "UObject/ObjectPtr.h"
+#include "Engine/DataTable.h"
 #include "Items/itemBase.h"
 #include "UI/Inventory/InventoryTypes.h"
 #include "ItemCollection.generated.h"

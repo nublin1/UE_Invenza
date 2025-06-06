@@ -4,7 +4,9 @@
 
 #include "EnhancedInputComponent.h"
 #include "ActorComponents/Interactable/InteractableComponent.h"
-#include "ActorComponents/Interactable/PickupComponent.h"
+#include "TimerManager.h"      
+#include "GameFramework/Actor.h"
+#include "Engine/World.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/Character.h"
 

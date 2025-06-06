@@ -1,6 +1,11 @@
+//  Nublin Studio 2025 All Rights Reserved.
+
 #pragma once
 
 #include "CoreMinimal.h"
+#include "UObject/ObjectPtr.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/Texture2D.h"
 #include "ItemDataStructures.generated.h"
 
 UENUM(BlueprintType)

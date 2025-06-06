@@ -3,13 +3,16 @@
 #include "ActorComponents/EquipmentManager/EquipmentManagerComponent.h"
 
 #include "ActorComponents/ItemCollection.h"
+#include "GameFramework/Actor.h"
+#include "UObject/ObjectPtr.h"
+#include "Engine/World.h"
 #include "ActorComponents/UIInventoryManager.h"
 #include "ActorComponents/Items/itemBase.h"
 #include "ActorComponents/SaveLoad/InvenzaSaveManager.h"
 #include "Data/EquipmentSlotData.h"
 #include "Data/EquipmentStructures.h"
 #include "UI/Inventory/EquipmentInventoryWidget.h"
-#include "UI/Inventory/EquipmentSlotWidget.h"
+
 
 UEquipmentManagerComponent::UEquipmentManagerComponent(): SlotDefinitionTable(nullptr)
 {

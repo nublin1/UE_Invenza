@@ -5,6 +5,8 @@
 
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
+#include "Engine/Texture2D.h"
+#include "TimerManager.h"
 #include "UI/Core/CoreCellWidget.h"
 
 USlotbasedInventorySlot::USlotbasedInventorySlot()

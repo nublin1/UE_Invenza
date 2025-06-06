@@ -141,7 +141,7 @@ bool UUInventoryWidgetBase::HandleTradeModalOpening(UItemBase* Item)
 	if (InventoryManager->GetCurrentInteractInvWidget()
 			&& InventoryManager->GetCurrentInteractInvWidget()->GetInventoryType() == EInventoryType::VendorInventory)
 	{
-		if (InventoryData.ItemCollectionLink->GetOwner() == GetOwningPlayer()->GetPawn())
+		if (InventoryData.ItemCollectionLink->GetOwner() == Cast<APawn>(GetOwningPlayer()->GetPawn()))
 		{
 			InventoryManager->OpenTradeModal(false, Item);
 			return true;

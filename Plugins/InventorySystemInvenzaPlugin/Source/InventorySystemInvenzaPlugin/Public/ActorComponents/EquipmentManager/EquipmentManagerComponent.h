@@ -3,6 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameFramework/Actor.h"
+#include "Engine/DataTable.h"
 #include "Components/ActorComponent.h"
 #include "Data/EquipmentStructures.h"
 #include "EquipmentManagerComponent.generated.h"

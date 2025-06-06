@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "Components/CanvasPanel.h"
+#include "GameFramework/Pawn.h"
+#include "GameFramework/PlayerController.h"
 #include "Settings/InvnzaSettings.h"
 #include "UI/BaseUserWidget.h"
 #include "CoreHUDWidget.generated.h"

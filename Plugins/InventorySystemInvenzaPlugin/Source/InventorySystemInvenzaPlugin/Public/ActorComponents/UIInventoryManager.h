@@ -11,12 +11,12 @@
 #include "UI/Inventory/InventoryTypes.h"
 #include "UIInventoryManager.generated.h"
 
-struct FItemMetaData;
-class FIteract;
 enum class EInteractableType : uint8;
-class UItemCollection;
 struct FItemMoveData;
 struct FInputActionInstance;
+struct FItemMetaData;
+class FIteract;
+class UItemCollection;
 class UInputAction;
 class UInteractableComponent;
 class UCoreHUDWidget;
@@ -34,7 +34,6 @@ public:
 	//====================================================================
 	// Delegates
 	//====================================================================
-	/** Событие по завершению инициализации */
 	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "Inventory|Events")
 	FOnInitializationComplete OnInitializationCompleteDelegate;
 
@@ -122,5 +121,5 @@ protected:
 
 public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
-	                           FActorComponentTickFunction* ThisTickFunction);
+	                           FActorComponentTickFunction* ThisTickFunction) override;
 };

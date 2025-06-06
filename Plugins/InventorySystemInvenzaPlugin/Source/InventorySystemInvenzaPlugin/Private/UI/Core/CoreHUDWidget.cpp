@@ -9,6 +9,8 @@
 #include "DragDrop/InvContainerDragDropOperation.h"
 #include "DragDrop/ItemDragDropOperation.h"
 #include "Kismet/GameplayStatics.h"
+#include "GameFramework/Pawn.h"
+#include "GameFramework/PlayerController.h"
 #include "UI/Container/InvBaseContainerWidget.h"
 #include "UI/Inrefaces/UDraggableWidgetInterface.h"
 #include "UI/Inventory/SlotbasedInventoryWidget.h"

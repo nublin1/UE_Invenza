@@ -13,6 +13,7 @@
 #include "UI/Core/MovableTitleBar/MovableTitleBar.h"
 #include "UI/Core/OperationsPanel/OperationPanelWidget.h"
 #include "UI/Core/Weight/InvWeightWidget.h"
+#include "GameFramework/Pawn.h"
 #include "UI/Inventory/SlotbasedInventoryWidget.h"
 
 

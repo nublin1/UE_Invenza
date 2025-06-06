@@ -2,9 +2,13 @@
 
 #include "ActorComponents/UIInventoryManager.h"
 
-#include "DelayAction.h"
+#include "Engine/DataTable.h"
+#include "GameFramework/Actor.h"
+#include "Engine/Engine.h"
+#include "Engine/GameViewportClient.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "Slate/SceneViewport.h"
 #include "ActorComponents/InteractionComponent.h"
 #include "ActorComponents/ItemCollection.h"
 #include "ActorComponents/TradeComponent.h"
@@ -43,8 +47,13 @@ void UIInventoryManager::OpenTradeModal(bool bIsSaleOperation, UItemBase* Operat
 		ModalTradeWidget->SetAnchorsInViewport(FAnchors(0.5f, 0.5f));
 		ModalTradeWidget->SetAlignmentInViewport(FVector2D(0.5f, 0.5f));
 		ModalTradeWidget->AddToViewport();
-		
-		const FVector2D ViewportSize = FVector2D(GEngine->GameViewport->Viewport->GetSizeXY());
+
+		FVector2D ViewportSize;
+		if (GEngine && GEngine->GameViewport)
+		{
+			GEngine->GameViewport->GetViewportSize(ViewportSize);
+		}
+		//const FVector2D ViewportSize = FVector2D(GEngine->GameViewport->Viewport->GetSizeXY());
 		const FVector2D ViewportCenter = ViewportSize * 0.5f;
 		const FVector2D Center = ViewportCenter;
 		
@@ -60,7 +69,7 @@ void UIInventoryManager::OpenTradeModal(bool bIsSaleOperation, UItemBase* Operat
 	FItemMetaData ItemData = OperationalItem->GetItemRef();
 	if (bIsSaleOperation)
 	{
-		OperationalText = FText::FromString("Sale");
+		OperationalText = FText::FromString("Buy");
 		PriceFactor = TradeComponent->GetTradeSettings().SellPriceFactor;
 		if (TradeComponent->GetTradeSettings().RemoveItemAfterPurchase)
 			MaxAmount = OperationalItem->GetQuantity();
@@ -69,7 +78,7 @@ void UIInventoryManager::OpenTradeModal(bool bIsSaleOperation, UItemBase* Operat
 	}
 	else
 	{
-		OperationalText = FText::FromString("Buy");
+		OperationalText = FText::FromString("Sell");
 		PriceFactor = TradeComponent->GetTradeSettings().BuyPriceFactor;
 		MaxAmount = ItemData.ItemNumeraticData.MaxStackSize;
 	}

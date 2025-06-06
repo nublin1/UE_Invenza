@@ -37,6 +37,7 @@ public class InventorySystemInvenzaPlugin : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
+				"ApplicationCore",
 				"InputCore", "AIModule"
 			}
 			);

@@ -5,6 +5,8 @@
 #include "ActorComponents/UIInventoryManager.h"
 #include "ActorComponents/Interactable/PickupComponent.h"
 #include "Data/ItemData.h"
+#include "GameFramework/Pawn.h"
+#include "Engine/Engine.h"
 #include "Kismet/GameplayStatics.h"
 
 #define LOCTEXT_NAMESPACE "Inventory"
@@ -60,6 +62,7 @@ void UItemBase::DropItem(UWorld* World)
 	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(World, 0);
 	if (!PlayerController || !this) return;
 	auto Pawn = PlayerController->GetPawn();
+	APawn* PawnRaw = Pawn.Get();
 	UIInventoryManager* InventoryManager = Pawn->FindComponentByClass<UIInventoryManager>();
 
 	if (!InventoryManager)
@@ -70,8 +73,8 @@ void UItemBase::DropItem(UWorld* World)
 	SpawnParameters.bNoFail = true;
 	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
-	const FVector SpawnLocation{Pawn->GetActorLocation() + (Pawn->GetActorForwardVector() * 50.0f)};
-	const FTransform SpawnTransform(Pawn->GetActorRotation(), SpawnLocation);
+	const FVector SpawnLocation{PawnRaw->GetActorLocation() + (PawnRaw->GetActorForwardVector() * 50.0f)};
+	const FTransform SpawnTransform(PawnRaw->GetActorRotation(), SpawnLocation);
 
 	auto Pickup = World->SpawnActor<AActor>(InventoryManager->GetUISettings().PickupClass, SpawnTransform, SpawnParameters);
 	if (!Pickup)

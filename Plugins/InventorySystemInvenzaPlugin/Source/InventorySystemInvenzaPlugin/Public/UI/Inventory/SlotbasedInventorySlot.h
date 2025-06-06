@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "InventorySlot.h"
+#include "TimerManager.h"
+#include "Engine/Texture2D.h"
 #include "SlotbasedInventorySlot.generated.h"
 
 class UTextBlock;

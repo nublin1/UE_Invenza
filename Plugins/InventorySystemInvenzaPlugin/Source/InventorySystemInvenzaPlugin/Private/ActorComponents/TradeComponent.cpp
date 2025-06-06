@@ -1,6 +1,7 @@
 //  Nublin Studio 2025 All Rights Reserved.
 
 #include "ActorComponents/TradeComponent.h"
+#include "GameFramework/Actor.h"
 #include "ActorComponents/ItemCollection.h"
 
 void UTradeComponent::OpenTradeMenu(AActor* Vendor, AActor* Buyer)
@@ -54,8 +55,6 @@ FMoneyCalculationResult UTradeComponent::AccumulatePayment(UItemCollection* Item
 		Result.bHasEnough = false;
 		return Result;
 	}
-	
-
 
 	Result.bHasEnough = Result.AvailableMoney >= FullPrice;
 
