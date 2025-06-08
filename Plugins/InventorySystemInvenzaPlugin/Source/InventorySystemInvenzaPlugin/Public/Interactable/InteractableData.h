@@ -1,14 +1,10 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+//  Nublin Studio 2025 All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "UObject/Interface.h"
 #include "InteractableData.generated.h"
-
-/**
- * 
- */
 
 class UInteractionComponent;
 

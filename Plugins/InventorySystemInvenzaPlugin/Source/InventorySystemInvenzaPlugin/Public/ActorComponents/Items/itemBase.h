@@ -88,10 +88,10 @@ public:
     FORCEINLINE FIntVector2 GetOccupiedSlots() const { return FIntVector2(ItemRef.ItemNumeraticData.NumHorizontalSlots, ItemRef.ItemNumeraticData.NumVerticalSlots); }
 
 	UFUNCTION(BlueprintCallable, Category = "Item|Properties")
-	FORCEINLINE FString CategoryToString();
+	FString CategoryToString();
 
     /** Get and set methods */
-	FName GetItemID() {return ItemID;}
+	FName GetItemID() const {return ItemID;}
     FItemMetaData& GetItemRef() { return ItemRef; }
     int32 GetQuantity() const { return Quantity; }
     void SetItemRef(const FItemMetaData& NewItemRef) { this->ItemRef = NewItemRef; }
