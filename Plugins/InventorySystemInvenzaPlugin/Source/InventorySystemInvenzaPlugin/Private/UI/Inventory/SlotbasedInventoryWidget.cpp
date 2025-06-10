@@ -649,7 +649,7 @@ int32 USlotbasedInventoryWidget::HandleStackableItems(FItemMoveData& ItemMoveDat
 		int32 ActualAmountToAdd = CalculateActualAmountToAdd(AmountToAddToStack, ItemMoveData.SourceItem->GetItemSingleWeight());
 		
 		if (bOnlyCheck)
-			return AmountToDistribute;
+			return ActualAmountToAdd + TotalAddedAmount;
 
 		FItemMapping Slots(TargetSlot->GetSlotData());
 		FItemMoveData NewItemMoveData;
