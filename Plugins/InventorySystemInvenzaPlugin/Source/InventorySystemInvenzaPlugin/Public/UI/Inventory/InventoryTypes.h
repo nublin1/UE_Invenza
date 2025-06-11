@@ -125,11 +125,15 @@ struct FItemMoveData
 	{
 	}
 
-	FItemMoveData (UItemBase* _SourceItem, UUInventoryWidgetBase* _SourceInventory, UUInventoryWidgetBase* _TargetInventory)
+	FItemMoveData (UItemBase* _SourceItem,
+		UUInventoryWidgetBase* _SourceInventory,
+		UUInventoryWidgetBase* _TargetInventory,
+		UInventorySlot* _TargetSlot = nullptr)
 	{
 		SourceItem = _SourceItem;
 		SourceInventory = _SourceInventory;
 		TargetInventory = _TargetInventory;
+		TargetSlot = _TargetSlot;
 	}
 };
 

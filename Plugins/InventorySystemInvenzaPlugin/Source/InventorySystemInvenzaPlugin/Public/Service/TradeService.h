@@ -5,6 +5,7 @@
 #include "TradeService.generated.h"
 
 
+class UInventorySlot;
 class UInvBaseContainerWidget;
 class UUInventoryWidgetBase;
 class UItemBase;
@@ -39,6 +40,8 @@ struct FTradeRequest
 	TObjectPtr<UItemBase> Item;
 	UPROPERTY()
 	int32 Quantity;
+	UPROPERTY()
+	TObjectPtr<UInventorySlot> TargetSlot;
 
 	FTradeRequest(): Quantity(0)
 	{
@@ -49,6 +52,7 @@ struct FTradeRequest
 		TObjectPtr<UInvBaseContainerWidget> InVendorContainer,
 		TObjectPtr<UInvBaseContainerWidget> InBuyerContainer,
 		TObjectPtr<UItemBase> InItem,
+		TObjectPtr<UInventorySlot> InTargetSlot,
 		int32 InQuantity,
 		bool bInIsSaleOperation)
 
@@ -58,6 +62,7 @@ struct FTradeRequest
 		  , BuyerContainer(InBuyerContainer)
 		  , Item(InItem)
 		  , Quantity(InQuantity)
+		  , TargetSlot(InTargetSlot) 
 	{
 	}
 };

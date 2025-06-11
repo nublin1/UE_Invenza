@@ -44,6 +44,10 @@ void UUInventoryWidgetBase::UseSlot(UInventorySlot* UsedSlot)
 	NotifyUseSlot(UsedSlot);
 }
 
+void UUInventoryWidgetBase::MergeStackableItems()
+{
+}
+
 FItemMapping* UUInventoryWidgetBase::GetItemMapping(UItemBase* Item)
 {
 	if (!Item)

@@ -167,6 +167,7 @@ void UIInventoryManager::ItemTransferRequest(FItemMoveData ItemMoveData)
 				CoreHUDWidget->GetVendorInvWidget(),
 				GetMainInventory(),
 				ItemMoveData.SourceItem,
+				ItemMoveData.TargetSlot,
 				ItemMoveData.SourceItem->GetQuantity(), IsSale);
 			
 			VendorRequest(Req);
@@ -215,6 +216,15 @@ void UIInventoryManager::ItemTransferRequest(FItemMoveData ItemMoveData)
 		}
 		break;
 	case EItemAddResult::IAR_PartialAmountItemAdded:
+		if (Result.bIsUsedReferences)
+		{
+			break;
+		}
+		if (ItemMoveData.SourceInventory)
+		{
+			ItemMoveData.SourceInventory->HandleRemoveItem(ItemMoveData.SourceItem, Result.ActualAmountAdded);
+			break;
+		}
 		break;
 	case EItemAddResult::IAR_ItemSwapped:
 		if (!Result.bIsUsedReferences

@@ -90,6 +90,46 @@ void USlotbasedInventoryWidget::RebuildSlots(int32 InRows, int32 InColumns)
 	InventoryData.InventoryTotalMoney  = 0;
 }
 
+void USlotbasedInventoryWidget::MergeStackableItems()
+{
+	Super::MergeStackableItems();
+	
+	auto Items = InventoryData.ItemCollectionLink -> GetAllItemsByContainer(GetAsContainerWidget());
+	if (Items.IsEmpty()) return;
+
+	for (int i = Items.Num()-1; i> 0; --i )
+	{
+		if (!Items[i] || !Items[i]->IsStackable())
+		{
+			continue;
+		}
+
+		auto Sameitems = InventoryData.ItemCollectionLink->GetAllSameItemsInContainer(GetAsContainerWidget(), Items[i]);
+		if (Sameitems.IsEmpty()) continue;
+
+		for (const auto& SameItem : Sameitems)
+		{
+			if (SameItem->IsFullItemStack())
+				continue;
+
+			int32 AmountToAdd = Items[i]->GetQuantity();
+			int32 AvailableSpace = SameItem->GetItemRef().ItemNumeraticData.MaxStackSize - SameItem->GetQuantity();
+
+			int32 ToTransfer = FMath::Min(AvailableSpace, AmountToAdd);
+			if (ToTransfer > 0)
+			{
+				InsertToStackItem(SameItem, ToTransfer);
+				HandleRemoveItem(Items[i], ToTransfer);
+			}
+
+			if (Items[i]->GetQuantity() <= 0)
+			{
+				break;
+			}
+		}
+	}
+}
+
 void USlotbasedInventoryWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
@@ -442,7 +482,7 @@ FItemAddResult USlotbasedInventoryWidget::HandleAddItem(FItemMoveData ItemMoveDa
 		{
 			if (TargetItem && TargetItem->IsStackable() && UItemBase::bIsSameItems(TargetItem, ItemMoveData.SourceItem))
 			{
-				return TryAddStackableItem(ItemMoveData, false);
+				return TryAddStackableItem(ItemMoveData, bOnlyCheck);
 			}
 			
 			if (bIsSlotEmpty(ItemMoveData.TargetSlot))
@@ -689,8 +729,9 @@ int32 USlotbasedInventoryWidget::HandleStackableItems(FItemMoveData& ItemMoveDat
 
 		if (bOnlyCheck && ActualAmountToAdd > 0)
 			return ActualAmountToAdd;
-		
-		InsertToStackItem(ItemFromSlot, ActualAmountToAdd);
+
+		if (!bOnlyCheck)
+			InsertToStackItem(ItemFromSlot, ActualAmountToAdd);
 		AmountToDistribute -= ActualAmountToAdd;
 		return ActualAmountToAdd;
 	}
@@ -1118,7 +1159,7 @@ FReply USlotbasedInventoryWidget::NativeOnMouseButtonDown(const FGeometry& InGeo
 		return Reply.Handled().DetectDrag(TakeWidget(), UISettings.ItemSelectKey);
 	}
 
-	if (InMouseEvent.GetEffectingButton() == UISettings.ItemUseKey && InventorySettings.bCanUseItems)
+	if (InMouseEvent.GetEffectingButton() == UISettings.ItemUseKey)
 	{
 		if (GridPosition.X >= 0 && GridPosition.Y >= 0)
 		{
@@ -1131,10 +1172,12 @@ FReply USlotbasedInventoryWidget::NativeOnMouseButtonDown(const FGeometry& InGeo
 
 		if (HandleTradeModalOpening(ItemInSlot))
 			return FReply::Handled();
-		
-		ItemInSlot->UseItem();
-		
-		FReply::Handled();
+
+		if (InventorySettings.bCanUseItems)
+		{
+			ItemInSlot->UseItem();
+			FReply::Handled();
+		}
 	}
 	
 	return FReply::Unhandled();

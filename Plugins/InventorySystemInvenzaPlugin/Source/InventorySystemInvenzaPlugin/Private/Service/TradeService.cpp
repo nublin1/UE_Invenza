@@ -80,7 +80,7 @@ ETradeResult UTradeService::ExecuteSell(const FTradeRequest& Request)
 
 	auto ItemToCheck = Request.Item->DuplicateItem();
 	ItemToCheck->SetQuantity(Request.Quantity);
-	FItemMoveData ItemMoveData (ItemToCheck, VendorInv, BuyerInv);
+	FItemMoveData ItemMoveData (ItemToCheck, VendorInv, BuyerInv, Request.TargetSlot);
 	auto AddResult = BuyerInv->HandleAddItem(ItemMoveData, true);
 	if (AddResult.OperationResult != EItemAddResult::IAR_AllItemAdded)
 		return ETradeResult::NoSpaceInInventory;

@@ -41,6 +41,8 @@ public:
 	virtual void InitializeInventory() override;	
 	virtual void ReDrawAllItems() override;
 	virtual void RebuildSlots(int32 InRows, int32 InColumns);
+
+	virtual void MergeStackableItems() override;
 	
 	virtual void HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity) override;	
 	virtual void HandleRemoveItemFromContainer(UItemBase* Item) override;	

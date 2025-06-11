@@ -66,6 +66,9 @@ public:
 	virtual void UseSlot(UInventorySlot* UsedSlot);
 
 	UFUNCTION()
+	virtual void MergeStackableItems();
+	
+	UFUNCTION()
 	virtual bool HandleTradeModalOpening(UItemBase* Item);
 	UFUNCTION(Category="Inventory")
 	virtual void HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity) PURE_VIRTUAL(UUInventoryWidgetBase::HandleRemoveItem,);

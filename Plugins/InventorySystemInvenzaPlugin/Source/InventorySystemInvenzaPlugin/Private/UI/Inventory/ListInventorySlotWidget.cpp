@@ -141,13 +141,13 @@ FReply UListInventorySlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeom
 		return FReply::Handled().DetectDrag(TakeWidget(), CachedEntry->ParentInventoryWidget->GetUISettings().ItemSelectKey);
 	}
 
-	if (InMouseEvent.IsMouseButtonDown(CachedEntry->ParentInventoryWidget->GetUISettings().ItemUseKey)
-		&& CachedEntry->ParentInventoryWidget->GetInventorySettings().bCanUseItems)
+	if (InMouseEvent.IsMouseButtonDown(CachedEntry->ParentInventoryWidget->GetUISettings().ItemUseKey))
 	{
 		if (CachedEntry->ParentInventoryWidget->HandleTradeModalOpening(CachedEntry->Item))
 			return FReply::Handled();
-		
-		CachedEntry->Item->UseItem();
+
+		if (CachedEntry->ParentInventoryWidget->GetInventorySettings().bCanUseItems)
+			CachedEntry->Item->UseItem();
 	}
 	
 	return FReply::Unhandled();

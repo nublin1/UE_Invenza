@@ -304,6 +304,12 @@ void UItemCollection::SortInContainer(UInvBaseContainerWidget* ContainerToSort)
 		ListInventory->SortInventory();
 		return;
 	}
+
+	auto SlotbasedInventory = Cast<USlotbasedInventoryWidget>(ContainerToSort->GetInventoryFromContainerSlot());
+	if (!SlotbasedInventory)
+		return;
+
+	SlotbasedInventory->MergeStackableItems();
 	
 	TArray<TPair<TObjectPtr<UItemBase>, FItemMapping*>> Mappings;
 	for (auto& Pair : ItemLocations)
@@ -348,31 +354,26 @@ void UItemCollection::SortInContainer(UInvBaseContainerWidget* ContainerToSort)
 		Inv->ReDrawAllItems();
 	}
 
-	if (auto SlotbasedInventory = Cast<USlotbasedInventoryWidget>(ContainerToSort->GetInventoryFromContainerSlot()))
+	
+	for (auto i =0; i < Mappings.Num();  i++)
 	{
-		for (auto i =0; i < Mappings.Num();  i++)
+		auto& Pair = Mappings[i];
+		Pair.Value->ItemSlotDatas.Empty();
+	}
+		
+	for (auto i =0; i < Mappings.Num();  i++)
+	{
+		auto& Pair = Mappings[i];
+		auto AvSlot = SlotbasedInventory->GetAvailableSlotForItem(Pair.Key.Get());
+		if (AvSlot)
 		{
-			auto& Pair = Mappings[i];
-			Pair.Value->ItemSlotDatas.Empty();
+			Pair.Value->ItemSlotDatas.Add(AvSlot->GetSlotData());
 		}
 	}
 
-	if (auto SlotbasedInventory = Cast<USlotbasedInventoryWidget>(ContainerToSort->GetInventoryFromContainerSlot()))
-	{
-		for (auto i =0; i < Mappings.Num();  i++)
-		{
-			auto& Pair = Mappings[i];
-			auto AvSlot = SlotbasedInventory->GetAvailableSlotForItem(Pair.Key.Get());
-			if (AvSlot)
-			{
-				Pair.Value->ItemSlotDatas.Add(AvSlot->GetSlotData());
-			}
-		}
-
-		SlotbasedInventory->ReDrawAllItems();
-		SlotbasedInventory->UpdateMoneyInfo();
-		SlotbasedInventory->UpdateMoneyInfo();
-	}
+	SlotbasedInventory->ReDrawAllItems();
+	SlotbasedInventory->UpdateMoneyInfo();
+	SlotbasedInventory->UpdateMoneyInfo();
 }
 
 void UItemCollection::SerializeForSave(TArray<FItemSaveEntry>& OutData)
