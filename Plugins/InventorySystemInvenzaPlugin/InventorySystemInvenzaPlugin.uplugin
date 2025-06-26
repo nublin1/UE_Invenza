@@ -8,13 +8,14 @@
 	"CreatedBy": "",
 	"CreatedByURL": "",
 	"DocsURL": "",
-	"FabURL": "com.epicgames.launcher://ue/Fab/product/53662a85-1e9c-4bf5-a627-\n0f8e76f6bcd5",
+	"FabURL": "com.epicgames.launcher://ue/Fab/product/c482fd7a-2be8-42a8-aba6-52d53e6964a7",
 	"MarketplaceURL": "",
 	"SupportURL": "",
 	"CanContainContent": true,
 	"IsBetaVersion": false,
 	"IsExperimentalVersion": false,
 	"Installed": false,
+	"SupportedTargetBuildPlatforms": [ "Win64", "Linux", "Mac" ],
 	"Modules": [
 		{
 			"Name": "InventorySystemInvenzaPlugin",

@@ -9,9 +9,7 @@
 #include "Engine/Engine.h"
 #include "Kismet/GameplayStatics.h"
 
-#define LOCTEXT_NAMESPACE "Inventory"
-
-UItemBase::UItemBase(): ItemRef(), Quantity(0)
+UItemBase::UItemBase(): Quantity(0)
 {
 }
 
