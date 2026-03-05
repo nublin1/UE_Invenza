@@ -10,8 +10,7 @@
 #include "UInventoryWidgetBase.generated.h"
 
 #pragma region Delegates
-class UUIButton;
-enum class EItemCategory : uint8;
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnItemDropped, FItemMoveData, ItemMoveData);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnItemReplaceDelegate, TArray<FInventorySlotData>, OldItemSlots, TArray<FInventorySlotData>, NewItemSlots, UItemBase*, Item);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAddItemDelegate, FItemMapping, ItemSlots, UItemBase*, Item);
@@ -22,6 +21,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnWightUpdatedDelegate, float, Inv
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMoneyUpdatedDelegate, int32, InventoryTotalMoney);
 #pragma endregion Delegates
 
+class UUIButton;
+enum class EItemCategory : uint8;
 class UItemCollection;
 
 /**
