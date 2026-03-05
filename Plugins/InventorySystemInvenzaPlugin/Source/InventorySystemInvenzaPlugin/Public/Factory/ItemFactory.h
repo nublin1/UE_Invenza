@@ -19,15 +19,13 @@ public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	static UDataTable* ItemTable;
 
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-
-	UFUNCTION(BlueprintCallable, Category = "Initialization")
-	static void Init(UDataTable* InTable);
+	UFUNCTION(BlueprintCallable, Category = "Item Creation")
+	static UItemBase* CreateItemByID(UObject* Outer, UDataTable* InTable, FName ID, int32 Quantity = 1);
 
 	UFUNCTION(BlueprintCallable, Category = "Item Creation")
-	static UItemBase* CreateItemByID(UObject* Outer, FName ID, int32 Quantity = 1);
+	static UItemBase* CreateItemByHandle(UObject* Outer, FDataTableRowHandle Handle, int32 Quantity = 1);
 };

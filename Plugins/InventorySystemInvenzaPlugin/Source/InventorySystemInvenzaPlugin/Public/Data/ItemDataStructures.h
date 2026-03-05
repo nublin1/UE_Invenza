@@ -9,10 +9,10 @@
 #include "ItemDataStructures.generated.h"
 
 UENUM(BlueprintType)
-enum class EOrientationType : uint8
+enum class EItemOrientationType : uint8
 {
 	Vertical UMETA(DisplayName = "Vertical"),
-	Hotizontal UMETA(DisplayName = "Hotizontal"),
+	Horizontal UMETA(DisplayName = "Hotizontal"),
 };
 
 UENUM(BlueprintType)
@@ -20,9 +20,42 @@ enum class EItemCategory : uint8
 {
 	None        UMETA(DisplayName = "None"),
 	Consumable  UMETA(DisplayName = "Consumable"),
+	Resource	UMETA(DisplayName = "Resource"), // Carry
 	Money       UMETA(DisplayName = "Money"),
 	Weapon      UMETA(DisplayName = "Weapon"),
 	Armor       UMETA(DisplayName = "Armor"),
+	Food		UMETA(DisplayName = "Food"),
+};
+
+UENUM(BlueprintType)
+enum class EStorageMethod : uint8
+{
+	Single	UMETA(DisplayName = "Single"),
+	Logs	UMETA(DisplayName = "Logs"),
+};
+
+USTRUCT(BlueprintType)
+struct FInitItemsEntry
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FDataTableRowHandle Item;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 Amount;
+};
+
+USTRUCT(BlueprintType)
+struct FItemIDEntry
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Item")
+	FName ItemID;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Item")
+	int32 Amount = 0;
 };
 
 USTRUCT(BlueprintType)
@@ -31,7 +64,10 @@ struct FItemTextData
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Text")
-	FText Name;
+	FText NameID;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Text")
+	FText DisplayName;
 
 	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Text")
 	//FText InteractionText;
@@ -48,11 +84,10 @@ struct FItemAssetData
 	UPROPERTY(EditAnywhere, Category = "Item|Assets")
 	TObjectPtr<UTexture2D> Icon;
 
-	/*UPROPERTY(EditAnywhere, Category = "Item|Assets", meta = (ToolTip = "Used in ItemSlots"))
-	TObjectPtr<UTexture2D> AlternativeIcon;*/
-
 	UPROPERTY(EditAnywhere, Category = "Item|Assets")
 	TObjectPtr<UStaticMesh> Mesh;
+	UPROPERTY(EditAnywhere, Category = "Item|Assets")
+	TObjectPtr<UStaticMesh> MeshAsStorage;
 };
 
 USTRUCT(BlueprintType)
@@ -63,19 +98,36 @@ struct FItemNumeraticData
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Stats")
 	float Weight;
 
+	// Size when the item is stored in a character inventory (Player/NPC)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Inventory Size",
+		meta = (ToolTip = "Number of horizontal slots the item occupies in a character inventory"))
+	int32 InventoryHorizontalSlots = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Inventory Size",
+		meta = (ToolTip = "Number of vertical slots the item occupies in a character inventory"))
+	int32 InventoryVerticalSlots = 1;
+
+
+	// Size when the item is stored in storage containers (stash, warehouse, chest)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Storage Size",
+		meta = (ToolTip = "Number of horizontal slots the item occupies in storage containers"))
+	int32 StorageHorizontalSlots = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Storage Size",
+		meta = (ToolTip = "Number of vertical slots the item occupies in storage containers"))
+	int32 StorageVerticalSlots = 1;
+
+	//==============================
+	// STACKING
+	//==============================
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Stats")
-	int32 MaxStackSize;
+	int32 MaxStackSizeInCharacter;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Stats")
+	float MaxAmountInStorage = 100;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Stats",
-		meta = (ToolTip = "Number of horizontal slots occupied by the item"))
-	int32 NumHorizontalSlots = 1;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Stats",
-		meta = (ToolTip = "Number of vertical slots occupied by the item"))
-	int32 NumVerticalSlots = 1;
-	
+	//
 	FItemNumeraticData()
-		: Weight(1), MaxStackSize(1)
+		: Weight(1), MaxStackSizeInCharacter(1)
 	{
 	}
 };
@@ -111,7 +163,9 @@ struct FItemMetaData
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Metadata")
 	EItemCategory ItemCategory = EItemCategory::Armor;
 
-	// Later
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Data", meta = (Bitmask, BitmaskEnum = "/Script/GridInventoryPlugin.EItemCategory"))
-	//int32 ItemCategory2;
+	//==============================
+	// CATEGORY
+	//==============================
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Metadata")
+	EStorageMethod StorageMethod;
 };

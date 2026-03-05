@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "TradeTypes.h"
 #include "Components/ActorComponent.h"
 #include "TradeComponent.generated.h"
 
@@ -19,33 +20,6 @@ class UIInventoryManager;
 class UInvBaseContainerWidget;
 class UItemCollection;
 class UItemBase;
-
-USTRUCT(BlueprintType)
-struct FMoneyCalculationResult
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(Category = "Money Calculation", VisibleAnywhere, BlueprintReadWrite)
-	float AvailableMoney = 0.0f;
-
-	UPROPERTY(Category = "Money Calculation", VisibleAnywhere, BlueprintReadWrite)
-	bool bHasEnough = false;
-};
-
-USTRUCT(BlueprintType, Blueprintable)
-struct FTradeSettings
-{
-	GENERATED_BODY()
-
-	UPROPERTY(Category = "Trade Settings", EditAnywhere, BlueprintReadOnly)
-	float BuyPriceFactor = 1.0f;
-	UPROPERTY(Category = "Trade Settings", EditAnywhere, BlueprintReadOnly)
-	float SellPriceFactor = 1.0f;
-	UPROPERTY(Category = "Trade Settings", EditAnywhere, BlueprintReadOnly)
-	bool RemoveItemAfterPurchase = false;
-	UPROPERTY(Category = "Trade Settings", EditAnywhere, BlueprintReadOnly)
-	bool bSellOnly = false;
-};
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class INVENTORYSYSTEMINVENZAPLUGIN_API UTradeComponent : public UActorComponent

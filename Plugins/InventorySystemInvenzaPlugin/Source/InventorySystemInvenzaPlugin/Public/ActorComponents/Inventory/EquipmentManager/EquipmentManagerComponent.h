@@ -7,22 +7,31 @@
 #include "Engine/DataTable.h"
 #include "Components/ActorComponent.h"
 #include "Data/EquipmentStructures.h"
+#include "Data/Inventory/InventorySlotData.h"
 #include "EquipmentManagerComponent.generated.h"
 
+class UEquipmentSlotData;
 class UInvBaseContainerWidget;
 struct FInventorySlotData;
 struct FItemMapping;
 class UItemBase;
 
 #pragma region Delegates
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnEquippedItem, FName, SlotName, UItemBase*, Item);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnequippedItem, FName, SlotName, UItemBase*, Item);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnEquippedItem, FName, SlotName, UItemBase*, Item);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnequippedItem, FName, SlotName, UItemBase*, Item);
 #pragma endregion
 
 UCLASS( ClassGroup=(Custom), Blueprintable, meta=(BlueprintSpawnableComponent) )
 class INVENTORYSYSTEMINVENZAPLUGIN_API UEquipmentManagerComponent : public UActorComponent
 {
 	GENERATED_BODY()
+
+public:
+	UEquipmentManagerComponent();
+
+protected:
+	virtual void BeginPlay() override;
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 public:
 	//====================================================================
@@ -37,54 +46,54 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UEquipmentManagerComponent();
 
 	UFUNCTION(BlueprintCallable, Category = "Equipment|Initialization")
 	virtual void Initialize();
 
-	UFUNCTION(BlueprintCallable, Category = "Equipment|Validation")
-	void ValidateEquippedItems();
+	UFUNCTION(Category = "Equipment|Initialization")
+	virtual void InitializeSlotsFromTable();
+	
 	UFUNCTION(BlueprintCallable, Category = "Equipment|Management")
-	void HandleReplaceItem(TArray<FInventorySlotData> OldItemSlots, TArray<FInventorySlotData> NewItemSlots, UItemBase* Item);
+	void HandleReplaceItem(TArray<UInventorySlotData*> OldItemSlots, TArray<UInventorySlotData*> NewItemSlots, UItemBase* Item);
 	UFUNCTION(BlueprintCallable, Category = "Equipment|Management")
 	void HandleItemEquippedFromMapping(FItemMapping ItemSlots, UItemBase* Item);
 	UFUNCTION(BlueprintCallable, Category = "Equipment|Management")
-	void EquipItemToSlot(TArray<FInventorySlotData>& ItemSlotsData, UItemBase* Item);
+	void EquipItemToSlot(FName SlotName, UItemBase* Item);
 	UFUNCTION(BlueprintCallable, Category = "Equipment|Management")
-	void EquipItem(UItemBase* Item);
-
+	bool EquipItem(UItemBase* Item);
+	
 	UFUNCTION(BlueprintCallable, Category = "Equipment|Management")
-	void HandleItemUnequippedFromMapping(FItemMapping ItemSlots, UItemBase* Item, int32 RemoveQuantity);
-	UFUNCTION(BlueprintCallable, Category = "Equipment|Management")
-	void UnequipItemFromSlot(TArray<FInventorySlotData>& ItemSlotsData, UItemBase* Item, int32 RemoveQuantity);
-
-	UFUNCTION(BlueprintCallable, Category = "Equipment|Data")
-	TMap<UItemBase*, FEquipmentSlot> GetEquippedItemsData();
+	void UnequipItemFromSlot(FName SlotName, UItemBase* Item);
 
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Equipment|Slots")
-	TMap<FName, FEquipmentSlot> EquipmentSlots;
+	/** Initial items with their quantities */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Config")
+	TArray<FInitItemsEntry> InitialItems;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Equipment|Config")
 	TObjectPtr<UDataTable> SlotDefinitionTable;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Equipment|Slots")
+	TMap<FName, TObjectPtr<UEquipmentSlotData>> EquipmentSlots;
 
 	//
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category="Equipment|Config")
 	TObjectPtr<UInvBaseContainerWidget> CharacterEquipmentWidget = nullptr;
+
+	// Data
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	FName InventoryContainerID = NAME_None; // Uniq ID
 	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	virtual void BeginPlay() override;
-
-	UFUNCTION(Category = "Equipment|Initialization")
-	virtual void InitializeSlotsFromTable();
+	
 	UFUNCTION(Category = "Equipment|Initialization")
 	virtual void BindWidgetsToSlots();
-
-public:	
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+	
+	UFUNCTION(Category = "Equipment|Management")
+	void ResourceAmountChanged(int32 AmountChanged, UItemBase* Item);
+	
 };

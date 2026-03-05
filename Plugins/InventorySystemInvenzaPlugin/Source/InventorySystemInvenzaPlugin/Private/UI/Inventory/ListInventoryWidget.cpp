@@ -402,7 +402,7 @@ FItemAddResult UListInventoryWidget::HandleAddReferenceItem(FItemMoveData& ItemM
 
 	UListInventorySlotWidget* ListInventorySlot = NewObject<UListInventorySlotWidget>();	
 	FItemMapping Slots;
-	Slots.ItemSlotDatas.Add(ListInventorySlot->GetSlotData());
+	Slots.OccupatedSlots.Add(ListInventorySlot->GetSlotData());
 
 	if (!bOnlyCheck)
 		AddNewItem(ItemMoveData, Slots, ItemMoveData.SourceItem->GetQuantity());
@@ -427,7 +427,7 @@ void UListInventoryWidget::AddNewItem(FItemMoveData& ItemMoveData, FItemMapping 
 
 	if (InventoryData.ItemCollectionLink)
 	{
-		OccupiedSlots.InventoryContainerName = GetAsContainerWidget()->GetFName();
+		OccupiedSlots.InventoryID = GetAsContainerWidget()->GetFName();
 		OccupiedSlots.InventoryType = GetAsContainerWidget()->GetInventoryType();
 		InventoryData.ItemCollectionLink->AddItem(FinalItem, OccupiedSlots);
 		NotifyAddItem(OccupiedSlots, FinalItem,ItemMoveData.SourceItem->GetQuantity());

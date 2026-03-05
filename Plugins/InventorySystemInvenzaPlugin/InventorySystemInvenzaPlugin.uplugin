@@ -11,6 +11,7 @@
 	"FabURL": "com.epicgames.launcher://ue/Fab/product/c482fd7a-2be8-42a8-aba6-52d53e6964a7",
 	"MarketplaceURL": "",
 	"SupportURL": "",
+	"CopyrightNotice": "Copyright (c) 2026 Nublin Studio. All Rights Reserved.",
 	"CanContainContent": true,
 	"IsBetaVersion": false,
 	"IsExperimentalVersion": false,

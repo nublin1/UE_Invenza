@@ -7,11 +7,12 @@
 #include "Containers/Map.h"
 #include "UObject/ObjectPtr.h"
 #include "Engine/DataTable.h"
-#include "Items/itemBase.h"
+#include "Data/Items/ItemBase.h"
 #include "UI/Inventory/InventoryTypes.h"
 #include "ItemCollection.generated.h"
 
 
+struct FInventorySlotData;
 struct FItemSaveEntry;
 class UIInventoryManager;
 struct FItemMappingSaveData;
@@ -29,26 +30,37 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UItemCollection : public UActorComponent
 	GENERATED_BODY()
 
 public:
+	UItemCollection();
+
+protected:
+	virtual void BeginPlay() override;
+
+public:
+	
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	/** Data table containing item information */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item Collection|Config")
-	TObjectPtr<UDataTable> ItemDataTable;
-
-	/** Map of initial items with their quantities */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item Collection|Config")
-	TArray<FItemEntry> InitItems;
+	
 	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UItemCollection();
+
+	TMap<TObjectPtr<UItemBase>, FItemMappingArrayWrapper> GetItemLocations() const {return ItemLocations;}
 	
+	TArray<UItemBase*> GetAllItemsByContainer(FName InvID);
+
 	UFUNCTION(BlueprintCallable, Category = "Item Collection|Item Management")
-	void AddItem(UItemBase* NewItem, FItemMapping ItemMapping);
+	FItemMappingArrayWrapper& AddItem(UItemBase* NewItem, FItemMapping ItemMapping);
 	UFUNCTION(BlueprintCallable, Category = "Item Collection|Item Management")
-	void RemoveItem(UItemBase* Item, UInvBaseContainerWidget* Container);
+	void RemoveItem(UItemBase* Item, FName ContainerID);
+
+	UFUNCTION(BlueprintCallable)
+	FItemMapping FindItemMappingByContainerName(FName InvID, FItemMappingArrayWrapper ArrayWrapper);
+
+	
+	/*
+	
 	UFUNCTION(BlueprintCallable, Category = "Item Collection|Item Management")
 	void RemoveItemFromAllContainers(UItemBase* Item);
 	
@@ -66,7 +78,7 @@ public:
 	virtual void SortInContainer(UInvBaseContainerWidget* ContainerToSort);
 	
 	void SerializeForSave(TArray<FItemSaveEntry>& OutData);
-	void DeserializeFromSave(TArray<FItemSaveEntry> InData);
+	void DeserializeFromSave(TArray<FItemSaveEntry> InData);*/
 
 	//
 	UPROPERTY()
@@ -82,6 +94,4 @@ protected:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-
-	virtual void BeginPlay() override;
 };

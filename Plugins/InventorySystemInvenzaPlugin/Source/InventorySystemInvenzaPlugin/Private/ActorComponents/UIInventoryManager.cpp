@@ -8,12 +8,11 @@
 #include "Engine/GameViewportClient.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
-#include "Slate/SceneViewport.h"
 #include "ActorComponents/InteractionComponent.h"
 #include "ActorComponents/ItemCollection.h"
-#include "ActorComponents/TradeComponent.h"
+#include "ActorComponents/Trade/TradeComponent.h"
 #include "ActorComponents/Interactable/PickupComponent.h"
-#include "ActorComponents/Items/itemBase.h"
+#include "Data/Items/itemBase.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Factory/ItemFactory.h"
 #include "Kismet/GameplayStatics.h"
@@ -85,7 +84,7 @@ void UIInventoryManager::OpenTradeModal(bool bIsSaleOperation, UItemBase* Operat
 	
 	FModalTradeData TradeData (OperationalText,
 					MaxAmount,
-					ItemData.ItemTextData.Name,
+					ItemData.ItemTextData.NameID,
 					ItemData.ItemTradeData.BasePrice * PriceFactor);
 
 	ModalTradeWidget->InitializeTradeWidget(TradeData);

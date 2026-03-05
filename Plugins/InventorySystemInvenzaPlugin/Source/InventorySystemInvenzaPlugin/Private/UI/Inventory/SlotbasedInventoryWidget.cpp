@@ -760,7 +760,7 @@ FItemAddResult USlotbasedInventoryWidget::HandleAddReferenceItem(FItemMoveData& 
 		}
 		
 		FItemMapping Slots;
-		Slots.ItemSlotDatas.Add(ItemMoveData.TargetSlot->GetSlotData());
+		Slots.OccupatedSlots.Add(ItemMoveData.TargetSlot->GetSlotData());
 		if (!bOnlyCheck)
 			AddNewItem(ItemMoveData, Slots, ItemMoveData.SourceItem->GetQuantity());
 
@@ -785,7 +785,7 @@ FItemAddResult USlotbasedInventoryWidget::HandleAddReferenceItem(FItemMoveData& 
 		HandleRemoveItemFromContainer(InventoryData.ItemCollectionLink->GetItemFromSlot(ItemMoveData.TargetSlot->GetSlotData(), GetAsContainerWidget()));
 
 		FItemMapping Slots;
-		Slots.ItemSlotDatas.Add(ItemMoveData.TargetSlot->GetSlotData());
+		Slots.OccupatedSlots.Add(ItemMoveData.TargetSlot->GetSlotData());
 		AddNewItem(ItemMoveData, Slots, ItemMoveData.SourceItem->GetQuantity());
 
 		return FItemAddResult::AddedAll(1, true, FText::Format(
@@ -858,7 +858,7 @@ void USlotbasedInventoryWidget::AddNewItem(FItemMoveData& ItemMoveData, FItemMap
 	
 	if (InventoryData.ItemCollectionLink)
 	{
-		OccupiedSlots.InventoryContainerName = GetAsContainerWidget()->GetFName();
+		OccupiedSlots.InventoryID = GetAsContainerWidget()->GetFName();
 		OccupiedSlots.InventoryType = GetAsContainerWidget()->GetInventoryType();
 		InventoryData.ItemCollectionLink->AddItem(FinalItem, OccupiedSlots);
 	}
@@ -923,13 +923,13 @@ void USlotbasedInventoryWidget::AddItemToPanel(UItemBase* Item)
 {
 	auto Slots = GetItemMapping(Item);
 
-	if (Slots->ItemSlotDatas.IsEmpty())
+	if (Slots->OccupatedSlots.IsEmpty())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("ItemSlotDatas Is empty!"));
 		return;
 	}
 	
-	const FVector2D VisualPosition = CalculateItemVisualPosition(Slots->ItemSlotDatas[0].SlotPosition);
+	const FVector2D VisualPosition = CalculateItemVisualPosition(Slots->OccupatedSlots[0].SlotPosition);
 
 	if (!UISettings.InventoryItemVisualClass)
 	{
@@ -943,7 +943,7 @@ void USlotbasedInventoryWidget::AddItemToPanel(UItemBase* Item)
 		SlotInCanvas->SetSize(FVector2D(UISettings.SlotSize.X * 1, UISettings.SlotSize.Y *  1));
 	Slots->ItemVisualLinked = ItemVisual;
 
-	for (auto ItemSlotData : Slots->ItemSlotDatas)
+	for (auto ItemSlotData : Slots->OccupatedSlots)
 	{
 		auto ItemSlot = GetSlotByPosition(ItemSlotData.SlotPosition);
 		if(ItemSlot && !bIsSlotEmpty(ItemSlotData.SlotPosition))
@@ -980,7 +980,7 @@ void USlotbasedInventoryWidget::ReplaceItemInPanel(FItemMapping& FromSlots, UIte
 {
 	if (!FromSlots.ItemVisualLinked) return;
 
-	auto ItemPivotSlot =FromSlots.ItemSlotDatas[0];
+	auto ItemPivotSlot =FromSlots.OccupatedSlots[0];
 	const FVector2D VisualPosition = CalculateItemVisualPosition(ItemPivotSlot.SlotPosition);
 
 	UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(FromSlots.ItemVisualLinked->Slot);
@@ -1006,7 +1006,7 @@ void USlotbasedInventoryWidget::RemoveItemFromPanel(FItemMapping* FromSlots, UIt
 
 	FromSlots->ItemVisualLinked->RemoveFromParent();
 
-	for (auto ItemSlotData : FromSlots->ItemSlotDatas)
+	for (auto ItemSlotData : FromSlots->OccupatedSlots)
 	{
 		auto ItemSlot = GetSlotByPosition(ItemSlotData.SlotPosition);
 		if (ItemSlot && !bIsSlotEmpty(ItemSlotData.SlotPosition))

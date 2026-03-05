@@ -1,8 +1,9 @@
 //  Nublin Studio 2025 All Rights Reserved.
 
-#include "ActorComponents/TradeComponent.h"
+#include "ActorComponents/Trade/TradeComponent.h"
 #include "GameFramework/Actor.h"
 #include "ActorComponents/ItemCollection.h"
+#include "ActorComponents/Trade/TradeTypes.h"
 
 void UTradeComponent::OpenTradeMenu(AActor* Vendor, AActor* Buyer)
 {

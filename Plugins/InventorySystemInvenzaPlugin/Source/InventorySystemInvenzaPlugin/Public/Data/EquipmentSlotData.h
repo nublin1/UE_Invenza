@@ -1,4 +1,4 @@
-// Nublin Studio 2025 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -6,14 +6,20 @@
 #include "ItemDataStructures.h"
 #include "EquipmentSlotData.generated.h"
 
-USTRUCT(BlueprintType)
-struct FEquipmentSlotData : public FTableRowBase
+UCLASS(BlueprintType)
+class INVENTORYSYSTEMINVENZAPLUGIN_API UEquipmentSlotData : public UObject
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment")
-	FName SlotName = "";
+public:
+	UEquipmentSlotData();
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory | Slot")
+	FName SlotName = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment")
 	EItemCategory AllowedCategory = EItemCategory::None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory | Slot")
+	TObjectPtr<UItemBase> ItemEquipped = nullptr;
 };

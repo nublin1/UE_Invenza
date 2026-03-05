@@ -76,13 +76,13 @@ struct FItemMappingSaveData
 	
 	void InitializeFromMapping(const FItemMapping& Mapping)
 	{
-		InventoryContainerName = Mapping.InventoryContainerName;
+		InventoryContainerName = Mapping.InventoryID;
 		InventoryType          = Mapping.InventoryType;
 
 		SlotSaveDatas.Empty();
-		SlotSaveDatas.Reserve(Mapping.ItemSlotDatas.Num());
+		SlotSaveDatas.Reserve(Mapping.OccupatedSlots.Num());
 
-		for (const FInventorySlotData& SlotData : Mapping.ItemSlotDatas)
+		for (const FInventorySlotData& SlotData : Mapping.OccupatedSlots)
 		{
 			FInventorySlotSaveData InventorySlotSaveData;
 			InventorySlotSaveData.SlotName     = SlotData.SlotName;

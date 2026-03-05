@@ -28,9 +28,9 @@ public:
 	//====================================================================
 	UInventorySlot();
 
-	bool operator==(const UInventorySlot& other) const
+	bool operator==(const UInventorySlot& Other) const
 	{
-		return SlotData.SlotPosition == other.GetSlotPosition();
+		return SlotData == Other.SlotData;
 	}
 	
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Visual")
@@ -43,13 +43,13 @@ public:
 	virtual void ClearVisual();
 	
 	//Getters
-	FInventorySlotData GetSlotData() const {return SlotData;}
-	FIntVector2 GetSlotPosition() const { return SlotData.SlotPosition; }
-	UInputAction* GetUseAction() const { return SlotData.UseAction; }	
+	UInventorySlotData* GetSlotData() {return SlotData;}
+	FIntPoint GetSlotPosition() const { return SlotData->CellPosition; }
+	UInputAction* GetUseAction() const { return SlotData->UseAction; }	
 	
 	//Setters
-	void SetSlotData(const FInventorySlotData NewSlotData) { this->SlotData = NewSlotData; }
-	void SetSlotPosition(const FIntVector2 InSlotPosition) { this->SlotData.SlotPosition = InSlotPosition; }
+	void SetSlotData(UInventorySlotData* NewSlotData) { this->SlotData = NewSlotData; }
+	void SetSlotPosition(const FIntPoint InSlotPosition) const { this->SlotData->CellPosition = InSlotPosition; }
 	virtual void SetSlotNameText(FString InUseKeyText);
 	
 protected:
@@ -57,7 +57,7 @@ protected:
 	// PROPERTIES AND VARIABLES
 	//====================================================================	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory Data")
-	FInventorySlotData SlotData;
+	TObjectPtr<UInventorySlotData> SlotData;
 	
 	//====================================================================
 	// FUNCTIONS
