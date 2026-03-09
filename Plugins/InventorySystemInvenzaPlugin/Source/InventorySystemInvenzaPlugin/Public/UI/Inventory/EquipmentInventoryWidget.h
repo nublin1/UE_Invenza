@@ -26,7 +26,7 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	virtual void InitializeInventory() override;
+	virtual void InitializeInventoryWidget() override;
 
 	virtual FItemAddResult HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck) override;
 

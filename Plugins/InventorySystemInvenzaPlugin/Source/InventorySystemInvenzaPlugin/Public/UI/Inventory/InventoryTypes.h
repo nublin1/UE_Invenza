@@ -3,11 +3,15 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "Data/ItemDataStructures.h"
 #include "Data/Inventory/InventorySlotData.h"
 #include "InventoryTypes.generated.h"
 
 
+class UInventoryBase;
+class USlotbasedInventory;
+class USlotbasedInventoryWidget;
 struct FItemPlacementData;
 class AStorageVisualRepresentation;
 class UInventorySlotData;
@@ -151,15 +155,15 @@ struct FItemMoveData
 	UPROPERTY()
 	UItemBase* SourceItem;
 	UPROPERTY()
-	TObjectPtr<UUInventoryWidgetBase> SourceInventory;
+	TObjectPtr<USlotbasedInventory> SourceInventory;
 	UPROPERTY()
 	TObjectPtr<UInventorySlot> SourceItemPivotSlot;
 	UPROPERTY()
-	TObjectPtr<UUInventoryWidgetBase> TargetInventory;
+	TObjectPtr<USlotbasedInventory> TargetInventory;
 	UPROPERTY()
 	TObjectPtr<UInventorySlot> TargetSlot;
-	//UPROPERTY()
-	//EOrientationType SavedOrientation; Future
+	UPROPERTY()
+	EItemOrientationType SavedOrientation = EItemOrientationType::Horizontal; 
 
 	FItemMoveData (): SourceItem(nullptr),
 					   SourceInventory(nullptr),
@@ -169,8 +173,8 @@ struct FItemMoveData
 	}
 
 	FItemMoveData (UItemBase* _SourceItem,
-		UUInventoryWidgetBase* _SourceInventory,
-		UUInventoryWidgetBase* _TargetInventory,
+		USlotbasedInventory* _SourceInventory,
+		USlotbasedInventory* _TargetInventory,
 		UInventorySlot* _TargetSlot = nullptr)
 	{
 		SourceItem = _SourceItem;
@@ -186,24 +190,51 @@ struct FInventorySettings
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory", meta = (ToolTip = "-1 means infinite capacity"))
-	float InventoryWeightCapacity = -1.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory", meta=(tooltip="If true this container will be used as reference."))
-	bool bUseReferences = false;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory", meta=(tooltip="Can the items be referenced from this container"))
-	bool bCanReferenceItems = false;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
-	bool bCanUseItems = true;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
-	bool bShowTooltips = true;
+	float InventoryMaxWeightCapacity = -1.0f;
+
+	// Reference system
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory|Reference", meta=(ToolTip="If true this container acts as a reference source."))
+	bool bIsReferenceContainer = false;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory|Reference", meta=(ToolTip="If true items from this container can be referenced."))
+	bool bAllowItemReferencing = false;
+
+	// Usage
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|Usage")
+	bool bAllowItemUsage = true;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|UI")
+	bool bShowItemTooltips = true;
+
+	// Restrictions
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|Restrictions")
+	TArray<FName> AllowedItemCategories;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|Restrictions")
+	TArray<TSoftObjectPtr<UItemBase>> AllowedItems;
 };
 
 USTRUCT(BlueprintType)
+struct FInventoryStartupData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FGameplayTag InventoryTag;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<UInventoryBase> InventoryClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FInventorySettings Settings;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<FInitItemsEntry> StartItems;
+};
+
+/*USTRUCT(BlueprintType)
 struct FInventoryData
 {
 	GENERATED_BODY()
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Inventory")
-	TObjectPtr<UItemCollection> ItemCollectionLink;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Inventory")
 	TObjectPtr<UItemTooltipWidget> ItemTooltipWidget = nullptr;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Inventory")
@@ -212,7 +243,9 @@ struct FInventoryData
 	float InventoryTotalWeight = 0;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
 	int32 InventoryTotalMoney = 0;
-};
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
+	TObjectPtr<USlotbasedInventoryWidget> InventoryLink;
+};*/
 
 
 USTRUCT(Blueprintable)
@@ -221,11 +254,11 @@ struct FItemMapping
 	GENERATED_BODY()
 
 	UPROPERTY()
-	FName InventoryID;
+	FName InventoryID = NAME_None;
 	UPROPERTY()
-	EInventoryType InventoryType;
+	EInventoryType InventoryType = EInventoryType::None;
 	UPROPERTY()
-	TArray<TObjectPtr<UInventorySlotData>> OccupatedSlots;
+	TArray<TObjectPtr<UInventorySlotData>> OccupiedSlots;
 	UPROPERTY()
 	TObjectPtr<UInventoryItemWidget> ItemVisualLinked;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
@@ -237,7 +270,7 @@ struct FItemMapping
 
 	explicit FItemMapping(UInventorySlotData& SlotData): InventoryType()
 	{
-		OccupatedSlots.Add(SlotData);
+		OccupiedSlots.Add(SlotData);
 	}
 };
 

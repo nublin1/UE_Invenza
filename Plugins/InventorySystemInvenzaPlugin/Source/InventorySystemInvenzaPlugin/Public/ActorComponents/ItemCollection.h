@@ -12,7 +12,6 @@
 #include "ItemCollection.generated.h"
 
 
-struct FInventorySlotData;
 struct FItemSaveEntry;
 class UIInventoryManager;
 struct FItemMappingSaveData;
@@ -48,16 +47,21 @@ public:
 
 	TMap<TObjectPtr<UItemBase>, FItemMappingArrayWrapper> GetItemLocations() const {return ItemLocations;}
 	
-	TArray<UItemBase*> GetAllItemsByContainer(FName InvID);
+	TArray<UItemBase*> GetAllItemsByContainer(FString InvID);
 
 	UFUNCTION(BlueprintCallable, Category = "Item Collection|Item Management")
-	FItemMappingArrayWrapper& AddItem(UItemBase* NewItem, FItemMapping ItemMapping);
-	UFUNCTION(BlueprintCallable, Category = "Item Collection|Item Management")
+	FItemMappingArrayWrapper AddItem(UItemBase* NewItem, FItemMapping ItemMapping);
+	UFUNCTION(BlueprintCallable, FString = "Item Collection|Item Management")
 	void RemoveItem(UItemBase* Item, FName ContainerID);
+	UFUNCTION(BlueprintCallable, Category = "Item Collection|Item Management")
+	void RemoveItemFromAllContainers(UItemBase* Item);
+	
+	FItemMapping* FindItemMappingByContainerName(UItemBase* Item, FString InventoryID);
 
 	UFUNCTION(BlueprintCallable)
-	FItemMapping FindItemMappingByContainerName(FName InvID, FItemMappingArrayWrapper ArrayWrapper);
+	bool ItemHasInventory(UItemBase* Item, FString InventoryID);
 
+	UItemBase* GetItemFromSlot(UInventorySlotData* TargetSlotData, const FString& InventoryID);
 	
 	/*
 	

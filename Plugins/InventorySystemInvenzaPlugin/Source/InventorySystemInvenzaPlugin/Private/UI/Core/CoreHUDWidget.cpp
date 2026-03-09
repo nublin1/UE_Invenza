@@ -34,7 +34,7 @@ void UCoreHUDWidget::InitializeWidget()
 		if (!Inventory) continue;
 		
 		Inventory->SetUISettings(UISettings);
-		Inventory->InitializeInventory();
+		Inventory->InitializeInventoryWidget();
 
 		UInvBaseContainerWidget* Inv = Cast<UInvBaseContainerWidget>(Widget);
 		if (Inv->GetInventoryType() == EInventoryType::MainInventory)

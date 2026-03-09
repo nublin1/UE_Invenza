@@ -34,7 +34,7 @@ public:
 	//====================================================================
 	UListInventoryWidget();
 
-	virtual void InitializeInventory() override;
+	virtual void InitializeInventoryWidget() override;
 	virtual void SortInventory();
 	virtual void ReDrawAllItems() override;
 

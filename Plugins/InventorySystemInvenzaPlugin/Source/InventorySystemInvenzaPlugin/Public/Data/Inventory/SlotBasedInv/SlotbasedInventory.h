@@ -4,50 +4,32 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Data/Inventory/InventoryBase.h"
 #include "UI/Inventory/InventoryTypes.h"
 #include "SlotbasedInventory.generated.h"
 
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class INVENTORYSYSTEMINVENZAPLUGIN_API USlotbasedInventory : public UActorComponent
+class INVENTORYSYSTEMINVENZAPLUGIN_API USlotbasedInventory : public UInventoryBase
 {
 	GENERATED_BODY()
-
-#pragma region Delegates
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAddItemDelegate, FItemMapping, ItemSlots, UItemBase*, Item);
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnStackedItemDelegate, UItemBase*, Item, int32, AddedAmount);
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnstackedItemDelegate, UItemBase*, Item, int32, RemovedAmount);
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnItemRemovedDelegate, FItemMapping, ItemSlots, UItemBase*, Item);
-
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSlotsReservedDelegate, TArray<FSlotReservationData>, ReservationData);
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnConsumeReservedDelegate, TArray<FSlotReservationData>, ReservationData);
-#pragma endregion Delegates
 
 public:
 	USlotbasedInventory();
 
 protected:
-	virtual void BeginPlay() override;
+
 
 public:
-	// Delegates
-	UPROPERTY(BlueprintAssignable)
-	FOnAddItemDelegate OnAddItemDelegate;
-	UPROPERTY(BlueprintAssignable)
-	FOnStackedItemDelegate OnStackedItemDelegate;
-	UPROPERTY(BlueprintAssignable)
-	FOnUnstackedItemDelegate OnUnstackedItemDelegate;
-	UPROPERTY(BlueprintAssignable)
-	FOnItemRemovedDelegate OnItemRemovedDelegate;
-
-	UPROPERTY(BlueprintAssignable)
-	FOnSlotsReservedDelegate OnSlotsReservedDelegate;
-	UPROPERTY(BlueprintAssignable)
-	FOnConsumeReservedDelegate OnConsumeReservedDelegate;
+	//====================================================================
+	// PROPERTIES AND VARIABLES
+	//====================================================================
 	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+	virtual void InitInventory(UItemCollection* ItemCollectionRef, FVector2D NewSize ) override;
+	
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Reservation")
 	bool ReserveSlots(AActor* Requestor, TMap<UInventorySlotData*, FItemPlacementData> Slots, UItemBase* ItemBase = nullptr);
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Reservation")
@@ -72,50 +54,31 @@ public:
 	UFUNCTION(BlueprintCallable)
 	TArray<UInventorySlotData*> GetAvailableSlotForItem(UItemBase* Item);
 
-	UFUNCTION(BlueprintCallable)
-	void HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity);	
-	UFUNCTION(BlueprintCallable)
-	FItemAddResult HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck = false);
+	UFUNCTION()
+	FInventorySettings GetInventorySettings() {return InventorySettings;}
 
-	UFUNCTION()
-	TArray<UInventorySlotData*> GetInvSlots() const {return InvSlots;}
-	UFUNCTION()
-	void SetInvSlots (const TArray<UInventorySlotData*>& InSlots) {this->InvSlots = InSlots;}
-
-	UFUNCTION()
-	void SetInventorySize(FVector2D NewSize) {InvSize = NewSize;}
+	UFUNCTION(BlueprintCallable)
+	virtual void HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity) override;
+	UFUNCTION(BlueprintCallable)
+	virtual FItemAddResult HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck = false) override;
 	
+	UFUNCTION()
+	void SetInvSlots (const TArray<UInventorySlotData*>& InSlots) {this->InvSlotsDatas = InSlots;}
+
+	
+
 protected:
-	//
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	TArray<TObjectPtr<UInventorySlotData>> InvSlots;
+	//====================================================================
+	// PROPERTIES AND VARIABLES
+	//====================================================================
+	
 	//UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TMap<TObjectPtr<AActor>, TArray<FSlotReservationData>> ReservedSlotsToAdd;
+		
 
 	//
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FVector2D InvSize = FVector2D(1,1);
-
+	virtual FItemAddResult HandleAddReferenceItem(FItemMoveData& ItemMoveData, bool bOnlyCheck = false) override;
 	
-	/** Initial items with their quantities */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Config")
-	TArray<FInitItemsEntry> InitialItems;
-	
-	// Какие категории разрешены (например, "Food", "Wood")
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Config")
-	TArray<FName> AllowedCategories;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Config")
-	TArray<TSoftObjectPtr<UItemBase>> AllowedSpecificResources;
-
-	// Data
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	FName InventoryContainerID; // Uniq ID
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TObjectPtr<UItemCollection> ItemCollectionLinked = nullptr;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	bool bWasInit = false;
-	
-	///
 	UFUNCTION()
 	FItemAddResult HandleNonStackableItems(FItemMoveData ItemMoveData, bool bOnlyCheck = false);
 	UFUNCTION()
@@ -133,6 +96,8 @@ protected:
 
 	UFUNCTION()
 	UItemBase* AddNewItem(FItemMoveData& ItemMoveData, FItemMapping OccupiedSlots, int32 AddAmount);
+	UFUNCTION()
+	void ReplaceItem(UItemBase* Item, UInventorySlotData* NewSlot);
 	UFUNCTION()
 	int32 TryInsertToStackItem(UItemBase* ResourceToInsertInto, UItemBase* ResourceToDeductFrom, int32 AmountToDistribute, bool bOnlyCheck);
 	UFUNCTION()
@@ -162,6 +127,9 @@ protected:
 	UFUNCTION()
 	UItemBase* GetItemFromSlot(UInventorySlotData* Slot);
 
+	//====================================================================
+	// Event Notifiers
+	//====================================================================
 	UFUNCTION()
 	void NotifyAddNewItem(FItemMapping& FromSlots, UItemBase* NewItem, int32 ChangeQuantity);
 	UFUNCTION()
@@ -169,5 +137,7 @@ protected:
 	UFUNCTION()
 	void NotifyRemoveItemFromStack(UItemBase* Item, int32 ChangeQuantity);
 	UFUNCTION()
-	void NotifyFullyRemoveItem(FItemMapping& FromSlots, UItemBase* Item);
+	void NotifyFullyRemoveItem(FItemMapping* FromSlots, UItemBase* Item);
+	UFUNCTION()
+	virtual void NotifyReplaceItem(TArray<UInventorySlotData*> OldItemSlots, TArray<UInventorySlotData*> NewItemSlots, UItemBase* Item);
 };

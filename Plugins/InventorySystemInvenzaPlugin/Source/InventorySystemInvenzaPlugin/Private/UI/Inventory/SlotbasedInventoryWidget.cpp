@@ -1,10 +1,10 @@
-//  Nublin Studio 2025 All Rights Reserved.
+//  Nublin Studio 2026 All Rights Reserved.
 
 #include "UI/Inventory/SlotbasedInventoryWidget.h"
 
 #include "ActorComponents/ItemCollection.h"
 #include "ActorComponents/UIInventoryManager.h"
-#include "ActorComponents/Items/itemBase.h"
+#include "Data/Items/itemBase.h"
 #include "Components/Button.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
@@ -13,8 +13,6 @@
 #include "Components/UniformGridPanel.h"
 #include "Components/UniformGridSlot.h"
 #include "DragDrop/ItemDragDropOperation.h"
-#include "Slate/SObjectWidget.h"
-#include "UI/Core/CoreCellWidget.h"
 #include "UI/Core/Buttons/ItemCategoryButton.h"
 #include "UI/Core/Buttons/UIButton.h"
 #include "UI/Core/ItemFiltersPanel/ItemFiltersPanel.h"
@@ -28,11 +26,30 @@ USlotbasedInventoryWidget::USlotbasedInventoryWidget(): SlotsGridPanel(nullptr)
 {
 }
 
-void USlotbasedInventoryWidget::InitializeInventory()
+void USlotbasedInventoryWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+	
+	if (ItemFiltersPanel)
+	{
+		if (ItemFiltersPanel->GetSearchText())
+			ItemFiltersPanel->GetSearchText()->OnTextChanged.AddDynamic(this, &USlotbasedInventoryWidget::SearchTextChanged);
+		
+		for (auto FilterButton : ItemFiltersPanel->GetFilteredCategores())
+		{
+			FilterButton->OnButtonClicked.AddDynamic(this, &USlotbasedInventoryWidget::OnFilterStatusChanged);
+		}
+
+		if (ItemFiltersPanel->GetClearFiltersButton())
+		{			
+			ItemFiltersPanel->GetClearFiltersButton()->MainButton->OnClicked.AddDynamic(this, &USlotbasedInventoryWidget::ClearFilters);
+		}
+	}
+}
+
+void USlotbasedInventoryWidget::InitializeInventoryWidget()
 {
 	InitSlots();
-	UpdateWeightInfo();
-	UpdateMoneyInfo();
 	CreateTooltipWidget();
 }
 
@@ -62,7 +79,7 @@ void USlotbasedInventoryWidget::RebuildSlots(int32 InRows, int32 InColumns)
 	}
 	
 	SlotsGridPanel->ClearChildren();
-	InventoryData.InventorySlots.Empty();
+	InventorySlots.Empty();
 
 	for (int32 Row = 0; Row < InRows; ++Row)
 	{
@@ -80,14 +97,12 @@ void USlotbasedInventoryWidget::RebuildSlots(int32 InRows, int32 InColumns)
 			{
 			}
 			
-			InventoryData.InventorySlots.Add(NewSlot);
+			InventorySlots.Add(NewSlot);
 		}
 	}
 	
 	NumberRows  = InRows;
 	NumColumns  = InColumns;
-	InventoryData.InventoryTotalWeight = 0; 
-	InventoryData.InventoryTotalMoney  = 0;
 }
 
 void USlotbasedInventoryWidget::MergeStackableItems()
@@ -130,25 +145,19 @@ void USlotbasedInventoryWidget::MergeStackableItems()
 	}
 }
 
-void USlotbasedInventoryWidget::NativeConstruct()
+TArray<UInventorySlotData*> USlotbasedInventoryWidget::GetSlotData()
 {
-	Super::NativeConstruct();
-	
-	if (ItemFiltersPanel)
-	{
-		if (ItemFiltersPanel->GetSearchText())
-			ItemFiltersPanel->GetSearchText()->OnTextChanged.AddDynamic(this, &USlotbasedInventoryWidget::SearchTextChanged);
+	TArray<UInventorySlotData*> Array;
 		
-		for (auto FilterButton : ItemFiltersPanel->GetFilteredCategores())
-		{
-			FilterButton->OnButtonClicked.AddDynamic(this, &USlotbasedInventoryWidget::OnFilterStatusChanged);
-		}
+	if (InventorySlots.IsEmpty())
+		return Array;
 
-		if (ItemFiltersPanel->GetClearFiltersButton())
-		{			
-			ItemFiltersPanel->GetClearFiltersButton()->MainButton->OnClicked.AddDynamic(this, &USlotbasedInventoryWidget::ClearFilters);
-		}
+	for (auto& InventorySlot : InventorySlots)
+	{
+		Array.Add(InventorySlot->GetSlotData());
 	}
+
+	return Array;
 }
 
 void USlotbasedInventoryWidget::InitSlots()
@@ -186,7 +195,7 @@ void USlotbasedInventoryWidget::InitSlots()
 			if (UniSlot->GetColumn() >= NumColumns)
 				NumColumns = UniSlot->GetColumn() + 1;
 
-			NewInvSlots[i]->SetSlotPosition(FIntVector2(UniSlot->GetRow(),  UniSlot->GetColumn()));
+			NewInvSlots[i]->SetSlotPosition(FIntPoint(UniSlot->GetRow(),  UniSlot->GetColumn()));
 		}
 	}
 
@@ -200,7 +209,7 @@ void USlotbasedInventoryWidget::InitSlots()
 			ConvertedSlots.Add(InvSlot);
 		}
 	}
-	InventoryData.InventorySlots = ConvertedSlots;
+	InventorySlots = ConvertedSlots;
 }
 
 void USlotbasedInventoryWidget::ClearFilters()
@@ -377,51 +386,8 @@ bool USlotbasedInventoryWidget::bIsGridPositionValid(FIntPoint& GridPosition)
 	return GridPosition.X >= 0 && GridPosition.Y >= 0 && GridPosition.X<NumberRows && GridPosition.Y<NumColumns;
 }
 
-void USlotbasedInventoryWidget::HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity)
+/*FItemAddResult USlotbasedInventoryWidget::HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck)
 {
-	if (!Item) return;
-
-	Item->SetQuantity(Item->GetQuantity() - RemoveQuantity);
-	
-	auto Slots = GetItemMapping(Item);
-	if (Slots)
-	{
-		NotifyPreRemoveItem(*Slots, Item, RemoveQuantity);
-		NotifyPostRemoveItem();
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Unable to find occupied slots for item %s"), *Item->GetName());
-	}
-
-	if (Item->GetQuantity() <=0)
-		InventoryData.ItemCollectionLink->RemoveItemFromAllContainers(Item);
-}
-
-void USlotbasedInventoryWidget::HandleRemoveItemFromContainer(UItemBase* Item)
-{
-	if (!Item) return;
-
-	auto Mapping = GetItemMapping(Item);
-	if (!Mapping) return;
-
-	NotifyPreRemoveItem(*Mapping, Item, Item->GetQuantity());
-	RemoveItemFromPanel(Mapping, Item);
-
-	Mapping->ItemVisualLinked->RemoveFromParent();
-	if (InventoryData.ItemCollectionLink)
-	{
-		InventoryData.ItemCollectionLink->RemoveItem(Item, GetAsContainerWidget());
-	}
-
-	NotifyPostRemoveItem();
-}
-
-FItemAddResult USlotbasedInventoryWidget::HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck)
-{
-	//UE_LOG(LogTemp, Warning, TEXT("item Name is %s"), *ItemMoveData.SourceItem->GetName());
-	//UE_LOG(LogTemp, Warning, TEXT("ItemCollectionLink number is %i"), ItemCollectionLink->GetItemLocations().Num());
-
 	if (!ItemMoveData.SourceItem)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Item is null. Nothing to add"));
@@ -524,12 +490,12 @@ FItemAddResult USlotbasedInventoryWidget::HandleAddItem(FItemMoveData ItemMoveDa
 		{
 			return FItemAddResult::AddedNone(FText::Format(FText::FromString("Item {0} has invalid weight"),
 														   ItemMoveData.SourceItem->GetItemRef().ItemTextData.Name));
-		}*/
+		}#1#
 
 		// will the item weight overflow the weight capacity?
-		if (InventorySettings.InventoryWeightCapacity >= 0)
+		if (InventorySettings.InventoryMaxWeightCapacity >= 0)
 		{
-			if (InventoryData.InventoryTotalWeight + ItemMoveData.SourceItem->GetItemSingleWeight() > InventorySettings.InventoryWeightCapacity)
+			if (InventoryData.InventoryTotalWeight + ItemMoveData.SourceItem->GetItemSingleWeight() > InventorySettings.InventoryMaxWeightCapacity)
 			{
 				return FItemAddResult::AddedNone(FText::Format(
 					FText::FromString("Item {0} would overflow weight limit"),
@@ -611,10 +577,10 @@ FItemAddResult USlotbasedInventoryWidget::HandleNonStackableItems(FItemMoveData&
 FItemAddResult USlotbasedInventoryWidget::TryAddStackableItem(FItemMoveData& ItemMoveData, bool bOnlyCheck)
 {
 	// will the item weight overflow the weight capacity?
-	if (InventorySettings.InventoryWeightCapacity >= 0)
+	if (InventorySettings.InventoryMaxWeightCapacity >= 0)
 	{
 		if (InventoryData.InventoryTotalWeight + ItemMoveData.SourceItem->GetItemSingleWeight() * ItemMoveData.
-			SourceItem->GetQuantity() > InventorySettings.InventoryWeightCapacity)
+			SourceItem->GetQuantity() > InventorySettings.InventoryMaxWeightCapacity)
 		{
 			return FItemAddResult::AddedNone(FText::Format(FText::FromString("Couldn't add {0} to inventory."),
 			                                               ItemMoveData.SourceItem->GetItemRef().ItemTextData.Name));
@@ -760,7 +726,7 @@ FItemAddResult USlotbasedInventoryWidget::HandleAddReferenceItem(FItemMoveData& 
 		}
 		
 		FItemMapping Slots;
-		Slots.OccupatedSlots.Add(ItemMoveData.TargetSlot->GetSlotData());
+		Slots.OccupiedSlots.Add(ItemMoveData.TargetSlot->GetSlotData());
 		if (!bOnlyCheck)
 			AddNewItem(ItemMoveData, Slots, ItemMoveData.SourceItem->GetQuantity());
 
@@ -785,7 +751,7 @@ FItemAddResult USlotbasedInventoryWidget::HandleAddReferenceItem(FItemMoveData& 
 		HandleRemoveItemFromContainer(InventoryData.ItemCollectionLink->GetItemFromSlot(ItemMoveData.TargetSlot->GetSlotData(), GetAsContainerWidget()));
 
 		FItemMapping Slots;
-		Slots.OccupatedSlots.Add(ItemMoveData.TargetSlot->GetSlotData());
+		Slots.OccupiedSlots.Add(ItemMoveData.TargetSlot->GetSlotData());
 		AddNewItem(ItemMoveData, Slots, ItemMoveData.SourceItem->GetQuantity());
 
 		return FItemAddResult::AddedAll(1, true, FText::Format(
@@ -841,7 +807,7 @@ FItemAddResult USlotbasedInventoryWidget::HandleSwapOrAddItems(FItemMoveData& It
 	}
 
 	return TryAddStackableItem(ItemMoveData, bOnlyCheck);
-}
+}*/
 
 void USlotbasedInventoryWidget::AddNewItem(FItemMoveData& ItemMoveData, FItemMapping OccupiedSlots, int32 AddAmount)
 {
@@ -923,13 +889,13 @@ void USlotbasedInventoryWidget::AddItemToPanel(UItemBase* Item)
 {
 	auto Slots = GetItemMapping(Item);
 
-	if (Slots->OccupatedSlots.IsEmpty())
+	if (Slots->OccupiedSlots.IsEmpty())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("ItemSlotDatas Is empty!"));
 		return;
 	}
 	
-	const FVector2D VisualPosition = CalculateItemVisualPosition(Slots->OccupatedSlots[0].SlotPosition);
+	const FVector2D VisualPosition = CalculateItemVisualPosition(Slots->OccupiedSlots[0].SlotPosition);
 
 	if (!UISettings.InventoryItemVisualClass)
 	{
@@ -943,7 +909,7 @@ void USlotbasedInventoryWidget::AddItemToPanel(UItemBase* Item)
 		SlotInCanvas->SetSize(FVector2D(UISettings.SlotSize.X * 1, UISettings.SlotSize.Y *  1));
 	Slots->ItemVisualLinked = ItemVisual;
 
-	for (auto ItemSlotData : Slots->OccupatedSlots)
+	for (auto ItemSlotData : Slots->OccupiedSlots)
 	{
 		auto ItemSlot = GetSlotByPosition(ItemSlotData.SlotPosition);
 		if(ItemSlot && !bIsSlotEmpty(ItemSlotData.SlotPosition))
@@ -980,7 +946,7 @@ void USlotbasedInventoryWidget::ReplaceItemInPanel(FItemMapping& FromSlots, UIte
 {
 	if (!FromSlots.ItemVisualLinked) return;
 
-	auto ItemPivotSlot =FromSlots.OccupatedSlots[0];
+	auto ItemPivotSlot =FromSlots.OccupiedSlots[0];
 	const FVector2D VisualPosition = CalculateItemVisualPosition(ItemPivotSlot.SlotPosition);
 
 	UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(FromSlots.ItemVisualLinked->Slot);
@@ -1006,7 +972,7 @@ void USlotbasedInventoryWidget::RemoveItemFromPanel(FItemMapping* FromSlots, UIt
 
 	FromSlots->ItemVisualLinked->RemoveFromParent();
 
-	for (auto ItemSlotData : FromSlots->OccupatedSlots)
+	for (auto ItemSlotData : FromSlots->OccupiedSlots)
 	{
 		auto ItemSlot = GetSlotByPosition(ItemSlotData.SlotPosition);
 		if (ItemSlot && !bIsSlotEmpty(ItemSlotData.SlotPosition))

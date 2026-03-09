@@ -11,9 +11,11 @@
 #include "ActorComponents/InteractionComponent.h"
 #include "ActorComponents/ItemCollection.h"
 #include "ActorComponents/Trade/TradeComponent.h"
+#include "UI/Inventory/SlotbasedInventoryWidget.h"
 #include "ActorComponents/Interactable/PickupComponent.h"
 #include "Data/Items/itemBase.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
+#include "Data/Inventory/InventoryBase.h"
 #include "Factory/ItemFactory.h"
 #include "Kismet/GameplayStatics.h"
 #include "Service/TradeService.h"
@@ -30,6 +32,62 @@ class UEnhancedInputLocalPlayerSubsystem;
 UIInventoryManager::UIInventoryManager(): CoreHUDWidget(nullptr)
 {
 	
+}
+
+void UIInventoryManager::BeginPlay()
+{
+	Super::BeginPlay();
+
+	CreateInventories();
+	InitWidgets();
+}
+
+void UIInventoryManager::CreateInventories()
+{
+	for (const FInventoryStartupData& StartupData : StartupInventories)
+	{
+		UInventoryBase* Inventory =
+			NewObject<UInventoryBase>(this, StartupData.InventoryClass);
+
+		if (!Inventory)
+			continue;
+
+		Inventory->SetInventorySettings(StartupData.Settings);
+		Inventory->SetInitialItems(StartupData.StartItems);
+
+		Inventories.Add(StartupData.InventoryTag, Inventory);
+	}
+}
+
+void UIInventoryManager::InitWidgets()
+{
+	for (UBaseUserWidget& Wid : Widgets)
+	{
+		UUInventoryWidgetBase* InvWid = Cast<UUInventoryWidgetBase>(Wid);
+		if (!InvWid)
+			continue;
+
+		InvWid->InitializeInventoryWidget();
+
+		USlotbasedInventoryWidget* SlotBased = Cast<USlotbasedInventoryWidget>(InvWid);
+		if (SlotBased)
+		{
+			auto SizeInv = SlotBased->GetNumberRowsAndColumns();
+			auto TarInv = GetInventory(SlotBased->TargetInventoryTag);
+
+			if (!TarInv)
+				continue;
+
+			TarInv->SetInventorySize(SizeInv);
+			SlotBased->SetInventoryBaseRef(TarInv);
+
+			// делегаты
+			Inventory->OnInventoryUpdated.AddUObject(
+				Widget,
+				&UInventoryWidgetBase::RefreshInventory;
+		}
+		
+	}
 }
 
 void UIInventoryManager::OpenTradeModal(bool bIsSaleOperation, UItemBase* OperationalItem)
@@ -112,14 +170,6 @@ void UIInventoryManager::OpenTradeModal(bool bIsSaleOperation, UItemBase* Operat
 	{
 		ModalTradeWidget->SetVisibility(ESlateVisibility::Collapsed);
 	};
-}
-
-void UIInventoryManager::BeginPlay()
-{
-	Super::BeginPlay();
-
-	if (ItemDataTable)
-		UItemFactory::Init(ItemDataTable);
 }
 
 ETradeResult UIInventoryManager::VendorRequest(const FTradeRequest TradeRequest )
@@ -234,6 +284,16 @@ void UIInventoryManager::ItemTransferRequest(FItemMoveData ItemMoveData)
 		}
 		break;
 	}
+}
+
+UInventoryBase* UIInventoryManager::GetInventory(const FGameplayTag& Tag)
+{
+	if (const TObjectPtr<UInventoryBase>* Found = Inventories.Find(Tag))
+	{
+		return *Found;
+	}
+
+	return nullptr;
 }
 
 void UIInventoryManager::SetInteractableType(UInteractableComponent* IteractData)
@@ -405,31 +465,41 @@ void UIInventoryManager::InitializeBindings()
 		Input->BindAction(UISettings.IA_Mod_GrabAllSame, ETriggerEvent::Completed, this, &UIInventoryManager::OnGrabAllReleased);
 	}
 
-	InitializeInvSlotsBindings();
+	BindInputActions();
 }
 
-void UIInventoryManager::InitializeInvSlotsBindings()
+void UIInventoryManager::BindInputActions()
 {
 	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	if (!PlayerController) return;
 
 	UEnhancedInputComponent* Input = Cast<UEnhancedInputComponent>(PlayerController->InputComponent);
 	if (!Input) return;
+
+	if (Inventories.IsEmpty())
+		return;
 	
-	TArray<UUserWidget*> FoundWidgets;
-	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(GetWorld(), FoundWidgets, UInvBaseContainerWidget::StaticClass(), false);
-	for (const auto Widget : FoundWidgets)
+	for (auto& Pair : Inventories)
 	{
-		auto Inventory = Cast<UInvBaseContainerWidget>(Widget)->GetInventoryFromContainerSlot();
-		if (!Inventory) continue;
+		UInventoryBase* Inventory = Pair.Value;
 
-		auto InvSlots = Inventory->GetInventoryData().InventorySlots;
-		if (InvSlots.IsEmpty()) continue;
+		if (!Inventory || Inventory->GetInvSlots().IsEmpty()) continue;
 
-		for (const auto Slot : InvSlots)
+		for (UInventorySlotData* SlotData : Inventory->GetInvSlots())
 		{
-			if (Slot->GetUseAction())
-				Input->BindAction(Slot->GetUseAction(), ETriggerEvent::Started, Inventory, &UUInventoryWidgetBase::UseSlot, Slot);
+			if (!SlotData)
+				continue;
+
+			if (!SlotData->UseAction)
+				continue;
+
+			Input->BindAction(
+				SlotData->UseAction,
+				ETriggerEvent::Started,
+				Inventory,
+				&UInventoryBase::UseSlot,
+				SlotData);
+			
 		}
 	}
 }

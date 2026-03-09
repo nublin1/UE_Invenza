@@ -8,45 +8,11 @@
 #include "Factory/ItemFactory.h"
 #include "UI/Inventory/InventorySlot.h"
 
-void UUInventoryWidgetBase::InitItemsInItemsCollection()
-{
-	if (!InventoryData.ItemCollectionLink)
-		return;
-	
-	if (InventoryData.ItemCollectionLink->InitItems.Num() > 0)
-	{
-		for (const auto& Item : InventoryData.ItemCollectionLink->InitItems)
-		{
-			FItemMoveData ItemMoveData;
-			ItemMoveData.TargetInventory = this;
-			ItemMoveData.SourceItem = UItemFactory::CreateItemByID(this, Item.ItemName,
-																	 Item.ItemCount);
-			if (ItemMoveData.SourceItem)
-			{
-				HandleAddItem(ItemMoveData);
-			}
-		}
-
-		InventoryData.ItemCollectionLink->InitItems.Empty();
-	}
-	
-	ReDrawAllItems();
-}
-
-void UUInventoryWidgetBase::UseSlot(UInventorySlot* UsedSlot)
-{
-	auto Item = InventoryData.ItemCollectionLink->GetItemFromSlot(UsedSlot->GetSlotData(), GetAsContainerWidget());
-	if (!Item)
-		return;
-	
-	Item->UseItem();
-
-	NotifyUseSlot(UsedSlot);
-}
-
-void UUInventoryWidgetBase::MergeStackableItems()
+UUInventoryWidgetBase::UUInventoryWidgetBase()
 {
 }
+
+
 
 FItemMapping* UUInventoryWidgetBase::GetItemMapping(UItemBase* Item)
 {
@@ -60,9 +26,9 @@ FItemMapping* UUInventoryWidgetBase::GetItemMapping(UItemBase* Item)
 
 int32 UUInventoryWidgetBase::CalculateActualAmountToAdd(int32 InAmountToAdd, float ItemSingleWeight)
 {
-	if (InventorySettings.InventoryWeightCapacity >= 0)
+	if (InventorySettings.InventoryMaxWeightCapacity >= 0)
 	{
-		const int32 WeightLimitAddAmount = InventorySettings.InventoryWeightCapacity - InventoryData.InventoryTotalWeight;
+		const int32 WeightLimitAddAmount = InventorySettings.InventoryMaxWeightCapacity - InventoryData.InventoryTotalWeight;
 		int32 MaxItemsThatFit = WeightLimitAddAmount / ItemSingleWeight;
 		return FMath::Min(MaxItemsThatFit, InAmountToAdd);
 	}
@@ -89,7 +55,7 @@ void UUInventoryWidgetBase::UpdateWeightInfo()
 		auto AllItems = InventoryData.ItemCollectionLink->GetAllItemsByContainer(GetAsContainerWidget());
 		if (AllItems.IsEmpty())
 		{
-			OnWightUpdatedDelegate.Broadcast(0, InventorySettings.InventoryWeightCapacity);
+			OnWightUpdatedDelegate.Broadcast(0, InventorySettings.InventoryMaxWeightCapacity);
 		}
 		else
 		{
@@ -99,7 +65,7 @@ void UUInventoryWidgetBase::UpdateWeightInfo()
 			}
 
 			InventoryData.InventoryTotalWeight = FMath::RoundToFloat(InventoryData.InventoryTotalWeight * 100.0f) / 100.0f;
-			OnWightUpdatedDelegate.Broadcast(InventoryData.InventoryTotalWeight, InventorySettings.InventoryWeightCapacity);
+			OnWightUpdatedDelegate.Broadcast(InventoryData.InventoryTotalWeight, InventorySettings.InventoryMaxWeightCapacity);
 		}
 	}
 }
@@ -165,30 +131,4 @@ void UUInventoryWidgetBase::NotifyAddItem(FItemMapping& FromSlots, UItemBase* Ne
 		OnAddItemDelegate.Broadcast(FromSlots, NewItem);
 }
 
-void UUInventoryWidgetBase::NotifyPreRemoveItem(FItemMapping& FromSlots, UItemBase* RemovedItem, int32 RemoveQuantity)
-{
-	if (OnPreRemoveItemDelegate.IsBound())
-		OnPreRemoveItemDelegate.Broadcast(FromSlots, RemovedItem, RemoveQuantity);
-	
-}
-
-void UUInventoryWidgetBase::NotifyPostRemoveItem()
-{
-	UpdateWeightInfo();
-	UpdateMoneyInfo();
-	if (OnPostRemoveItemDelegate.IsBound())
-		OnPostRemoveItemDelegate.Broadcast();
-}
-
-void UUInventoryWidgetBase::NotifyUseSlot(UInventorySlot* UsedSlot)
-{
-	if (OnUseSlotDelegate.IsBound())
-		OnUseSlotDelegate.Broadcast(UsedSlot);
-}
-
-void UUInventoryWidgetBase::NotifyReplaceItem(TArray<FInventorySlotData> OldItemSlots, TArray<FInventorySlotData> NewItemSlots, UItemBase* Item)
-{
-	if (OnItemReplaceDelegate.IsBound())
-		OnItemReplaceDelegate.Broadcast(OldItemSlots, NewItemSlots, Item);
-}
 

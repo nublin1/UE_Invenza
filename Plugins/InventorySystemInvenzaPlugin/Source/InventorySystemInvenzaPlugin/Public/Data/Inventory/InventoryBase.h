@@ -1,0 +1,130 @@
+﻿//  Nublin Studio 2026 All Rights Reserved.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "UI/Inventory/InventoryTypes.h"
+#include "UObject/Object.h"
+#include "InventoryBase.generated.h"
+
+/**
+ * 
+ */
+UCLASS(Abstract, Blueprintable)
+class INVENTORYSYSTEMINVENZAPLUGIN_API UInventoryBase : public UObject
+{
+	GENERATED_BODY()
+
+#pragma region Delegates
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAddItemDelegate, FItemMapping, ItemSlots, UItemBase*, Item);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnStackedItemDelegate, UItemBase*, Item, int32, AddedAmount);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnstackedItemDelegate, UItemBase*, Item, int32, RemovedAmount);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnItemRemovedDelegate, FItemMapping*, ItemSlots, UItemBase*, Item);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnItemReplaceDelegate, TArray<UInventorySlotData*>, OldItemSlots, TArray<UInventorySlotData*>, NewItemSlots, UItemBase*, Item);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUseSlot, UInventorySlotData*, UsedSlot);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnWightUpdatedDelegate, float, InventoryTotalWeight, float, InventoryWeightCapacity);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMoneyUpdatedDelegate, int32, InventoryTotalMoney);
+
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSlotsReservedDelegate, TArray<FSlotReservationData>, ReservationData);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnConsumeReservedDelegate, TArray<FSlotReservationData>, ReservationData);
+#pragma endregion Delegates
+
+public:
+	UInventoryBase();
+
+	//====================================================================
+	// PROPERTIES AND VARIABLES
+	//====================================================================
+	// Delegates
+	UPROPERTY(BlueprintAssignable)
+	FOnAddItemDelegate OnAddItemDelegate;
+	UPROPERTY(BlueprintAssignable)
+	FOnStackedItemDelegate OnStackedItemDelegate;
+	UPROPERTY(BlueprintAssignable)
+	FOnUnstackedItemDelegate OnUnstackedItemDelegate;
+	UPROPERTY(BlueprintAssignable)
+	FOnItemRemovedDelegate OnItemRemovedDelegate;
+	UPROPERTY(BlueprintAssignable)
+	FOnItemReplaceDelegate OnItemReplaceDelegate;
+	UPROPERTY(BlueprintAssignable)
+	FOnUseSlot OnUseSlotDelegate;
+	
+	UPROPERTY(BlueprintAssignable)
+	FOnSlotsReservedDelegate OnSlotsReservedDelegate;
+	UPROPERTY(BlueprintAssignable)
+	FOnConsumeReservedDelegate OnConsumeReservedDelegate;
+	
+	//====================================================================
+	// FUNCTIONS
+	//====================================================================
+	UFUNCTION()
+	void UseSlot(UInventorySlotData* UsedSlot);
+	
+	//
+	UFUNCTION(BlueprintCallable)
+	virtual TArray<UInventorySlotData*> GetInvSlots() const {return InvSlotsDatas;}
+
+	//
+	UFUNCTION(BlueprintCallable)
+	virtual void SetInventorySettings(FInventorySettings NewInventorySettings){InventorySettings = NewInventorySettings;}
+
+	UFUNCTION(BlueprintCallable)
+	virtual void SetInitialItems(TArray<FInitItemsEntry> NewInitialItems){InitialItems = NewInitialItems;}
+
+	UFUNCTION(BlueprintCallable)
+	virtual void SetInventorySize(FVector2D NewSize) {InvSize = NewSize;}
+
+protected:
+	//====================================================================
+	// PROPERTIES AND VARIABLES
+	//====================================================================
+
+	// Settings
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Config")
+	FInventorySettings InventorySettings;
+
+	// Initial items with their quantities
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Config")
+	TArray<FInitItemsEntry> InitialItems;
+
+	// Data
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	FString InventoryContainerID; // Uniq ID
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UItemCollection> ItemCollectionLinked = nullptr;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	TArray<TObjectPtr<UInventorySlotData>> InvSlotsDatas;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bWasInit = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
+	float InventoryTotalWeight = 0;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
+	int32 InventoryTotalMoney = 0;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FVector2D InvSize = FVector2D(1,1);
+	
+	
+	//====================================================================
+	// FUNCTIONS
+	//====================================================================
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Initialization")
+	virtual void InitInventory(UItemCollection* ItemCollectionRef, FVector2D NewSize);
+
+	UFUNCTION(BlueprintCallable)
+	virtual void HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity)
+		PURE_VIRTUAL(UInventoryBase::HandleRemoveItem, );
+
+	UFUNCTION(BlueprintCallable)
+	virtual FItemAddResult HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck = false)
+		PURE_VIRTUAL(UInventoryBase::HandleAddItem, return FItemAddResult(););
+
+	UFUNCTION(BlueprintCallable)
+	virtual FItemAddResult HandleAddReferenceItem(FItemMoveData& ItemMoveData, bool bOnlyCheck = false)
+		PURE_VIRTUAL(UInventoryBase::HandleAddReferenceItem, return FItemAddResult(););
+
+	UFUNCTION()
+	virtual void NotifyUseSlot(UInventorySlotData* UsedSlot);
+	
+};

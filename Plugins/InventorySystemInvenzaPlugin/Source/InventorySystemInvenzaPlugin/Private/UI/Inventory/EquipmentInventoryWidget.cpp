@@ -8,9 +8,9 @@
 #include "Components/UniformGridSlot.h"
 #include "UI/Inventory/EquipmentSlotWidget.h"
 
-void UEquipmentInventoryWidget::InitializeInventory()
+void UEquipmentInventoryWidget::InitializeInventoryWidget()
 {
-	Super::InitializeInventory();
+	Super::InitializeInventoryWidget();
 }
 
 FItemAddResult UEquipmentInventoryWidget::HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck)

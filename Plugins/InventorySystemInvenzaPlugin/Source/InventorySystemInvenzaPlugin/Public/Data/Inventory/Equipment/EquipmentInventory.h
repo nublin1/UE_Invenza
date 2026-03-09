@@ -7,8 +7,9 @@
 #include "Engine/DataTable.h"
 #include "Components/ActorComponent.h"
 #include "Data/EquipmentStructures.h"
+#include "Data/Inventory/InventoryBase.h"
 #include "Data/Inventory/InventorySlotData.h"
-#include "EquipmentManagerComponent.generated.h"
+#include "EquipmentInventory.generated.h"
 
 class UEquipmentSlotData;
 class UInvBaseContainerWidget;
@@ -16,22 +17,21 @@ struct FInventorySlotData;
 struct FItemMapping;
 class UItemBase;
 
+
+UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
+class INVENTORYSYSTEMINVENZAPLUGIN_API UEquipmentInventory : public UInventoryBase
+{
+	GENERATED_BODY()
+	
 #pragma region Delegates
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnEquippedItem, FName, SlotName, UItemBase*, Item);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnequippedItem, FName, SlotName, UItemBase*, Item);
 #pragma endregion
 
-UCLASS( ClassGroup=(Custom), Blueprintable, meta=(BlueprintSpawnableComponent) )
-class INVENTORYSYSTEMINVENZAPLUGIN_API UEquipmentManagerComponent : public UActorComponent
-{
-	GENERATED_BODY()
-
 public:
-	UEquipmentManagerComponent();
+	UEquipmentInventory();
 
 protected:
-	virtual void BeginPlay() override;
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 public:
 	//====================================================================
@@ -46,9 +46,7 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-
-	UFUNCTION(BlueprintCallable, Category = "Equipment|Initialization")
-	virtual void Initialize();
+	virtual void InitInventory(UItemCollection* ItemCollectionRef, FVector2D NewSize ) override;
 
 	UFUNCTION(Category = "Equipment|Initialization")
 	virtual void InitializeSlotsFromTable();
@@ -59,8 +57,10 @@ public:
 	void HandleItemEquippedFromMapping(FItemMapping ItemSlots, UItemBase* Item);
 	UFUNCTION(BlueprintCallable, Category = "Equipment|Management")
 	void EquipItemToSlot(FName SlotName, UItemBase* Item);
-	UFUNCTION(BlueprintCallable, Category = "Equipment|Management")
-	bool EquipItem(UItemBase* Item);
+	
+	virtual FItemAddResult HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck = false) override;
+
+	virtual FItemAddResult HandleAddReferenceItem(FItemMoveData& ItemMoveData, bool bOnlyCheck = false) override;
 	
 	UFUNCTION(BlueprintCallable, Category = "Equipment|Management")
 	void UnequipItemFromSlot(FName SlotName, UItemBase* Item);

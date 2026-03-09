@@ -9,21 +9,10 @@
 #include "UI/Container/InvBaseContainerWidget.h"
 #include "UInventoryWidgetBase.generated.h"
 
-#pragma region Delegates
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnItemDropped, FItemMoveData, ItemMoveData);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnItemReplaceDelegate, TArray<FInventorySlotData>, OldItemSlots, TArray<FInventorySlotData>, NewItemSlots, UItemBase*, Item);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAddItemDelegate, FItemMapping, ItemSlots, UItemBase*, Item);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnPreRemoveItemDelegate, FItemMapping, ItemSlots, UItemBase*, Item, int32, RemoveQuantity);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPostRemoveItemDelegate);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUseSlotDelegate, UInventorySlot*, ItemSlot);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnWightUpdatedDelegate, float, InventoryTotalWeight, float, InventoryWeightCapacity);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMoneyUpdatedDelegate, int32, InventoryTotalMoney);
-#pragma endregion Delegates
-
 class UUIButton;
 enum class EItemCategory : uint8;
 class UItemCollection;
+class UInventoryBase;
 
 /**
  * 
@@ -32,42 +21,35 @@ UCLASS(Abstract)
 class INVENTORYSYSTEMINVENZAPLUGIN_API UUInventoryWidgetBase : public UBaseUserWidget
 {
 	GENERATED_BODY()
+
+#pragma region Delegates
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnItemDropped, FItemMoveData, ItemMoveData);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAddItemDelegate, FItemMapping, ItemSlots, UItemBase*, Item);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnPreRemoveItemDelegate, FItemMapping, ItemSlots, UItemBase*, Item, int32, RemoveQuantity);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPostRemoveItemDelegate);
+#pragma endregion Delegates
+	
 public:
+	UUInventoryWidgetBase();
+	
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	// Delegates
 	UPROPERTY(BlueprintAssignable)
 	FOnItemDropped OnItemDroppedDelegate;
-	UPROPERTY(BlueprintAssignable)
-	FOnItemReplaceDelegate OnItemReplaceDelegate;
-	UPROPERTY(BlueprintAssignable)
-	FOnAddItemDelegate OnAddItemDelegate;
-	UPROPERTY(BlueprintAssignable)
-	FOnPreRemoveItemDelegate OnPreRemoveItemDelegate;
-	UPROPERTY(BlueprintAssignable)
-	FOnPostRemoveItemDelegate OnPostRemoveItemDelegate;
-	UPROPERTY(BlueprintAssignable)
-	FOnUseSlotDelegate OnUseSlotDelegate;
-	UPROPERTY(BlueprintAssignable)
-	FOnWightUpdatedDelegate OnWightUpdatedDelegate;
-	UPROPERTY(BlueprintAssignable)
-	FOnMoneyUpdatedDelegate OnMoneyUpdatedDelegate;
+
+	//
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FGameplayTag TargetInventoryTag;
 	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
 	UFUNCTION(Category="Inventory")
-	virtual void InitializeInventory() PURE_VIRTUAL(UUInventoryWidgetBase::InitializeInventory,);
-	UFUNCTION(Category="Inventory")
-	virtual void InitItemsInItemsCollection();
+	virtual void InitializeInventoryWidget() PURE_VIRTUAL(UUInventoryWidgetBase::InitializeInventory,);
 	UFUNCTION(Category="Inventory")
 	virtual void ReDrawAllItems() PURE_VIRTUAL(UUInventoryWidgetBase::ReDrawAllItems,);
-	UFUNCTION()
-	virtual void UseSlot(UInventorySlot* UsedSlot);
-
-	UFUNCTION()
-	virtual void MergeStackableItems();
 	
 	UFUNCTION()
 	virtual bool HandleTradeModalOpening(UItemBase* Item);
@@ -79,31 +61,27 @@ public:
 	virtual FItemAddResult HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck = false) PURE_VIRTUAL(UUInventoryWidgetBase::HandleAddItem, return FItemAddResult(););
 
 	FUISettings GetUISettings() const {return UISettings;}
-	FInventorySettings GetInventorySettings() const {return InventorySettings;}
-	FInventoryData GetInventoryData() {return InventoryData;}
 	
 	//Setters
-	FORCEINLINE void SetItemCollection(UItemCollection* _ItemCollection) {InventoryData.ItemCollectionLink = _ItemCollection;}
+	void SetInventoryBaseRef(UInventoryBase* NewInventoryRef) {InventoryRef = NewInventoryRef;}
 	FORCEINLINE virtual void SetUISettings(FUISettings NewSettings) {UISettings = NewSettings;}
 
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category="Inventory")
-	FInventoryData InventoryData;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory")
-	FInventorySettings InventorySettings;
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category="Inventory")
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category="Inventory|Settings")
 	FUISettings UISettings;
 
-	//
-	UPROPERTY()
-	TObjectPtr<UInventorySlot> SlotUnderMouse = nullptr;
+	// Refs
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="InventoryWidget")
+	TObjectPtr<UInventoryBase> InventoryRef;
 
-	//
+	// Data
 	UPROPERTY()
 	TSet<EItemCategory> ActiveFilters;
+	UPROPERTY()
+	TObjectPtr<UInventorySlot> SlotUnderMouse = nullptr;
 	
 	//====================================================================
 	// FUNCTIONS
@@ -152,9 +130,5 @@ protected:
 	// Event Notifiers
 	//====================================================================
 	virtual void NotifyAddItem(FItemMapping& FromSlots, UItemBase* NewItem, int32 ChangeQuantity);
-	virtual void NotifyPreRemoveItem(FItemMapping& FromSlots, UItemBase* RemovedItem, int32 RemoveQuantity);
-	virtual void NotifyPostRemoveItem();
-	virtual void NotifyUseSlot(UInventorySlot* UsedSlot);
-	virtual void NotifyReplaceItem(TArray<FInventorySlotData> OldItemSlots, TArray<FInventorySlotData> NewItemSlots, UItemBase* Item);
 	
 };

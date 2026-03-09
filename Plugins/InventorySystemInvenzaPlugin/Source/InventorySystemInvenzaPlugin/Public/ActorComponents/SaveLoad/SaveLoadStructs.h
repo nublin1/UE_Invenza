@@ -80,9 +80,9 @@ struct FItemMappingSaveData
 		InventoryType          = Mapping.InventoryType;
 
 		SlotSaveDatas.Empty();
-		SlotSaveDatas.Reserve(Mapping.OccupatedSlots.Num());
+		SlotSaveDatas.Reserve(Mapping.OccupiedSlots.Num());
 
-		for (const FInventorySlotData& SlotData : Mapping.OccupatedSlots)
+		for (const FInventorySlotData& SlotData : Mapping.OccupiedSlots)
 		{
 			FInventorySlotSaveData InventorySlotSaveData;
 			InventorySlotSaveData.SlotName     = SlotData.SlotName;

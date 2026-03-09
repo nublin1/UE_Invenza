@@ -18,7 +18,7 @@ enum class EItemOrientationType : uint8
 UENUM(BlueprintType)
 enum class EItemCategory : uint8
 {
-	None        UMETA(DisplayName = "None"),
+	All        UMETA(DisplayName = "All"), 
 	Consumable  UMETA(DisplayName = "Consumable"),
 	Resource	UMETA(DisplayName = "Resource"), // Carry
 	Money       UMETA(DisplayName = "Money"),

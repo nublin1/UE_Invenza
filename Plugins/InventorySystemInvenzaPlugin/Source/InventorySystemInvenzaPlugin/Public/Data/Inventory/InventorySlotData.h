@@ -6,6 +6,7 @@
 #include "UObject/Object.h"
 #include "InventorySlotData.generated.h"
 
+class UItemBase;
 class UInputAction;
 /**
  * 
@@ -23,6 +24,9 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Inventory")
 	FIntPoint CellPosition{};
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory | Slot")
+	TObjectPtr<UItemBase> ItemLinked = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
 	TObjectPtr<UInputAction> UseAction;

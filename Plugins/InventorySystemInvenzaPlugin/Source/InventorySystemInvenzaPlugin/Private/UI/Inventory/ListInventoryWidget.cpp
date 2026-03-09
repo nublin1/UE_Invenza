@@ -153,7 +153,7 @@ void UListInventoryWidget::SearchTextChanged(const FText& NewText)
 	}
 }
 
-void UListInventoryWidget::InitializeInventory()
+void UListInventoryWidget::InitializeInventoryWidget()
 {
 	if (!InventorySettings.bShowTooltips || !UISettings.ItemTooltipWidgetClass)
 		return;
@@ -323,9 +323,9 @@ FItemAddResult UListInventoryWidget::HandleAddItem(FItemMoveData ItemMoveData, b
 
 FItemAddResult UListInventoryWidget::HandleNonStackableItems(FItemMoveData& ItemMoveData, bool bOnlyCheck)
 {
-	if (InventorySettings.InventoryWeightCapacity >= 0)
+	if (InventorySettings.InventoryMaxWeightCapacity >= 0)
 	{
-		if (InventoryData.InventoryTotalWeight + ItemMoveData.SourceItem->GetItemSingleWeight() > InventorySettings.InventoryWeightCapacity)
+		if (InventoryData.InventoryTotalWeight + ItemMoveData.SourceItem->GetItemSingleWeight() > InventorySettings.InventoryMaxWeightCapacity)
 		{
 			return FItemAddResult::AddedNone(FText::Format(
 				FText::FromString("Item {0} would overflow weight limit"),
@@ -402,7 +402,7 @@ FItemAddResult UListInventoryWidget::HandleAddReferenceItem(FItemMoveData& ItemM
 
 	UListInventorySlotWidget* ListInventorySlot = NewObject<UListInventorySlotWidget>();	
 	FItemMapping Slots;
-	Slots.OccupatedSlots.Add(ListInventorySlot->GetSlotData());
+	Slots.OccupiedSlots.Add(ListInventorySlot->GetSlotData());
 
 	if (!bOnlyCheck)
 		AddNewItem(ItemMoveData, Slots, ItemMoveData.SourceItem->GetQuantity());

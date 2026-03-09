@@ -31,6 +31,12 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UIInventoryManager : public UActorCompone
 	GENERATED_BODY()
 
 public:
+	UIInventoryManager();
+	
+protected:
+	virtual void BeginPlay() override;
+
+public:
 	//====================================================================
 	// Delegates
 	//====================================================================
@@ -40,7 +46,10 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UIInventoryManager();
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	void CreateInventories();
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	void InitWidgets();
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Trade")
 	void OpenTradeModal(bool bIsSaleOperation, UItemBase* OperationalItem);
@@ -64,6 +73,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Inventory|Settings")
 	FInventoryModifierState GetInventoryModifierStates() const { return InventoryModifierState; }
 
+	UFUNCTION(BlueprintCallable)
+	UInventoryBase* GetInventory(const FGameplayTag& Tag);
+
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
@@ -73,7 +85,12 @@ protected:
 	TObjectPtr<UCoreHUDWidget> CoreHUDWidget;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
 	TObjectPtr<UInvBaseContainerWidget> CurrentInteractInvWidget;
-	
+
+	//
+	UPROPERTY(EditAnywhere, Category="Inventory")
+	TArray<FInventoryStartupData> StartupInventories;
+
+	//
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Settings")
 	FUISettings UISettings;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Settings")
@@ -85,10 +102,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
 	TObjectPtr<UModalTradeWidget> ModalTradeWidget;
 
-	//====================================================================
-	// Lifecycle
-	//====================================================================
-	virtual void BeginPlay() override;
+	//
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	TMap<FGameplayTag, TObjectPtr<UInventoryBase>> Inventories;
+	
 	
 	//====================================================================
 	// FUNCTIONS
@@ -117,7 +134,7 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Initialization")
 	void InitializeBindings();
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Initialization")
-	void InitializeInvSlotsBindings();
+	void BindInputActions();
 
 public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,

@@ -29,7 +29,7 @@ void UInvBaseContainerWidget::ChangeInventoryInContainerSlot(TSubclassOf<UBaseUs
 	if (!NewInvWidget) return;
 	
 	NewInvWidget->SetUISettings(GetInventoryFromContainerSlot()->GetUISettings());
-	NewInvWidget->InitializeInventory();
+	NewInvWidget->InitializeInventoryWidget();
 
 	ContainerSlot->ClearChildren();
 	ContainerSlot->AddChild(NewInvWidget);
@@ -59,7 +59,7 @@ void UInvBaseContainerWidget::NativeConstruct()
 		if (!Inventory)
 			return;
 
-		if (Inventory->GetInventorySettings().InventoryWeightCapacity <0)
+		if (Inventory->GetInventorySettings().InventoryMaxWeightCapacity <0)
 			InvWeight->SetVisibility(ESlateVisibility::Collapsed);
 		else
 		{

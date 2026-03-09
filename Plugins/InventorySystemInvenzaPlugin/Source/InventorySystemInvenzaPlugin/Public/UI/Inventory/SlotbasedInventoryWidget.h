@@ -28,6 +28,13 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API USlotbasedInventoryWidget : public UUInve
 	GENERATED_BODY()
 
 public:
+	USlotbasedInventoryWidget();
+
+protected:
+	virtual void NativeConstruct() override;
+
+public:
+	
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
@@ -36,19 +43,14 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	USlotbasedInventoryWidget();
-
-	virtual void InitializeInventory() override;	
+	virtual void InitializeInventoryWidget() override;	
 	virtual void ReDrawAllItems() override;
 	virtual void RebuildSlots(int32 InRows, int32 InColumns);
 
-	virtual void MergeStackableItems() override;
-	
-	virtual void HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity) override;	
-	virtual void HandleRemoveItemFromContainer(UItemBase* Item) override;	
-	virtual FItemAddResult HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck = false) override;
+	virtual void MergeStackableItems();
 
-	virtual TObjectPtr<UInventorySlot> GetAvailableSlotForItem(UItemBase* Item);
+	virtual FIntPoint GetNumberRowsAndColumns() {return FIntPoint(NumberRows, NumColumns);}
+	virtual TArray<UInventorySlotData*> GetSlotData();
 
 protected:
 	//====================================================================
@@ -69,52 +71,58 @@ protected:
 	UPROPERTY(meta=(BindWidgetOptional))
 	TObjectPtr<UButton> Button_TakeAll;
 
-	// Data
-	int NumberRows = 0;
-	int NumColumns = 0;
-	FMargin SlotSpacing;
-	
-	// Highlight
 	UPROPERTY()
 	TObjectPtr<UHighlightSlotWidget> HighlightWidgetPreview = nullptr;
 
 	// Settings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
 	bool bHasSlotSpacing = false;
-
-	//
 	
 	/** Default image used for slot background when not overridden by individual slots. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
 	TObjectPtr<UTexture2D> DefaultCellImage = nullptr;
-	/** 
- * If true, the background image of the slot will be hidden when it contains an item.
- * When enabled, the OccupiedCellImage will not be used.
- */
+	/**
+	 *  If true, the background image of the slot will be hidden when it contains an item.
+	 *  * When enabled, the OccupiedCellImage will not be used.
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory", meta = (
 		ToolTip = "If true, hides the slot background image when an item is present. Disables OccupiedCellImage."))
 	bool bHideBackgroundWhenOccupied = false;
-	/** 
- * Image displayed when this slot contains an item. 
- * Overrides the default background image when the slot is not empty.
- */
+	/**
+	 *  Image displayed when this slot contains an item.
+	 *  Overrides the default background image when the slot is not empty.
+	 */
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory", meta = (
 		EditCondition = "!bHideBackgroundWhenOccupied",
 		ToolTip = "Image to display when this slot contains an item. Used instead of the default cell image."))
 	TObjectPtr<UTexture2D> OccupiedCellImage;
+
+	// Data
+	UPROPERTY()
+	int NumberRows = 0;
+	UPROPERTY()
+	int NumColumns = 0;
+	UPROPERTY()
+	FMargin SlotSpacing;
+
+	UPROPERTY()
+	TArray<TObjectPtr<UInventorySlot>> InventorySlots;
 	
 	//====================================================================
 	// FUNCTIONS
-	//====================================================================
-	virtual void NativeConstruct() override;
-	
+	//====================================================================	
 	UFUNCTION()
 	virtual void InitSlots();
 
 	//
+	UFUNCTION()
 	virtual void ClearFilters() override;
+	UFUNCTION()
 	virtual void OnFilterStatusChanged(UUIButton* ItemCategoryButton) override;
+	UFUNCTION()
 	virtual void RefreshFilteredItemsList() override;
+	UFUNCTION()
 	virtual void SearchTextChanged(const FText& NewText) override;
 	
 	//
@@ -122,16 +130,6 @@ protected:
 	virtual bool bIsSlotEmpty(const FIntVector2 SlotPosition);
 	virtual bool bIsSlotEmpty(const UInventorySlot* SlotCheck);
 	virtual bool bIsGridPositionValid(FIntPoint& GridPosition);
-	
-	virtual FItemAddResult HandleNonStackableItems(FItemMoveData& ItemMoveData, bool bOnlyCheck = false) override;
-	UFUNCTION()
-	virtual FItemAddResult TryAddStackableItem(FItemMoveData& ItemMoveData, bool bOnlyCheck);
-	
-	virtual int32 HandleStackableItems(FItemMoveData& ItemMoveData, int32 RequestedAddAmount,
-												bool bOnlyCheck) override;
-	virtual FItemAddResult HandleAddReferenceItem(FItemMoveData& ItemMoveData, bool bOnlyCheck) override;
-	UFUNCTION()
-	virtual FItemAddResult HandleSwapOrAddItems(FItemMoveData& ItemMoveData,bool bOnlyCheck );
 	
 	virtual void AddNewItem(FItemMoveData& ItemMoveData, FItemMapping OccupiedSlots, int32 AddAmount) override;
 	UFUNCTION()
