@@ -108,22 +108,22 @@ struct FItemNumeraticData
 	int32 InventoryVerticalSlots = 1;
 
 
-	// Size when the item is stored in storage containers (stash, warehouse, chest)
+	/*// Size when the item is stored in storage containers (stash, warehouse, chest)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Storage Size",
 		meta = (ToolTip = "Number of horizontal slots the item occupies in storage containers"))
 	int32 StorageHorizontalSlots = 1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Storage Size",
 		meta = (ToolTip = "Number of vertical slots the item occupies in storage containers"))
-	int32 StorageVerticalSlots = 1;
+	int32 StorageVerticalSlots = 1;*/
 
 	//==============================
 	// STACKING
 	//==============================
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Stats")
 	int32 MaxStackSizeInCharacter;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Stats")
-	float MaxAmountInStorage = 100;
+	/*UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Stats")
+	float MaxAmountInStorage = 100;*/
 
 	//
 	FItemNumeraticData()

@@ -1,4 +1,4 @@
-﻿//  Nublin Studio 2025 All Rights Reserved.
+﻿//  Nublin Studio 2026 All Rights Reserved.
 
 #include "ActorComponents/ItemCollection.h"
 
@@ -6,6 +6,7 @@
 #include "Data//Items/itemBase.h"
 #include "ActorComponents/SaveLoad/SaveLoadStructs.h"
 #include "Blueprint/WidgetTree.h"
+#include "Data/Inventory/InventoryBase.h"
 #include "Factory/ItemFactory.h"
 #include "Kismet/GameplayStatics.h"
 #include "UI/Container/InvBaseContainerWidget.h"
@@ -57,101 +58,73 @@ TArray<UItemBase*> UItemCollection::GetAllItemsByContainer(FString InvID)
 	return Result;
 }
 
-FItemMappingArrayWrapper UItemCollection::AddItem(UItemBase* NewItem, FItemMapping ItemMapping)
+TArray<UItemBase*> UItemCollection::GetAllSameItemsInContainer(FString InvID, UItemBase* ReferenceItem) const
 {
-	FItemMappingArrayWrapper& Wrapper = ItemLocations.FindOrAdd(NewItem);
-	Wrapper.Mappings.Add(ItemMapping);
-	return Wrapper;
-}
+	TArray<UItemBase*> SameItems;
+	if (InvID.IsEmpty() || !ReferenceItem)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GetAllSameItemsInContainer: %s"),
+			InvID.IsEmpty() ? TEXT("InvID is empty.") : TEXT("ReferenceItem is null."));
+		return SameItems;
+	}
 
-void UItemCollection::RemoveItem(UItemBase* Item, FName ContainerID)
-{
-	if (!Item)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("RemoveItem: Item is null."));
-		return;
-	}
-	if (!ContainerID.IsValid())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("RemoveItem: Container is null."));
-		return;
-	}
-	auto MappingArrayWrapper = ItemLocations.Find(TObjectPtr<UItemBase>(Item));
-	if (!MappingArrayWrapper)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("RemoveItem: Item %s not found in ItemContainers."), *Item->GetName());
-		return;
-	}
-	
-	int32 RemovedCount = MappingArrayWrapper->Mappings.RemoveAll([ContainerID](const FItemMapping& Mapping)
-	{
-		return Mapping.InventoryID == ContainerID;
-	});
+	if (ItemLocations.IsEmpty())
+		return SameItems;
 
-	auto MappingsMappingArrayWrapperTwo = ItemLocations.Find(TObjectPtr<UItemBase>(Item));
-	if (MappingsMappingArrayWrapperTwo && MappingsMappingArrayWrapperTwo->Mappings.Num() == 0)
+	auto RefItemID = ReferenceItem->GetItemRef().ItemTextData.NameID;
+	for (const auto& Pair : ItemLocations)
 	{
-		ItemLocations.Remove(TObjectPtr<UItemBase>(Item));
-	}
-}
-
-void UItemCollection::RemoveItemFromAllContainers(UItemBase* Item)
-{
-	if (!Item)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("RemoveItemFromAllContainers: Item is null."));
-		return;
-	}
-	auto MappingArrayWrapper = ItemLocations.Find(TObjectPtr<UItemBase>(Item));
-	if (!MappingArrayWrapper)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("RemoveItemFromAllContainers: Item %s not found in ItemLocations."), *Item->GetName());
-		return;
-	}
-	
-	for (int32 i = MappingArrayWrapper->Mappings.Num() - 1; i >= 0; --i)
-	{
-		const FItemMapping& Mapping = (MappingArrayWrapper->Mappings)[i];
-		
-		//UE_LOG(LogTemp, Warning, TEXT("InventoryWidgetBaseLink %s"), *Mapping.InventoryWidgetBaseLink->GetName());
-		if (UWidget* FoundWidget = InvManager->GetCoreHUDWidget()->WidgetTree->FindWidget(Mapping.InventoryID))
+		auto Item = Pair.Key;
+		if (Item && Item->GetItemRef().ItemTextData.NameID.EqualTo(RefItemID))
 		{
-			if (auto InvBaseContainerWidget = Cast<UInvBaseContainerWidget>(FoundWidget))
+			for (const FItemMapping& Mapping : Pair.Value.Mappings)
 			{
-				InvBaseContainerWidget->GetInventoryFromContainerSlot()->HandleRemoveItemFromContainer(Item);
+				if (InvID == Mapping.InventoryID)
+				{
+					SameItems.AddUnique(Item.Get());
+					break;
+				}
 			}
 		}
 	}
-	
-	ItemLocations.Remove(TObjectPtr<UItemBase>(Item));
+    
+	return SameItems;
 }
 
-FItemMapping* UItemCollection::FindItemMappingByContainerName(UItemBase* Item, FString InventoryID)
+TArray<FItemMapping> UItemCollection::GetAllMappingsByContainer(const FString& InvID)
 {
-	FItemMappingArrayWrapper* Wrapper = ItemLocations.Find(Item);
-	if (!Wrapper) return nullptr;
+	TArray<FItemMapping> Result;
 
-	for (FItemMapping& Mapping : Wrapper->Mappings)
+	if (ItemLocations.IsEmpty())
+		return Result;
+
+	for (const auto& Pair : ItemLocations)
 	{
-		if (Mapping.InventoryID == InventoryID)
+		for (const FItemMapping& Mapping : Pair.Value.Mappings)
 		{
-			return &Mapping;
+			if (Mapping.InventoryID == InvID)
+			{
+				Result.AddUnique(Mapping);
+			}
 		}
 	}
 
-	return nullptr;
+	return Result;
 }
 
-bool UItemCollection::ItemHasInventory(UItemBase* Item, FString InventoryID)
+TArray<UItemBase*> UItemCollection::GetAllItemsByCategory(EItemCategory ItemCategory)
 {
-	const FItemMappingArrayWrapper* Wrapper = ItemLocations.Find(Item);
-	if (!Wrapper) return false;
-
-	return Wrapper->Mappings.ContainsByPredicate(
-		[InventoryID](const FItemMapping& Mapping)
+	TArray<UItemBase*> SameItems;
+	for (const auto& Pair : ItemLocations)
+	{
+		auto Item = Pair.Key;
+		if (Item->GetItemRef().ItemCategory == ItemCategory)
 		{
-			return Mapping.InventoryID == InventoryID;
-		});
+			SameItems.Add(Item.Get());
+		}
+	}
+
+	return SameItems;
 }
 
 UItemBase* UItemCollection::GetItemFromSlot(UInventorySlotData* TargetSlotData, const FString& InventoryID)
@@ -186,111 +159,100 @@ UItemBase* UItemCollection::GetItemFromSlot(UInventorySlotData* TargetSlotData, 
 	return nullptr;
 }
 
-
-TArray<FInventorySlotData> UItemCollection::CollectOccupiedSlotsByContainer(UInvBaseContainerWidget* InContainer)
+FItemMappingArrayWrapper UItemCollection::AddItem(UItemBase* NewItem, FItemMapping ItemMapping)
 {
-	TArray<FInventorySlotData> OccupiedSlots;
-	if (!InContainer)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("GetOccupiedSlotsForContainer: TargetContainer is null."));
-		return OccupiedSlots;
-	}
-	
-	if (ItemLocations.IsEmpty())
-		return OccupiedSlots;
-
-	for (const auto& Pair : ItemLocations)
-	{
-		for (const FItemMapping& Mapping : Pair.Value.Mappings)
-		{
-			if (InContainer->EqualsByNameAndType(Mapping.InventoryID, Mapping.InventoryType) && !Mapping.OccupiedSlots.IsEmpty())
-			{
-				OccupiedSlots.Append(Mapping.OccupiedSlots);
-			}
-		}
-	}
-	
-	return OccupiedSlots;
+	FItemMappingArrayWrapper& Wrapper = ItemLocations.FindOrAdd(NewItem);
+	Wrapper.Mappings.Add(ItemMapping);
+	return Wrapper;
 }
 
-TArray<UItemBase*> UItemCollection::GetAllItemsByContainer(UInvBaseContainerWidget* TargetContainer) const
+void UItemCollection::RemoveItem(UItemBase* Item, FString ContainerID)
 {
-	TArray<UItemBase*> Result;
-    
-	if (!TargetContainer || ItemLocations.IsEmpty())
+	if (!Item)
 	{
-		return Result;
+		UE_LOG(LogTemp, Warning, TEXT("RemoveItem: Item is null."));
+		return;
+	}
+	if (ContainerID.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("RemoveItem: ContainerID is Empty."));
+		return;
+	}
+	auto MappingArrayWrapper = ItemLocations.Find(TObjectPtr<UItemBase>(Item));
+	if (!MappingArrayWrapper)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("RemoveItem: Item %s not found in ItemContainers."), *Item->GetName());
+		return;
 	}
 	
-	for (const auto& Pair : ItemLocations)
+	int32 RemovedCount = MappingArrayWrapper->Mappings.RemoveAll([ContainerID](const FItemMapping& Mapping)
 	{
-		auto Item = Pair.Key;
-		const FItemMappingArrayWrapper& MappingArrayWrapper = Pair.Value;
+		return Mapping.InventoryID == ContainerID;
+	});
+
+	auto MappingsMappingArrayWrapperTwo = ItemLocations.Find(TObjectPtr<UItemBase>(Item));
+	if (MappingsMappingArrayWrapperTwo && MappingsMappingArrayWrapperTwo->Mappings.Num() == 0)
+	{
+		ItemLocations.Remove(TObjectPtr<UItemBase>(Item));
+	}
+}
+
+void UItemCollection::RemoveItemFromAllContainers(UItemBase* Item)
+{
+	if (!Item)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("RemoveItemFromAllContainers: Item is null."));
+		return;
+	}
+
+	auto MappingArrayWrapper = ItemLocations.Find(TObjectPtr<UItemBase>(Item));
+	if (!MappingArrayWrapper)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("RemoveItemFromAllContainers: Item %s not found in ItemLocations."), *Item->GetName());
+		return;
+	}
+
+	for (int32 i = MappingArrayWrapper->Mappings.Num() - 1; i >= 0; --i)
+	{
+		const FItemMapping& Mapping = MappingArrayWrapper->Mappings[i];
+		if (UInventoryBase* Container = InvManager->GetInventoryByID(Mapping.InventoryID))
+		{
+			Container->HandleRemoveItem(Item, Item->GetQuantity());
+		}
 		
-		for (const FItemMapping& Mapping : MappingArrayWrapper.Mappings)
-		{
-			if (TargetContainer->EqualsByNameAndType(Mapping.InventoryID, Mapping.InventoryType))
-			{
-				if (!Result.Contains(Item.Get()))
-				{
-					Result.Add(Item.Get());
-				}
-				break;
-			}
-		}
 	}
 
-	return Result;
+	ItemLocations.Remove(TObjectPtr<UItemBase>(Item));
 }
 
-TArray<UItemBase*> UItemCollection::GetAllSameItemsInContainer(UInvBaseContainerWidget* TargetContainer,
-                                                               UItemBase* ReferenceItem) const
+FItemMapping* UItemCollection::FindItemMappingByContainerName(UItemBase* Item, FString InventoryID)
 {
-	TArray<UItemBase*> SameItems;
-	if (!TargetContainer || !ReferenceItem)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("GetAllSameItemsInContainer: %s"),
-			!TargetContainer ? TEXT("TargetContainer is null.") : TEXT("ReferenceItem is null."));
-		return SameItems;
-	}
+	FItemMappingArrayWrapper* Wrapper = ItemLocations.Find(Item);
+	if (!Wrapper) return nullptr;
 
-	if (ItemLocations.IsEmpty())
-		return SameItems;
-
-	auto RefName = ReferenceItem->GetItemRef().ItemTextData.Name;
-	for (const auto& Pair : ItemLocations)
+	for (FItemMapping& Mapping : Wrapper->Mappings)
 	{
-		auto Item = Pair.Key;
-		if (Item && Item->GetItemRef().ItemTextData.Name.EqualTo(RefName))
+		if (Mapping.InventoryID == InventoryID)
 		{
-			for (const FItemMapping& Mapping : Pair.Value.Mappings)
-			{
-				if (TargetContainer->EqualsByNameAndType(Mapping.InventoryID, Mapping.InventoryType))
-				{
-					SameItems.AddUnique(Item.Get());
-					break;
-				}
-			}
+			return &Mapping;
 		}
 	}
-    
-	return SameItems;
+
+	return nullptr;
 }
 
-TArray<UItemBase*> UItemCollection::GetAllItemsByCategory(EItemCategory ItemCategory)
+bool UItemCollection::ItemHasInventory(UItemBase* Item, FString InventoryID)
 {
-	TArray<UItemBase*> SameItems;
-	for (const auto& Pair : ItemLocations)
-	{
-		auto Item = Pair.Key;
-		if (Item->GetItemRef().ItemCategory == ItemCategory)
-		{
-			SameItems.Add(Item.Get());
-		}
-	}
+	const FItemMappingArrayWrapper* Wrapper = ItemLocations.Find(Item);
+	if (!Wrapper) return false;
 
-	return SameItems;
+	return Wrapper->Mappings.ContainsByPredicate(
+		[InventoryID](const FItemMapping& Mapping)
+		{
+			return Mapping.InventoryID == InventoryID;
+		});
 }
+
 
 UInventoryItemWidget* UItemCollection::GetItemLinkedWidgetForSlot(FInventorySlotData ItemSlotData)
 {	

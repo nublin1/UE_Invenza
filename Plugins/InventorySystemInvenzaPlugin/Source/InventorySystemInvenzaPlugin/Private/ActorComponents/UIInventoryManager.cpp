@@ -40,6 +40,12 @@ void UIInventoryManager::BeginPlay()
 
 	CreateInventories();
 	InitWidgets();
+
+	InitializeBindings();
+}
+
+void UIInventoryManager::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+{
 }
 
 void UIInventoryManager::CreateInventories()
@@ -73,18 +79,15 @@ void UIInventoryManager::InitWidgets()
 		if (SlotBased)
 		{
 			auto SizeInv = SlotBased->GetNumberRowsAndColumns();
-			auto TarInv = GetInventory(SlotBased->TargetInventoryTag);
+			auto TarInv = GetInventoryByTag(SlotBased->TargetInventoryTag);
 
 			if (!TarInv)
 				continue;
 
 			TarInv->SetInventorySize(SizeInv);
 			SlotBased->SetInventoryBaseRef(TarInv);
-
-			// делегаты
-			Inventory->OnInventoryUpdated.AddUObject(
-				Widget,
-				&UInventoryWidgetBase::RefreshInventory;
+			
+			SlotBased->BindDelegated();
 		}
 		
 	}
@@ -286,11 +289,25 @@ void UIInventoryManager::ItemTransferRequest(FItemMoveData ItemMoveData)
 	}
 }
 
-UInventoryBase* UIInventoryManager::GetInventory(const FGameplayTag& Tag)
+UInventoryBase* UIInventoryManager::GetInventoryByTag(const FGameplayTag& Tag)
 {
 	if (const TObjectPtr<UInventoryBase>* Found = Inventories.Find(Tag))
 	{
 		return *Found;
+	}
+
+	return nullptr;
+}
+
+UInventoryBase* UIInventoryManager::GetInventoryByID(FString ContainerID)
+{
+	if (ContainerID.IsEmpty())
+		return nullptr;
+	
+	for (auto Element : Inventories)
+	{
+		if (Element.Value->GetInventoryContainerID() == ContainerID)
+			return Element.Value;
 	}
 
 	return nullptr;
@@ -504,7 +521,26 @@ void UIInventoryManager::BindInputActions()
 	}
 }
 
-void UIInventoryManager::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+bool UUInventoryWidgetBase::HandleTradeModalOpening(UItemBase* Item)
 {
+	if (!Item) return false;
+
+	if (Item->GetItemRef().ItemCategory == EItemCategory::Money) return false;
+	
+	UIInventoryManager* InventoryManager = GetOwningPlayerPawn()->FindComponentByClass<UIInventoryManager>();
+	
+	if (InventoryManager->GetCurrentInteractInvWidget()
+			&& InventoryManager->GetCurrentInteractInvWidget()->GetInventoryType() == EInventoryType::VendorInventory)
+	{
+		if (InventoryData.ItemCollectionLink->GetOwner() == Cast<APawn>(GetOwningPlayer()->GetPawn()))
+		{
+			InventoryManager->OpenTradeModal(false, Item);
+			return true;
+		}
+				
+		InventoryManager->OpenTradeModal(true, Item);
+		return true;
+	}
+	return false;
 }
 

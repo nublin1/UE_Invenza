@@ -254,7 +254,7 @@ struct FItemMapping
 	GENERATED_BODY()
 
 	UPROPERTY()
-	FName InventoryID = NAME_None;
+	FString InventoryID;
 	UPROPERTY()
 	EInventoryType InventoryType = EInventoryType::None;
 	UPROPERTY()

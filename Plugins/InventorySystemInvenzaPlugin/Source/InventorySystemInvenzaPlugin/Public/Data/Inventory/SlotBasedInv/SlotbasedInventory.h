@@ -19,7 +19,6 @@ public:
 
 protected:
 
-
 public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
@@ -42,6 +41,12 @@ public:
 	void SetupStartingResources();
 
 	UFUNCTION(BlueprintCallable)
+	virtual void HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity) override;
+	UFUNCTION(BlueprintCallable)
+	virtual FItemAddResult HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck = false) override;
+
+	// Getters
+	UFUNCTION(BlueprintCallable)
 	TArray<UItemBase*> GetAllItems();
 	UFUNCTION(BlueprintCallable, meta = (ToolTip = "Returns a list of resources stored in this container, aggregating identical resources and summing their total amount."))
 	TArray<FItemIDEntry> CollectItemsAggregated() const;
@@ -54,30 +59,21 @@ public:
 	UFUNCTION(BlueprintCallable)
 	TArray<UInventorySlotData*> GetAvailableSlotForItem(UItemBase* Item);
 
-	UFUNCTION()
-	FInventorySettings GetInventorySettings() {return InventorySettings;}
-
-	UFUNCTION(BlueprintCallable)
-	virtual void HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity) override;
-	UFUNCTION(BlueprintCallable)
-	virtual FItemAddResult HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck = false) override;
-	
+	// Setters
 	UFUNCTION()
 	void SetInvSlots (const TArray<UInventorySlotData*>& InSlots) {this->InvSlotsDatas = InSlots;}
-
-	
 
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	
 	//UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TMap<TObjectPtr<AActor>, TArray<FSlotReservationData>> ReservedSlotsToAdd;
-		
 
 	//
 	virtual FItemAddResult HandleAddReferenceItem(FItemMoveData& ItemMoveData, bool bOnlyCheck = false) override;
+
+	virtual void MergeStackableItems() override;
 	
 	UFUNCTION()
 	FItemAddResult HandleNonStackableItems(FItemMoveData ItemMoveData, bool bOnlyCheck = false);
@@ -137,7 +133,7 @@ protected:
 	UFUNCTION()
 	void NotifyRemoveItemFromStack(UItemBase* Item, int32 ChangeQuantity);
 	UFUNCTION()
-	void NotifyFullyRemoveItem(FItemMapping* FromSlots, UItemBase* Item);
+	void NotifyFullyRemoveItem(FItemMapping& FromSlots, UItemBase* Item);
 	UFUNCTION()
-	virtual void NotifyReplaceItem(TArray<UInventorySlotData*> OldItemSlots, TArray<UInventorySlotData*> NewItemSlots, UItemBase* Item);
+	virtual void NotifyReplaceItem(TArray<UInventorySlotData*> OldItemSlots, FItemMapping NewItemSlots, UItemBase* Item);
 };

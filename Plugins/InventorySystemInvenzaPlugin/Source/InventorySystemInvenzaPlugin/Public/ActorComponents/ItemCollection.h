@@ -1,4 +1,4 @@
-//  Nublin Studio 2025 All Rights Reserved.
+//  Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -48,11 +48,15 @@ public:
 	TMap<TObjectPtr<UItemBase>, FItemMappingArrayWrapper> GetItemLocations() const {return ItemLocations;}
 	
 	TArray<UItemBase*> GetAllItemsByContainer(FString InvID);
-
+	TArray<UItemBase*> GetAllSameItemsInContainer(FString InvID, UItemBase* ReferenceItem) const;
+	TArray<FItemMapping> GetAllMappingsByContainer(const FString& InvID);
+	TArray<UItemBase*> GetAllItemsByCategory(EItemCategory ItemCategory);
+	UItemBase* GetItemFromSlot(UInventorySlotData* TargetSlotData, const FString& InventoryID);
+	
 	UFUNCTION(BlueprintCallable, Category = "Item Collection|Item Management")
 	FItemMappingArrayWrapper AddItem(UItemBase* NewItem, FItemMapping ItemMapping);
-	UFUNCTION(BlueprintCallable, FString = "Item Collection|Item Management")
-	void RemoveItem(UItemBase* Item, FName ContainerID);
+	UFUNCTION(BlueprintCallable, Category="Item Collection|Item Management")
+	void RemoveItem(UItemBase* Item, FString ContainerID);
 	UFUNCTION(BlueprintCallable, Category = "Item Collection|Item Management")
 	void RemoveItemFromAllContainers(UItemBase* Item);
 	
@@ -61,7 +65,11 @@ public:
 	UFUNCTION(BlueprintCallable)
 	bool ItemHasInventory(UItemBase* Item, FString InventoryID);
 
-	UItemBase* GetItemFromSlot(UInventorySlotData* TargetSlotData, const FString& InventoryID);
+	//
+	UFUNCTION()
+	void SetInvManager(UIInventoryManager* NewManager) {InvManager = NewManager;}
+
+	
 	
 	/*
 	
@@ -74,9 +82,8 @@ public:
 	TMap<TObjectPtr<UItemBase>, FItemMappingArrayWrapper> GetItemLocations() const {return ItemLocations;}
 	TArray<FInventorySlotData> CollectOccupiedSlotsByContainer(UInvBaseContainerWidget* InContainer);
 	UItemBase* GetItemFromSlot(FInventorySlotData TargetSlotData, UInvBaseContainerWidget* TargetContainer) const;
-	TArray<UItemBase*> GetAllItemsByContainer(UInvBaseContainerWidget* TargetContainer) const;
-	TArray<UItemBase*> GetAllSameItemsInContainer(UInvBaseContainerWidget* TargetContainer, UItemBase* ReferenceItem) const;
-	TArray<UItemBase*> GetAllItemsByCategory(EItemCategory ItemCategory);
+	
+
 	UInventoryItemWidget* GetItemLinkedWidgetForSlot(FInventorySlotData ItemSlotData);
 
 	virtual void SortInContainer(UInvBaseContainerWidget* ContainerToSort);

@@ -24,9 +24,6 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UUInventoryWidgetBase : public UBaseUserW
 
 #pragma region Delegates
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnItemDropped, FItemMoveData, ItemMoveData);
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAddItemDelegate, FItemMapping, ItemSlots, UItemBase*, Item);
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnPreRemoveItemDelegate, FItemMapping, ItemSlots, UItemBase*, Item, int32, RemoveQuantity);
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPostRemoveItemDelegate);
 #pragma endregion Delegates
 	
 public:
@@ -48,6 +45,10 @@ public:
 	//====================================================================
 	UFUNCTION(Category="Inventory")
 	virtual void InitializeInventoryWidget() PURE_VIRTUAL(UUInventoryWidgetBase::InitializeInventory,);
+
+	UFUNCTION(Category="Inventory")
+	virtual void BindDelegated() PURE_VIRTUAL(UUInventoryWidgetBase::BindDelegated,);
+	
 	UFUNCTION(Category="Inventory")
 	virtual void ReDrawAllItems() PURE_VIRTUAL(UUInventoryWidgetBase::ReDrawAllItems,);
 	
@@ -63,7 +64,7 @@ public:
 	FUISettings GetUISettings() const {return UISettings;}
 	
 	//Setters
-	void SetInventoryBaseRef(UInventoryBase* NewInventoryRef) {InventoryRef = NewInventoryRef;}
+	virtual void SetInventoryBaseRef(UInventoryBase* NewInventoryRef) {InventoryRef = NewInventoryRef;}
 	FORCEINLINE virtual void SetUISettings(FUISettings NewSettings) {UISettings = NewSettings;}
 
 protected:
@@ -82,12 +83,12 @@ protected:
 	TSet<EItemCategory> ActiveFilters;
 	UPROPERTY()
 	TObjectPtr<UInventorySlot> SlotUnderMouse = nullptr;
+	UPROPERTY()
+	TObjectPtr<UItemTooltipWidget> ItemTooltipWidget;
 	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================	
-	virtual FItemMapping* GetItemMapping(UItemBase* Item);
-	virtual int32 CalculateActualAmountToAdd(int32 InAmountToAdd, float ItemSingleWeight);
 
 	// Filters
 	UFUNCTION()
@@ -99,36 +100,14 @@ protected:
 	UFUNCTION()
 	virtual void SearchTextChanged(const FText& NewText) PURE_VIRTUAL(UUInventoryWidgetBase::SearchTextChanged,);
 
-	//
-	UFUNCTION()
-	virtual FItemAddResult HandleNonStackableItems(FItemMoveData& ItemMoveData, bool bOnlyCheck = false) PURE_VIRTUAL(UUInventoryWidgetBase::HandleNonStackableItems, return FItemAddResult(););
-	UFUNCTION()
-	virtual int32 HandleStackableItems(FItemMoveData& ItemMoveData, int32 RequestedAddAmount,
-												bool bOnlyCheck) PURE_VIRTUAL(UUInventoryWidgetBase::HandleStackableItems, return 0;);
-	UFUNCTION()
-	virtual FItemAddResult HandleAddReferenceItem(FItemMoveData& ItemMoveData, bool bOnlyCheck) PURE_VIRTUAL(UUInventoryWidgetBase::HandleAddReferenceItem, return FItemAddResult(););
-	UFUNCTION()
-	virtual void AddNewItem(FItemMoveData& ItemMoveData, FItemMapping OccupiedSlots, int32 AddAmount) PURE_VIRTUAL(UUInventoryWidgetBase::AddNewItem, );
-	UFUNCTION()
-	virtual void InsertToStackItem(UItemBase* Item, int32 AddQuantity);
-
-	virtual void AddItemToPanel(UItemBase* Item)  PURE_VIRTUAL(UUInventoryWidgetBase::AddItemToPanel, );
-
 public:
 	UFUNCTION()
-	virtual void UpdateWeightInfo();
+	virtual void UpdateWeightInfo(float InventoryTotalWeight) PURE_VIRTUAL(UUInventoryWidgetBase::UpdateWeightInfo,);
 	UFUNCTION()
-	virtual void UpdateMoneyInfo();
+	virtual void UpdateMoneyInfo(int32 InventoryTotalMoney) PURE_VIRTUAL(UUInventoryWidgetBase::UpdateMoneyInfo,);
 	
 protected:
 	//
 	UFUNCTION()
 	virtual UInvBaseContainerWidget* GetAsContainerWidget() { return Cast<UInvBaseContainerWidget>(ParentWidget);}
-	
-	
-	//====================================================================
-	// Event Notifiers
-	//====================================================================
-	virtual void NotifyAddItem(FItemMapping& FromSlots, UItemBase* NewItem, int32 ChangeQuantity);
-	
 };

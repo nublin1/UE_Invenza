@@ -34,7 +34,6 @@ protected:
 	virtual void NativeConstruct() override;
 
 public:
-	
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
@@ -43,14 +42,15 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	virtual void InitializeInventoryWidget() override;	
+	virtual void InitializeInventoryWidget() override;
+	virtual void BindDelegated() override;
 	virtual void ReDrawAllItems() override;
 	virtual void RebuildSlots(int32 InRows, int32 InColumns);
 
-	virtual void MergeStackableItems();
-
 	virtual FIntPoint GetNumberRowsAndColumns() {return FIntPoint(NumberRows, NumColumns);}
 	virtual TArray<UInventorySlotData*> GetSlotData();
+
+	virtual void SetInventoryBaseRef(UInventoryBase* NewInventoryRef) override;
 
 protected:
 	//====================================================================
@@ -73,6 +73,10 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<UHighlightSlotWidget> HighlightWidgetPreview = nullptr;
+	
+	// Refs
+	UPROPERTY()
+	TObjectPtr<USlotbasedInventory> SlotBasedInventoryRef;
 
 	// Settings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
@@ -126,26 +130,29 @@ protected:
 	virtual void SearchTextChanged(const FText& NewText) override;
 	
 	//
-	virtual UInventorySlot* GetSlotByPosition(FIntVector2 SlotPosition);
-	virtual bool bIsSlotEmpty(const FIntVector2 SlotPosition);
-	virtual bool bIsSlotEmpty(const UInventorySlot* SlotCheck);
+	virtual UInventorySlot* GetSlotByPosition(FIntPoint SlotPosition);
 	virtual bool bIsGridPositionValid(FIntPoint& GridPosition);
-	
-	virtual void AddNewItem(FItemMoveData& ItemMoveData, FItemMapping OccupiedSlots, int32 AddAmount) override;
-	UFUNCTION()
-	virtual void ReplaceItem(UItemBase* Item, UInventorySlot* NewSlot);
 
 	UFUNCTION()
-	FVector2D CalculateItemVisualPosition(FIntVector2 SlotPosition) const;
-	
-	virtual void AddItemToPanel(UItemBase* Item) override;
-	virtual void ReplaceItemInPanel(FItemMapping& FromSlots, UItemBase* Item);	
+	FVector2D CalculateItemVisualPosition(FIntPoint SlotPosition) const;
+
+	UFUNCTION()
+	virtual void AddItemToPanel(FItemMapping ItemSlots, UItemBase* Item);
+	UFUNCTION()
+	virtual void ReplaceItemInPanel(TArray<UInventorySlotData*> OldItemSlots, FItemMapping NewItemSlots, UItemBase* Item);
+	UFUNCTION()
+	virtual void UpdateItem(UItemBase* Item, int32 ChangedAmount);
+	UFUNCTION()
 	virtual void UpdateSlotInPanel(FItemMapping FromSlots, UItemBase* Item);
-	virtual void RemoveItemFromPanel(FItemMapping* FromSlots, UItemBase* Item);
-	
-	virtual void NotifyAddItem(FItemMapping& FromSlots, UItemBase* NewItem, int32 ChangeQuantity) override;
-	virtual void NotifyPreRemoveItem(FItemMapping& FromSlots, UItemBase* RemovedItem, int32 RemoveQuantity) override;
-	//void NotifyUseSlot(UBaseInventorySlot* FromSlot);
+	UFUNCTION()
+	virtual void RemoveItemFromPanel(FItemMapping FromSlots, UItemBase* Item);
+	UFUNCTION()
+	virtual void UsedItemInPanel(UInventorySlotData* UsedSlot);
+
+	UFUNCTION()
+	virtual void UpdateWeightInfo(float InventoryTotalWeight) override;
+	UFUNCTION()
+	virtual void UpdateMoneyInfo(int32 InventoryTotalMoney) override;
 
 	UFUNCTION()
 	virtual void CreateHighlightWidget();

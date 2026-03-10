@@ -21,14 +21,14 @@ class UInputAction;
 class UInteractableComponent;
 class UCoreHUDWidget;
 
-#pragma region Delegates
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInitializationComplete);
-#pragma endregion Delegates
-
 UCLASS(ClassGroup=(Custom), Blueprintable, meta=(BlueprintSpawnableComponent))
 class INVENTORYSYSTEMINVENZAPLUGIN_API UIInventoryManager : public UActorComponent
 {
 	GENERATED_BODY()
+
+#pragma region Delegates
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInitializationComplete);
+#pragma endregion Delegates
 
 public:
 	UIInventoryManager();
@@ -37,6 +37,10 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
+							   FActorComponentTickFunction* ThisTickFunction) override;
+
+	
 	//====================================================================
 	// Delegates
 	//====================================================================
@@ -59,8 +63,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Transfer")
 	void ItemTransferRequest(FItemMoveData ItemMoveData);
 	
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Query")
-	UInvBaseContainerWidget* GetMainInventory() const { return CoreHUDWidget ? CoreHUDWidget->GetMainInvWidget() : nullptr; }
+	/*UFUNCTION(BlueprintCallable, Category = "Inventory|Query")
+	UInvBaseContainerWidget* GetMainInventory() const { return CoreHUDWidget ? CoreHUDWidget->GetMainInvWidget() : nullptr; }*/
 	
 	UFUNCTION(BlueprintPure, Category = "Inventory|Settings")
 	FUISettings GetUISettings() const { return UISettings; }
@@ -74,7 +78,10 @@ public:
 	FInventoryModifierState GetInventoryModifierStates() const { return InventoryModifierState; }
 
 	UFUNCTION(BlueprintCallable)
-	UInventoryBase* GetInventory(const FGameplayTag& Tag);
+	UInventoryBase* GetInventoryByTag(const FGameplayTag& Tag);
+
+	UFUNCTION(BlueprintCallable)
+	UInventoryBase* GetInventoryByID(FString ContainerID);
 
 protected:
 	//====================================================================
@@ -135,8 +142,6 @@ protected:
 	void InitializeBindings();
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Initialization")
 	void BindInputActions();
-
-public:
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
-	                           FActorComponentTickFunction* ThisTickFunction) override;
+	
+	
 };

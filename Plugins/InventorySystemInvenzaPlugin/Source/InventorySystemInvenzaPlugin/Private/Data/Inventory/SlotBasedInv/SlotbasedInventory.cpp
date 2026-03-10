@@ -350,6 +350,43 @@ FItemAddResult USlotbasedInventory::HandleAddReferenceItem(FItemMoveData& ItemMo
 			ItemMoveData.SourceItem->GetItemRef().ItemTextData.NameID ), AffectedSlots);
 }
 
+void USlotbasedInventory::MergeStackableItems()
+{
+	auto Items = ItemCollectionLinked -> GetAllItemsByContainer(InventoryContainerID);
+	if (Items.IsEmpty()) return;
+
+	for (int i = Items.Num()-1; i> 0; --i )
+	{
+		if (!Items[i] || !Items[i]->IsStackable())
+		{
+			continue;
+		}
+
+		auto SameItems = ItemCollectionLinked->GetAllSameItemsInContainer(InventoryContainerID, Items[i]);
+		if (SameItems.IsEmpty()) continue;
+
+		for (const auto& SameItem : SameItems)
+		{
+			if (SameItem->IsFullItemStack())
+				continue;
+
+			int32 AmountToAdd = Items[i]->GetQuantity();
+			int32 AvailableSpace = SameItem->GetItemRef().ItemNumeraticData.MaxStackSizeInCharacter - SameItem->GetQuantity();
+
+			int32 ToTransfer = FMath::Min(AvailableSpace, AmountToAdd);
+			if (ToTransfer > 0)
+			{
+				TryInsertToStackItem(SameItem, Items[i], ToTransfer, false);
+			}
+
+			if (Items[i]->GetQuantity() <= 0)
+			{
+				break;
+			}
+		}
+	}
+}
+
 FItemAddResult USlotbasedInventory::HandleNonStackableItems(FItemMoveData ItemMoveData, bool bOnlyCheck)
 {
 	TArray<TObjectPtr<UInventorySlotData>> EmptySlots;
@@ -590,9 +627,8 @@ void USlotbasedInventory::ReplaceItem(UItemBase* Item, UInventorySlotData* NewSl
 	TArray<TObjectPtr<UInventorySlotData>> OldSlots = Mapping->OccupiedSlots;
 
 	Mapping->OccupiedSlots[0] = NewSlot;
-	
 
-	NotifyReplaceItem(OldSlots, Mapping->OccupiedSlots, Item);
+	NotifyReplaceItem(OldSlots, *Mapping, Item);
 }
 
 int32 USlotbasedInventory::TryInsertToStackItem(UItemBase* ItemToInsertInto,
@@ -603,7 +639,7 @@ int32 USlotbasedInventory::TryInsertToStackItem(UItemBase* ItemToInsertInto,
 		return 0;
 
 	int32 AmountToAddToStack = FMath::Min(AmountToDistribute,
-	                                      ItemToInsertInto->GetItemRef().ItemNumeraticData.MaxAmountInStorage - ItemToInsertInto
+	                                      ItemToInsertInto->GetItemRef().ItemNumeraticData.MaxStackSizeInCharacter - ItemToInsertInto
 	                                      ->GetQuantity());
 	int32 ActualAmountToAdd = CalculateActualAmountToAdd(AmountToAddToStack, 0);
 	int32 OldAmount = ItemToInsertInto->GetQuantity();
@@ -630,7 +666,7 @@ void USlotbasedInventory::RemoveItemFromInventory(UItemBase* Item)
 	auto MappingWrapper = ItemCollectionLinked->GetItemLocations().FindRef(TObjectPtr<UItemBase>(Item));
 	auto Mapping = ItemCollectionLinked->FindItemMappingByContainerName(Item, InventoryContainerID);
 
-	NotifyFullyRemoveItem(Mapping, Item);
+	NotifyFullyRemoveItem(*Mapping, Item);
 
 	ItemCollectionLinked->RemoveItem(TObjectPtr<UItemBase>(Item), InventoryContainerID);
 	
@@ -792,14 +828,14 @@ void USlotbasedInventory::NotifyRemoveItemFromStack(UItemBase* Item, int32 Chang
 		OnUnstackedItemDelegate.Broadcast(Item, ChangeQuantity);
 }
 
-void USlotbasedInventory::NotifyFullyRemoveItem(FItemMapping* FromSlots, UItemBase* Item)
+void USlotbasedInventory::NotifyFullyRemoveItem(FItemMapping& FromSlots, UItemBase* Item)
 {
 	if (OnItemRemovedDelegate.IsBound())
 		OnItemRemovedDelegate.Broadcast(FromSlots, Item);
 }
 
 void USlotbasedInventory::NotifyReplaceItem(TArray<UInventorySlotData*> OldItemSlots,
-	TArray<UInventorySlotData*> NewItemSlots, UItemBase* Item)
+	FItemMapping NewItemSlots, UItemBase* Item)
 {
 	if (OnItemReplaceDelegate.IsBound())
 		OnItemReplaceDelegate.Broadcast(OldItemSlots, NewItemSlots, Item);

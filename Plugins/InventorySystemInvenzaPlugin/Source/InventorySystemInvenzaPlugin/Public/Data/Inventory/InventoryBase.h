@@ -19,10 +19,11 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UInventoryBase : public UObject
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAddItemDelegate, FItemMapping, ItemSlots, UItemBase*, Item);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnStackedItemDelegate, UItemBase*, Item, int32, AddedAmount);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnstackedItemDelegate, UItemBase*, Item, int32, RemovedAmount);
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnItemRemovedDelegate, FItemMapping*, ItemSlots, UItemBase*, Item);
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnItemReplaceDelegate, TArray<UInventorySlotData*>, OldItemSlots, TArray<UInventorySlotData*>, NewItemSlots, UItemBase*, Item);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnItemRemovedDelegate, FItemMapping, ItemSlots, UItemBase*, Item);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnItemReplaceDelegate, TArray<UInventorySlotData*>, OldItemSlots, FItemMapping, NewItemSlots, UItemBase*, Item);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUseSlot, UInventorySlotData*, UsedSlot);
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnWightUpdatedDelegate, float, InventoryTotalWeight, float, InventoryWeightCapacity);
+	
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWeightUpdatedDelegate, float, InventoryTotalWeight);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMoneyUpdatedDelegate, int32, InventoryTotalMoney);
 
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSlotsReservedDelegate, TArray<FSlotReservationData>, ReservationData);
@@ -48,6 +49,11 @@ public:
 	FOnItemReplaceDelegate OnItemReplaceDelegate;
 	UPROPERTY(BlueprintAssignable)
 	FOnUseSlot OnUseSlotDelegate;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnWeightUpdatedDelegate OnWeightUpdatedDelegate;
+	UPROPERTY(BlueprintAssignable)
+	FOnMoneyUpdatedDelegate OnMoneyUpdatedDelegate;
 	
 	UPROPERTY(BlueprintAssignable)
 	FOnSlotsReservedDelegate OnSlotsReservedDelegate;
@@ -57,14 +63,44 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Initialization")
+	virtual void InitInventory(UItemCollection* ItemCollectionRef, FVector2D NewSize);
+
+	UFUNCTION(BlueprintCallable)
+	virtual void HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity)
+		PURE_VIRTUAL(UInventoryBase::HandleRemoveItem, );
+
+	UFUNCTION(BlueprintCallable)
+	virtual FItemAddResult HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck = false)
+		PURE_VIRTUAL(UInventoryBase::HandleAddItem, return FItemAddResult(););
+
+	UFUNCTION(BlueprintCallable)
+	virtual FItemAddResult HandleAddReferenceItem(FItemMoveData& ItemMoveData, bool bOnlyCheck = false)
+		PURE_VIRTUAL(UInventoryBase::HandleAddReferenceItem, return FItemAddResult(););
+
+	UFUNCTION(BlueprintCallable)
+	virtual void MergeStackableItems()
+		PURE_VIRTUAL(UInventoryBase::MergeStackableItems, );
+	
 	UFUNCTION()
 	void UseSlot(UInventorySlotData* UsedSlot);
+
+	UFUNCTION()
+	virtual void UpdateWeightInfo();
+	UFUNCTION()
+	virtual void UpdateMoneyInfo();
 	
-	//
+	// Getters
+	UFUNCTION()
+	FString GetInventoryContainerID() {return InventoryContainerID;}
+	UFUNCTION()
+	virtual FInventorySettings GetInventorySettings() {return InventorySettings;}
 	UFUNCTION(BlueprintCallable)
 	virtual TArray<UInventorySlotData*> GetInvSlots() const {return InvSlotsDatas;}
+	UFUNCTION()
+	TObjectPtr<UItemCollection> GetItemCollectionLinked() {return ItemCollectionLinked;}
 
-	//
+	// Setters
 	UFUNCTION(BlueprintCallable)
 	virtual void SetInventorySettings(FInventorySettings NewInventorySettings){InventorySettings = NewInventorySettings;}
 
@@ -105,26 +141,14 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FVector2D InvSize = FVector2D(1,1);
 	
-	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Initialization")
-	virtual void InitInventory(UItemCollection* ItemCollectionRef, FVector2D NewSize);
-
-	UFUNCTION(BlueprintCallable)
-	virtual void HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity)
-		PURE_VIRTUAL(UInventoryBase::HandleRemoveItem, );
-
-	UFUNCTION(BlueprintCallable)
-	virtual FItemAddResult HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck = false)
-		PURE_VIRTUAL(UInventoryBase::HandleAddItem, return FItemAddResult(););
-
-	UFUNCTION(BlueprintCallable)
-	virtual FItemAddResult HandleAddReferenceItem(FItemMoveData& ItemMoveData, bool bOnlyCheck = false)
-		PURE_VIRTUAL(UInventoryBase::HandleAddReferenceItem, return FItemAddResult(););
-
 	UFUNCTION()
 	virtual void NotifyUseSlot(UInventorySlotData* UsedSlot);
+	UFUNCTION()
+	virtual void NotifyUpdateWeight();
+	UFUNCTION()
+	virtual void NotifyUpdateMoney();
 	
 };
