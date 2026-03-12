@@ -155,11 +155,11 @@ struct FItemMoveData
 	UPROPERTY()
 	UItemBase* SourceItem;
 	UPROPERTY()
-	TObjectPtr<USlotbasedInventory> SourceInventory;
+	TObjectPtr<UInventoryBase> SourceInventory;
 	UPROPERTY()
 	TObjectPtr<UInventorySlot> SourceItemPivotSlot;
 	UPROPERTY()
-	TObjectPtr<USlotbasedInventory> TargetInventory;
+	TObjectPtr<UInventoryBase> TargetInventory;
 	UPROPERTY()
 	TObjectPtr<UInventorySlot> TargetSlot;
 	UPROPERTY()
@@ -173,8 +173,8 @@ struct FItemMoveData
 	}
 
 	FItemMoveData (UItemBase* _SourceItem,
-		USlotbasedInventory* _SourceInventory,
-		USlotbasedInventory* _TargetInventory,
+		UInventoryBase* _SourceInventory,
+		UInventoryBase* _TargetInventory,
 		UInventorySlot* _TargetSlot = nullptr)
 	{
 		SourceItem = _SourceItem;

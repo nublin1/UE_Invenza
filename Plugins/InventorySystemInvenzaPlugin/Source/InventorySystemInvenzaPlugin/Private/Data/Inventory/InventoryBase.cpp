@@ -75,6 +75,37 @@ void UInventoryBase::InitInventory(UItemCollection* ItemCollectionRef, FVector2D
 {
 }
 
+void UInventoryBase::NotifyAddNewItem(FItemMapping& FromSlots, UItemBase* NewItem, int32 ChangeQuantity)
+{
+	if (OnAddItemDelegate.IsBound())
+		OnAddItemDelegate.Broadcast(FromSlots, NewItem);
+}
+
+void UInventoryBase::NotifyAddItemToStack(UItemBase* Item, int32 ChangeQuantity)
+{
+	if (OnStackedItemDelegate.IsBound())
+		OnStackedItemDelegate.Broadcast(Item, ChangeQuantity);
+}
+
+void UInventoryBase::NotifyRemoveItemFromStack(UItemBase* Item, int32 ChangeQuantity)
+{
+	if (OnUnstackedItemDelegate.IsBound())
+		OnUnstackedItemDelegate.Broadcast(Item, ChangeQuantity);
+}
+
+void UInventoryBase::NotifyFullyRemoveItem(FItemMapping& FromSlots, UItemBase* Item)
+{
+	if (OnItemRemovedDelegate.IsBound())
+		OnItemRemovedDelegate.Broadcast(FromSlots, Item);
+}
+
+void UInventoryBase::NotifyReplaceItem(TArray<UInventorySlotData*> OldItemSlots,
+	FItemMapping NewItemSlots, UItemBase* Item)
+{
+	if (OnItemReplaceDelegate.IsBound())
+		OnItemReplaceDelegate.Broadcast(OldItemSlots, NewItemSlots, Item);
+}
+
 void UInventoryBase::NotifyUseSlot(UInventorySlotData* UsedSlot)
 {
 	if (OnUseSlotDelegate.IsBound())

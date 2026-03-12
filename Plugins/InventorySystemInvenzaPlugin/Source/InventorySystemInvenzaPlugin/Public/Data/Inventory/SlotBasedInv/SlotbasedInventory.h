@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Data/Inventory/InventoryBase.h"
+#include "Data/Items/ItemBase.h"
 #include "UI/Inventory/InventoryTypes.h"
 #include "SlotbasedInventory.generated.h"
 
@@ -76,12 +77,12 @@ protected:
 	virtual void MergeStackableItems() override;
 	
 	UFUNCTION()
-	FItemAddResult HandleNonStackableItems(FItemMoveData ItemMoveData, bool bOnlyCheck = false);
+	virtual FItemAddResult HandleNonStackableItems(FItemMoveData ItemMoveData, bool bOnlyCheck = false) override;
 	UFUNCTION()
-	FItemAddResult TryAddStackableItem(FItemMoveData& ItemMoveData, bool bOnlyCheck);
+	virtual FItemAddResult TryAddStackableItem(FItemMoveData& ItemMoveData, bool bOnlyCheck) override;
 	UFUNCTION()
-	int32 HandleStackableItems(FItemMoveData& ItemMoveData, int32 RequestedAddAmount, bool bOnlyCheck,
-		TMap<UInventorySlotData*, FItemPlacementData>& AffectedPivotSlots);
+	virtual int32 HandleStackableItems(FItemMoveData& ItemMoveData, int32 RequestedAddAmount, bool bOnlyCheck,
+	                                   TMap<UInventorySlotData*, FItemPlacementData>& AffectedPivotSlots) override;
 	
 	UFUNCTION()
 	int32 DistributeToExistingStacks(TArray<UItemBase*>& SameItems, int32& AmountToDistribute,
@@ -91,7 +92,7 @@ protected:
 	void DeductResourceOnAddToInventory(UItemBase* Resource, int32 DeductAmount);
 
 	UFUNCTION()
-	UItemBase* AddNewItem(FItemMoveData& ItemMoveData, FItemMapping OccupiedSlots, int32 AddAmount);
+	virtual UItemBase* AddNewItem(FItemMoveData& ItemMoveData, FItemMapping OccupiedSlots, int32 AddAmount) override;
 	UFUNCTION()
 	void ReplaceItem(UItemBase* Item, UInventorySlotData* NewSlot);
 	UFUNCTION()
@@ -122,18 +123,5 @@ protected:
 	TArray<UItemBase*> GetAllSameItems(UItemBase* ReferenceItem);
 	UFUNCTION()
 	UItemBase* GetItemFromSlot(UInventorySlotData* Slot);
-
-	//====================================================================
-	// Event Notifiers
-	//====================================================================
-	UFUNCTION()
-	void NotifyAddNewItem(FItemMapping& FromSlots, UItemBase* NewItem, int32 ChangeQuantity);
-	UFUNCTION()
-	void NotifyAddItemToStack(UItemBase* Item, int32 ChangeQuantity);
-	UFUNCTION()
-	void NotifyRemoveItemFromStack(UItemBase* Item, int32 ChangeQuantity);
-	UFUNCTION()
-	void NotifyFullyRemoveItem(FItemMapping& FromSlots, UItemBase* Item);
-	UFUNCTION()
-	virtual void NotifyReplaceItem(TArray<UInventorySlotData*> OldItemSlots, FItemMapping NewItemSlots, UItemBase* Item);
+	
 };

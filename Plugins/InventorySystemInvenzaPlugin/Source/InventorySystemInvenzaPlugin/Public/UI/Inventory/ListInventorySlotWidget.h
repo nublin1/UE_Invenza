@@ -1,10 +1,11 @@
-//  Nublin Studio 2025 All Rights Reserved.
+//  Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "InventorySlot.h"
 #include "Blueprint/IUserObjectListEntry.h"
+#include "Data/Inventory/ListInventory/InventoryListEntry.h"
 #include "Blueprint/UserWidget.h"
 #include "Components/Image.h"
 #include "ListInventorySlotWidget.generated.h"
@@ -13,19 +14,6 @@ enum class EInventoryCheckType : uint8;
 class UListInventoryWidget;
 class UTextBlock;
 class UScrollBox;
-
-UCLASS()
-class INVENTORYSYSTEMINVENZAPLUGIN_API UInventoryListEntry : public UObject
-{
-	GENERATED_BODY()
-
-public:
-	UPROPERTY(BlueprintReadWrite, Category="Inventory")
-	TObjectPtr<UItemBase> Item = nullptr;
-
-	UPROPERTY(BlueprintReadWrite, Category="Inventory")
-	TObjectPtr<UListInventoryWidget> ParentInventoryWidget = nullptr;
-};
 
 /**
  * 
@@ -65,7 +53,7 @@ protected:
 	
 	//
 	UPROPERTY()
-	TObjectPtr<UInventoryListEntry> CachedEntry = nullptr;
+	TObjectPtr<UInventoryListEntry> CachedEntry;
 
 	//====================================================================
 	// FUNCTIONS

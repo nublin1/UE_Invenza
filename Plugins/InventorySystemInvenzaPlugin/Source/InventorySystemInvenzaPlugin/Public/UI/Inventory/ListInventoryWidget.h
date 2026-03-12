@@ -51,7 +51,7 @@ protected:
 	TObjectPtr<UItemFiltersPanel> ItemFiltersPanel;
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory|UI", meta=(BindWidgetOptional))
 	TObjectPtr<UScrollBox> ScrollBox;
-	UPROPERTY(BlueprintReadOnly, Category = "Inventory|UI", meta=(BindWidgetOptional))
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory|UI", meta=(BindWidget))
 	TObjectPtr<UListView> ItemsList;
 
 	//
