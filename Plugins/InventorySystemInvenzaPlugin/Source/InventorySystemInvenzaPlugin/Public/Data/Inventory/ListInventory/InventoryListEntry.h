@@ -19,6 +19,6 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category="Inventory")
 	TObjectPtr<UItemBase> Item = nullptr;
 
-	//UPROPERTY(BlueprintReadWrite, Category="Inventory")
-	//TObjectPtr<UListInventoryWidget> ParentInventoryWidget = nullptr;
+	UPROPERTY(BlueprintReadWrite, Category="Inventory")
+	TObjectPtr<UListInventoryWidget> ParentInventoryWidget = nullptr;
 };

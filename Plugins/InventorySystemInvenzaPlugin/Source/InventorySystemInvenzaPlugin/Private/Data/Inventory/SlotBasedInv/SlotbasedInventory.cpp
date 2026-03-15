@@ -606,11 +606,6 @@ int32 USlotbasedInventory::DistributeToExistingStacks(TArray<UItemBase*>& SameIt
 	return TotalAdded;
 }
 
-void USlotbasedInventory::DeductResourceOnAddToInventory(UItemBase* ItemBase, int32 DeductAmount)
-{
-	ItemBase->SetQuantity(ItemBase->GetQuantity() - DeductAmount);
-}
-
 UItemBase* USlotbasedInventory::AddNewItem(FItemMoveData& ItemMoveData, FItemMapping OccupiedSlots,
                                            int32 AddAmount)
 {
@@ -685,22 +680,6 @@ int32 USlotbasedInventory::TryInsertToStackItem(UItemBase* ItemToInsertInto,
 	return ActualAmountToAdd;
 }
 
-void USlotbasedInventory::RemoveItemFromInventory(UItemBase* Item)
-{
-	if (!Item)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("RemoveItemFromInventory: Item is null"));
-		return;
-	}
-
-	auto MappingWrapper = ItemCollectionLinked->GetItemLocations().FindRef(TObjectPtr<UItemBase>(Item));
-	auto Mapping = ItemCollectionLinked->FindItemMappingByContainerName(Item, InventoryContainerID);
-
-	NotifyFullyRemoveItem(*Mapping, Item);
-
-	ItemCollectionLinked->RemoveItem(TObjectPtr<UItemBase>(Item), InventoryContainerID);
-}
-
 int32 USlotbasedInventory::TryRemoveFromStackItem(UItemBase* Item, int32 RequestedRemoveAmount)
 {
 	if (!Item || Item->GetQuantity() <= 0)
@@ -716,17 +695,6 @@ int32 USlotbasedInventory::TryRemoveFromStackItem(UItemBase* Item, int32 Request
 	}
 
 	return AmountToRemove;
-}
-
-int32 USlotbasedInventory::CalculateActualAmountToAdd(int32 InAmountToAdd, float ItemSingleWeight)
-{
-	if (InventorySettings.InventoryMaxWeightCapacity >= 0)
-	{
-		const int32 WeightLimitAddAmount = InventorySettings.InventoryMaxWeightCapacity - InventoryTotalWeight;
-		int32 MaxItemsThatFit = WeightLimitAddAmount / ItemSingleWeight;
-		return FMath::Min(MaxItemsThatFit, InAmountToAdd);
-	}
-	return InAmountToAdd;
 }
 
 bool USlotbasedInventory::bIsGridPositionValid(FIntPoint GridPosition)

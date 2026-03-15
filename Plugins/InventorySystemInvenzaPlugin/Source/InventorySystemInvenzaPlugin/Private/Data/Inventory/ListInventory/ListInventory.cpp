@@ -14,7 +14,9 @@ UListInventory::UListInventory()
 
 void UListInventory::HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity)
 {
-	Super::HandleRemoveItem(Item, RemoveQuantity);
+	if (!Item) return;
+
+	auto removedActual = TryRemoveFromStackItem(Item, RemoveQuantity);
 }
 
 FItemAddResult UListInventory::HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck)
@@ -53,27 +55,16 @@ FItemAddResult UListInventory::HandleAddItem(FItemMoveData ItemMoveData, bool bO
 
 	if (!ItemMoveData.SourceItem->IsStackable())
 		return HandleNonStackableItems(ItemMoveData, bOnlyCheck);
-
-	const int32 InitialRequestedAddAmount = ItemMoveData.SourceItem->GetQuantity();
-	const int32 StackableAmountAdded = HandleStackableItems(ItemMoveData, InitialRequestedAddAmount, bOnlyCheck);
-	if (StackableAmountAdded == InitialRequestedAddAmount)
+	
+	
+	if (ItemMoveData.SourceItem->IsStackable())
 	{
-		return FItemAddResult::AddedAll(StackableAmountAdded, false, FText::Format(
-			                                FText::FromString("Successfully added {0} of {1} to inventory"),
-			                                InitialRequestedAddAmount,
-			                                ItemMoveData.SourceItem->GetItemRef().ItemTextData.Name));
+		return TryAddStackableItem(ItemMoveData, bOnlyCheck);
 	}
-	else if (StackableAmountAdded < InitialRequestedAddAmount && StackableAmountAdded > 0)
-	{
-		return FItemAddResult::AddedPartial(StackableAmountAdded, false, FText::Format(
-			                                    FText::FromString(
-				                                    "Partial amount of {0} added to inventory. Number added: {1}"),
-			                                    ItemMoveData.SourceItem->GetItemRef().ItemTextData.Name,
-			                                    StackableAmountAdded));
-	}
+	
 
 	return FItemAddResult::AddedNone(FText::Format(FText::FromString("Couldn't add {0} to inventory."),
-	                                               ItemMoveData.SourceItem->GetItemRef().ItemTextData.Name));
+	                                               ItemMoveData.SourceItem->GetItemRef().ItemTextData.DisplayName));
 }
 
 FItemAddResult UListInventory::HandleAddReferenceItem(FItemMoveData& ItemMoveData, bool bOnlyCheck)
@@ -129,14 +120,40 @@ FItemAddResult UListInventory::HandleNonStackableItems(FItemMoveData ItemMoveDat
 		AddNewItem(ItemMoveData, Slots, 1);
 	}
 
+	TMap<UInventorySlotData*, FItemPlacementData> AffectedSlots;
+	AffectedSlots.Add(ItemMoveData.TargetSlot->GetSlotData(), {1, ItemMoveData.SavedOrientation});
+
 	return FItemAddResult::AddedAll(1, false, FText::Format(
 										FText::FromString("Successfully added {0} of {1} to inventory"),
-										1, ItemMoveData.SourceItem->GetItemRef().ItemTextData.Name));
+										1, ItemMoveData.SourceItem->GetItemRef().ItemTextData.DisplayName), AffectedSlots);
 }
 
 FItemAddResult UListInventory::TryAddStackableItem(FItemMoveData& ItemMoveData, bool bOnlyCheck)
 {
-	return Super::TryAddStackableItem(ItemMoveData, bOnlyCheck);
+	TMap<UInventorySlotData*, FItemPlacementData> AffectedSlots;
+	AffectedSlots.Add(ItemMoveData.TargetSlot->GetSlotData(), {1, ItemMoveData.SavedOrientation});
+
+	const int32 InitialRequestedAddAmount = ItemMoveData.SourceItem->GetQuantity();
+	const int32 StackableAmountAdded = HandleStackableItems(ItemMoveData, InitialRequestedAddAmount, bOnlyCheck, AffectedSlots);
+	
+	if (StackableAmountAdded == InitialRequestedAddAmount)
+	{
+		return FItemAddResult::AddedAll(StackableAmountAdded, false, FText::Format(
+											FText::FromString("Successfully added {0} of {1} to inventory"),
+											InitialRequestedAddAmount,
+											ItemMoveData.SourceItem->GetItemRef().ItemTextData.DisplayName), AffectedSlots);
+	}
+	else if (StackableAmountAdded < InitialRequestedAddAmount && StackableAmountAdded > 0)
+	{
+		return FItemAddResult::AddedPartial(StackableAmountAdded, false, FText::Format(
+												FText::FromString(
+													"Partial amount of {0} added to inventory. Number added: {1}"),
+												ItemMoveData.SourceItem->GetItemRef().ItemTextData.DisplayName,
+												StackableAmountAdded), AffectedSlots);
+	}
+	
+	return FItemAddResult::AddedNone(FText::Format(FText::FromString("Couldn't add {0} to inventory."),
+												   ItemMoveData.SourceItem->GetItemRef().ItemTextData.DisplayName));
 }
 
 int32 UListInventory::HandleStackableItems(FItemMoveData& ItemMoveData, int32 RequestedAddAmount, bool bOnlyCheck,
@@ -148,20 +165,12 @@ int32 UListInventory::HandleStackableItems(FItemMoveData& ItemMoveData, int32 Re
 	auto SameItems = ItemCollectionLinked->GetAllSameItemsInContainer(InventoryContainerID, ItemMoveData.SourceItem);
 	if (SameItems.Num()> 0)
 	{
-		for (auto& Item : SameItems)
+		for (auto& SameItem : SameItems)
 		{
 			if(AmountToDistribute<=0)
 				break;
-				
-			if (Item->IsFullItemStack())
-				continue;
-
-			int32 AmountToAddToStack = FMath::Min(AmountToDistribute,
-					Item->GetItemRef().ItemNumeraticData.MaxStackSizeInCharacter - Item->GetQuantity());
-			int32 ActualAmountToAdd = CalculateActualAmountToAdd(AmountToAddToStack, ItemMoveData.SourceItem->GetItemSingleWeight());
-
-			if (!bOnlyCheck)
-				InsertToStackItem(Item, ActualAmountToAdd);
+			
+			int32 ActualAmountToAdd = TryInsertToStackItem(SameItem, ItemMoveData.SourceItem, AmountToDistribute, bOnlyCheck);
 			AmountToDistribute -= ActualAmountToAdd;
 			TotalAddedAmount += ActualAmountToAdd;
 		}
@@ -175,7 +184,9 @@ int32 UListInventory::HandleStackableItems(FItemMoveData& ItemMoveData, int32 Re
 		return RequestedAddAmount;
 
 	UListInventorySlotWidget* ListInventorySlot = NewObject<UListInventorySlotWidget>();	
-	FItemMapping Slots(ListInventorySlot->GetSlotData());
+	FItemMapping Slots;
+	Slots.InventoryID = InventoryContainerID;
+	Slots.OccupiedSlots.Add(ListInventorySlot->GetSlotData());
 			
 	AddNewItem(ItemMoveData, Slots, AmountToDistribute);
 	return ActualAmountToAdd + TotalAddedAmount;
@@ -203,3 +214,4 @@ UItemBase* UListInventory::AddNewItem(FItemMoveData& ItemMoveData, FItemMapping 
 
 	return FinalItem;
 }
+

@@ -75,6 +75,79 @@ void UInventoryBase::InitInventory(UItemCollection* ItemCollectionRef, FVector2D
 {
 }
 
+int32 UInventoryBase::CalculateActualAmountToAdd(int32 InAmountToAdd, float ItemSingleWeight)
+{
+	if (InventorySettings.InventoryMaxWeightCapacity >= 0)
+	{
+		const int32 WeightLimitAddAmount = InventorySettings.InventoryMaxWeightCapacity - InventoryTotalWeight;
+		int32 MaxItemsThatFit = WeightLimitAddAmount / ItemSingleWeight;
+		return FMath::Min(MaxItemsThatFit, InAmountToAdd);
+	}
+	return InAmountToAdd;
+}
+
+int32 UInventoryBase::TryInsertToStackItem(UItemBase* ResourceToInsertInto, UItemBase* ResourceToDeductFrom,
+	int32 AmountToDistribute, bool bOnlyCheck)
+{
+	if (ResourceToInsertInto->IsFullItemStack())
+		return 0;
+
+	int32 AmountToAddToStack = FMath::Min(AmountToDistribute,
+										  ResourceToInsertInto->GetItemRef().ItemNumeraticData.MaxStackSizeInCharacter -
+										  ResourceToInsertInto->GetQuantity());
+	
+	int32 ActualAmountToAdd = CalculateActualAmountToAdd(AmountToAddToStack, ResourceToInsertInto->GetItemSingleWeight());
+	int32 OldAmount = ResourceToInsertInto->GetQuantity();
+
+	if (!bOnlyCheck)
+	{
+		DeductResourceOnAddToInventory(ResourceToDeductFrom, ActualAmountToAdd);
+		ResourceToInsertInto->SetQuantity(OldAmount + ActualAmountToAdd);
+		NotifyAddItemToStack(ResourceToInsertInto, ActualAmountToAdd);
+	}
+	//ActualAmountToAdd = OldAmount + ActualAmountToAdd;
+
+	return ActualAmountToAdd;
+}
+
+int32 UInventoryBase::TryRemoveFromStackItem(UItemBase* Item, int32 RequestedRemoveAmount)
+{
+	if (!Item || Item->GetQuantity() <= 0)
+		return 0;
+
+	int32 AmountToRemove = FMath::Min(RequestedRemoveAmount, Item->GetQuantity());
+	Item->SetQuantity(Item->GetQuantity() - AmountToRemove);
+
+	NotifyRemoveItemFromStack(Item, RequestedRemoveAmount);
+	if (Item->GetQuantity() <= 0)
+	{
+		RemoveItemFromInventory(Item);
+	}
+
+	return AmountToRemove;
+}
+
+void UInventoryBase::RemoveItemFromInventory(UItemBase* Item)
+{
+	if (!Item)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("RemoveItemFromInventory: Item is null"));
+		return;
+	}
+
+	auto MappingWrapper = ItemCollectionLinked->GetItemLocations().FindRef(TObjectPtr<UItemBase>(Item));
+	auto Mapping = ItemCollectionLinked->FindItemMappingByContainerName(Item, InventoryContainerID);
+
+	NotifyFullyRemoveItem(*Mapping, Item);
+
+	ItemCollectionLinked->RemoveItem(TObjectPtr<UItemBase>(Item), InventoryContainerID);
+}
+
+void UInventoryBase::DeductResourceOnAddToInventory(UItemBase* Resource, int32 DeductAmount)
+{
+	Resource->SetQuantity(Resource->GetQuantity() - DeductAmount);
+}
+
 void UInventoryBase::NotifyAddNewItem(FItemMapping& FromSlots, UItemBase* NewItem, int32 ChangeQuantity)
 {
 	if (OnAddItemDelegate.IsBound())

@@ -50,4 +50,6 @@ protected:
 
 	UFUNCTION()
 	virtual UItemBase* AddNewItem(FItemMoveData& ItemMoveData, FItemMapping OccupiedSlots, int32 AddAmount) override;
+	
 };
+

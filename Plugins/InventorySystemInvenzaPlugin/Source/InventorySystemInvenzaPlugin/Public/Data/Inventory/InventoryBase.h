@@ -33,8 +33,7 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UInventoryBase : public UObject
 
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMoneyUpdatedDelegate, int32, InventoryTotalMoney);
 
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSlotsReservedDelegate, TArray<FSlotReservationData>, ReservationData)
-	;
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSlotsReservedDelegate, TArray<FSlotReservationData>, ReservationData);
 
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnConsumeReservedDelegate, TArray<FSlotReservationData>,
 	                                            ReservationData);
@@ -161,6 +160,9 @@ protected:
 	// FUNCTIONS
 	//====================================================================
 	UFUNCTION()
+	virtual int32 CalculateActualAmountToAdd(int32 InAmountToAdd, float ItemSingleWeight);
+	
+	UFUNCTION()
 	virtual FItemAddResult HandleNonStackableItems(FItemMoveData ItemMoveData, bool bOnlyCheck = false)
 	PURE_VIRTUAL(UInventoryBase::HandleNonStackableItems, return FItemAddResult(););
 
@@ -176,6 +178,18 @@ protected:
 
 	virtual UItemBase* AddNewItem(FItemMoveData& ItemMoveData, FItemMapping OccupiedSlots, int32 AddAmount)
 	PURE_VIRTUAL(UInventoryBase::AddNewItem, return nullptr;);
+
+	UFUNCTION()
+	virtual int32 TryInsertToStackItem(UItemBase* ResourceToInsertInto, UItemBase* ResourceToDeductFrom, int32 AmountToDistribute, bool bOnlyCheck = false);
+	
+	UFUNCTION()
+	virtual int32 TryRemoveFromStackItem(UItemBase* Item, int32 RequestedRemoveAmount);
+
+	UFUNCTION()
+	virtual void RemoveItemFromInventory(UItemBase* Item);
+
+	UFUNCTION()
+	virtual void DeductResourceOnAddToInventory(UItemBase* Resource, int32 DeductAmount);
 
 	//====================================================================
 	// Event Notifiers

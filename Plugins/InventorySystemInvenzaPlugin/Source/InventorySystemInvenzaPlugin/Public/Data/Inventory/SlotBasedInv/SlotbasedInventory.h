@@ -96,13 +96,10 @@ protected:
 	UFUNCTION()
 	void ReplaceItem(UItemBase* Item, UInventorySlotData* NewSlot);
 	UFUNCTION()
-	int32 TryInsertToStackItem(UItemBase* ResourceToInsertInto, UItemBase* ResourceToDeductFrom, int32 AmountToDistribute, bool bOnlyCheck);
+	virtual int32 TryInsertToStackItem(UItemBase* ResourceToInsertInto, UItemBase* ResourceToDeductFrom, int32 AmountToDistribute, bool bOnlyCheck) override;
 	UFUNCTION()
-	void RemoveItemFromInventory(UItemBase* Item);
-	UFUNCTION()
-	int32 TryRemoveFromStackItem(UItemBase* Item, int32 RequestedRemoveAmount);
-	UFUNCTION()
-	int32 CalculateActualAmountToAdd(int32 InAmountToAdd, float ItemSingleWeight);
+	virtual int32 TryRemoveFromStackItem(UItemBase* Item, int32 RequestedRemoveAmount) override;
+	
 
 public:
 	UFUNCTION()
