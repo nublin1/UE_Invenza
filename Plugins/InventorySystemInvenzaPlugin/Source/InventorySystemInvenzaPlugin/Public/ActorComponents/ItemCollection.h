@@ -8,7 +8,7 @@
 #include "UObject/ObjectPtr.h"
 #include "Engine/DataTable.h"
 #include "Data/Items/ItemBase.h"
-#include "UI/Inventory/InventoryTypes.h"
+#include "Data/Inventory/InventoryTypes.h"
 #include "ItemCollection.generated.h"
 
 
@@ -46,10 +46,12 @@ public:
 	//====================================================================
 
 	TMap<TObjectPtr<UItemBase>, FItemMappingArrayWrapper> GetItemLocations() const {return ItemLocations;}
-	
+
+	int32 GetTotalItemCountInContainer(FString InvID);
 	TArray<UItemBase*> GetAllItemsByContainer(FString InvID);
 	TArray<UItemBase*> GetAllSameItemsInContainer(FString InvID, UItemBase* ReferenceItem) const;
 	TArray<FItemMapping> GetAllMappingsByContainer(const FString& InvID);
+	TMap<UItemBase*, FItemMapping> GetItemsWithMappingsByContainer(const FString& InvID);
 	TArray<UItemBase*> GetAllItemsByCategory(EItemCategory ItemCategory);
 	UItemBase* GetItemFromSlot(UInventorySlotData* TargetSlotData, const FString& InventoryID);
 	
@@ -68,39 +70,19 @@ public:
 	//
 	UFUNCTION()
 	void SetInvManager(UIInventoryManager* NewManager) {InvManager = NewManager;}
-
-	
-	
-	/*
-	
-	UFUNCTION(BlueprintCallable, Category = "Item Collection|Item Management")
-	void RemoveItemFromAllContainers(UItemBase* Item);
-	
-	FItemMapping* FindItemMappingForItemInContainer(UItemBase* TargetItem, UInvBaseContainerWidget* InContainer);
-	bool HasItemInContainer(UItemBase* Item, UInvBaseContainerWidget* Container) const;
-	
-	TMap<TObjectPtr<UItemBase>, FItemMappingArrayWrapper> GetItemLocations() const {return ItemLocations;}
-	TArray<FInventorySlotData> CollectOccupiedSlotsByContainer(UInvBaseContainerWidget* InContainer);
-	UItemBase* GetItemFromSlot(FInventorySlotData TargetSlotData, UInvBaseContainerWidget* TargetContainer) const;
 	
 
-	UInventoryItemWidget* GetItemLinkedWidgetForSlot(FInventorySlotData ItemSlotData);
-
-	virtual void SortInContainer(UInvBaseContainerWidget* ContainerToSort);
-	
 	void SerializeForSave(TArray<FItemSaveEntry>& OutData);
-	void DeserializeFromSave(TArray<FItemSaveEntry> InData);*/
-
-	//
-	UPROPERTY()
-	TObjectPtr<UIInventoryManager> InvManager = nullptr;
+	void DeserializeFromSave(TArray<FItemSaveEntry> InData);
 
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	UPROPERTY()
-	TMap<TObjectPtr<UItemBase>, FItemMappingArrayWrapper> ItemLocations; //ItemLocations
+	TObjectPtr<UIInventoryManager> InvManager = nullptr;
+	UPROPERTY()
+	TMap<TObjectPtr<UItemBase>, FItemMappingArrayWrapper> ItemLocations;
 	
 	//====================================================================
 	// FUNCTIONS

@@ -2,7 +2,7 @@
 
 #include "ActorComponents/Crafting/CraftingComponent.h"
 
-#include "ActorComponents/Inventory/SlotbasedInventory.h"
+#include "Data/Inventory/SlotBasedInv/SlotbasedInventory.h"
 #include "Data/ItemData.h"
 #include "Data/CraftSystem/ItemRecipe.h"
 #include "Net/UnrealNetwork.h"

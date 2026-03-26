@@ -7,13 +7,26 @@
 #include "EquipmentSlotDefinition.generated.h"
 
 USTRUCT(BlueprintType)
+struct FEquipmentSlotData
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FGameplayTag EquipmentSlotTag;
+	UPROPERTY()
+	EItemCategory AllowedCategory = EItemCategory::All;
+	UPROPERTY()
+	TObjectPtr<UItemBase> EquippedItem = nullptr;
+};
+
+USTRUCT(BlueprintType)
 struct FEquipmentSlotDefinition : public FTableRowBase
 {
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment")
-	FName SlotName = NAME_None;
+	FGameplayTag EquipmentSlotTag;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment")
-	EItemCategory AllowedCategory = EItemCategory::None;
+	EItemCategory AllowedCategory = EItemCategory::All;
 };

@@ -52,7 +52,7 @@ void UContainerComponent::Interact(UInteractionComponent* InteractionComponent)
 
 	CurrentInteractionComponent = InteractionComponent;
 	InventoryWidget->OnVisibilityChanged.AddDynamic(this, &UContainerComponent::ContainerWidgetVisibilityChanged);
-	InventoryWidget->OnPostRemoveItemDelegate.AddDynamic(this, &UContainerComponent::DestroyWhenEmpty);
+	//InventoryWidget->OnPostRemoveItemDelegate.AddDynamic(this, &UContainerComponent::DestroyWhenEmpty);
 	
 	if (bIsInteracting == false)
 	{
@@ -72,7 +72,7 @@ void UContainerComponent::StopInteract(UInteractionComponent* InteractionCompone
 	if (InventoryWidget)
 	{
 		InventoryWidget->OnVisibilityChanged.RemoveDynamic(this, &UContainerComponent::ContainerWidgetVisibilityChanged);
-		InventoryWidget->OnPostRemoveItemDelegate.RemoveDynamic(this, &UContainerComponent::DestroyWhenEmpty);
+		//InventoryWidget->OnPostRemoveItemDelegate.RemoveDynamic(this, &UContainerComponent::DestroyWhenEmpty);
 	}
 	ContainerWidget=nullptr;
 	bIsInteracting = false;
@@ -104,7 +104,7 @@ void UContainerComponent::InitializeItemCollection()
 {
 	if (!ContainerWidget) return;
 
-	InventoryWidget = ContainerWidget->GetInventoryFromContainerSlot();
+	/*InventoryWidget = ContainerWidget->GetInventoryFromContainerSlot();
 	if (!InventoryWidget) return;
 
 	if (InventorySize != FVector2D::ZeroVector)
@@ -113,10 +113,10 @@ void UContainerComponent::InitializeItemCollection()
 		{
 			SlotBased->RebuildSlots(InventorySize.X, InventorySize.Y);
 		}
-	}
+	}*/
 	
-	InventoryWidget->SetItemCollection(ItemCollection);
-	InventoryWidget->InitItemsInItemsCollection();
+//	InventoryWidget->SetItemCollection(ItemCollection);
+	//InventoryWidget->InitItemsInItemsCollection();
 }
 
 void UContainerComponent::UpdateInteractableData()
@@ -139,7 +139,7 @@ void UContainerComponent::FindContainerWidget()
 	if (!InventoryManager)
 		return;
 
-	auto* CoreHUDWidget = InventoryManager->GetCoreHUDWidget();
+	/*//auto* CoreHUDWidget = InventoryManager->GetCoreHUDWidget();
 	if (!CoreHUDWidget)
 		return;
 
@@ -152,7 +152,7 @@ void UContainerComponent::FindContainerWidget()
 		return;
 
 	ContainerWidget = FoundContainerWidget;
-	InventoryWidget = FoundInventoryWidget;
+	InventoryWidget = FoundInventoryWidget;*/
 }
 
 void UContainerComponent::DestroyWhenEmpty()

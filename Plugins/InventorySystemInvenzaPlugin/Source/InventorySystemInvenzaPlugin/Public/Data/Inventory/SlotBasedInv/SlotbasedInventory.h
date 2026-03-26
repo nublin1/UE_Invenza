@@ -6,7 +6,7 @@
 #include "Components/ActorComponent.h"
 #include "Data/Inventory/InventoryBase.h"
 #include "Data/Items/ItemBase.h"
-#include "UI/Inventory/InventoryTypes.h"
+#include "Data/Inventory/InventoryTypes.h"
 #include "SlotbasedInventory.generated.h"
 
 
@@ -30,6 +30,11 @@ public:
 	//====================================================================
 	virtual void InitInventory(UItemCollection* ItemCollectionRef, FVector2D NewSize ) override;
 	
+
+	//
+	virtual void SortItemsInContainerByName() override;
+	
+	//
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Reservation")
 	bool ReserveSlots(AActor* Requestor, TMap<UInventorySlotData*, FItemPlacementData> Slots, UItemBase* ItemBase = nullptr);
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Reservation")
@@ -39,24 +44,23 @@ public:
 
 	//
 	UFUNCTION(BlueprintCallable)
-	void SetupStartingResources();
+	bool CanPlaceItemAt(const FIntPoint& StartPos, UItemBase* ItemBase, EItemOrientationType Orientation, bool bIgnoreOccupiedSlots = false);
 
-	UFUNCTION(BlueprintCallable)
+	
 	virtual void HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity) override;
-	UFUNCTION(BlueprintCallable)
 	virtual FItemAddResult HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck = false) override;
 
 	// Getters
+	UFUNCTION()
+	TArray<UInventorySlotData*> GetInvSlots() const {return InvSlotsDatas;}
 	UFUNCTION(BlueprintCallable)
 	TArray<UItemBase*> GetAllItems();
 	UFUNCTION(BlueprintCallable, meta = (ToolTip = "Returns a list of resources stored in this container, aggregating identical resources and summing their total amount."))
 	TArray<FItemIDEntry> CollectItemsAggregated() const;
 	UFUNCTION(BlueprintCallable)
-	TArray<UInventorySlotData*> GetSlotsForItemAt(FIntPoint& StartPos, UItemBase* ItemBase, EItemOrientationType Orientation);
-	UFUNCTION(BlueprintCallable)
-	bool CanPlaceItemAt(FIntPoint& StartPos, UItemBase* ItemBase, EItemOrientationType Orientation);
+	TArray<UInventorySlotData*> GetSlotsForItemAt(const FIntPoint& StartPos, UItemBase* ItemBase, EItemOrientationType Orientation);
 	UFUNCTION()
-	TArray<FIntPoint> GetItemGridPositions(FIntPoint& StartPos, int32 Width, int32 Height, EItemOrientationType Orientation = EItemOrientationType::Horizontal);
+	TArray<FIntPoint> GetItemGridPositions(const FIntPoint& StartPos, int32 Width, int32 Height, EItemOrientationType Orientation = EItemOrientationType::Horizontal);
 	UFUNCTION(BlueprintCallable)
 	TArray<UInventorySlotData*> GetAvailableSlotForItem(UItemBase* Item);
 
@@ -68,46 +72,46 @@ protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	TArray<TObjectPtr<UInventorySlotData>> InvSlotsDatas;
+	
 	//UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TMap<TObjectPtr<AActor>, TArray<FSlotReservationData>> ReservedSlotsToAdd;
 
 	//
 	virtual FItemAddResult HandleAddReferenceItem(FItemMoveData& ItemMoveData, bool bOnlyCheck = false) override;
-
-	virtual void MergeStackableItems() override;
-	
-	UFUNCTION()
 	virtual FItemAddResult HandleNonStackableItems(FItemMoveData ItemMoveData, bool bOnlyCheck = false) override;
-	UFUNCTION()
 	virtual FItemAddResult TryAddStackableItem(FItemMoveData& ItemMoveData, bool bOnlyCheck) override;
-	UFUNCTION()
 	virtual int32 HandleStackableItems(FItemMoveData& ItemMoveData, int32 RequestedAddAmount, bool bOnlyCheck,
 	                                   TMap<UInventorySlotData*, FItemPlacementData>& AffectedPivotSlots) override;
+
+	UFUNCTION()
+	virtual FItemAddResult TryReplaceItems(FItemMoveData& ItemMoveData, bool bOnlyCheck);
 	
 	UFUNCTION()
 	int32 DistributeToExistingStacks(TArray<UItemBase*>& SameItems, int32& AmountToDistribute,
 		UItemBase* ResourceToDeductFrom,
 		bool bOnlyCheck,TMap<UInventorySlotData*, FItemPlacementData>& AffectedSlots);
-	UFUNCTION()
-	void DeductResourceOnAddToInventory(UItemBase* Resource, int32 DeductAmount);
-
-	UFUNCTION()
+	
 	virtual UItemBase* AddNewItem(FItemMoveData& ItemMoveData, FItemMapping OccupiedSlots, int32 AddAmount) override;
-	UFUNCTION()
-	void ReplaceItem(UItemBase* Item, UInventorySlotData* NewSlot);
-	UFUNCTION()
+	void ReplaceItem(UItemBase* Item, const TArray<UInventorySlotData*>& NewSlotDatas);
 	virtual int32 TryInsertToStackItem(UItemBase* ResourceToInsertInto, UItemBase* ResourceToDeductFrom, int32 AmountToDistribute, bool bOnlyCheck) override;
-	UFUNCTION()
 	virtual int32 TryRemoveFromStackItem(UItemBase* Item, int32 RequestedRemoveAmount) override;
 	
 
 public:
 	UFUNCTION()
-	bool bIsGridPositionValid(FIntPoint GridPosition);
+	bool bIsSlotPositionValid(FIntPoint GridPosition);
+	UFUNCTION()
+	bool bIsItemCategoryCompatible(EItemCategory ItemCategory, EItemCategory SlotCategory);
 	UFUNCTION()
 	bool bIsSlotEmptyByPos(FIntPoint SlotPosition);
 	UFUNCTION()
 	bool bIsSlotEmpty(UInventorySlotData* Slot);
+	UFUNCTION()
+	bool AreSlotsEmpty(const TArray<UInventorySlotData*>& Slots);
+	UFUNCTION()
+	static bool DoSlotsMatch(const TArray<UInventorySlotData*>& FirstSlots, const TArray<UInventorySlotData*>& SecondSlots);
 	UFUNCTION()
 	float GetInventoryOccupancyPercent();
 	UFUNCTION()

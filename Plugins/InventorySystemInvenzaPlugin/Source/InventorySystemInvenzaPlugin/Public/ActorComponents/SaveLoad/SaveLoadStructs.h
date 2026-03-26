@@ -3,9 +3,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "ActorComponents/Items/itemBase.h"
-#include "UI/Container/InvBaseContainerWidget.h"
-#include "UI/Inventory/InventoryTypes.h"
+#include "Data/Items/itemBase.h"
+#include "UI/Inventory/Container/InvBaseContainerWidget.h"
+#include "Data/Inventory/InventoryTypes.h"
 #include "SaveLoadStructs.generated.h"
 
 struct FInventorySlotData;
@@ -40,6 +40,7 @@ struct FItemSaveData
 		return ItemID == Other.ItemID;
 	}
 };
+
 FORCEINLINE uint32 GetTypeHash(const FItemSaveData& Data)
 {
 	return GetTypeHash(Data.ItemID);
@@ -63,7 +64,7 @@ struct FItemMappingSaveData
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mapping Data")
-	FName InventoryContainerName;
+	FString InventoryContainerName;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mapping Data")
 	EInventoryType InventoryType;
 
@@ -82,11 +83,11 @@ struct FItemMappingSaveData
 		SlotSaveDatas.Empty();
 		SlotSaveDatas.Reserve(Mapping.OccupiedSlots.Num());
 
-		for (const FInventorySlotData& SlotData : Mapping.OccupiedSlots)
+		for (auto SlotData : Mapping.OccupiedSlots)
 		{
 			FInventorySlotSaveData InventorySlotSaveData;
-			InventorySlotSaveData.SlotName     = SlotData.SlotName;
-			InventorySlotSaveData.SlotPosition = SlotData.SlotPosition;
+			InventorySlotSaveData.SlotName     = SlotData->SlotName;
+			InventorySlotSaveData.SlotPosition = SlotData->CellPosition;
 			SlotSaveDatas.Add(MoveTemp(InventorySlotSaveData));
 		}
 	}

@@ -1,10 +1,10 @@
-//  Nublin Studio 2025 All Rights Reserved.
+//  Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "InputAction.h"
-#include "InventoryTypes.h"
+#include "Data/Inventory/InventoryTypes.h"
 #include "UI/BaseUserWidget.h"
 #include "InventorySlot.generated.h"
 
@@ -22,6 +22,8 @@ public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
+	EItemCategory AllowedSlotCategory = EItemCategory::All;
 	
 	//====================================================================
 	// FUNCTIONS

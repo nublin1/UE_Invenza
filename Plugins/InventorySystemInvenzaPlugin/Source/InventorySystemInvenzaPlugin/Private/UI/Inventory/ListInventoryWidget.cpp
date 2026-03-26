@@ -10,6 +10,7 @@
 #include "Components/EditableText.h"
 #include "Components/ListView.h"
 #include "Data/Inventory/InventoryBase.h"
+#include "Data/Inventory/ListInventory/ListInventory.h"
 #include "DragDrop/ItemDragDropOperation.h"
 #include "UI/Core/Buttons/ItemCategoryButton.h"
 #include "UI/Core/ItemFiltersPanel/ItemFiltersPanel.h"
@@ -46,12 +47,53 @@ void UListInventoryWidget::NativeConstruct()
 	}
 }
 
+void UListInventoryWidget::InitializeInventoryWidget()
+{
+	auto InvSettings = InventoryRef->GetInventorySettings();
+	
+	if (!InvSettings.bShowItemTooltips || !UISettings.ItemTooltipWidgetClass)
+		return;
+
+	ItemTooltipWidget = CreateWidget<UItemTooltipWidget>(this, UISettings.ItemTooltipWidgetClass);
+	SetToolTip(ItemTooltipWidget);
+	ItemTooltipWidget->SetVisibility(ESlateVisibility::Collapsed);
+}
+
+void UListInventoryWidget::BindDelegated()
+{
+	InventoryRef->OnAddItemDelegate.AddDynamic(this, &UListInventoryWidget::AddItemToPanel);
+	InventoryRef->OnItemRemovedDelegate.AddDynamic(this, &UListInventoryWidget::RemoveItemFromPanel);
+	InventoryRef->OnStackedItemDelegate.AddDynamic(this, &UListInventoryWidget::UpdateItem);
+	InventoryRef->OnUnstackedItemDelegate.AddDynamic(this, &UListInventoryWidget::UpdateItem);
+
+	InventoryRef->OnWeightUpdatedDelegate.AddDynamic(this, &UListInventoryWidget::UpdateWeightInfo);
+	InventoryRef->OnMoneyUpdatedDelegate.AddDynamic(this, &UListInventoryWidget::UpdateMoneyInfo);
+	InventoryRef->OnInventoryRedrawRequested.AddDynamic(this, &UListInventoryWidget::ReDrawAllItems);
+}
+
+void UListInventoryWidget::ReDrawAllItems()
+{
+	ItemsList->ClearListItems();
+	
+	ListInventoryRef->FilteredInvSlotsArray.Empty();
+	for (auto InvSlot : ListInventoryRef->InvSlotsArray)
+	{
+		auto Mapping = InventoryRef->GetItemCollectionLinked()->FindItemMappingByContainerName(InvSlot->Item, InventoryRef->GetInventoryContainerID());
+		AddItemToPanel(*Mapping, InvSlot->Item);
+	}
+
+	RefreshFilteredItemsList();
+	
+	ItemsList->RegenerateAllEntries();
+	ItemsList->RequestRefresh();
+}
+
 void UListInventoryWidget::ClearFilters()
 {
 	ActiveFilters.Empty();
-	FiltredInvSlotsArray.Empty();
+	ListInventoryRef->FilteredInvSlotsArray.Empty();
 	ItemsList->ClearListItems();
-	for (auto InvSlot : InvSlotsArray)
+	for (auto InvSlot : ListInventoryRef->InvSlotsArray)
 	{
 		ItemsList->AddItem(InvSlot);
 	}
@@ -77,19 +119,7 @@ void UListInventoryWidget::OnFilterStatusChanged(UUIButton* ItemCategoryButton)
 		ActiveFilters.Remove(Category);
 	}
 	
-	FiltredInvSlotsArray.Empty();
-
-	if (ActiveFilters.Num() > 0)
-	{
-		for (auto InvSlot : InvSlotsArray)
-		{
-			if (ActiveFilters.Contains(InvSlot->Item->GetItemRef().ItemCategory))
-			{
-				FiltredInvSlotsArray.AddUnique(InvSlot);
-			}
-		}
-	}
-
+	RebuildFilteredSlots();
 	RefreshFilteredItemsList();
 
 	auto SearchText = ItemFiltersPanel->GetSearchText()->GetText();
@@ -99,19 +129,35 @@ void UListInventoryWidget::OnFilterStatusChanged(UUIButton* ItemCategoryButton)
 	}
 }
 
+void UListInventoryWidget::RebuildFilteredSlots()
+{
+	ListInventoryRef->FilteredInvSlotsArray.Empty();
+
+	if (ActiveFilters.Num() == 0)
+		return;
+
+	for (auto InvSlot : ListInventoryRef->InvSlotsArray)
+	{
+		if (!InvSlot || !InvSlot->Item)
+			continue;
+		if (ActiveFilters.Contains(InvSlot->Item->GetItemRef().ItemCategory))
+			ListInventoryRef->FilteredInvSlotsArray.AddUnique(InvSlot);
+	}
+}
+
 void UListInventoryWidget::RefreshFilteredItemsList()
 {
 	ItemsList->ClearListItems();	
 	if (ActiveFilters.Num() == 0)
 	{
-		for (auto InvSlot : InvSlotsArray)
+		for (auto InvSlot : ListInventoryRef->InvSlotsArray)
 		{
 			ItemsList->AddItem(InvSlot);
 		}
 	}
 	else
 	{
-		for (auto FiltredInvSlot : FiltredInvSlotsArray)
+		for (auto FiltredInvSlot : ListInventoryRef->FilteredInvSlotsArray)
 		{
 			ItemsList->AddItem(FiltredInvSlot);
 		}
@@ -120,7 +166,7 @@ void UListInventoryWidget::RefreshFilteredItemsList()
 
 void UListInventoryWidget::SearchTextChanged(const FText& NewText)
 {
-	const TArray<TObjectPtr<UInventoryListEntry>>& SourceArray = ItemFiltersPanel->IsSearchInFilteredSlots() ? FiltredInvSlotsArray : InvSlotsArray;
+	const TArray<TObjectPtr<UInventoryListEntry>>& SourceArray = ItemFiltersPanel->IsSearchInFilteredSlots() ? ListInventoryRef->FilteredInvSlotsArray : ListInventoryRef->InvSlotsArray;
 
 	ItemsList->ClearListItems();
 	
@@ -153,102 +199,28 @@ void UListInventoryWidget::SearchTextChanged(const FText& NewText)
 	}
 }
 
-void UListInventoryWidget::InitializeInventoryWidget()
+void UListInventoryWidget::SetInventoryBaseRef(UInventoryBase* NewInventoryRef)
 {
-	auto InvSettings = InventoryRef->GetInventorySettings();
-	
-	if (!InvSettings.bShowItemTooltips || !UISettings.ItemTooltipWidgetClass)
-		return;
-
-	ItemTooltipWidget = CreateWidget<UItemTooltipWidget>(this, UISettings.ItemTooltipWidgetClass);
-	SetToolTip(ItemTooltipWidget);
-	ItemTooltipWidget->SetVisibility(ESlateVisibility::Collapsed);
-}
-
-void UListInventoryWidget::SortInventory()
-{
-	if (FiltredInvSlotsArray.Num() > 1)
+	if (UListInventory* ListInventory = Cast<UListInventory>(NewInventoryRef))
 	{
-		FiltredInvSlotsArray.Sort([](const TObjectPtr<UInventoryListEntry>& A, const TObjectPtr<UInventoryListEntry>& B)
-		{
-			if (!A || !B || !A->Item || !B->Item)
-			{
-				return false;
-			}
-			const FString NameA = A.Get()->Item->GetItemID().ToString();
-			const FString NameB = B.Get()->Item->GetItemID().ToString();
-			return NameA < NameB;
-		});
-
-		ItemsList->ClearListItems();
-		for (auto FiltredInvSlot : FiltredInvSlotsArray)
-		{
-			ItemsList->AddItem(FiltredInvSlot);
-		}
-		
-		return;
+		InventoryRef = NewInventoryRef;
+		ListInventoryRef = ListInventory;
 	}
-
-	if (InvSlotsArray.Num() > 1)
-	{
-		InvSlotsArray.Sort([](const TObjectPtr<UInventoryListEntry>& A, const TObjectPtr<UInventoryListEntry>& B)
-		{
-			if (!A || !B || !A->Item || !B->Item)
-			{
-				return false;
-			}
-			const FString NameA = A.Get()->Item->GetItemRef().ItemTextData.DisplayName.ToString();
-			const FString NameB = B.Get()->Item->GetItemRef().ItemTextData.DisplayName.ToString();
-			return NameA < NameB;
-		});
-		
-		ReDrawAllItems();
-	}
-}
-
-void UListInventoryWidget::BindDelegated()
-{
-	InventoryRef->OnAddItemDelegate.AddDynamic(this, &UListInventoryWidget::AddItemToPanel);
-	InventoryRef->OnItemRemovedDelegate.AddDynamic(this, &UListInventoryWidget::RemoveItemFromPanel);
-	InventoryRef->OnItemReplaceDelegate.AddDynamic(this, &UListInventoryWidget::ReplaceItemInPanel);
-	InventoryRef->OnStackedItemDelegate.AddDynamic(this, &UListInventoryWidget::UpdateItem);
-	InventoryRef->OnUnstackedItemDelegate.AddDynamic(this, &UListInventoryWidget::UpdateItem);
-	//InventoryRef->OnUseSlotDelegate.AddDynamic(this, &UListInventoryWidget::UsedItemInPanel);
-
-	InventoryRef->OnWeightUpdatedDelegate.AddDynamic(this, &UListInventoryWidget::UpdateWeightInfo);
-	InventoryRef->OnMoneyUpdatedDelegate.AddDynamic(this, &UListInventoryWidget::UpdateMoneyInfo);
-}
-
-void UListInventoryWidget::ReDrawAllItems()
-{
-	auto Items = InventoryRef->GetItemCollectionLinked()->GetAllItemsByContainer(InventoryRef->GetInventoryContainerID());
-	if (Items.IsEmpty()) return;
-
-	ItemsList->ClearListItems();
-	InvSlotsArray.Empty();
-	FiltredInvSlotsArray.Empty();
-	for (auto Item : Items)
-	{
-		auto Mapping = InventoryRef->GetItemCollectionLinked()->FindItemMappingByContainerName(Item, InventoryRef->GetInventoryContainerID());
-		AddItemToPanel(*Mapping, Item);
-	}
-
-	RefreshFilteredItemsList();
-	
-	ItemsList->RegenerateAllEntries();
-	ItemsList->RequestRefresh();
 }
 
 void UListInventoryWidget::AddItemToPanel(FItemMapping ItemSlots, UItemBase* Item)
 {
-	UInventoryListEntry* EntryObject = NewObject<UInventoryListEntry>();
-	EntryObject->Item = Item;
-	EntryObject->ParentInventoryWidget = this;
-
-	InvSlotsArray.Add(EntryObject);
-	if (ActiveFilters.Num() == 0 || ActiveFilters.Contains(Item->GetItemRef().ItemCategory))
+	for (auto& InvSlot : ListInventoryRef->InvSlotsArray)
 	{
-		FiltredInvSlotsArray.Add(EntryObject);
+		if (InvSlot->Item == Item)
+		{
+			InvSlot->ParentInventoryWidget = this;
+
+			if (ActiveFilters.Num() == 0 || ActiveFilters.Contains(Item->GetItemRef().ItemCategory))
+			{
+				ListInventoryRef->FilteredInvSlotsArray.Add(InvSlot);
+			}
+		}
 	}
 	
 	RefreshFilteredItemsList();
@@ -272,7 +244,7 @@ void UListInventoryWidget::RemoveItemFromPanel(FItemMapping FromSlots, UItemBase
 	}
 
 	UInventoryListEntry* ListEntry = nullptr;
-	for (auto Element : InvSlotsArray)
+	for (auto Element : ListInventoryRef->InvSlotsArray)
 	{
 		if (Element->Item == Item)
 		{
@@ -283,24 +255,23 @@ void UListInventoryWidget::RemoveItemFromPanel(FItemMapping FromSlots, UItemBase
 	if (ListEntry)
 	{
 		ItemsList->RemoveItem(ListEntry);
-		InvSlotsArray.Remove(ListEntry);
-		FiltredInvSlotsArray.Remove(ListEntry);
+		ListInventoryRef->InvSlotsArray.Remove(ListEntry);
+		ListInventoryRef->FilteredInvSlotsArray.Remove(ListEntry);
 	}
-	
 }
 
 void UListInventoryWidget::UpdateItem(UItemBase* Item, int32 ChangedAmount)
 {
-	
 	if (!Item) return;
 
-	auto Mapping = SlotBasedInventoryRef->GetItemCollectionLinked()->FindItemMappingByContainerName(Item, SlotBasedInventoryRef->GetInventoryContainerID());
-	if (!Mapping)
+	for (UInventoryListEntry* Entry : ListInventoryRef->InvSlotsArray)
 	{
-		return;
+		if (Entry->Item == Item)
+		{
+			ItemsList->RequestRefresh();
+			break;
+		}
 	}
-
-	Mapping->ItemVisualLinked->UpdateQuantityText(Item->GetQuantity());
 }
 
 void UListInventoryWidget::UpdateWeightInfo(float InventoryTotalWeight)

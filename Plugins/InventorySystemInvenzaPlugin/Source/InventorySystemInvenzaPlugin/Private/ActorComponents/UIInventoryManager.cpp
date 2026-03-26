@@ -14,22 +14,22 @@
 #include "UI/Inventory/SlotbasedInventoryWidget.h"
 #include "ActorComponents/Interactable/PickupComponent.h"
 #include "Data/Items/itemBase.h"
-#include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Data/Inventory/InventoryBase.h"
+#include "Data/Inventory/Equipment/EquipmentComponent.h"
+#include "Data/Inventory/SlotBasedInv/SlotbasedInventory.h"
 #include "Factory/ItemFactory.h"
+#include "Interface/Inventory/InvUIProvider.h"
 #include "Kismet/GameplayStatics.h"
 #include "Service/TradeService.h"
-#include "UI/Container/InvBaseContainerWidget.h"
-#include "UI/Core/CoreHUDWidget.h"
+#include "UI/Inventory/Container/InvBaseContainerWidget.h"
 #include "UI/Interaction/InteractionWidget.h"
 #include "UI/Inventory/InventorySlot.h"
-#include "UI/Inventory/SlotbasedInventoryWidget.h"
+#include "UI/Inventory/ListInventoryWidget.h"
 #include "UI/ModalWidgets/ModalTradeWidget.h"
-
 
 class UEnhancedInputLocalPlayerSubsystem;
 
-UIInventoryManager::UIInventoryManager(): CoreHUDWidget(nullptr)
+UIInventoryManager::UIInventoryManager()
 {
 	
 }
@@ -37,6 +37,12 @@ UIInventoryManager::UIInventoryManager(): CoreHUDWidget(nullptr)
 void UIInventoryManager::BeginPlay()
 {
 	Super::BeginPlay();
+
+	auto Collection = GetOwner()->FindComponentByClass<UItemCollection>();
+	if (!Collection)
+		return;
+
+	ItemCollectionRef = Collection;
 
 	CreateInventories();
 	InitWidgets();
@@ -60,42 +66,66 @@ void UIInventoryManager::CreateInventories()
 
 		Inventory->SetInventorySettings(StartupData.Settings);
 		Inventory->SetInitialItems(StartupData.StartItems);
+		Inventory->SetItemCollectionLink(ItemCollectionRef);
 
-		Inventories.Add(StartupData.InventoryTag, Inventory);
+		Inventories.Add(StartupData.Settings.InventoryTag, Inventory);
+		BindInventoryEvents(Inventory);
+
+		if (StartupData.Settings.InventoryTag == UISettings.MainInvTag)
+		{
+			MainPawnInventory = Inventory;
+		}
 	}
 }
 
 void UIInventoryManager::InitWidgets()
 {
-	for (UBaseUserWidget& Wid : Widgets)
+	if (!UIProvider)
 	{
-		UUInventoryWidgetBase* InvWid = Cast<UUInventoryWidgetBase>(Wid);
-		if (!InvWid)
+		UE_LOG(LogTemp, Warning, TEXT("UIInventoryManager::InitWidgets: UIProvider is not set!"));
+		return;
+	}
+	
+	for (auto WidgetBase : UIProvider->GetAllPawnInventories())
+	{
+		if (!WidgetBase)
 			continue;
 
-		InvWid->InitializeInventoryWidget();
+		WidgetBase->InitializeInventoryWidget();
 
-		USlotbasedInventoryWidget* SlotBased = Cast<USlotbasedInventoryWidget>(InvWid);
-		if (SlotBased)
+		auto TarInv = GetInventoryByTag(WidgetBase->TargetInventoryTag);
+		if (!TarInv)
+			continue;
+
+		if (USlotbasedInventoryWidget* SlotBased = Cast<USlotbasedInventoryWidget>(WidgetBase))
 		{
-			auto SizeInv = SlotBased->GetNumberRowsAndColumns();
-			auto TarInv = GetInventoryByTag(SlotBased->TargetInventoryTag);
-
-			if (!TarInv)
+			auto TarSlotInv = Cast<USlotbasedInventory>(TarInv);
+			if (!TarSlotInv)
 				continue;
-
-			TarInv->SetInventorySize(SizeInv);
-			SlotBased->SetInventoryBaseRef(TarInv);
 			
+			auto SizeInv = SlotBased->GetNumberRowsAndColumns();
+			
+			TarSlotInv->SetInventorySize(SizeInv);
+			TarSlotInv->SetInvSlots(SlotBased->GetSlotData());
+			
+			SlotBased->SetUISettings(UISettings);
+			SlotBased->SetInventoryBaseRef(TarInv);			
 			SlotBased->BindDelegated();
 		}
-		
+		else if (UListInventoryWidget* ListBased = Cast<UListInventoryWidget>(WidgetBase))
+		{
+			ListBased->SetInventoryBaseRef(TarInv);
+			ListBased->SetUISettings(UISettings);
+			ListBased->BindDelegated();
+		}
+
+		TarInv->SetupStartingResources();
 	}
 }
 
 void UIInventoryManager::OpenTradeModal(bool bIsSaleOperation, UItemBase* OperationalItem)
 {
-	auto TradeComponent = CurrentInteractInvWidget->GetInventoryFromContainerSlot()->
+	/*auto TradeComponent = CurrentInteractInvWidget->GetInventoryFromContainerSlot()->
 		GetInventoryData().ItemCollectionLink->GetOwner()->FindComponentByClass<UTradeComponent>();
 	if (!TradeComponent)
 		return;
@@ -172,7 +202,35 @@ void UIInventoryManager::OpenTradeModal(bool bIsSaleOperation, UItemBase* Operat
 	ModalTradeWidget->CancelCallback = [this]()
 	{
 		ModalTradeWidget->SetVisibility(ESlateVisibility::Collapsed);
-	};
+	};*/
+}
+
+void UIInventoryManager::OnItemAddedToInventory(FItemMapping ItemSlots, UItemBase* Item)
+{
+	if (!Item || !EquipmentComponentRef) return;
+
+	for (UInventorySlotData* SlotData : ItemSlots.OccupiedSlots)
+	{
+		if (!SlotData) continue;
+		if (!SlotData->LinkedEquipmentSlot.IsValid()) continue;
+		
+		EquipmentComponentRef->EquipItemToSlot(SlotData->LinkedEquipmentSlot, Item);
+		return;
+	}
+}
+
+void UIInventoryManager::OnItemRemovedFromInventory(FItemMapping ItemSlots, UItemBase* Item)
+{
+	if (!Item || !EquipmentComponentRef) return;
+
+	for (UInventorySlotData* SlotData : ItemSlots.OccupiedSlots)
+	{
+		if (!SlotData) continue;
+		if (!SlotData->LinkedEquipmentSlot.IsValid()) continue;
+
+		EquipmentComponentRef->UnequipItemFromSlot(SlotData->LinkedEquipmentSlot);
+		return;
+	}
 }
 
 ETradeResult UIInventoryManager::VendorRequest(const FTradeRequest TradeRequest )
@@ -191,7 +249,7 @@ ETradeResult UIInventoryManager::VendorRequest(const FTradeRequest TradeRequest 
 
 void UIInventoryManager::OnQuickTransferItem(FItemMoveData ItemMoveData)
 {
-	if (!CurrentInteractInvWidget)
+	/*if (!CurrentInteractInvWidget)
 		return;
 
 	if (ItemMoveData.SourceInventory == GetMainInventory()->GetInventoryFromContainerSlot())
@@ -202,12 +260,12 @@ void UIInventoryManager::OnQuickTransferItem(FItemMoveData ItemMoveData)
 	}
 
 	ItemMoveData.TargetInventory = GetMainInventory()->GetInventoryFromContainerSlot();
-	ItemTransferRequest(ItemMoveData);
+	ItemTransferRequest(ItemMoveData);*/
 }
 
 void UIInventoryManager::ItemTransferRequest(FItemMoveData ItemMoveData)
 {
-	if (CoreHUDWidget->GetVendorInvWidget())
+	/*if (CoreHUDWidget->GetVendorInvWidget())
 	{
 		if (ItemMoveData.TargetInventory == CoreHUDWidget->GetVendorInvWidget()->GetInventoryFromContainerSlot()
 		|| (ItemMoveData.SourceInventory && ItemMoveData.SourceInventory == CoreHUDWidget->GetVendorInvWidget()->GetInventoryFromContainerSlot()))
@@ -225,10 +283,10 @@ void UIInventoryManager::ItemTransferRequest(FItemMoveData ItemMoveData)
 			VendorRequest(Req);
 			return;
 		}
-	}
+	}*/
 	
-	auto Result = ItemMoveData.TargetInventory->HandleAddItem(ItemMoveData, false);
-	UE_LOG(LogTemp, Log, TEXT("Is ResultMessage: %s"), *Result.ResultMessage.ToString());
+	/*auto Result = ItemMoveData.TargetInventory->HandleAddItem(ItemMoveData, false);
+	UE_LOG(LogTemp, Log, TEXT("InventoryManager::ItemTransferRequest. Is ResultMessage: %s"), *Result.ResultMessage.ToString());
 	switch (Result.OperationResult)
 	{
 	case EItemAddResult::IAR_AllItemAdded:
@@ -236,13 +294,8 @@ void UIInventoryManager::ItemTransferRequest(FItemMoveData ItemMoveData)
 		{
 			break;
 		}
-		if (ItemMoveData.SourceInventory && ItemMoveData.SourceInventory->GetInventoryData().ItemCollectionLink
-			== ItemMoveData.TargetInventory->GetInventoryData().ItemCollectionLink)
-		{
-			ItemMoveData.SourceInventory->HandleRemoveItemFromContainer(ItemMoveData.SourceItem);
-			break;
-		}
-		else if (ItemMoveData.SourceInventory)
+		if (ItemMoveData.SourceInventory && ItemMoveData.SourceInventory->GetItemCollectionLinked()
+			== ItemMoveData.TargetInventory->GetItemCollectionLinked())
 		{
 			ItemMoveData.SourceInventory->HandleRemoveItem(ItemMoveData.SourceItem, ItemMoveData.SourceItem->GetQuantity());
 			break;
@@ -280,13 +333,13 @@ void UIInventoryManager::ItemTransferRequest(FItemMoveData ItemMoveData)
 		break;
 	case EItemAddResult::IAR_ItemSwapped:
 		if (!Result.bIsUsedReferences
-			&& ItemMoveData.SourceInventory->GetInventorySettings().bCanReferenceItems
+			&& ItemMoveData.SourceInventory->GetInventorySettings().bAllowItemReferencing
 			&& ItemMoveData.SourceInventory != ItemMoveData.TargetInventory)
 		{
-			ItemMoveData.SourceInventory->HandleRemoveItemFromContainer(ItemMoveData.SourceItem);
+			ItemMoveData.SourceInventory->HandleRemoveItem(ItemMoveData.SourceItem, ItemMoveData.SourceItem->GetQuantity());
 		}
 		break;
-	}
+	}*/
 }
 
 UInventoryBase* UIInventoryManager::GetInventoryByTag(const FGameplayTag& Tag)
@@ -315,7 +368,7 @@ UInventoryBase* UIInventoryManager::GetInventoryByID(FString ContainerID)
 
 void UIInventoryManager::SetInteractableType(UInteractableComponent* IteractData)
 {
-	switch (IteractData->InteractableData.DefaultInteractableType)
+	/*switch (IteractData->InteractableData.DefaultInteractableType)
 	{
 	case EInteractableType::Container:
 		CurrentInteractInvWidget = CoreHUDWidget->GetContainerInWorldWidget();
@@ -349,21 +402,21 @@ void UIInventoryManager::SetInteractableType(UInteractableComponent* IteractData
 			CurrentInteractInvWidget = nullptr;
 		}
 		break;
-	}
+	}*/
 }
 
 void UIInventoryManager::ClearInteractableType(UInteractableComponent* IteractData)
 {
-	if (CurrentInteractInvWidget)
+	/*if (CurrentInteractInvWidget)
 	{
 		CoreHUDWidget->ToggleWidget(CurrentInteractInvWidget);
 		CurrentInteractInvWidget = nullptr;
-	}
+	}*/
 }
 
 void UIInventoryManager::BindEvents(AActor* TargetActor)
 {
-	if (!TargetActor) return;
+	/*if (!TargetActor) return;
 	
 	UInteractionComponent* InteractionComponent = TargetActor->FindComponentByClass<UInteractionComponent>();
 
@@ -413,7 +466,15 @@ void UIInventoryManager::BindEvents(AActor* TargetActor)
 		HotbarInvWidget->GetInventoryFromContainerSlot()->OnItemDroppedDelegate.AddDynamic(this, &UIInventoryManager::ItemTransferRequest);
 	if (auto EquipInvWidget = CoreHUDWidget->GetEquipmentInvWidget())
 		EquipInvWidget->GetInventoryFromContainerSlot()->OnItemDroppedDelegate.AddDynamic(this, &UIInventoryManager::ItemTransferRequest);
+		*/
 		
+}
+
+void UIInventoryManager::BindInventoryEvents(UInventoryBase* Inventory)
+{
+	if (!Inventory) return;
+	Inventory->OnAddItemDelegate.AddDynamic(this, &UIInventoryManager::OnItemAddedToInventory);
+	Inventory->OnItemRemovedDelegate.AddDynamic(this, &UIInventoryManager::OnItemRemovedFromInventory);
 }
 
 void UIInventoryManager::UIIteract( UInteractableComponent* TargetInteractableComponent)
@@ -461,7 +522,7 @@ void UIInventoryManager::InitializeBindings()
 		InputSubsystem->AddMappingContext(UISettings.InventoryMappingContext, 1);
 	}
 	
-	if (UISettings.ToggleInventoryAction)
+	/*if (UISettings.ToggleInventoryAction)
 	{
 		Input->BindAction(UISettings.ToggleInventoryAction, ETriggerEvent::Started, CoreHUDWidget.Get(), &UCoreHUDWidget::ToggleInventoryLayout);
 	}
@@ -469,7 +530,7 @@ void UIInventoryManager::InitializeBindings()
 	if (UISettings.ToggleEquipmentAction)
 	{
 		Input->BindAction(UISettings.ToggleEquipmentAction, ETriggerEvent::Started, CoreHUDWidget.Get(), &UCoreHUDWidget::ToggleEquipmentLayout);
-	}
+	}*/
 
 	if (UISettings.IA_Mod_QuickGrab)
 	{
@@ -499,10 +560,15 @@ void UIInventoryManager::BindInputActions()
 	for (auto& Pair : Inventories)
 	{
 		UInventoryBase* Inventory = Pair.Value;
+		if (!Inventory)
+			continue;
 
-		if (!Inventory || Inventory->GetInvSlots().IsEmpty()) continue;
+		USlotbasedInventory* SlotBased = Cast<USlotbasedInventory>(Inventory);
+		if (!SlotBased)
+			continue;
 
-		for (UInventorySlotData* SlotData : Inventory->GetInvSlots())
+		if (SlotBased->GetInvSlots().IsEmpty()) continue;
+		for (UInventorySlotData* SlotData : SlotBased->GetInvSlots())
 		{
 			if (!SlotData)
 				continue;
@@ -516,7 +582,6 @@ void UIInventoryManager::BindInputActions()
 				Inventory,
 				&UInventoryBase::UseSlot,
 				SlotData);
-			
 		}
 	}
 }
@@ -529,18 +594,18 @@ bool UUInventoryWidgetBase::HandleTradeModalOpening(UItemBase* Item)
 	
 	UIInventoryManager* InventoryManager = GetOwningPlayerPawn()->FindComponentByClass<UIInventoryManager>();
 	
-	if (InventoryManager->GetCurrentInteractInvWidget()
+	/*if (InventoryManager->GetCurrentInteractInvWidget()
 			&& InventoryManager->GetCurrentInteractInvWidget()->GetInventoryType() == EInventoryType::VendorInventory)
 	{
-		if (InventoryData.ItemCollectionLink->GetOwner() == Cast<APawn>(GetOwningPlayer()->GetPawn()))
+		/*if (InventoryData.ItemCollectionLink->GetOwner() == Cast<APawn>(GetOwningPlayer()->GetPawn()))
 		{
 			InventoryManager->OpenTradeModal(false, Item);
 			return true;
-		}
+		}#1#
 				
 		InventoryManager->OpenTradeModal(true, Item);
 		return true;
-	}
+	}*/
 	return false;
 }
 

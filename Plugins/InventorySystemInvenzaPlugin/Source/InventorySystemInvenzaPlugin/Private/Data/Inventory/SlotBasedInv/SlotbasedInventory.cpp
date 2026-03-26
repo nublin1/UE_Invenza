@@ -15,7 +15,7 @@ void USlotbasedInventory::InitInventory(UItemCollection* ItemCollectionRef, FVec
 	if (!ItemCollectionRef)
 		return;
 
-	if (!NewSize.X <= 0 || NewSize.Y <= 0)
+	if (NewSize.X <= 0 || NewSize.Y <= 0)
 		return;
 
 	ItemCollectionLinked = ItemCollectionRef;
@@ -24,10 +24,63 @@ void USlotbasedInventory::InitInventory(UItemCollection* ItemCollectionRef, FVec
 	bWasInit = true;
 }
 
-TArray<UInventorySlotData*> USlotbasedInventory::GetSlotsForItemAt(FIntPoint& StartPos, UItemBase* ItemBase,
+void USlotbasedInventory::SortItemsInContainerByName()
+{
+	if (!ItemCollectionLinked)
+		return;
+	
+	MergeStackableItems();
+
+	auto AllItems = ItemCollectionLinked->GetItemsWithMappingsByContainer(InventoryContainerID);
+	
+	TArray<TPair<UItemBase*, FItemMapping>> SortedItems;
+
+	for (const auto& Pair : AllItems)
+	{
+		SortedItems.Add(Pair);
+	}
+
+	SortedItems.Sort([](const TPair<UItemBase*, FItemMapping>& A, const TPair<UItemBase*, FItemMapping>& B)
+	{
+		const FString NameA = A.Key->GetItemDisplayText().ToString();
+		const FString NameB = B.Key->GetItemDisplayText().ToString();
+
+		return NameA.Compare(NameB, ESearchCase::IgnoreCase) < 0;
+	});
+
+	for (auto& Pair : SortedItems)
+	{
+		Pair.Value.OccupiedSlots.Empty();
+	}
+		
+	for (auto i =0; i < SortedItems.Num();  i++)
+	{
+		auto& Pair = SortedItems[i];
+		auto AvSlot = GetAvailableSlotForItem(Pair.Key);
+		if (!AvSlot.IsEmpty())
+		{
+			Pair.Value.OccupiedSlots = AvSlot;
+		}
+	}
+
+	NotifyReDrawRequest();
+	NotifyUpdateWeight();
+	NotifyUpdateMoney();
+}
+
+TArray<UInventorySlotData*> USlotbasedInventory::GetSlotsForItemAt(const FIntPoint& StartPos, UItemBase* ItemBase,
                                                                    EItemOrientationType Orientation)
 {
 	TArray<TObjectPtr<UInventorySlotData>> Slots;
+
+	if (InventorySettings.bIgnoreItemSize)
+	{
+		if (auto SlotForAdd = GetSlotByPosition(StartPos))
+			Slots.Add(SlotForAdd);
+
+		return Slots;
+	}
+	
 	TArray<FIntPoint> Positions = GetItemGridPositions(
 		StartPos, ItemBase->GetItemRef().ItemNumeraticData.InventoryHorizontalSlots,
 		ItemBase->GetItemRef().ItemNumeraticData.InventoryVerticalSlots, Orientation);
@@ -97,24 +150,36 @@ bool USlotbasedInventory::ConsumeReserved(AActor* Requestor)
 	return true;
 }
 
-void USlotbasedInventory::SetupStartingResources()
+bool USlotbasedInventory::CanPlaceItemAt(const FIntPoint& StartPos, UItemBase* ItemBase, EItemOrientationType Orientation, bool bIgnoreOccupiedSlots)
 {
-	for (auto InitResource : InitialItems)
+	if (InventorySettings.bIgnoreItemSize)
 	{
-		if (InitResource.Item.RowName.IsNone()) continue;
+		auto CheckSlot = GetSlotByPosition(StartPos);
 
-		FItemMoveData Data;
-		UItemBase* NewItem = UItemFactory::CreateItemByHandle(
-			this,
-			InitResource.Item,
-			InitResource.Amount
-		);
-
-		if (!NewItem) continue;
-
-		Data.SourceItem = NewItem;
-		HandleAddItem(Data);
+		return bIsSlotPositionValid(StartPos)
+			&& (bIgnoreOccupiedSlots || bIsSlotEmptyByPos(StartPos))
+			&& bIsItemCategoryCompatible(ItemBase->GetItemRef().ItemCategory, CheckSlot->AllowedCategory);
 	}
+
+	TArray<FIntPoint> Positions = GetItemGridPositions(
+		StartPos,
+		ItemBase->GetItemRef().ItemNumeraticData.InventoryHorizontalSlots,
+		ItemBase->GetItemRef().ItemNumeraticData.InventoryVerticalSlots,
+		Orientation);
+
+	for (auto CheckPos : Positions)
+	{
+		auto CheckSlot = GetSlotByPosition(CheckPos);
+
+		if (!bIsSlotPositionValid(CheckPos)
+			|| (!bIgnoreOccupiedSlots && !bIsSlotEmptyByPos(CheckPos))
+			|| !bIsItemCategoryCompatible(ItemBase->GetItemRef().ItemCategory, CheckSlot->AllowedCategory))
+		{
+			return false;
+		}
+	}
+
+	return true;
 }
 
 TArray<UItemBase*> USlotbasedInventory::GetAllItems()
@@ -163,23 +228,7 @@ TArray<FItemIDEntry> USlotbasedInventory::CollectItemsAggregated() const
 	return Result;
 }
 
-bool USlotbasedInventory::CanPlaceItemAt(FIntPoint& StartPos, UItemBase* UtemBase, EItemOrientationType Orientation)
-{
-	TArray<FIntPoint> Positions = GetItemGridPositions(
-		StartPos, UtemBase->GetItemRef().ItemNumeraticData.InventoryHorizontalSlots,
-		UtemBase->GetItemRef().ItemNumeraticData.InventoryVerticalSlots);
-	for (auto ChekPos : Positions)
-	{
-		if (!bIsGridPositionValid(ChekPos) || !bIsSlotEmptyByPos(ChekPos))
-		{
-			return false;
-		}
-	}
-
-	return true;
-}
-
-TArray<FIntPoint> USlotbasedInventory::GetItemGridPositions(FIntPoint& StartPos, int32 Width, int32 Height,
+TArray<FIntPoint> USlotbasedInventory::GetItemGridPositions(const FIntPoint& StartPos, int32 Width, int32 Height,
                                                             EItemOrientationType Orientation)
 {
 	TArray<FIntPoint> Positions;
@@ -212,6 +261,10 @@ TArray<UInventorySlotData*> USlotbasedInventory::GetAvailableSlotForItem(UItemBa
 			FIntPoint StartPos(i, j);
 			if (CanPlaceItemAt(StartPos, Item, EItemOrientationType::Horizontal))
 				return GetSlotsForItemAt(StartPos, Item, EItemOrientationType::Horizontal);
+			if (CanPlaceItemAt(StartPos, Item, EItemOrientationType::Vertical))
+			{
+				return GetSlotsForItemAt(StartPos, Item, EItemOrientationType::Vertical);
+			}
 		}
 	}
 
@@ -257,6 +310,12 @@ FItemAddResult USlotbasedInventory::HandleAddItem(FItemMoveData ItemMoveData, bo
 				ItemMoveData.SourceItem->GetItemRef().ItemTextData.NameID
 			)
 		);
+	}
+
+	if (ItemMoveData.SourceInventory == this && ItemCollectionLinked->ItemHasInventory(
+			ItemMoveData.SourceItem, InventoryContainerID))
+	{
+		return TryReplaceItems(ItemMoveData, bOnlyCheck);
 	}
 
 	if (InventorySettings.bIsReferenceContainer)
@@ -312,105 +371,65 @@ FItemAddResult USlotbasedInventory::HandleAddReferenceItem(FItemMoveData& ItemMo
 		return FItemAddResult::AddedNone(FText::Format(FText::FromString("Can't be added {0} of {1} to inventory"),
 		                                               1, ItemMoveData.SourceItem->GetItemRef().ItemTextData.NameID));
 
-	if (bIsSlotEmpty(ItemMoveData.TargetSlot->GetSlotData()))
+	auto TargetSlots = GetSlotsForItemAt(ItemMoveData.TargetSlot->GetSlotPosition(), ItemMoveData.SourceItem, ItemMoveData.TargetOrientation);
+	
+	if (AreSlotsEmpty(TargetSlots))
 	{
-		if (ItemMoveData.SourceInventory == this && ItemCollectionLinked->ItemHasInventory(
-			ItemMoveData.SourceItem, InventoryContainerID))
+		bool IsCanPlace = CanPlaceItemAt(ItemMoveData.TargetSlot->GetSlotPosition(), ItemMoveData.SourceItem, ItemMoveData.TargetOrientation);
+		if (!IsCanPlace)
 		{
-			if (!bOnlyCheck)
-				ReplaceItem(ItemMoveData.SourceItem, ItemMoveData.TargetSlot->GetSlotData());
-			return FItemAddResult::Swapped(0, true, FText::FromString("Item successfully moved to an empty slot."));
+			FItemAddResult::AddedNone(FText::Format(FText::FromString("Can't be added {0} of {1} to inventory"),
+													   1, ItemMoveData.SourceItem->GetItemRef().ItemTextData.NameID));
 		}
-
+		
 		FItemMapping Slots;
 		Slots.InventoryID = InventoryContainerID;
-		Slots.OccupiedSlots.Add(ItemMoveData.TargetSlot->GetSlotData());
+		Slots.OccupiedSlots = TargetSlots;
 		if (!bOnlyCheck)
 			AddNewItem(ItemMoveData, Slots, ItemMoveData.SourceItem->GetQuantity());
 
 		TMap<UInventorySlotData*, FItemPlacementData> AffectedSlots;
-		AffectedSlots.Add(Slots.OccupiedSlots[0], {1, ItemMoveData.SavedOrientation});
+		AffectedSlots.Add(Slots.OccupiedSlots[0], {1, ItemMoveData.TargetOrientation});
 
 		return FItemAddResult::AddedAll(1, true, FText::Format(
 			                                FText::FromString("Successfully added {0} to inventory as a reference"),
 			                                ItemMoveData.SourceItem->GetItemRef().ItemTextData.NameID), AffectedSlots);
 	}
 
-	if (ItemMoveData.SourceInventory == this)
-	{
-		auto TarItem = ItemCollectionLinked->GetItemFromSlot(ItemMoveData.TargetSlot->GetSlotData(),
+	
+	auto ItemInTarSlot = ItemCollectionLinked->GetItemFromSlot(ItemMoveData.TargetSlot->GetSlotData(),
 		                                                     InventoryContainerID);
-		if (bOnlyCheck)
-			return FItemAddResult::Swapped(0, true, FText::FromString("Items successfully swapped."));
-
-		ReplaceItem(ItemMoveData.SourceItem, ItemMoveData.TargetSlot->GetSlotData());
-		ReplaceItem(TarItem, ItemMoveData.SourceItemPivotSlot->GetSlotData());
-		return FItemAddResult::Swapped(0, true, FText::FromString("Items successfully swapped."));
-	}
-
-	/*if (!bOnlyCheck)
+	auto ItemInTarSlotOccSlots = ItemCollectionLinked->FindItemMappingByContainerName(ItemInTarSlot, InventoryContainerID)->OccupiedSlots;
+	auto IsSlotsMatch = DoSlotsMatch(TargetSlots, ItemInTarSlotOccSlots);
+	auto ItemsHaveSameFootprint = UItemBase::DoItemsHaveSameFootprint(ItemMoveData.SourceItem, ItemInTarSlot);
+	bool IsCanPlace = CanPlaceItemAt(ItemMoveData.TargetSlot->GetSlotPosition(), ItemMoveData.SourceItem, ItemMoveData.TargetOrientation, true);
+		
+	if (ItemsHaveSameFootprint && IsSlotsMatch && IsCanPlace)
 	{
-		HandleRemoveItemFromContainer(InventoryData.ItemCollectionLink->GetItemFromSlot(ItemMoveData.TargetSlot->GetSlotData(), GetAsContainerWidget()));
-
 		FItemMapping Slots;
-		Slots.OccupiedSlots.Add(ItemMoveData.TargetSlot->GetSlotData());
-		AddNewItem(ItemMoveData, Slots, ItemMoveData.SourceItem->GetQuantity());
+		Slots.InventoryID = InventoryContainerID;
+		Slots.OccupiedSlots = ItemInTarSlotOccSlots;
+		
+		if (!bOnlyCheck)
+		{
+			RemoveItemFromInventory(ItemInTarSlot);
+			AddNewItem(ItemMoveData, Slots, ItemMoveData.SourceItem->GetQuantity());
 
+		}
+		
+		TMap<UInventorySlotData*, FItemPlacementData> AffectedPivotSlots;
+		AffectedPivotSlots.Add(ItemInTarSlotOccSlots[0], {1, ItemMoveData.TargetOrientation});	
 		return FItemAddResult::AddedAll(1, true, FText::Format(
-			FText::FromString("Successfully added {0} to inventory as a reference"),
-			ItemMoveData.SourceItem->GetItemRef().ItemTextData.Name));
-	}*/
-
-	TMap<UInventorySlotData*, FItemPlacementData> AffectedSlots;
-	AffectedSlots.Add(ItemMoveData.TargetSlot->GetSlotData(), {1, ItemMoveData.SavedOrientation});
-
-	return FItemAddResult::AddedAll(1, true, FText::Format(
-		                                FText::FromString("Successfully added {0} to inventory as a reference"),
-		                                ItemMoveData.SourceItem->GetItemRef().ItemTextData.NameID), AffectedSlots);
-}
-
-void USlotbasedInventory::MergeStackableItems()
-{
-	auto Items = ItemCollectionLinked->GetAllItemsByContainer(InventoryContainerID);
-	if (Items.IsEmpty()) return;
-
-	for (int i = Items.Num() - 1; i > 0; --i)
-	{
-		if (!Items[i] || !Items[i]->IsStackable())
-		{
-			continue;
-		}
-
-		auto SameItems = ItemCollectionLinked->GetAllSameItemsInContainer(InventoryContainerID, Items[i]);
-		if (SameItems.IsEmpty()) continue;
-
-		for (const auto& SameItem : SameItems)
-		{
-			if (SameItem->IsFullItemStack())
-				continue;
-
-			int32 AmountToAdd = Items[i]->GetQuantity();
-			int32 AvailableSpace = SameItem->GetItemRef().ItemNumeraticData.MaxStackSizeInCharacter - SameItem->
-				GetQuantity();
-
-			int32 ToTransfer = FMath::Min(AvailableSpace, AmountToAdd);
-			if (ToTransfer > 0)
-			{
-				TryInsertToStackItem(SameItem, Items[i], ToTransfer, false);
-			}
-
-			if (Items[i]->GetQuantity() <= 0)
-			{
-				break;
-			}
-		}
+											FText::FromString("Successfully added {0} to inventory as a reference"),
+											ItemMoveData.SourceItem->GetItemRef().ItemTextData.NameID), AffectedPivotSlots);
 	}
+
+	return FItemAddResult::AddedNone(FText::FromString(""));
 }
 
 FItemAddResult USlotbasedInventory::HandleNonStackableItems(FItemMoveData ItemMoveData, bool bOnlyCheck)
 {
 	TArray<TObjectPtr<UInventorySlotData>> EmptySlots;
-	//EmptySlots = ItemMoveData.TargetSlot;
 	if (!ItemMoveData.TargetSlot)
 	{
 		EmptySlots = GetAvailableSlotForItem(ItemMoveData.SourceItem);
@@ -441,9 +460,17 @@ FItemAddResult USlotbasedInventory::HandleNonStackableItems(FItemMoveData ItemMo
 	}
 
 	FIntPoint StartPos(EmptySlots[0]->CellPosition.X, EmptySlots[0]->CellPosition.Y);
-	bool Iscan = CanPlaceItemAt(StartPos, ItemMoveData.SourceItem, EItemOrientationType::Horizontal);
+	bool IsCanPlace = CanPlaceItemAt(StartPos, ItemMoveData.SourceItem, ItemMoveData.TargetOrientation);
 
-	if (Iscan && !bOnlyCheck)
+	int32 ActualAmountToAdd = CalculateActualAmountToAdd(1, ItemMoveData.SourceItem->GetItemSingleWeight());
+	if (ActualAmountToAdd <= 0)
+	{
+		return FItemAddResult::AddedNone(FText::Format(
+				FText::FromString("Item {0} would overflow limits"),
+				ItemMoveData.SourceItem->GetItemRef().ItemTextData.DisplayName));
+	}
+
+	if (IsCanPlace && !bOnlyCheck)
 	{
 		FItemMapping Slots;
 		Slots.InventoryID = InventoryContainerID;
@@ -453,7 +480,7 @@ FItemAddResult USlotbasedInventory::HandleNonStackableItems(FItemMoveData ItemMo
 	}
 
 	TMap<UInventorySlotData*, FItemPlacementData> AffectedPivotSlots;
-	AffectedPivotSlots.Add(EmptySlots[0], {1, EItemOrientationType::Horizontal});
+	AffectedPivotSlots.Add(EmptySlots[0], {1, ItemMoveData.TargetOrientation});
 	return FItemAddResult::AddedAll(1, false,
 	                                FText::FromString("Successfully added to inventory"), AffectedPivotSlots);
 }
@@ -514,7 +541,7 @@ int32 USlotbasedInventory::HandleStackableItems(FItemMoveData& ItemMoveData, int
 			if (EmptySlots.IsEmpty())
 				break;
 
-			AffectedPivotSlots.Add(EmptySlots[0], {AmountToDistribute, EItemOrientationType::Horizontal});
+			AffectedPivotSlots.Add(EmptySlots[0], {AmountToDistribute,ItemMoveData.TargetOrientation});
 			if (!bOnlyCheck)
 			{
 				FItemMapping Slots;
@@ -533,10 +560,10 @@ int32 USlotbasedInventory::HandleStackableItems(FItemMoveData& ItemMoveData, int
 	if (bIsSlotEmpty(ItemMoveData.TargetSlot->GetSlotData()))
 	{
 		FIntPoint Slot = FIntPoint(ItemMoveData.TargetSlot->GetSlotPosition());
-		if (CanPlaceItemAt(Slot, ItemMoveData.SourceItem, EItemOrientationType::Horizontal))
+		if (CanPlaceItemAt(Slot, ItemMoveData.SourceItem, ItemMoveData.TargetOrientation))
 		{
 			auto EmptySlots = GetSlotsForItemAt(Slot, ItemMoveData.SourceItem,
-			                                    EItemOrientationType::Horizontal);
+			                                   ItemMoveData.TargetOrientation);
 
 			if (!bOnlyCheck)
 			{
@@ -576,6 +603,46 @@ int32 USlotbasedInventory::HandleStackableItems(FItemMoveData& ItemMoveData, int
 	}
 
 	return TotalAddedAmount;
+}
+
+FItemAddResult USlotbasedInventory::TryReplaceItems(FItemMoveData& ItemMoveData, bool bOnlyCheck)
+{
+	auto TargetSlots = GetSlotsForItemAt(ItemMoveData.TargetSlot->GetSlotPosition(), ItemMoveData.SourceItem, ItemMoveData.SavedOrientation);
+	bool IsUseRefs = InventorySettings.bIsReferenceContainer;
+	
+	if (AreSlotsEmpty(TargetSlots))
+	{
+		bool IsCanPlace = CanPlaceItemAt(ItemMoveData.TargetSlot->GetSlotPosition(), ItemMoveData.SourceItem, ItemMoveData.SavedOrientation);
+		if (!IsCanPlace)
+		{
+			FItemAddResult::AddedNone(FText::Format(FText::FromString("Can't be added {0} of {1} to inventory"),
+												   1, ItemMoveData.SourceItem->GetItemRef().ItemTextData.NameID));
+		}
+			
+		if (!bOnlyCheck)
+			ReplaceItem(ItemMoveData.SourceItem, TargetSlots);
+		return FItemAddResult::Swapped(0, IsUseRefs, FText::FromString("Item successfully moved to an empty slot."));
+	}
+
+	auto ItemInTarSlot = ItemCollectionLinked->GetItemFromSlot(ItemMoveData.TargetSlot->GetSlotData(),															 InventoryContainerID);
+	auto ItemInTarSlotOccSlots = ItemCollectionLinked->FindItemMappingByContainerName(ItemInTarSlot, InventoryContainerID)->OccupiedSlots;
+		
+	auto IsSlotsMatch = DoSlotsMatch(TargetSlots, ItemInTarSlotOccSlots);
+	auto ItemsHaveSameFootprint = UItemBase::DoItemsHaveSameFootprint(ItemMoveData.SourceItem, ItemInTarSlot);
+	bool IsCanPlace = CanPlaceItemAt(ItemMoveData.TargetSlot->GetSlotPosition(), ItemMoveData.SourceItem, ItemMoveData.SavedOrientation);
+		
+	if (ItemsHaveSameFootprint && IsSlotsMatch && IsCanPlace)
+	{
+		if (!bOnlyCheck)
+		{
+			ReplaceItem(ItemMoveData.SourceItem,TargetSlots);
+			ReplaceItem(ItemInTarSlot, ItemInTarSlotOccSlots);
+		}
+		return FItemAddResult::Swapped(0, IsUseRefs, FText::FromString("Items successfully swapped."));
+	}
+	
+	return FItemAddResult::AddedNone(FText::FromString(""));
+		
 }
 
 int32 USlotbasedInventory::DistributeToExistingStacks(TArray<UItemBase*>& SameItems, int32& AmountToDistribute,
@@ -630,14 +697,14 @@ UItemBase* USlotbasedInventory::AddNewItem(FItemMoveData& ItemMoveData, FItemMap
 	return FinalItem;
 }
 
-void USlotbasedInventory::ReplaceItem(UItemBase* Item, UInventorySlotData* NewSlot)
+void USlotbasedInventory::ReplaceItem(UItemBase* Item, const TArray<UInventorySlotData*>& NewSlotDatas)
 {
 	if (!ItemCollectionLinked)
 	{
 		return;
 	}
 
-	if (!Item || !NewSlot)
+	if (!Item || NewSlotDatas.IsEmpty())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("USlotbasedInventory::ReplaceItem: Invalid parameters."));
 		return;
@@ -650,7 +717,7 @@ void USlotbasedInventory::ReplaceItem(UItemBase* Item, UInventorySlotData* NewSl
 
 	TArray<TObjectPtr<UInventorySlotData>> OldSlots = Mapping->OccupiedSlots;
 
-	Mapping->OccupiedSlots[0] = NewSlot;
+	Mapping->OccupiedSlots = NewSlotDatas;
 
 	NotifyReplaceItem(OldSlots, *Mapping, Item);
 }
@@ -697,9 +764,18 @@ int32 USlotbasedInventory::TryRemoveFromStackItem(UItemBase* Item, int32 Request
 	return AmountToRemove;
 }
 
-bool USlotbasedInventory::bIsGridPositionValid(FIntPoint GridPosition)
+bool USlotbasedInventory::bIsSlotPositionValid(FIntPoint GridPosition)
 {
 	return GridPosition.X >= 0 && GridPosition.Y >= 0 && GridPosition.X < InvSize.X && GridPosition.Y < InvSize.Y;
+}
+
+bool USlotbasedInventory::bIsItemCategoryCompatible(EItemCategory ItemCategory, EItemCategory SlotCategory)
+{
+	if (SlotCategory == EItemCategory::All)
+	{
+		return true;
+	}
+	return ItemCategory == SlotCategory;
 }
 
 bool USlotbasedInventory::bIsSlotEmptyByPos(FIntPoint SlotPosition)
@@ -718,6 +794,41 @@ bool USlotbasedInventory::bIsSlotEmpty(UInventorySlotData* Slot)
 {
 	auto Posit = (Slot->CellPosition);
 	return bIsSlotEmptyByPos(Posit);
+}
+
+bool USlotbasedInventory::AreSlotsEmpty(const TArray<UInventorySlotData*>& Slots)
+{
+	bool AllSlotsEmpty = true;
+	for (const auto SlotData : Slots)
+	{
+		if (!bIsSlotEmpty(SlotData))
+		{
+			AllSlotsEmpty = false;
+			break;
+		}
+	}
+
+	return AllSlotsEmpty;
+}
+
+bool USlotbasedInventory::DoSlotsMatch(const TArray<UInventorySlotData*>& FirstSlots,
+	const TArray<UInventorySlotData*>& SecondSlots)
+{
+	if (FirstSlots.IsEmpty() && SecondSlots.IsEmpty())
+		return false;
+
+	if (FirstSlots.Num() != SecondSlots.Num())
+		return false;
+
+	for (const auto SlotData : FirstSlots)
+	{
+		if (!SecondSlots.Contains(SlotData))
+		{
+			return false;
+		}
+	}
+	
+	return true;
 }
 
 float USlotbasedInventory::GetInventoryOccupancyPercent()

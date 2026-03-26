@@ -12,6 +12,39 @@ UListInventory::UListInventory()
 {
 }
 
+void UListInventory::SortItemsInContainerByName()
+{
+	if (!ItemCollectionLinked)
+		return;
+	
+	MergeStackableItems();
+	
+	auto SortByName = [](const UItemBase& A, const UItemBase& B)
+	{
+		return A.GetItemDisplayText().ToString() < B.GetItemDisplayText().ToString();
+	};
+	
+	auto AllItems = ItemCollectionLinked->GetAllItemsByContainer(InventoryContainerID);
+	if (AllItems.IsEmpty())
+		return;
+
+	AllItems.Sort(SortByName);
+
+	InvSlotsArray.Empty();
+	FilteredInvSlotsArray.Empty();
+
+	for (auto Item : AllItems)
+	{
+		UInventoryListEntry* EntryObject = NewObject<UInventoryListEntry>(this, EntryClass);
+		EntryObject->Item = Item;
+		InvSlotsArray.Add(EntryObject);
+	}
+	
+	NotifyReDrawRequest();
+	NotifyUpdateWeight();
+	NotifyUpdateMoney();
+}
+
 void UListInventory::HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity)
 {
 	if (!Item) return;
@@ -21,6 +54,9 @@ void UListInventory::HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity)
 
 FItemAddResult UListInventory::HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck)
 {
+	if (!ItemCollectionLinked)
+		return FItemAddResult::AddedNone(FText::FromString("ItemCollectionLinked is null"));
+	
 	if (!ItemMoveData.SourceItem)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Item is null. Nothing to add"));
@@ -101,14 +137,13 @@ FItemAddResult UListInventory::HandleAddReferenceItem(FItemMoveData& ItemMoveDat
 
 FItemAddResult UListInventory::HandleNonStackableItems(FItemMoveData ItemMoveData, bool bOnlyCheck)
 {
-	if (InventorySettings.InventoryMaxWeightCapacity >= 0)
+	int32 ActualAmountToAdd = CalculateActualAmountToAdd(1, ItemMoveData.SourceItem->GetItemSingleWeight());
+
+	if (ActualAmountToAdd <= 0)
 	{
-		if (InventoryTotalWeight + ItemMoveData.SourceItem->GetItemSingleWeight() > InventorySettings.InventoryMaxWeightCapacity)
-		{
-			return FItemAddResult::AddedNone(FText::Format(
-				FText::FromString("Item {0} would overflow weight limit"),
+		return FItemAddResult::AddedNone(FText::Format(
+				FText::FromString("Item {0} would overflow limits"),
 				ItemMoveData.SourceItem->GetItemRef().ItemTextData.DisplayName));
-		}
 	}
 	
 	if (!bOnlyCheck)

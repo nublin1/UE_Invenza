@@ -7,6 +7,7 @@
 #include "Components/Image.h"
 #include "ItemTooltipWidget.generated.h"
 
+class UInventoryBase;
 class UUInventoryWidgetBase;
 class UItemBase;
 struct FItemMetaData;
@@ -29,7 +30,7 @@ public:
 	//====================================================================
 	UItemTooltipWidget();
 	
-	virtual void SetTooltipData(UItemBase* Item, UUInventoryWidgetBase* Inventory = nullptr);
+	virtual void SetTooltipData(UItemBase* Item, UInventoryBase* Inventory = nullptr);
 
 protected:
 	//====================================================================

@@ -5,6 +5,7 @@
 
 #include "ActorComponents/ItemCollection.h"
 #include "Data/Items/ItemBase.h"
+#include "Factory/ItemFactory.h"
 
 UInventoryBase::UInventoryBase()
 {
@@ -15,12 +16,59 @@ UInventoryBase::UInventoryBase()
 	}
 }
 
+void UInventoryBase::SetupStartingResources()
+{
+	for (auto InitResource : InitialItems)
+	{
+		if (InitResource.Item.RowName.IsNone()) continue;
+
+		FItemMoveData Data;
+		Data.TargetInventory = this;
+		UItemBase* NewItem = UItemFactory::CreateItemByHandle(
+			this,
+			InitResource.Item,
+			InitResource.Amount
+		);
+
+		if (!NewItem) continue;
+
+		Data.SourceItem = NewItem;
+		HandleAddItem(Data);
+	}
+}
+
+void UInventoryBase::MergeStackableItems()
+{
+	auto Items = ItemCollectionLinked->GetAllItemsByContainer(InventoryContainerID);
+	if (Items.IsEmpty()) return;
+
+	for (int i = Items.Num() - 1; i > 0; --i)
+	{
+		if (!Items[i] || !Items[i]->IsStackable())
+		{
+			continue;
+		}
+
+		auto SameItems = ItemCollectionLinked->GetAllSameItemsInContainer(InventoryContainerID, Items[i]);
+		if (SameItems.IsEmpty()) continue;
+
+		for (const auto& SameItem : SameItems)
+		{
+			if (SameItem == Items[i])
+				continue;
+			auto AddedQuantity = TryInsertToStackItem(SameItem, Items[i], Items[i]->GetQuantity(), false);
+		}
+	}
+}
+
 void UInventoryBase::UseSlot(UInventorySlotData* UsedSlot)
 {
-	if (!UsedSlot)
+	if (!UsedSlot || !ItemCollectionLinked)
 		return;
 
-	UsedSlot->ItemLinked->UseItem();
+	auto ItemLinked = ItemCollectionLinked->GetItemFromSlot(UsedSlot, InventoryContainerID);
+
+	ItemLinked->UseItem();
 
 	NotifyUseSlot(UsedSlot);
 }
@@ -71,10 +119,6 @@ void UInventoryBase::UpdateMoneyInfo()
 	}
 }
 
-void UInventoryBase::InitInventory(UItemCollection* ItemCollectionRef, FVector2D NewSize)
-{
-}
-
 int32 UInventoryBase::CalculateActualAmountToAdd(int32 InAmountToAdd, float ItemSingleWeight)
 {
 	if (InventorySettings.InventoryMaxWeightCapacity >= 0)
@@ -83,6 +127,18 @@ int32 UInventoryBase::CalculateActualAmountToAdd(int32 InAmountToAdd, float Item
 		int32 MaxItemsThatFit = WeightLimitAddAmount / ItemSingleWeight;
 		return FMath::Min(MaxItemsThatFit, InAmountToAdd);
 	}
+
+	if (InventorySettings.MaxUniqueItemCount >= 0)
+	{
+		const int32 TotalCount = ItemCollectionLinked->GetTotalItemCountInContainer(InventoryContainerID);
+		const int32 RemainingSlots = InventorySettings.MaxUniqueItemCount - TotalCount;
+		if (RemainingSlots <= 0)
+		{
+			return 0;
+		}
+		return FMath::Min(RemainingSlots, InAmountToAdd);
+	}
+	
 	return InAmountToAdd;
 }
 
@@ -146,6 +202,10 @@ void UInventoryBase::RemoveItemFromInventory(UItemBase* Item)
 void UInventoryBase::DeductResourceOnAddToInventory(UItemBase* Resource, int32 DeductAmount)
 {
 	Resource->SetQuantity(Resource->GetQuantity() - DeductAmount);
+	if (Resource->GetQuantity() <= 0)
+	{
+		ItemCollectionLinked->RemoveItem(Resource, InventoryContainerID);
+	}
 }
 
 void UInventoryBase::NotifyAddNewItem(FItemMapping& FromSlots, UItemBase* NewItem, int32 ChangeQuantity)
@@ -195,4 +255,10 @@ void UInventoryBase::NotifyUpdateMoney()
 {
 	if (OnMoneyUpdatedDelegate.IsBound())
 		OnMoneyUpdatedDelegate.Broadcast(InventoryTotalMoney);
+}
+
+void UInventoryBase::NotifyReDrawRequest()
+{
+	if (OnInventoryRedrawRequested.IsBound())
+		OnInventoryRedrawRequested.Broadcast();
 }

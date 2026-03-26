@@ -4,7 +4,7 @@
 #include "UI/Item/InventoryItemWidget.h"
 
 
-#include "ActorComponents/Items/itemBase.h"
+#include "Data/Items/ItemBase.h"
 #include "Components/Border.h"
 #include "Components/Image.h"
 #include "Components/SizeBox.h"

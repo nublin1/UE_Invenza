@@ -1,16 +1,15 @@
-﻿//  Nublin Studio 2025 All Rights Reserved.
+﻿//  Nublin Studio 2026 All Rights Reserved.
 
 #include "ActorComponents/Interactable/PickupComponent.h"
 
 #include "ActorComponents/InteractionComponent.h"
 #include "ActorComponents/UIInventoryManager.h"
-#include "ActorComponents/Items/itemBase.h"
+#include "Data/Items/itemBase.h"
 #include "Engine/StaticMesh.h"
 #include "TimerManager.h"
 #include "Components/StaticMeshComponent.h"
-#include "Data/ItemData.h"
 #include "Factory/ItemFactory.h"
-#include "UI/Inventory/UInventoryWidgetBase.h"
+
 
 UPickupComponent::UPickupComponent()
 {
@@ -61,7 +60,7 @@ void UPickupComponent::InitializeDrop(UItemBase* ItemToDrop)
 	
 	InteractableData.Quantity = ItemBase->GetQuantity();
 	if (InteractableData.Name.IsEmpty())
-		InteractableData.Name = ItemBase->GetItemRef().ItemTextData.Name;
+		InteractableData.Name = ItemBase->GetItemRef().ItemTextData.DisplayName;
 	
 	if (auto StaticMesh = GetOwner()->FindComponentByClass<UStaticMeshComponent>())
 	{
@@ -76,7 +75,7 @@ void UPickupComponent::InitializePickupComponent()
 	if (DesiredItemID.IsNone())
 		return;
 
-	ItemBase = UItemFactory::CreateItemByID(this, DesiredItemID, InitQuantity);
+	/*ItemBase = UItemFactory::CreateItemByID(this, DesiredItemID, InitQuantity);
 	if (!ItemBase)
 	{
 		UE_LOG(LogTemp, Error, TEXT("Item create is failed!"));
@@ -85,12 +84,12 @@ void UPickupComponent::InitializePickupComponent()
 
 	InteractableData.Quantity = ItemBase->GetQuantity();
 	if (InteractableData.Name.IsEmpty())
-		InteractableData.Name = ItemBase->GetItemRef().ItemTextData.Name;
+		InteractableData.Name = ItemBase->GetItemRef().ItemTextData.DisplayName;
 
 	if (auto StaticMesh = GetOwner()->FindComponentByClass<UStaticMeshComponent>())
 	{
 		StaticMesh->SetStaticMesh(ItemBase->GetItemRef().ItemAssetData.Mesh);
-	}
+	}*/
 }
 
 void UPickupComponent::TakePickup(const UInteractionComponent* Taker)
@@ -99,7 +98,7 @@ void UPickupComponent::TakePickup(const UInteractionComponent* Taker)
 	if (!InventoryManager)
 		return;
 
-	auto Inv = InventoryManager->GetMainInventory()->GetInventoryFromContainerSlot();
+	/*auto Inv = InventoryManager->GetMainInventory()->GetInventoryFromContainerSlot();
 
 	if (!Inv)
 	{
@@ -119,7 +118,7 @@ void UPickupComponent::TakePickup(const UInteractionComponent* Taker)
 	FItemAddResult Result = Inv->HandleAddItem(Data);
 	//UE_LOG(LogTemp, Warning, TEXT("USpecialInteractableComponent"));
 
-	GetOwner()->Destroy();
+	GetOwner()->Destroy();*/
 }
 
 void UPickupComponent::UpdateInteractableData()

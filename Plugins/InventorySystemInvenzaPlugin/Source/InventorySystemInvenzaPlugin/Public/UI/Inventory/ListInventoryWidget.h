@@ -7,6 +7,7 @@
 #include "UI/BaseUserWidget.h"
 #include "ListInventoryWidget.generated.h"
 
+class UListInventory;
 enum class EItemCategory : uint8;
 class UItemCategoryButton;
 class UUIButton;
@@ -35,10 +36,10 @@ public:
 	UListInventoryWidget();
 
 	virtual void InitializeInventoryWidget() override;
-	virtual void SortInventory();
 	virtual void BindDelegated() override;
 	virtual void ReDrawAllItems() override;
 
+	virtual void SetInventoryBaseRef(UInventoryBase* NewInventoryRef) override;
 
 protected:
 	//====================================================================
@@ -52,39 +53,30 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory|UI", meta=(BindWidget))
 	TObjectPtr<UListView> ItemsList;
 
-	//
-	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Data")
-	TArray<TObjectPtr<UInventoryListEntry>> InvSlotsArray;
-	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Data")
-	TArray<TObjectPtr<UInventoryListEntry>> FiltredInvSlotsArray;
+	// Refs
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	TObjectPtr<UListInventory> ListInventoryRef;
 	
-
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
 	virtual void NativeConstruct() override;
 
 	//
-	UFUNCTION()
 	virtual void ClearFilters() override;
-	UFUNCTION()
 	virtual void OnFilterStatusChanged(UUIButton* ItemCategoryButton) override;
 	UFUNCTION()
+	void RebuildFilteredSlots();
+	
 	virtual void RefreshFilteredItemsList() override;
-	UFUNCTION()
 	virtual void SearchTextChanged(const FText& NewText) override;
 
 	//
-	UFUNCTION()
 	virtual void AddItemToPanel(FItemMapping ItemSlots, UItemBase* Item) override;
-	UFUNCTION()
 	virtual void RemoveItemFromPanel(FItemMapping FromSlots, UItemBase* Item) override;
-	UFUNCTION()
 	virtual void UpdateItem(UItemBase* Item, int32 ChangedAmount) override;
-
-	UFUNCTION()
+	
 	virtual void UpdateWeightInfo(float InventoryTotalWeight) override;
-	UFUNCTION()
 	virtual void UpdateMoneyInfo(int32 InventoryTotalMoney) override;
 
 	//

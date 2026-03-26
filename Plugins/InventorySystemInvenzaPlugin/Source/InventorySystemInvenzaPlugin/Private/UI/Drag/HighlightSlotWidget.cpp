@@ -6,7 +6,7 @@
 #include "Components/Border.h"
 #include "Components/Image.h"
 #include "UI/Core/CoreCellWidget.h"
-#include "UI/Inventory/InventoryTypes.h"
+#include "Data/Inventory/InventoryTypes.h"
 
 UHighlightSlotWidget::UHighlightSlotWidget()
 {

@@ -7,4 +7,3 @@
 UUInventoryWidgetBase::UUInventoryWidgetBase()
 {
 }
-

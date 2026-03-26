@@ -6,6 +6,7 @@
 #include "UObject/Object.h"
 #include "InventoryListEntry.generated.h"
 
+class UListInventoryWidget;
 class UItemBase;
 /**
  * 

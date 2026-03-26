@@ -1,10 +1,9 @@
-// Nublin Studio 2025 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "SlotbasedInventorySlot.h"
-#include "Data/EquipmentStructures.h"
 #include "UI/Inventory/InventorySlot.h"
 #include "EquipmentSlotWidget.generated.h"
 

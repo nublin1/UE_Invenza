@@ -5,14 +5,9 @@
 #include "ActorComponents/UIInventoryManager.h"
 #include "Data//Items/itemBase.h"
 #include "ActorComponents/SaveLoad/SaveLoadStructs.h"
-#include "Blueprint/WidgetTree.h"
 #include "Data/Inventory/InventoryBase.h"
-#include "Factory/ItemFactory.h"
 #include "Kismet/GameplayStatics.h"
-#include "UI/Container/InvBaseContainerWidget.h"
-#include "UI/Inventory/InventorySlot.h"
-#include "UI/Inventory/ListInventoryWidget.h"
-#include "UI/Inventory/SlotbasedInventoryWidget.h"
+
 
 UItemCollection::UItemCollection()
 {
@@ -30,6 +25,31 @@ void UItemCollection::BeginPlay()
 		InvManager = Manager;
 }
 
+int32 UItemCollection::GetTotalItemCountInContainer(FString InvID)
+{
+	if (ItemLocations.IsEmpty())
+	{
+		return 0;
+	}
+	
+	int32 TotalItemCount = 0;
+	for (const auto& Pair : ItemLocations)
+	{
+		auto Item = Pair.Key;
+		const FItemMappingArrayWrapper& MappingArrayWrapper = Pair.Value;
+		
+		for (const FItemMapping& Mapping : MappingArrayWrapper.Mappings)
+		{
+			if (InvID == (Mapping.InventoryID))
+			{
+				TotalItemCount++;
+				break;
+			}
+		}
+	}
+
+	return TotalItemCount;
+}
 
 TArray<UItemBase*> UItemCollection::GetAllItemsByContainer(FString InvID)
 {
@@ -105,6 +125,29 @@ TArray<FItemMapping> UItemCollection::GetAllMappingsByContainer(const FString& I
 			if (Mapping.InventoryID == InvID)
 			{
 				Result.AddUnique(Mapping);
+			}
+		}
+	}
+
+	return Result;
+}
+
+TMap<UItemBase*, FItemMapping> UItemCollection::GetItemsWithMappingsByContainer(const FString& InvID)
+{
+	TMap<UItemBase*, FItemMapping> Result;
+
+	if (ItemLocations.IsEmpty())
+		return Result;
+
+	for (const auto& Pair : ItemLocations)
+	{
+		UItemBase* Item = Pair.Key;
+
+		for (const FItemMapping& Mapping : Pair.Value.Mappings)
+		{
+			if (Mapping.InventoryID == InvID)
+			{
+				Result.Add(Item, Mapping);
 			}
 		}
 	}
@@ -254,7 +297,7 @@ bool UItemCollection::ItemHasInventory(UItemBase* Item, FString InventoryID)
 }
 
 
-UInventoryItemWidget* UItemCollection::GetItemLinkedWidgetForSlot(FInventorySlotData ItemSlotData)
+/*UInventoryItemWidget* UItemCollection::GetItemLinkedWidgetForSlot(FInventorySlotData ItemSlotData)
 {	
 	for (const auto& Pair : ItemLocations)
 	{
@@ -268,86 +311,8 @@ UInventoryItemWidget* UItemCollection::GetItemLinkedWidgetForSlot(FInventorySlot
 		}
 	}
 	return nullptr;
-}
+}*/
 
-void UItemCollection::SortInContainer(UInvBaseContainerWidget* ContainerToSort)
-{
-	if (auto ListInventory = Cast<UListInventoryWidget>(ContainerToSort->GetInventoryFromContainerSlot()))
-	{
-		ListInventory->SortInventory();
-		return;
-	}
-
-	auto SlotbasedInventory = Cast<USlotbasedInventoryWidget>(ContainerToSort->GetInventoryFromContainerSlot());
-	if (!SlotbasedInventory)
-		return;
-
-	SlotbasedInventory->MergeStackableItems();
-	
-	TArray<TPair<TObjectPtr<UItemBase>, FItemMapping*>> Mappings;
-	for (auto& Pair : ItemLocations)
-	{
-		for (auto& Mapping : Pair.Value.Mappings)
-		{
-			if (ContainerToSort->EqualsByNameAndType(Mapping.InventoryID, Mapping.InventoryType))
-			{
-				Mappings.Emplace(Pair.Key, &Mapping);
-			}
-		}
-	}
-
-	if (Mappings.Num() == 0)
-	{
-		return;
-	}
-	
-	Mappings.Sort([](auto& A, auto& B) {
-		const FString NameA = A.Key->GetItemID().ToString();
-		const FString NameB = B.Key->GetItemID().ToString();
-		//UE_LOG(LogTemp, Log, TEXT("Comparing %s and %s"), *NameA, *NameB);
-		return NameA.Compare(NameB, ESearchCase::IgnoreCase) < 0;
-	});
-
-	/*UE_LOG(LogTemp, Log, TEXT("Data after sorting:"));
-	for (const auto& Pair : Mappings) {
-		if (Pair.Key) {
-			FString ItemName;
-			if (Pair.Key)
-				ItemName = Pair.Key->GetItemRef().ItemTextData.Name.ToString();
-			else
-				ItemName = "INVALID ITEMREF";
-			UE_LOG(LogTemp, Log, TEXT("  Item: %s"), *ItemName);
-		} else {
-			UE_LOG(LogTemp, Log, TEXT("  Item: NULL"));
-		}
-	}*/
-
-	if (auto Inv = ContainerToSort->GetInventoryFromContainerSlot())
-	{
-		Inv->ReDrawAllItems();
-	}
-
-	
-	for (auto i =0; i < Mappings.Num();  i++)
-	{
-		auto& Pair = Mappings[i];
-		Pair.Value->OccupiedSlots.Empty();
-	}
-		
-	for (auto i =0; i < Mappings.Num();  i++)
-	{
-		auto& Pair = Mappings[i];
-		auto AvSlot = SlotbasedInventory->GetAvailableSlotForItem(Pair.Key.Get());
-		if (AvSlot)
-		{
-			Pair.Value->OccupiedSlots.Add(AvSlot->GetSlotData());
-		}
-	}
-
-	SlotbasedInventory->ReDrawAllItems();
-	SlotbasedInventory->UpdateMoneyInfo();
-	SlotbasedInventory->UpdateMoneyInfo();
-}
 
 void UItemCollection::SerializeForSave(TArray<FItemSaveEntry>& OutData)
 {
@@ -382,7 +347,7 @@ void UItemCollection::DeserializeFromSave(TArray<FItemSaveEntry> InData)
 {
 	ItemLocations.Empty();
 
-	for (const auto& Data : InData)
+	/*for (const auto& Data : InData)
 	{
 		UItemBase* Item = UItemFactory::CreateItemByID(GetOwner(), Data.Item.ItemID, Data.Item.Quantity);
 		if (!Item) continue;
@@ -421,7 +386,7 @@ void UItemCollection::DeserializeFromSave(TArray<FItemSaveEntry> InData)
 				}
 			}
 		}
-	}
+	}*/
 }
 
 

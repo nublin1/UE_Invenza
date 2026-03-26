@@ -24,6 +24,19 @@ bool UItemBase::bIsSameItems(UItemBase* FirstItem, UItemBase* SecondItem)
 	return false;
 }
 
+bool UItemBase::DoItemsHaveSameFootprint(UItemBase* FirstItem, UItemBase* SecondItem)
+{
+	if (!FirstItem || !SecondItem)
+		return false;
+	
+	if (FirstItem->GetItemRef().ItemNumeraticData.InventoryHorizontalSlots != SecondItem->GetItemRef().ItemNumeraticData.InventoryHorizontalSlots)
+		return false;
+	if (FirstItem->GetItemRef().ItemNumeraticData.InventoryVerticalSlots != SecondItem->GetItemRef().ItemNumeraticData.InventoryVerticalSlots)
+		return false;
+
+	return true;
+}
+
 void UItemBase::InitItem(const FName ID, FItemData Data, int32 InQuantity)
 {
 	this->ItemID = ID;

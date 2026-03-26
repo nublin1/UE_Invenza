@@ -16,7 +16,10 @@ void USlotbasedInventorySlot::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	SetSlotNameText(SlotData.SlotName.ToString());
+	if (SlotData)
+	{
+		SetSlotNameText(SlotData->SlotName.ToString());
+	}
 
 	if (DefaultCellImage)
 	{

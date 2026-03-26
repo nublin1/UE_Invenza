@@ -4,13 +4,14 @@
 #include "UI/Inventory/ListInventorySlotWidget.h"
 
 #include "ActorComponents/ItemCollection.h"
-#include "ActorComponents/TradeComponent.h"
+
 #include "ActorComponents/UIInventoryManager.h"
-#include "ActorComponents/Items/itemBase.h"
+#include "Data/Items/itemBase.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Components/ListView.h"
 #include "Components/TextBlock.h"
 #include "TimerManager.h"      
+#include "Data/Inventory/InventoryBase.h"
 #include "GameFramework/Actor.h"
 #include "Engine/World.h"
 #include "DragDrop/ItemDragDropOperation.h"
@@ -31,13 +32,13 @@ void UListInventorySlotWidget::UpdateVisualWithItemInfo(UItemBase* Item)
 		if (Item->IsStackable())
 		{
 			FString ItemNameWithCount = FString::Printf(TEXT("%s (%d)"), 
-				*Item->GetItemRef().ItemTextData.Name.ToString(), 
+				*Item->GetItemRef().ItemTextData.DisplayName.ToString(), 
 				Item->GetQuantity());
 
 			ItemName->SetText(FText::FromString(ItemNameWithCount));
 		}
 		else
-			ItemName->SetText(Item->GetItemRef().ItemTextData.Name);
+			ItemName->SetText(Item->GetItemRef().ItemTextData.DisplayName);
 	}
 }
 
@@ -52,10 +53,10 @@ void UListInventorySlotWidget::UpdatePriceText()
 	if (!InventoryManager || !InventoryManager->GetCurrentInteractInvWidget())
 		return;
 
-	if (InventoryManager->GetCurrentInteractInvWidget()->GetInventoryType() != EInventoryType::VendorInventory)
-		return;
+	/*if (InventoryManager->GetCurrentInteractInvWidget()->GetInventoryType() != EInventoryType::VendorInventory)
+		return;*/
 	
-	if (!CachedEntry->ParentInventoryWidget->GetInventoryData().ItemCollectionLink) return;
+	/*if (!CachedEntry->ParentInventoryWidget->GetInventoryData().ItemCollectionLink) return;
 	auto OwnerAc = InventoryManager->GetCurrentInteractInvWidget()->GetInventoryFromContainerSlot()->GetInventoryData().ItemCollectionLink->GetOwner();
 	if (!OwnerAc) return;
 	auto TradeComp = OwnerAc->FindComponentByClass<UTradeComponent>();
@@ -75,7 +76,7 @@ void UListInventorySlotWidget::UpdatePriceText()
 	{
 		FText FullPriceText = FText::AsNumber(TradeComp->GetTotalBuyPrice(CachedEntry->Item));
 		PriceText->SetText(FullPriceText);
-	}
+	}*/
 }
 
 void UListInventorySlotWidget::NativeOnListItemObjectSet(UObject* ListItemObject)
@@ -97,14 +98,14 @@ FReply UListInventorySlotWidget::NativeOnMouseMove(const FGeometry& InGeometry, 
 	if (!CachedEntry || !CachedEntry->ParentInventoryWidget)
 		return Reply;
 
-	if (CachedEntry->Item && CachedEntry->ParentInventoryWidget->GetInventoryData().ItemTooltipWidget)
+	if (CachedEntry->Item && CachedEntry->ParentInventoryWidget->GetItemTooltipWidget())
 	{
 		
-		CachedEntry->ParentInventoryWidget->GetInventoryData().ItemTooltipWidget->SetTooltipData(CachedEntry->Item, CachedEntry->ParentInventoryWidget);
-		 CachedEntry->ParentInventoryWidget->GetInventoryData().ItemTooltipWidget->SetVisibility(ESlateVisibility::Visible);
+		CachedEntry->ParentInventoryWidget->GetItemTooltipWidget()->SetTooltipData(CachedEntry->Item, CachedEntry->ParentInventoryWidget->GetInventoryRef());
+		 CachedEntry->ParentInventoryWidget->GetItemTooltipWidget()->SetVisibility(ESlateVisibility::Visible);
 	}
-	else if ( CachedEntry->ParentInventoryWidget->GetInventoryData().ItemTooltipWidget)
-		 CachedEntry->ParentInventoryWidget->GetInventoryData().ItemTooltipWidget->SetVisibility(ESlateVisibility::Collapsed);
+	else if ( CachedEntry->ParentInventoryWidget->GetItemTooltipWidget())
+		 CachedEntry->ParentInventoryWidget->GetItemTooltipWidget()->SetVisibility(ESlateVisibility::Collapsed);
 
 	return Reply;
 }
@@ -112,8 +113,8 @@ FReply UListInventorySlotWidget::NativeOnMouseMove(const FGeometry& InGeometry, 
 void UListInventorySlotWidget::NativeOnMouseLeave(const FPointerEvent& InMouseEvent)
 {
 	Super::NativeOnMouseLeave(InMouseEvent);
-	if ( CachedEntry->ParentInventoryWidget->GetInventoryData().ItemTooltipWidget)
-		CachedEntry->ParentInventoryWidget->GetInventoryData().ItemTooltipWidget->SetVisibility(ESlateVisibility::Collapsed);
+	if ( CachedEntry->ParentInventoryWidget->GetItemTooltipWidget())
+		CachedEntry->ParentInventoryWidget->GetItemTooltipWidget()->SetVisibility(ESlateVisibility::Collapsed);
 }
 
 FReply UListInventorySlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
@@ -129,7 +130,7 @@ FReply UListInventorySlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeom
 		if (InventoryManager->GetInventoryModifierStates().bIsQuickGrabModifierActive)
 		{
 			FItemMoveData ItemMoveData;
-			ItemMoveData.SourceInventory = CachedEntry->ParentInventoryWidget;
+			ItemMoveData.SourceInventory = CachedEntry->ParentInventoryWidget->GetInventoryRef();
 			ItemMoveData.SourceItemPivotSlot = this;
 			ItemMoveData.SourceItem = CachedEntry->Item;
 
@@ -146,7 +147,7 @@ FReply UListInventorySlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeom
 		if (CachedEntry->ParentInventoryWidget->HandleTradeModalOpening(CachedEntry->Item))
 			return FReply::Handled();
 
-		if (CachedEntry->ParentInventoryWidget->GetInventorySettings().bCanUseItems)
+		if (CachedEntry->ParentInventoryWidget->GetInventoryRef()->GetInventorySettings().bAllowItemUsage)
 			CachedEntry->Item->UseItem();
 	}
 	
@@ -170,7 +171,7 @@ void UListInventorySlotWidget::NativeOnDragDetected(const FGeometry& InGeometry,
 	DragItemDragDropOperation->DefaultDragVisual = DraggedWidget;
 	DragItemDragDropOperation->Pivot = EDragPivot::CenterCenter;
 	DragItemDragDropOperation->ItemMoveData.SourceItem = CachedEntry->Item;
-	DragItemDragDropOperation->ItemMoveData.SourceInventory = CachedEntry->ParentInventoryWidget;
+	DragItemDragDropOperation->ItemMoveData.SourceInventory = CachedEntry->ParentInventoryWidget->GetInventoryRef();
 	DragItemDragDropOperation->ItemMoveData.SourceItemPivotSlot = this;
 	
 	auto ShowDragVisual = [DraggedWidget]()

@@ -6,6 +6,7 @@
 #include "InventorySlot.h"
 #include "TimerManager.h"
 #include "Engine/Texture2D.h"
+#include "Data/Inventory/InventoryTypes.h"
 #include "SlotbasedInventorySlot.generated.h"
 
 class UTextBlock;

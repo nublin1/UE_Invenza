@@ -1,4 +1,4 @@
-//  Nublin Studio 2025 All Rights Reserved.
+//  Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -6,11 +6,12 @@
 #include "Components/ActorComponent.h"
 #include "Service/TradeService.h"
 #include "Settings/InvnzaSettings.h"
-#include "UI/Container/InvBaseContainerWidget.h"
-#include "UI/Core/CoreHUDWidget.h"
-#include "UI/Inventory/InventoryTypes.h"
+#include "UI/Inventory/Container/InvBaseContainerWidget.h"
+#include "Data/Inventory/InventoryTypes.h"
 #include "UIInventoryManager.generated.h"
 
+class IInvUIProvider;
+class UEquipmentComponent;
 enum class EInteractableType : uint8;
 struct FItemMoveData;
 struct FInputActionInstance;
@@ -39,7 +40,6 @@ protected:
 public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
 							   FActorComponentTickFunction* ThisTickFunction) override;
-
 	
 	//====================================================================
 	// Delegates
@@ -62,14 +62,9 @@ public:
 	void OnQuickTransferItem(FItemMoveData ItemMoveData);
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Transfer")
 	void ItemTransferRequest(FItemMoveData ItemMoveData);
-	
-	/*UFUNCTION(BlueprintCallable, Category = "Inventory|Query")
-	UInvBaseContainerWidget* GetMainInventory() const { return CoreHUDWidget ? CoreHUDWidget->GetMainInvWidget() : nullptr; }*/
-	
+		
 	UFUNCTION(BlueprintPure, Category = "Inventory|Settings")
 	FUISettings GetUISettings() const { return UISettings; }
-	UFUNCTION(BlueprintPure, Category = "Inventory|Settings")
-	UCoreHUDWidget* GetCoreHUDWidget() const { return CoreHUDWidget; }
 	
 	UFUNCTION(BlueprintPure, Category = "Inventory|Query")
 	UInvBaseContainerWidget* GetCurrentInteractInvWidget() const { return CurrentInteractInvWidget.Get(); }
@@ -83,17 +78,18 @@ public:
 	UFUNCTION(BlueprintCallable)
 	UInventoryBase* GetInventoryByID(FString ContainerID);
 
+	UFUNCTION(Category = "Inventory|UI")
+	void SetUIProvider(const TScriptInterface<IInvUIProvider>& NewUIProvider) { UIProvider = NewUIProvider; }
+
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	// Widgets
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Inventory|Widgets")
-	TObjectPtr<UCoreHUDWidget> CoreHUDWidget;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
 	TObjectPtr<UInvBaseContainerWidget> CurrentInteractInvWidget;
 
-	//
+	// Startup
 	UPROPERTY(EditAnywhere, Category="Inventory")
 	TArray<FInventoryStartupData> StartupInventories;
 
@@ -103,20 +99,34 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Settings")
 	FInventoryModifierState InventoryModifierState;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Data")
-	TObjectPtr<UDataTable> ItemDataTable;
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Data")
+	//TObjectPtr<UDataTable> ItemDataTable;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
 	TObjectPtr<UModalTradeWidget> ModalTradeWidget;
 
 	//
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	TMap<FGameplayTag, TObjectPtr<UInventoryBase>> Inventories;
+	TScriptInterface<IInvUIProvider> UIProvider;
 	
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	TMap<FGameplayTag, TObjectPtr<UInventoryBase>> Inventories;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	TObjectPtr<UInventoryBase> MainPawnInventory;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	TObjectPtr<UEquipmentComponent> EquipmentComponentRef;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	TObjectPtr<UItemCollection> ItemCollectionRef;
 	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+	UFUNCTION()
+	void OnItemAddedToInventory(FItemMapping ItemSlots, UItemBase* Item);
+	UFUNCTION()
+	void OnItemRemovedFromInventory(FItemMapping ItemSlots, UItemBase* Item);
+
+	
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Trade")
 	virtual ETradeResult VendorRequest(FTradeRequest TradeRequest);
 
@@ -127,7 +137,10 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
 	void BindEvents(AActor* TargetActor);
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
+	void BindInventoryEvents(UInventoryBase* Inventory);
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
 	void UIIteract(UInteractableComponent* TargetInteractableComponent);
+	
 	
 	UFUNCTION()
 	void OnQuickGrabPressed(const FInputActionInstance& Instance);
@@ -142,6 +155,5 @@ protected:
 	void InitializeBindings();
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Initialization")
 	void BindInputActions();
-	
 	
 };

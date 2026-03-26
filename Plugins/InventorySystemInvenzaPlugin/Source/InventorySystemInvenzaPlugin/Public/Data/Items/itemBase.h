@@ -1,4 +1,4 @@
-//  Nublin Studio 2025 All Rights Reserved.
+//  Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -40,6 +40,9 @@ public:
 	/** Creates an item from the data table */
 	UFUNCTION(BlueprintCallable, Category = "Item")
 	static bool bIsSameItems(UItemBase* FirstItem, UItemBase* SecondItem);
+
+	UFUNCTION(BlueprintCallable, Category = "Item")
+	static bool DoItemsHaveSameFootprint(UItemBase* FirstItem, UItemBase* SecondItem);
 
 	//====================================================================
 	// FUNCTIONS
@@ -96,6 +99,7 @@ public:
 
 	/** Get and set methods */
 	FName GetItemID() const { return ItemID; }
+	FText GetItemDisplayText() const {return ItemRef.ItemTextData.DisplayName;}
 	FItemMetaData& GetItemRef() { return ItemRef; }
 	int32 GetQuantity() const { return Quantity; }
 	void SetItemRef(const FItemMetaData& NewItemRef) { this->ItemRef = NewItemRef; }

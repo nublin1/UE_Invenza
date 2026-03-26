@@ -5,6 +5,7 @@
 
 #include "ActorComponents/ItemCollection.h"
 #include "Components/Border.h"
+#include "Data/Inventory/InventoryBase.h"
 #include "DragDrop/ItemDragDropOperation.h"
 #include "UI/Inventory/UInventoryWidgetBase.h"
 
@@ -32,7 +33,7 @@ bool UTrashDropZoneWidget::NativeOnDrop(const FGeometry& InGeometry, const FDrag
 	if (!DragOp->ItemMoveData.SourceItem)
 		return Result;
 
-	DragOp->ItemMoveData.SourceInventory->GetInventoryData().ItemCollectionLink->RemoveItemFromAllContainers(
+	DragOp->ItemMoveData.SourceInventory->GetItemCollectionLinked()->RemoveItemFromAllContainers(
 		DragOp->ItemMoveData.SourceItem);
 
 	if (TrashBorder)

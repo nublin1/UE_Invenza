@@ -1,4 +1,4 @@
-//  Nublin Studio 2025 All Rights Reserved.
+//  Nublin Studio 2026 All Rights Reserved.
 
 
 #include "UI/Inventory/InventorySlot.h"
@@ -6,7 +6,6 @@
 
 UInventorySlot::UInventorySlot()
 {
-	
 }
 
 void UInventorySlot::UpdateVisualWithItemInfo(UItemBase* Item)

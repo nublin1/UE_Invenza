@@ -3,10 +3,10 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "InventoryTypes.h"
+#include "Data/Inventory/InventoryTypes.h"
 #include "Settings/InvnzaSettings.h"
 #include "UI/BaseUserWidget.h"
-#include "UI/Container/InvBaseContainerWidget.h"
+#include "UI/Inventory/Container/InvBaseContainerWidget.h"
 #include "UInventoryWidgetBase.generated.h"
 
 class UUIButton;
@@ -37,7 +37,7 @@ public:
 	FOnItemDropped OnItemDroppedDelegate;
 
 	//
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|Settings")
 	FGameplayTag TargetInventoryTag;
 	
 	//====================================================================
@@ -62,6 +62,8 @@ public:
 	virtual FItemAddResult HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck = false) PURE_VIRTUAL(UUInventoryWidgetBase::HandleAddItem, return FItemAddResult(););
 
 	FUISettings GetUISettings() const {return UISettings;}
+	UItemTooltipWidget* GetItemTooltipWidget() const {return ItemTooltipWidget;}
+	virtual UInventoryBase* GetInventoryRef() const {return InventoryRef;}
 	
 	//Setters
 	virtual void SetInventoryBaseRef(UInventoryBase* NewInventoryRef) {InventoryRef = NewInventoryRef;}
@@ -89,7 +91,6 @@ protected:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-
 	UFUNCTION()
 	virtual void AddItemToPanel(FItemMapping ItemSlots, UItemBase* Item) PURE_VIRTUAL(UUInventoryWidgetBase::AddItemToPanel,);
 	UFUNCTION()

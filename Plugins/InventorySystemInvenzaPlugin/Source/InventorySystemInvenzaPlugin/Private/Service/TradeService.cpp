@@ -4,15 +4,15 @@
 #include "Service/TradeService.h"
 
 #include "ActorComponents/ItemCollection.h"
-#include "ActorComponents/TradeComponent.h"
-#include "ActorComponents/Items/itemBase.h"
+//#include "ActorComponents/TradeComponent.h"
+#include "Data/Items/itemBase.h"
 #include "Factory/ItemFactory.h"
-#include "UI/Inventory/InventoryTypes.h"
+#include "Data/Inventory/InventoryTypes.h"
 #include "UI/Inventory/UInventoryWidgetBase.h"
 
 ETradeResult UTradeService::ExecuteBuy(const FTradeRequest& Request)
 {
-	if (Request.Item->GetItemRef().ItemTradeData.bCanBeSold == false )
+	/*if (Request.Item->GetItemRef().ItemTradeData.bCanBeSold == false )
 		return ETradeResult::ItemCantBeSold;
 
 	if (Request.Vendor->GetTradeSettings().bSellOnly)
@@ -65,7 +65,7 @@ ETradeResult UTradeService::ExecuteBuy(const FTradeRequest& Request)
 		}
 		
 		RemainingAmount -= TotalValue;
-	}
+	}*/
 	
 	return ETradeResult::Success;
 }
@@ -75,7 +75,7 @@ ETradeResult UTradeService::ExecuteSell(const FTradeRequest& Request)
 	/*if (Request.Item->GetItemRef().ItemTradeData.bCanBeSold == false )
 		return ETradeResult::ItemCantBeSold;*/
 	
-	auto VendorInv = Request.VendorContainer->GetInventoryFromContainerSlot();
+	/*auto VendorInv = Request.VendorContainer->GetInventoryFromContainerSlot();
 	auto BuyerInv = Request.BuyerContainer->GetInventoryFromContainerSlot();
 
 	auto ItemToCheck = Request.Item->DuplicateItem();
@@ -123,6 +123,7 @@ ETradeResult UTradeService::ExecuteSell(const FTradeRequest& Request)
 		
 		RemainingAmount -= TotalValue;
 	}
+	*/
 	
 	return ETradeResult::Success;
 }

@@ -3,7 +3,7 @@
 
 #include "UI/Inventory/EquipmentInventoryWidget.h"
 
-#include "ActorComponents/Items/itemBase.h"
+#include "Data//Items/ItemBase.h"
 #include "Components/UniformGridPanel.h"
 #include "Components/UniformGridSlot.h"
 #include "UI/Inventory/EquipmentSlotWidget.h"
@@ -29,7 +29,7 @@ FItemAddResult UEquipmentInventoryWidget::HandleAddItem(FItemMoveData ItemMoveDa
 	}
 
 	UEquipmentSlotWidget* NewTargetSlot = nullptr;
-	for (auto InventorySlot : GetInventoryData().InventorySlots)
+	for (auto InventorySlot : InventorySlots)
 	{
 		auto EquipmentSlot = Cast<UEquipmentSlotWidget>(InventorySlot);
 		if (!EquipmentSlot)
@@ -63,7 +63,7 @@ void UEquipmentInventoryWidget::InitSlots()
 				UUniformGridSlot* UniSlot = Cast<UUniformGridSlot>(ChildWidget->Slot);
 				if (auto EqSlot = Cast<UEquipmentSlotWidget>(ChildWidget))
 				{
-					EqSlot->SetSlotPosition(FIntVector2(UniSlot->GetRow(), UniSlot->GetColumn()));
+					EqSlot->SetSlotPosition(FIntPoint(UniSlot->GetRow(), UniSlot->GetColumn()));
 					NewInvSlots.Add(EqSlot);
 				}
 			}
@@ -78,7 +78,7 @@ void UEquipmentInventoryWidget::InitSlots()
 			ConvertedSlots.Add(InvSlot);
 		}
 	}
-	InventoryData.InventorySlots = ConvertedSlots;
+	InventorySlots = ConvertedSlots;
 }
 
 bool UEquipmentInventoryWidget::bIsGridPositionValid(FIntPoint& GridPosition)

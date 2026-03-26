@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "InventoryTypes.h"
+#include "Data/Inventory/InventoryTypes.h"
 #include "UInventoryWidgetBase.h"
 #include "Components/ActorComponent.h"
 #include "Settings/InvnzaSettings.h"
@@ -75,7 +75,7 @@ protected:
 	TObjectPtr<UHighlightSlotWidget> HighlightWidgetPreview = nullptr;
 	
 	// Refs
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TObjectPtr<USlotbasedInventory> SlotBasedInventoryRef;
 
 	// Settings
@@ -120,13 +120,9 @@ protected:
 	virtual void InitSlots();
 
 	//
-	UFUNCTION()
 	virtual void ClearFilters() override;
-	UFUNCTION()
 	virtual void OnFilterStatusChanged(UUIButton* ItemCategoryButton) override;
-	UFUNCTION()
 	virtual void RefreshFilteredItemsList() override;
-	UFUNCTION()
 	virtual void SearchTextChanged(const FText& NewText) override;
 	
 	//
@@ -136,22 +132,17 @@ protected:
 	UFUNCTION()
 	FVector2D CalculateItemVisualPosition(FIntPoint SlotPosition) const;
 
-	UFUNCTION()
+	
 	virtual void AddItemToPanel(FItemMapping ItemSlots, UItemBase* Item) override;
 	UFUNCTION()
 	virtual void ReplaceItemInPanel(TArray<UInventorySlotData*> OldItemSlots, FItemMapping NewItemSlots, UItemBase* Item);
-	UFUNCTION()
 	virtual void UpdateItem(UItemBase* Item, int32 ChangedAmount) override;
-	UFUNCTION()
 	virtual void UpdateSlotInPanel(FItemMapping FromSlots, UItemBase* Item);
-	UFUNCTION()
 	virtual void RemoveItemFromPanel(FItemMapping FromSlots, UItemBase* Item) override;
 	UFUNCTION()
 	virtual void UsedItemInPanel(UInventorySlotData* UsedSlot);
-
-	UFUNCTION()
+	
 	virtual void UpdateWeightInfo(float InventoryTotalWeight) override;
-	UFUNCTION()
 	virtual void UpdateMoneyInfo(int32 InventoryTotalMoney) override;
 
 	UFUNCTION()

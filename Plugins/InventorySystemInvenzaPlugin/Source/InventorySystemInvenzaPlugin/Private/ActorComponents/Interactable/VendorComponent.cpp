@@ -2,7 +2,7 @@
 
 #include "ActorComponents/Interactable/VendorComponent.h"
 #include "ActorComponents/InteractionComponent.h"
-#include "ActorComponents/TradeComponent.h"
+#include "ActorComponents/Trade/TradeComponent.h"
 
 UVendorComponent::UVendorComponent()
 {

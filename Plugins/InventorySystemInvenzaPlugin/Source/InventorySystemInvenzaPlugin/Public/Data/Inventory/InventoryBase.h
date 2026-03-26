@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UI/Inventory/InventoryTypes.h"
+#include "Data/Inventory/InventoryTypes.h"
 #include "UObject/Object.h"
 #include "InventoryBase.generated.h"
 
@@ -17,24 +17,16 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UInventoryBase : public UObject
 
 #pragma region Delegates
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAddItemDelegate, FItemMapping, ItemSlots, UItemBase*, Item);
-
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnStackedItemDelegate, UItemBase*, Item, int32, AddedAmount);
-
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnstackedItemDelegate, UItemBase*, Item, int32, RemovedAmount);
-
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnItemRemovedDelegate, FItemMapping, ItemSlots, UItemBase*, Item);
-
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnItemReplaceDelegate, TArray<UInventorySlotData*>, OldItemSlots,
 	                                               FItemMapping, NewItemSlots, UItemBase*, Item);
-
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUseSlot, UInventorySlotData*, UsedSlot);
-
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWeightUpdatedDelegate, float, InventoryTotalWeight);
-
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMoneyUpdatedDelegate, int32, InventoryTotalMoney);
-
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryRedrawRequested);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSlotsReservedDelegate, TArray<FSlotReservationData>, ReservationData);
-
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnConsumeReservedDelegate, TArray<FSlotReservationData>,
 	                                            ReservationData);
 #pragma endregion Delegates
@@ -63,6 +55,8 @@ public:
 	FOnWeightUpdatedDelegate OnWeightUpdatedDelegate;
 	UPROPERTY(BlueprintAssignable)
 	FOnMoneyUpdatedDelegate OnMoneyUpdatedDelegate;
+	UPROPERTY(BlueprintAssignable)
+	FOnInventoryRedrawRequested OnInventoryRedrawRequested;
 
 	UPROPERTY(BlueprintAssignable)
 	FOnSlotsReservedDelegate OnSlotsReservedDelegate;
@@ -73,7 +67,14 @@ public:
 	// FUNCTIONS
 	//====================================================================
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Initialization")
-	virtual void InitInventory(UItemCollection* ItemCollectionRef, FVector2D NewSize);
+	virtual void InitInventory(UItemCollection* ItemCollectionRef, FVector2D NewSize) {};
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Initialization")
+	virtual void SetupStartingResources();
+
+	UFUNCTION(BlueprintCallable)
+	virtual void SortItemsInContainerByName() {};
+	
 
 	UFUNCTION(BlueprintCallable)
 	virtual void HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity)
@@ -88,8 +89,7 @@ public:
 	PURE_VIRTUAL(UInventoryBase::HandleAddReferenceItem, return FItemAddResult(););
 
 	UFUNCTION(BlueprintCallable)
-	virtual void MergeStackableItems()
-	PURE_VIRTUAL(UInventoryBase::MergeStackableItems,);
+	virtual void MergeStackableItems();
 
 	UFUNCTION()
 	void UseSlot(UInventorySlotData* UsedSlot);
@@ -105,12 +105,9 @@ public:
 
 	UFUNCTION()
 	virtual FInventorySettings GetInventorySettings() { return InventorySettings; }
-
-	UFUNCTION(BlueprintCallable)
-	virtual TArray<UInventorySlotData*> GetInvSlots() const { return InvSlotsDatas; }
-
+	
 	UFUNCTION()
-	TObjectPtr<UItemCollection> GetItemCollectionLinked() { return ItemCollectionLinked; }
+	UItemCollection* GetItemCollectionLinked() { return ItemCollectionLinked; }
 
 	// Setters
 	UFUNCTION(BlueprintCallable)
@@ -124,12 +121,14 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	virtual void SetInventorySize(FVector2D NewSize) { InvSize = NewSize; }
+	
+	UFUNCTION()
+	void SetItemCollectionLink(UItemCollection* NewCollection) { ItemCollectionLinked = NewCollection; }
 
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-
 	// Settings
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Config")
 	FInventorySettings InventorySettings;
@@ -143,8 +142,7 @@ protected:
 	FString InventoryContainerID; // Uniq ID
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UItemCollection> ItemCollectionLinked = nullptr;
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	TArray<TObjectPtr<UInventorySlotData>> InvSlotsDatas;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bWasInit = false;
 
@@ -212,4 +210,6 @@ protected:
 	virtual void NotifyUpdateWeight();
 	UFUNCTION()
 	virtual void NotifyUpdateMoney();
+	UFUNCTION()
+	virtual void NotifyReDrawRequest();
 };

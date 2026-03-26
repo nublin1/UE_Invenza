@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "UI/BaseUserWidget.h"
-#include "UI/Inventory/InventoryTypes.h"
+#include "Data/Inventory/InventoryTypes.h"
 #include "HighlightSlotWidget.generated.h"
 
 enum class EHighlightState : uint8;

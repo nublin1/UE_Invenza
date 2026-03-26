@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "Engine/DataTable.h"
 #include "InputCoreTypes.h"
 #include "GameFramework/Actor.h"
@@ -24,6 +25,9 @@ USTRUCT(Blueprintable)
 struct FUISettings
 {
 	GENERATED_BODY()
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
+	FGameplayTag MainInvTag;
 	
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Input")
     UInputMappingContext* InventoryMappingContext;
