@@ -16,12 +16,12 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UInventoryBase : public UObject
 	GENERATED_BODY()
 
 #pragma region Delegates
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAddItemDelegate, FItemMapping, ItemSlots, UItemBase*, Item);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAddItemDelegate, FItemMapping&, ItemSlots, UItemBase*, Item);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnStackedItemDelegate, UItemBase*, Item, int32, AddedAmount);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnstackedItemDelegate, UItemBase*, Item, int32, RemovedAmount);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnItemRemovedDelegate, FItemMapping, ItemSlots, UItemBase*, Item);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnItemReplaceDelegate, TArray<UInventorySlotData*>, OldItemSlots,
-	                                               FItemMapping, NewItemSlots, UItemBase*, Item);
+	                                               FItemMapping&, NewItemSlots, UItemBase*, Item);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUseSlot, UInventorySlotData*, UsedSlot);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWeightUpdatedDelegate, float, InventoryTotalWeight);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMoneyUpdatedDelegate, int32, InventoryTotalMoney);
@@ -201,7 +201,7 @@ protected:
 	UFUNCTION()
 	void NotifyFullyRemoveItem(FItemMapping& FromSlots, UItemBase* Item);
 	UFUNCTION()
-	virtual void NotifyReplaceItem(TArray<UInventorySlotData*> OldItemSlots, FItemMapping NewItemSlots,
+	virtual void NotifyReplaceItem(TArray<UInventorySlotData*> OldItemSlots, FItemMapping& NewItemSlots,
 	                               UItemBase* Item);
 
 	UFUNCTION()

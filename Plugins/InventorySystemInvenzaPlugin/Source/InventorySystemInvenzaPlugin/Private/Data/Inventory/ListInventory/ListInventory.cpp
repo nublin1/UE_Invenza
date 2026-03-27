@@ -241,11 +241,10 @@ UItemBase* UListInventory::AddNewItem(FItemMoveData& ItemMoveData, FItemMapping 
 	}
 
 	// Add item
-	FItemMappingArrayWrapper MapWrapper = ItemCollectionLinked->AddItem(FinalItem, OccupiedSlots);
 	OccupiedSlots.InventoryID = InventoryContainerID;
-	MapWrapper.Mappings.Add(OccupiedSlots);
+	FItemMapping& StoredMapping = ItemCollectionLinked->AddItem(FinalItem, OccupiedSlots);
 
-	NotifyAddNewItem(OccupiedSlots, FinalItem, ItemMoveData.SourceItem->GetQuantity());
+	NotifyAddNewItem(StoredMapping, FinalItem, ItemMoveData.SourceItem->GetQuantity());
 
 	return FinalItem;
 }

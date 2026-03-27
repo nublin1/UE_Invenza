@@ -97,6 +97,16 @@ void UItemBase::DropItem(UWorld* World)
 	}
 }
 
+FIntPoint UItemBase::GetItemSize(EItemOrientationType Orientation) const
+{
+	const int32 H = ItemRef.ItemNumeraticData.InventoryHorizontalSlots;
+	const int32 V = ItemRef.ItemNumeraticData.InventoryVerticalSlots;
+
+	return Orientation == EItemOrientationType::Vertical
+		? FIntPoint(H, V)
+		: FIntPoint(V, H);
+}
+
 FString UItemBase::CategoryToString()
 {
 	return StaticEnum<EItemCategory>()->GetNameStringByValue(static_cast<int32>(ItemRef.ItemCategory));

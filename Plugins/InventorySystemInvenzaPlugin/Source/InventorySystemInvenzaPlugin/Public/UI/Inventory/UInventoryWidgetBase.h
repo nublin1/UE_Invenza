@@ -92,7 +92,7 @@ protected:
 	// FUNCTIONS
 	//====================================================================
 	UFUNCTION()
-	virtual void AddItemToPanel(FItemMapping ItemSlots, UItemBase* Item) PURE_VIRTUAL(UUInventoryWidgetBase::AddItemToPanel,);
+	virtual void AddItemToPanel(FItemMapping& ItemSlots, UItemBase* Item) PURE_VIRTUAL(UUInventoryWidgetBase::AddItemToPanel,);
 	UFUNCTION()
 	virtual void RemoveItemFromPanel(FItemMapping FromSlots, UItemBase* Item)PURE_VIRTUAL(UUInventoryWidgetBase::RemoveItemFromPanel,);
 	UFUNCTION()

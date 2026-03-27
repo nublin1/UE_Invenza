@@ -122,7 +122,7 @@ protected:
 	// FUNCTIONS
 	//====================================================================
 	UFUNCTION()
-	void OnItemAddedToInventory(FItemMapping ItemSlots, UItemBase* Item);
+	void OnItemAddedToInventory(FItemMapping& ItemSlots, UItemBase* Item);
 	UFUNCTION()
 	void OnItemRemovedFromInventory(FItemMapping ItemSlots, UItemBase* Item);
 
@@ -135,12 +135,10 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
 	void ClearInteractableType(UInteractableComponent* InteractData = nullptr);
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
-	void BindEvents(AActor* TargetActor);
+	void BindEvents();
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
 	void BindInventoryEvents(UInventoryBase* Inventory);
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
-	void UIIteract(UInteractableComponent* TargetInteractableComponent);
-	
+		
 	
 	UFUNCTION()
 	void OnQuickGrabPressed(const FInputActionInstance& Instance);

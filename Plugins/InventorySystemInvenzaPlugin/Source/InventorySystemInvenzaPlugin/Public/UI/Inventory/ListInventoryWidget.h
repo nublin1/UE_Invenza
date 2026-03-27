@@ -72,7 +72,7 @@ protected:
 	virtual void SearchTextChanged(const FText& NewText) override;
 
 	//
-	virtual void AddItemToPanel(FItemMapping ItemSlots, UItemBase* Item) override;
+	virtual void AddItemToPanel(FItemMapping& ItemSlots, UItemBase* Item) override;
 	virtual void RemoveItemFromPanel(FItemMapping FromSlots, UItemBase* Item) override;
 	virtual void UpdateItem(UItemBase* Item, int32 ChangedAmount) override;
 	

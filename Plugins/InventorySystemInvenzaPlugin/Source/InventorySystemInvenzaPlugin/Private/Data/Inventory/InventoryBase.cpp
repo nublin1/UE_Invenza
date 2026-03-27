@@ -33,6 +33,11 @@ void UInventoryBase::SetupStartingResources()
 		if (!NewItem) continue;
 
 		Data.SourceItem = NewItem;
+		if (Data.SourceItem->GetItemRef().ItemNumeraticData.InventoryVerticalSlots > Data.SourceItem->GetItemRef().ItemNumeraticData.InventoryHorizontalSlots)
+		{
+			Data.SavedOrientation = EItemOrientationType::Vertical;
+			Data.TargetOrientation = EItemOrientationType::Vertical;
+		}
 		HandleAddItem(Data);
 	}
 }
@@ -233,7 +238,7 @@ void UInventoryBase::NotifyFullyRemoveItem(FItemMapping& FromSlots, UItemBase* I
 }
 
 void UInventoryBase::NotifyReplaceItem(TArray<UInventorySlotData*> OldItemSlots,
-	FItemMapping NewItemSlots, UItemBase* Item)
+	FItemMapping& NewItemSlots, UItemBase* Item)
 {
 	if (OnItemReplaceDelegate.IsBound())
 		OnItemReplaceDelegate.Broadcast(OldItemSlots, NewItemSlots, Item);

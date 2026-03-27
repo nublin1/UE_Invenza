@@ -83,6 +83,9 @@ public:
 		                   ItemRef.ItemNumeraticData.InventoryVerticalSlots);
 	}
 
+	UFUNCTION(Category = "Item|Properties")
+	FIntPoint GetItemSize(EItemOrientationType Orientation) const;
+
 	UFUNCTION(BlueprintCallable, Category = "Item|Properties")
 	FString CategoryToString();
 

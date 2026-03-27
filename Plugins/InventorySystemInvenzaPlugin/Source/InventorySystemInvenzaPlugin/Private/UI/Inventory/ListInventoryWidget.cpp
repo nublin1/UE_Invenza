@@ -208,7 +208,7 @@ void UListInventoryWidget::SetInventoryBaseRef(UInventoryBase* NewInventoryRef)
 	}
 }
 
-void UListInventoryWidget::AddItemToPanel(FItemMapping ItemSlots, UItemBase* Item)
+void UListInventoryWidget::AddItemToPanel(FItemMapping& ItemSlots, UItemBase* Item)
 {
 	for (auto& InvSlot : ListInventoryRef->InvSlotsArray)
 	{

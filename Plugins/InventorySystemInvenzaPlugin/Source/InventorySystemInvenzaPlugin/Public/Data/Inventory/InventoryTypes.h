@@ -265,17 +265,17 @@ struct FItemMapping
 {
 	GENERATED_BODY()
 
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
 	FString InventoryID;
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
 	EInventoryType InventoryType = EInventoryType::None;
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
 	TArray<TObjectPtr<UInventorySlotData>> OccupiedSlots;
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
 	EItemOrientationType ItemOrientation = EItemOrientationType::Horizontal;
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
 	TObjectPtr<UInventoryItemWidget> ItemVisualLinked;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
 	TObjectPtr<AStorageVisualRepresentation> ItemVisualRepresentation;
 
 	FItemMapping() = default;

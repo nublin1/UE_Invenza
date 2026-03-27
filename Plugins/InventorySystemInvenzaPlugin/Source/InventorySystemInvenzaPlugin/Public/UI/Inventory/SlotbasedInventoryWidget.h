@@ -133,9 +133,9 @@ protected:
 	FVector2D CalculateItemVisualPosition(FIntPoint SlotPosition) const;
 
 	
-	virtual void AddItemToPanel(FItemMapping ItemSlots, UItemBase* Item) override;
+	virtual void AddItemToPanel(FItemMapping& ItemSlots, UItemBase* Item) override;
 	UFUNCTION()
-	virtual void ReplaceItemInPanel(TArray<UInventorySlotData*> OldItemSlots, FItemMapping NewItemSlots, UItemBase* Item);
+	virtual void ReplaceItemInPanel(TArray<UInventorySlotData*> OldItemSlots, FItemMapping& NewItemSlots, UItemBase* Item);
 	virtual void UpdateItem(UItemBase* Item, int32 ChangedAmount) override;
 	virtual void UpdateSlotInPanel(FItemMapping FromSlots, UItemBase* Item);
 	virtual void RemoveItemFromPanel(FItemMapping FromSlots, UItemBase* Item) override;

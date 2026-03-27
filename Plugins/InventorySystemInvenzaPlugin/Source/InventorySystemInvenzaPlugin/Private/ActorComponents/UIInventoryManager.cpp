@@ -120,6 +120,8 @@ void UIInventoryManager::InitWidgets()
 		}
 
 		TarInv->SetupStartingResources();
+
+		WidgetBase->OnItemDroppedDelegate.AddDynamic(this, &UIInventoryManager::ItemTransferRequest);
 	}
 }
 
@@ -205,7 +207,7 @@ void UIInventoryManager::OpenTradeModal(bool bIsSaleOperation, UItemBase* Operat
 	};*/
 }
 
-void UIInventoryManager::OnItemAddedToInventory(FItemMapping ItemSlots, UItemBase* Item)
+void UIInventoryManager::OnItemAddedToInventory(FItemMapping& ItemSlots, UItemBase* Item)
 {
 	if (!Item || !EquipmentComponentRef) return;
 
@@ -285,7 +287,7 @@ void UIInventoryManager::ItemTransferRequest(FItemMoveData ItemMoveData)
 		}
 	}*/
 	
-	/*auto Result = ItemMoveData.TargetInventory->HandleAddItem(ItemMoveData, false);
+	auto Result = ItemMoveData.TargetInventory->HandleAddItem(ItemMoveData, false);
 	UE_LOG(LogTemp, Log, TEXT("InventoryManager::ItemTransferRequest. Is ResultMessage: %s"), *Result.ResultMessage.ToString());
 	switch (Result.OperationResult)
 	{
@@ -302,7 +304,7 @@ void UIInventoryManager::ItemTransferRequest(FItemMoveData ItemMoveData)
 		}
 		break;
 	case EItemAddResult::IAR_NoItemAdded:
-		if (CoreHUDWidget->GetVendorInvWidget())
+		/*if (CoreHUDWidget->GetVendorInvWidget())
 		{
 			if (!ItemMoveData.SourceInventory || ItemMoveData.SourceInventory == CoreHUDWidget->GetVendorInvWidget()->GetInventoryFromContainerSlot())
 			{
@@ -318,7 +320,7 @@ void UIInventoryManager::ItemTransferRequest(FItemMoveData ItemMoveData)
 					ItemMoveData.SourceInventory->HandleRemoveItemFromContainer(ItemMoveData.SourceItem);
 				}
 			}
-		}
+		}*/
 		break;
 	case EItemAddResult::IAR_PartialAmountItemAdded:
 		if (Result.bIsUsedReferences)
@@ -339,7 +341,7 @@ void UIInventoryManager::ItemTransferRequest(FItemMoveData ItemMoveData)
 			ItemMoveData.SourceInventory->HandleRemoveItem(ItemMoveData.SourceItem, ItemMoveData.SourceItem->GetQuantity());
 		}
 		break;
-	}*/
+	}
 }
 
 UInventoryBase* UIInventoryManager::GetInventoryByTag(const FGameplayTag& Tag)
@@ -414,10 +416,10 @@ void UIInventoryManager::ClearInteractableType(UInteractableComponent* IteractDa
 	}*/
 }
 
-void UIInventoryManager::BindEvents(AActor* TargetActor)
+void UIInventoryManager::BindEvents()
 {
-	/*if (!TargetActor) return;
-	
+		
+	/*	
 	UInteractionComponent* InteractionComponent = TargetActor->FindComponentByClass<UInteractionComponent>();
 
 	if (!InteractionComponent)
@@ -440,8 +442,6 @@ void UIInventoryManager::BindEvents(AActor* TargetActor)
 	InteractionComponent->EndFocusDelegate.AddDynamic(InteractionWidget, &UInteractionWidget::OnLostInteractable);
 	InteractionComponent->OnInteractionProgress.AddDynamic(InteractionWidget, &UInteractionWidget::UpdateProgressBar);
 	
-	InteractionComponent->IteractableDataDelegate.AddDynamic(this, &UIInventoryManager::UIIteract);
-
 	InteractionComponent->IteractableDataDelegate.AddDynamic(this, &UIInventoryManager::SetInteractableType);
 	InteractionComponent->StopIteractDelegate.AddDynamic(this, &UIInventoryManager::ClearInteractableType);
 
@@ -475,12 +475,6 @@ void UIInventoryManager::BindInventoryEvents(UInventoryBase* Inventory)
 	if (!Inventory) return;
 	Inventory->OnAddItemDelegate.AddDynamic(this, &UIInventoryManager::OnItemAddedToInventory);
 	Inventory->OnItemRemovedDelegate.AddDynamic(this, &UIInventoryManager::OnItemRemovedFromInventory);
-}
-
-void UIInventoryManager::UIIteract( UInteractableComponent* TargetInteractableComponent)
-{
-	if (!TargetInteractableComponent) return;
-	
 }
 
 void UIInventoryManager::OnQuickGrabPressed(const FInputActionInstance& Instance)

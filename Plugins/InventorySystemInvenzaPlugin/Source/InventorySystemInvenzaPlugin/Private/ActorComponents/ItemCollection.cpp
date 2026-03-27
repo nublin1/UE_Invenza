@@ -198,15 +198,15 @@ UItemBase* UItemCollection::GetItemFromSlot(UInventorySlotData* TargetSlotData, 
 		}
 	}
     
-	UE_LOG(LogTemp, Warning, TEXT("GetItemFromSlot: No item found for slot %s in container %s"), *TargetSlotData->GetName(), *InventoryID);
+	//UE_LOG(LogTemp, Warning, TEXT("GetItemFromSlot: No item found for slot %s in container %s"), *TargetSlotData->GetName(), *InventoryID);
 	return nullptr;
 }
 
-FItemMappingArrayWrapper UItemCollection::AddItem(UItemBase* NewItem, FItemMapping ItemMapping)
+FItemMapping& UItemCollection::AddItem(UItemBase* NewItem, const FItemMapping& ItemMapping)
 {
 	FItemMappingArrayWrapper& Wrapper = ItemLocations.FindOrAdd(NewItem);
 	Wrapper.Mappings.Add(ItemMapping);
-	return Wrapper;
+	return Wrapper.Mappings.Last(); 
 }
 
 void UItemCollection::RemoveItem(UItemBase* Item, FString ContainerID)

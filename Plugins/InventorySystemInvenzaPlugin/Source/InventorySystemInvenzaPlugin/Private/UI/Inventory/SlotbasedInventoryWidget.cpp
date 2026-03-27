@@ -380,20 +380,20 @@ FVector2D USlotbasedInventoryWidget::CalculateItemVisualPosition(FIntPoint SlotP
 	return FVector2D(Y, X);
 }
 
-void USlotbasedInventoryWidget::AddItemToPanel(FItemMapping ItemSlots, UItemBase* Item)
+void USlotbasedInventoryWidget::AddItemToPanel(FItemMapping& ItemSlots, UItemBase* Item)
 {
 	if (!Item)
 		return;
 	
-	auto Slots = ItemSlots;
+	//auto Slots = ItemSlots;
 
-	if (Slots.OccupiedSlots.IsEmpty())
+	if (ItemSlots.OccupiedSlots.IsEmpty())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("ItemSlotDatas Is empty!"));
 		return;
 	}
 	
-	const FVector2D VisualPosition = CalculateItemVisualPosition(Slots.OccupiedSlots[0]->CellPosition);
+	const FVector2D VisualPosition = CalculateItemVisualPosition(ItemSlots.OccupiedSlots[0]->CellPosition);
 
 	if (!UISettings.InventoryItemVisualClass)
 	{
@@ -401,13 +401,15 @@ void USlotbasedInventoryWidget::AddItemToPanel(FItemMapping ItemSlots, UItemBase
 		return;
 	}
 	
+	const FIntPoint ItemSize = Item->GetItemSize(ItemSlots.ItemOrientation);
+	
 	TObjectPtr<UInventoryItemWidget> ItemVisual = CreateWidget<UInventoryItemWidget>(GetAsContainerWidget(), UISettings.InventoryItemVisualClass);
 	auto SlotInCanvas = ItemsVisualsPanel->AddChildToCanvas(ItemVisual);
 	if (SlotInCanvas)
-		SlotInCanvas->SetSize(FVector2D(UISettings.SlotSize.X * 1, UISettings.SlotSize.Y *  1));
-	Slots.ItemVisualLinked = ItemVisual;
+		SlotInCanvas->SetSize(FVector2D(UISettings.SlotSize.X * ItemSize.X, UISettings.SlotSize.Y * ItemSize.Y));
+	ItemSlots.ItemVisualLinked = ItemVisual;
 
-	for (auto ItemSlotData : Slots.OccupiedSlots)
+	for (auto ItemSlotData : ItemSlots.OccupiedSlots)
 	{
 		auto ItemSlot = GetSlotByPosition(ItemSlotData->CellPosition);
 		if(ItemSlot)
@@ -419,8 +421,6 @@ void USlotbasedInventoryWidget::AddItemToPanel(FItemMapping ItemSlots, UItemBase
 		}
 	}
 
-	FIntPoint ItemSize = FIntPoint(Item->GetItemRef().ItemNumeraticData.InventoryHorizontalSlots,
-		Item->GetItemRef().ItemNumeraticData.InventoryVerticalSlots);
 	ItemVisual->UpdateVisualSize(UISettings.SlotSize, ItemSize);
 	ItemVisual->UpdateItemName(Item->GetItemRef().ItemTextData.DisplayName);
 	ItemVisual->UpdateQuantityText(Item->GetQuantity());
@@ -440,7 +440,7 @@ void USlotbasedInventoryWidget::AddItemToPanel(FItemMapping ItemSlots, UItemBase
 	}
 }
 
-void USlotbasedInventoryWidget::ReplaceItemInPanel(TArray<UInventorySlotData*> OldItemSlots, FItemMapping NewItemSlots, UItemBase* Item)
+void USlotbasedInventoryWidget::ReplaceItemInPanel(TArray<UInventorySlotData*> OldItemSlots, FItemMapping& NewItemSlots, UItemBase* Item)
 {
 	if (!Item) return;
 
@@ -464,7 +464,11 @@ void USlotbasedInventoryWidget::ReplaceItemInPanel(TArray<UInventorySlotData*> O
 	}
 
 	const FVector2D NewVisualPosition = CalculateItemVisualPosition(NewItemSlots.OccupiedSlots[0]->CellPosition);
-
+	if (!NewItemSlots.ItemVisualLinked)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("USlotbasedInventoryWidget::ReplaceItemInPanel ItemVisualLinked is null!"));
+		return;
+	}
 	if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(NewItemSlots.ItemVisualLinked->Slot))
 	{
 		CanvasSlot->SetPosition(NewVisualPosition);
@@ -537,7 +541,7 @@ void USlotbasedInventoryWidget::CreateHighlightWidget()
 {
 	if (!UISettings.HighlightSlotWidgetClass)
 	{
-		UE_LOG(LogTemp, Log, TEXT("USlotbasedInventoryWidget::HighlightSlotWidgetClass is null"));
+		UE_LOG(LogTemp, Log, TEXT("USlotBasedInventoryWidget::HighlightSlotWidgetClass is null"));
 		return;
 	}
 
@@ -728,45 +732,47 @@ void USlotbasedInventoryWidget::NativeOnDragDetected(const FGeometry& InGeometry
 {
 	Super::NativeOnDragDetected(InGeometry, InMouseEvent, OutOperation);
 
-	auto ItemCollection = SlotBasedInventoryRef->GetItemCollectionLinked();
-	auto InvID = SlotBasedInventoryRef->GetInventoryContainerID();
+    auto ItemCollection = SlotBasedInventoryRef->GetItemCollectionLinked();
+    auto InvID = SlotBasedInventoryRef->GetInventoryContainerID();
+    auto Item = ItemCollection->GetItemFromSlot(SlotUnderMouse->GetSlotData(), InvID);
+    auto ItemMap = ItemCollection->FindItemMappingByContainerName(Item, InvID);
+    auto DraggedWidget = CreateWidget<UInventoryItemWidget>(GetOwningPlayer(), UISettings.DraggedWidgetClass);
 
-	auto DraggedWidget = CreateWidget<UInventoryItemWidget>(GetOwningPlayer(), UISettings.DraggedWidgetClass);
-	auto Item = ItemCollection->GetItemFromSlot(SlotUnderMouse->GetSlotData(), InvID);
-	if (!DraggedWidget || !Item) return;
-
-	DraggedWidget->AddToPlayerScreen(1);
-	DraggedWidget->SetPositionInViewport(FVector2D(-10000, -10000));
-	DraggedWidget->UpdateVisual(Item);
+    if (!DraggedWidget || !Item || !ItemMap) return;
 	
-	DraggedWidget->SetVisibility(ESlateVisibility::Hidden);
-	
-	
-	UItemDragDropOperation* DragItemDragDropOperation = NewObject<UItemDragDropOperation>();
-	DragItemDragDropOperation->DefaultDragVisual = DraggedWidget;
-	DragItemDragDropOperation->Pivot = EDragPivot::TopLeft;
+    const FIntPoint ItemSize = Item->GetItemSize(ItemMap->ItemOrientation);
 
-	DragItemDragDropOperation->ItemMoveData.SourceItem = ItemCollection->GetItemFromSlot(SlotUnderMouse->GetSlotData(), InvID);
-	DragItemDragDropOperation->ItemMoveData.SourceInventory = SlotBasedInventoryRef;
-	DragItemDragDropOperation->ItemMoveData.SourceItemPivotSlot = SlotUnderMouse;
-	DragItemDragDropOperation->ItemMoveData.SavedOrientation = ItemCollection->FindItemMappingByContainerName(Item, InvID)->ItemOrientation;
-	DragItemDragDropOperation->ItemMoveData.TargetOrientation = ItemCollection->FindItemMappingByContainerName(Item, InvID)->ItemOrientation;
+	DraggedWidget->SetDesiredSizeInViewport(FVector2D(
+	 UISettings.SlotSize.X * ItemSize.X,
+	 UISettings.SlotSize.Y * ItemSize.Y));
 
-	auto ShowDragVisual = [DraggedWidget]()
-	{
-		DraggedWidget->SetVisibility(ESlateVisibility::Visible);
-	};
-	FTimerManager& TimerManager = GetWorld()->GetTimerManager();
-	const FTimerDelegate TimerDelegate = FTimerDelegate::CreateLambda(ShowDragVisual);
-	FTimerHandle TimerHandle;
-	TimerManager.SetTimer(TimerHandle, TimerDelegate, 0.125f, false);
+    DraggedWidget->AddToPlayerScreen(1);
+    DraggedWidget->SetPositionInViewport(FVector2D(-10000, -10000));
+    DraggedWidget->UpdateVisual(Item);
+    DraggedWidget->UpdateVisualSize(UISettings.SlotSize, ItemSize);
+		
 
-	OutOperation = DragItemDragDropOperation;
+    UItemDragDropOperation* DragOp = NewObject<UItemDragDropOperation>();
+    DragOp->DefaultDragVisual = DraggedWidget;
+    DragOp->Pivot = EDragPivot::TopLeft;
+    DragOp->ItemMoveData.SourceItem = Item;
+    DragOp->ItemMoveData.SourceInventory = SlotBasedInventoryRef;
+    DragOp->ItemMoveData.SourceItemPivotSlot = SlotUnderMouse;
+    DragOp->ItemMoveData.SavedOrientation = ItemMap->ItemOrientation;
+    DragOp->ItemMoveData.TargetOrientation = ItemMap->ItemOrientation;
 
-	if (!HighlightWidgetPreview)
-		CreateHighlightWidget();
-	if (HighlightWidgetPreview)
-		HighlightWidgetPreview->SetVisibility(ESlateVisibility::Visible);
+    FTimerHandle TimerHandle;
+    GetWorld()->GetTimerManager().SetTimer(TimerHandle, FTimerDelegate::CreateLambda(
+        [DraggedWidget]() { DraggedWidget->SetVisibility(ESlateVisibility::Visible); }
+    ), 0.125f, false);
+
+    DraggedWidget->SetVisibility(ESlateVisibility::Hidden);
+    OutOperation = DragOp;
+
+    if (!HighlightWidgetPreview)
+        CreateHighlightWidget();
+    if (HighlightWidgetPreview)
+        HighlightWidgetPreview->SetVisibility(ESlateVisibility::Visible);
 }
 
 void USlotbasedInventoryWidget::NativeOnDragEnter(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent,
@@ -803,16 +809,18 @@ bool USlotbasedInventoryWidget::NativeOnDragOver(const FGeometry& InGeometry, co
 
 		if (!HighlightWidgetPreview)
 			return Super::NativeOnDragOver(InGeometry, InDragDropEvent, InOperation);
-		
-		const FVector2D VisualPosition = CalculateItemVisualPosition(GridPosition);
-		UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(HighlightWidgetPreview->Slot);
-		CanvasSlot->SetSize(FVector2D(UISettings.SlotSize.X * 1, UISettings.SlotSize.Y *  1));
-		CanvasSlot->SetPosition(VisualPosition);
 
 		auto DragOp = Cast<UItemDragDropOperation>(InOperation);
 		auto TargetSlot = GetSlotByPosition(GridPosition);
 		DragOp->ItemMoveData.TargetInventory = SlotBasedInventoryRef;
 		DragOp->ItemMoveData.TargetSlot = TargetSlot;
+
+		const FIntPoint ItemSize = DragOp->ItemMoveData.SourceItem->GetItemSize(DragOp->ItemMoveData.TargetOrientation);
+
+		const FVector2D VisualPosition = CalculateItemVisualPosition(GridPosition);
+		UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(HighlightWidgetPreview->Slot);
+		CanvasSlot->SetSize(FVector2D(UISettings.SlotSize.X * ItemSize.X, UISettings.SlotSize.Y * ItemSize.Y));
+		CanvasSlot->SetPosition(VisualPosition);
 
 		HighlightWidgetPreview->UpdateVisualWithTexture(DragOp->ItemMoveData.SourceItem->GetItemRef().ItemAssetData.Icon);
 

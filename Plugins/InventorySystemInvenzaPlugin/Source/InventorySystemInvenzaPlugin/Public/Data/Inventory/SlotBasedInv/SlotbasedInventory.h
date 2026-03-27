@@ -62,7 +62,7 @@ public:
 	UFUNCTION()
 	TArray<FIntPoint> GetItemGridPositions(const FIntPoint& StartPos, int32 Width, int32 Height, EItemOrientationType Orientation = EItemOrientationType::Horizontal);
 	UFUNCTION(BlueprintCallable)
-	TArray<UInventorySlotData*> GetAvailableSlotForItem(UItemBase* Item);
+	TArray<UInventorySlotData*> GetAvailableSlotForItem(UItemBase* Item, EItemOrientationType& OutOrientation);
 
 	// Setters
 	UFUNCTION()

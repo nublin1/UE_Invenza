@@ -56,7 +56,7 @@ public:
 	UItemBase* GetItemFromSlot(UInventorySlotData* TargetSlotData, const FString& InventoryID);
 	
 	UFUNCTION(BlueprintCallable, Category = "Item Collection|Item Management")
-	FItemMappingArrayWrapper AddItem(UItemBase* NewItem, FItemMapping ItemMapping);
+	FItemMapping& AddItem(UItemBase* NewItem, const FItemMapping& ItemMapping);
 	UFUNCTION(BlueprintCallable, Category="Item Collection|Item Management")
 	void RemoveItem(UItemBase* Item, FString ContainerID);
 	UFUNCTION(BlueprintCallable, Category = "Item Collection|Item Management")
@@ -81,7 +81,7 @@ protected:
 	//====================================================================
 	UPROPERTY()
 	TObjectPtr<UIInventoryManager> InvManager = nullptr;
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TMap<TObjectPtr<UItemBase>, FItemMappingArrayWrapper> ItemLocations;
 	
 	//====================================================================

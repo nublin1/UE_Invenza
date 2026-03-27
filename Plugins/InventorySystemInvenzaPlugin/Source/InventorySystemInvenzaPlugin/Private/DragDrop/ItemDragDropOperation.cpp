@@ -1,4 +1,4 @@
-//  Nublin Studio 2025 All Rights Reserved.
+//  Nublin Studio 2026 All Rights Reserved.
 
 #include "DragDrop/ItemDragDropOperation.h"
 
