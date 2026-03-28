@@ -13,10 +13,12 @@
 #include "ActorComponents/Trade/TradeComponent.h"
 #include "UI/Inventory/SlotbasedInventoryWidget.h"
 #include "ActorComponents/Interactable/PickupComponent.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Data/Items/itemBase.h"
 #include "Data/Inventory/InventoryBase.h"
 #include "Data/Inventory/Equipment/EquipmentComponent.h"
 #include "Data/Inventory/SlotBasedInv/SlotbasedInventory.h"
+#include "DragDrop/ItemDragDropOperation.h"
 #include "Factory/ItemFactory.h"
 #include "Interface/Inventory/InvUIProvider.h"
 #include "Kismet/GameplayStatics.h"
@@ -497,6 +499,17 @@ void UIInventoryManager::OnGrabAllReleased(const FInputActionInstance& Instance)
 	InventoryModifierState.bIsGrabAllSameModifierActive = false;
 }
 
+void UIInventoryManager::RotateDraggedItem()
+{
+	if (UDragDropOperation* DragOp = UWidgetBlueprintLibrary::GetDragDroppingContent())
+	{
+		if (UItemDragDropOperation* ItemOp = Cast<UItemDragDropOperation>(DragOp))
+		{
+			ItemOp->RotateDraggedWidget();
+		}
+	}
+}
+
 void UIInventoryManager::InitializeBindings()
 {
 	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
@@ -535,6 +548,10 @@ void UIInventoryManager::InitializeBindings()
 	{
 		Input->BindAction(UISettings.IA_Mod_GrabAllSame, ETriggerEvent::Started, this, &UIInventoryManager::OnGrabAllPressed);
 		Input->BindAction(UISettings.IA_Mod_GrabAllSame, ETriggerEvent::Completed, this, &UIInventoryManager::OnGrabAllReleased);
+	}
+	if (UISettings.IA_RotateDraggedItem)
+	{
+		Input->BindAction(UISettings.IA_RotateDraggedItem, ETriggerEvent::Started, this, &UIInventoryManager::RotateDraggedItem);
 	}
 
 	BindInputActions();

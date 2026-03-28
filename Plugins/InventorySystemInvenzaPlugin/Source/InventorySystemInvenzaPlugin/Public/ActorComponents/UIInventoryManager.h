@@ -148,6 +148,8 @@ protected:
 	void OnGrabAllPressed(const FInputActionInstance& Instance);
 	UFUNCTION()
 	void OnGrabAllReleased(const FInputActionInstance& Instance);
+	UFUNCTION()
+	void RotateDraggedItem();
 	
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Initialization")
 	void InitializeBindings();

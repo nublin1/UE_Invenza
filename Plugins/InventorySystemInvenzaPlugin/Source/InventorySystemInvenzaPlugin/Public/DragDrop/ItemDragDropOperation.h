@@ -16,10 +16,19 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UItemDragDropOperation : public UDragDrop
 {
 	GENERATED_BODY()
 
+#pragma region Delegates
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRotationChanged, EItemOrientationType, NewOrientationType);
+#pragma endregion Delegates
+
 public:
+	UItemDragDropOperation();
+	
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
+	UPROPERTY(BlueprintAssignable, Category = "Drag & Drop")
+	FOnRotationChanged OnRotationChanged;
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Drag & Drop")
 	FItemMoveData ItemMoveData;
 	
@@ -29,6 +38,8 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+	UFUNCTION(BlueprintCallable, Category = "Drag & Drop")
+	void RotateDraggedWidget();
 
 protected:
 	//====================================================================
