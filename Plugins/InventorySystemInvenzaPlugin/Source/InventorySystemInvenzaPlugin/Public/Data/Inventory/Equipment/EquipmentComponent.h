@@ -59,14 +59,10 @@ protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	/** Initial items with their quantities */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Config")
-	TArray<FInitItemsEntry> InitialItems;
-
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Equipment|Config")
-	TObjectPtr<UDataTable> SlotDefinitionTable;
+	TArray<FDataTableRowHandle> SlotRows;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Equipment|Slots")
-	TMap<FGameplayTag, FEquipmentSlotData> EquipmentSlots;
+	TMap<FGameplayTag, FEquipmentSlotRuntime> EquipmentSlots;
 	
 	//====================================================================
 	// FUNCTIONS

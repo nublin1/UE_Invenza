@@ -10,6 +10,7 @@
 #include "Engine/StaticMesh.h"
 #include "Components/StaticMeshComponent.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
+#include "Data/Inventory/InventoryBase.h"
 #include "Kismet/GameplayStatics.h"
 #include "UI/Inventory/SlotbasedInventoryWidget.h"
 #include "UI/Inventory/UInventoryWidgetBase.h"
@@ -21,21 +22,34 @@ UContainerComponent::UContainerComponent()
 {
 }
 
+void UContainerComponent::OnRegister()
+{
+	Super::OnRegister();
+	
+}
+
+void UContainerComponent::BeginPlay()
+{
+	Super::BeginPlay();
+	CachedMesh = GetOwner()->FindComponentByClass<UStaticMeshComponent>();
+	InitializeInteractionComponent();
+}
+
 void UContainerComponent::BeginFocus()
 {
 	Super::BeginFocus();
-	if (auto StaticMesh = GetOwner()->FindComponentByClass<UStaticMeshComponent>())
+	if (CachedMesh)
 	{
-		StaticMesh->SetRenderCustomDepth(true);
+		CachedMesh->SetRenderCustomDepth(true);
 	}
 }
 
 void UContainerComponent::EndFocus()
 {
 	Super::EndFocus();
-	if (auto StaticMesh = GetOwner()->FindComponentByClass<UStaticMeshComponent>())
+	if (CachedMesh)
 	{
-		StaticMesh->SetRenderCustomDepth(false);
+		CachedMesh->SetRenderCustomDepth(false);
 	}
 }
 
@@ -48,7 +62,7 @@ void UContainerComponent::Interact(UInteractionComponent* InteractionComponent)
 	FindContainerWidget();
 	InitializeItemCollection();	
 	
-	if (!InventoryWidget) return;
+	/*if (!InventoryWidget) return;
 
 	CurrentInteractionComponent = InteractionComponent;
 	InventoryWidget->OnVisibilityChanged.AddDynamic(this, &UContainerComponent::ContainerWidgetVisibilityChanged);
@@ -62,27 +76,21 @@ void UContainerComponent::Interact(UInteractionComponent* InteractionComponent)
 	else
 	{
 		bIsInteracting = false;
-	}
+	}*/
 }
 
 void UContainerComponent::StopInteract(UInteractionComponent* InteractionComponent)
 {
 	Super::StopInteract(InteractionComponent);
 
-	if (InventoryWidget)
+	/*if (InventoryWidget)
 	{
 		InventoryWidget->OnVisibilityChanged.RemoveDynamic(this, &UContainerComponent::ContainerWidgetVisibilityChanged);
 		//InventoryWidget->OnPostRemoveItemDelegate.RemoveDynamic(this, &UContainerComponent::DestroyWhenEmpty);
 	}
 	ContainerWidget=nullptr;
 	bIsInteracting = false;
-	CurrentInteractionComponent = nullptr;
-}
-
-void UContainerComponent::OnRegister()
-{
-	Super::OnRegister();
-	InitializeInteractionComponent();
+	CurrentInteractionComponent = nullptr;*/
 }
 
 void UContainerComponent::ContainerWidgetVisibilityChanged(ESlateVisibility NewVisibility)
@@ -98,11 +106,22 @@ void UContainerComponent::InitializeInteractionComponent()
 	Super::InitializeInteractionComponent();
 	ItemCollection = GetOwner()->FindComponentByClass<UItemCollection>();
 	UpdateInteractableData();
+
+	if (!InventoryStartupData.InventoryClass)
+		return;
+
+	UInventoryBase* Inventory =
+		NewObject<UInventoryBase>(this, InventoryStartupData.InventoryClass);
+
+	if (!Inventory)
+		return;
+
+	Inventory->SetInventorySettings(InventoryStartupData.Settings);
+	Inventory->SetItemCollectionLink(ItemCollection);
 }
 
 void UContainerComponent::InitializeItemCollection() 
 {
-	if (!ContainerWidget) return;
 
 	/*InventoryWidget = ContainerWidget->GetInventoryFromContainerSlot();
 	if (!InventoryWidget) return;

@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UI/BaseUserWidget.h"
+#include "UI/InvenzaBaseWidget.h"
 #include "Components/NamedSlot.h"
 #include "ModalBaseWidget.generated.h"
 
@@ -11,7 +11,7 @@
  * 
  */
 UCLASS()
-class INVENTORYSYSTEMINVENZAPLUGIN_API UModalBaseWidget : public UBaseUserWidget
+class INVENTORYSYSTEMINVENZAPLUGIN_API UModalBaseWidget : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
 public:

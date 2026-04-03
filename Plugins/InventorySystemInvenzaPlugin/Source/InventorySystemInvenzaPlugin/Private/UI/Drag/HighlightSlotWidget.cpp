@@ -7,6 +7,7 @@
 #include "Components/Image.h"
 #include "UI/Core/CoreCellWidget.h"
 #include "Data/Inventory/InventoryTypes.h"
+#include "UI/Core/Image/ImageBaseWidget.h"
 
 UHighlightSlotWidget::UHighlightSlotWidget()
 {
@@ -16,14 +17,11 @@ void UHighlightSlotWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	SetHighlightState(CurrentState);
+	//SetHighlightState(CurrentState);
 }
 
 void UHighlightSlotWidget::SetHighlightState(EHighlightState NewState)
 {
-	if (CurrentState == NewState)
-		return;
-
 	CurrentState = NewState;
 	
 	switch (NewState)
@@ -45,13 +43,22 @@ void UHighlightSlotWidget::SetHighlightState(EHighlightState NewState)
 
 void UHighlightSlotWidget::UpdateVisualWithTexture(UTexture2D* NewTexture)
 {
+	if (!CoreCellWidget || !CoreCellWidget->Content_Image) return;
+
 	if (!NewTexture)
 	{
-		CoreCellWidget->Content_Image->SetBrush(FSlateBrush());
+		ClearVisual();
 		return;
 	}
 	
-	CoreCellWidget->Content_Image->SetBrushFromTexture(NewTexture);
+	CoreCellWidget->Content_Image->UpdateImage(NewTexture);
+}
+
+void UHighlightSlotWidget::SetHighlightColors(FLinearColor Allowed, FLinearColor NotAllowed)
+{
+	AllowedColor = Allowed;
+	NotAllowedColor = NotAllowed;
+	//PartialColor = Partial;
 }
 
 void UHighlightSlotWidget::SetBordersColor(const FLinearColor& Color)

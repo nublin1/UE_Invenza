@@ -40,7 +40,7 @@ struct FModalTradeData
  * 
  */
 UCLASS()
-class INVENTORYSYSTEMINVENZAPLUGIN_API UModalTradeWidget : public UBaseUserWidget
+class INVENTORYSYSTEMINVENZAPLUGIN_API UModalTradeWidget : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
 

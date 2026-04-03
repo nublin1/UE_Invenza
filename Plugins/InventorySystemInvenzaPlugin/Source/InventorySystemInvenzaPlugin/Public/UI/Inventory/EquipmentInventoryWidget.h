@@ -14,9 +14,11 @@ class UUniformGridPanel;
  * 
  */
 UCLASS()
-class INVENTORYSYSTEMINVENZAPLUGIN_API UEquipmentInventoryWidget : public USlotbasedInventoryWidget
+class INVENTORYSYSTEMINVENZAPLUGIN_API UEquipmentInventoryWidget : public UInvBaseContainerWidget
 {
 	GENERATED_BODY()
+	
+	UEquipmentInventoryWidget();
 
 public:
 	//====================================================================
@@ -26,9 +28,6 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	virtual void InitializeInventoryWidget() override;
-
-	virtual FItemAddResult HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck) override;
 
 protected:
 	//====================================================================
@@ -39,8 +38,5 @@ protected:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	virtual void InitSlots() override;
-
-	virtual bool bIsGridPositionValid(FIntPoint& GridPosition) override;
 	
 };

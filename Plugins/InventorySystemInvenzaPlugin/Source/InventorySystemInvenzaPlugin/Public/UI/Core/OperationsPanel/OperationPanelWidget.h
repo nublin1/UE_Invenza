@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UI/BaseUserWidget.h"
+#include "UI/InvenzaBaseWidget.h"
 #include "OperationPanelWidget.generated.h"
 
 class UUIButton;
@@ -12,7 +12,7 @@ class UButton;
  * 
  */
 UCLASS()
-class INVENTORYSYSTEMINVENZAPLUGIN_API UOperationPanelWidget : public UBaseUserWidget
+class INVENTORYSYSTEMINVENZAPLUGIN_API UOperationPanelWidget : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
 

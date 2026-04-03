@@ -34,6 +34,10 @@ public:
 	virtual void HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity) override;
 	virtual FItemAddResult HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck = false) override;
 
+	virtual TSubclassOf<UInventoryListEntry> GetEntryClass() {return EntryClass;}
+
+	virtual void SetEntryClass(TSubclassOf<UInventoryListEntry> NewClass) {EntryClass = NewClass;}
+
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES

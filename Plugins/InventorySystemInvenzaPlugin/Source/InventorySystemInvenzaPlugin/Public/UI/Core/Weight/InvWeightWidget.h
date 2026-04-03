@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UI/BaseUserWidget.h"
+#include "UI/InvenzaBaseWidget.h"
 #include "InvWeightWidget.generated.h"
 
 class UTextBlock;
@@ -11,7 +11,7 @@ class UTextBlock;
  * 
  */
 UCLASS()
-class INVENTORYSYSTEMINVENZAPLUGIN_API UInvWeightWidget : public UBaseUserWidget
+class INVENTORYSYSTEMINVENZAPLUGIN_API UInvWeightWidget : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
 	

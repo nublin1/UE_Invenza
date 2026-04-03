@@ -4,11 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "Interaction/InteractionData.h"
+#include "Data/Interaction/InteractionData.h"
 #include "Settings/InvnzaSettings.h"
 #include "InteractionComponent.generated.h"
 
 #pragma region delegates
+class UIInventoryManager;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FBeginFocus, FInteractableData&, InteractableData);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FEndFocus, FInteractableData&, InteractableData);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FIteract, UInteractableComponent*, TargetInteractableComponent);
@@ -30,6 +31,13 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UInteractionComponent : public UActorComp
 	GENERATED_BODY()
 
 public:
+	UInteractionComponent();
+
+protected:
+	virtual void BeginPlay() override;
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+	
+public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
@@ -47,16 +55,20 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Interaction|Events")
 	FInteractionProgressDelegate OnInteractionProgress;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interaction|UI")
-	FUISettings RegularSettings;
+	/*UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interaction|UI")
+	FUISettings RegularSettings;*/
 	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UInteractionComponent();
-
 	UFUNCTION()
 	void InitInteractionComponent();
+
+	UFUNCTION()
+	UIInventoryManager* GetInventoryManager() {return InventoryManager;}
+
+	UFUNCTION()
+	void SetInventoryManager(UIInventoryManager* NewInventoryManager) {InventoryManager = NewInventoryManager;}
 
 protected:
 	//====================================================================
@@ -87,8 +99,12 @@ protected:
 	UInteractableComponent* TargetInteractableComponent;
 	UPROPERTY(VisibleAnywhere, Category = "Interaction|State")
 	UInteractableComponent* CurrentInteractableComponent;
+	
+	//Refs
 	UPROPERTY()
 	TObjectPtr<UCameraComponent> CameraComponent;
+	UPROPERTY()
+	TObjectPtr<UIInventoryManager> InventoryManager;
 	
 	//====================================================================
 	// FUNCTIONS
@@ -113,9 +129,5 @@ protected:
 	void IteractNotify();
 	UFUNCTION()
 	void EndIteractNotify();
-
-	//Overrides
-	virtual void BeginPlay() override;
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	
 };

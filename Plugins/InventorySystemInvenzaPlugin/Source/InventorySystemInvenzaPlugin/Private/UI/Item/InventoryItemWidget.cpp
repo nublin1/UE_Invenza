@@ -4,33 +4,91 @@
 
 #include "Data/Items/ItemBase.h"
 #include "Components/Border.h"
+#include "Components/CanvasPanelSlot.h"
 #include "Components/Image.h"
 #include "Components/SizeBox.h"
 #include "Components/TextBlock.h"
 #include "UI/Core/CoreCellWidget.h"
+#include "UI/Core/Image/ImageBaseWidget.h"
 
 UInventoryItemWidget::UInventoryItemWidget()
 {
 }
 
-void UInventoryItemWidget::UpdateVisual(UItemBase* Item)
+void UInventoryItemWidget::UpdateItemVisual( UItemBase* Item,EItemOrientationType Orientation, FVector2D TotalSize,
+	FVector2D Position, bool bIgnoreSize)
 {
-	if (Item->GetItemRef().ItemAssetData.Icon)
+	if (!Item) return;
+
+	FIntPoint ItemSize = bIgnoreSize 
+		? FIntPoint(1,1)
+		: Item->GetItemSize(Orientation);
+	
+	float RotationAngle = 0.f;
+	if (ItemSize.X != ItemSize.Y)
 	{
-		CoreCellWidget->SetContentImage(Item->GetItemRef().ItemAssetData.Icon);
+		if (Item->GetInitialItemOrientation() == Orientation)
+			RotationAngle = 0;
+		else
+			RotationAngle = -90.0f;
 	}
+	
+	if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(this->Slot))
+	{
+		CanvasSlot->SetAutoSize(false);
+		CanvasSlot->SetSize(FVector2D(TotalSize.X, TotalSize.Y));
+		CanvasSlot->SetPosition(Position);
+	}
+	UpdateVisualSize(TotalSize);
+	UpdateVisual(Item, RotationAngle);
+
+	/*UE_LOG(LogTemp, Log, TEXT("Rotate: Size=(%d,%d) TotalSize=(%.1f,%.1f) Angle=%.1f Orientation=%s"),
+		ItemSize.X, ItemSize.Y, TotalSize.X, TotalSize.Y, RotationAngle,
+		Orientation == EItemOrientationType::Horizontal ? TEXT("Horizontal") : TEXT("Vertical"));*/
 }
 
-void UInventoryItemWidget::UpdateVisualSize(FVector2D SlotSize, FIntVector2 ItemSize)
+void UInventoryItemWidget::UpdateVisual(UItemBase* Item,float AngleDegrees)
 {
-	CoreCellWidget->SizeBox->SetWidthOverride(SlotSize.X * ItemSize.X);
-	CoreCellWidget->SizeBox->SetHeightOverride(SlotSize.Y * ItemSize.Y);
+	if (!Item || !CoreCellWidget || !CoreCellWidget->Content_Image) return;
+
+	UTexture2D* Icon = Item->GetItemRef().ItemAssetData.Icon;
+	if (!Icon) return;
+	if (!IconMaterial) 
+	{
+		CoreCellWidget->SetContentImage(Icon);
+		return;
+	}
+	
+	UImageBaseWidget* ImageWidget = CoreCellWidget->Content_Image;
+	ImageWidget->SetNewMaterial(IconMaterial);
+	
+	ImageWidget->SetMaterialTextureParam(FName("IconTexture"), Icon);
+	const float NormalizedAngle = FMath::Fmod(AngleDegrees, 360.f) / 360.f;
+	ImageWidget->SetMaterialScalarParam(FName("RotationAngle"), NormalizedAngle);
+}
+
+void UInventoryItemWidget::ClearVisual()
+{
+	if (!CoreCellWidget || !CoreCellWidget->Content_Image) return;
+	
+	CoreCellWidget->Content_Image->UpdateImage(nullptr);
+}
+
+void UInventoryItemWidget::UpdateVisualSize(FVector2D ItemTotalSize) const
+{
+	CoreCellWidget->SizeBox->SetWidthOverride(ItemTotalSize.X);
+	CoreCellWidget->SizeBox->SetHeightOverride(ItemTotalSize.Y);
 	
 	if (!SizeBoxText)
 		return;
 	
-	SizeBoxText->SetWidthOverride(SlotSize.X * ItemSize.X);
-	SizeBoxText->SetHeightOverride(SlotSize.Y * ItemSize.Y);
+	SizeBoxText->SetWidthOverride(ItemTotalSize.X);
+	SizeBoxText->SetHeightOverride(ItemTotalSize.Y);
+
+	CoreCellWidget->Content_ImageSizeBox->SetWidthOverride(ItemTotalSize.X);
+	CoreCellWidget->Content_ImageSizeBox->SetHeightOverride(ItemTotalSize.Y);
+
+	CoreCellWidget->Content_ImageSizeBox->InvalidateLayoutAndVolatility();
 }
 
 void UInventoryItemWidget::UpdateItemName(FText Name)
@@ -65,7 +123,17 @@ void UInventoryItemWidget::ChangeBorderColor(FLinearColor NewColor) const
 
 void UInventoryItemWidget::ChangeOpacity(float NewValue)
 {
-	CoreCellWidget->Content_Image->SetOpacity(NewValue);
+	if (CoreCellWidget && CoreCellWidget->Content_Image)
+	{
+		if (IconMaterial)
+		{
+			CoreCellWidget->Content_Image->SetMaterialScalarParam(FName("ItemOpacity"), NewValue);
+		}
+		else
+		{
+			CoreCellWidget->Content_Image->SetRenderOpacity(NewValue);
+		}
+	}
 }
 
 FReply UInventoryItemWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)

@@ -64,9 +64,6 @@ struct FItemTextData
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Text")
-	FText NameID;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Text")
 	FText DisplayName;
 
 	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Text")

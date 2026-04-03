@@ -10,6 +10,8 @@
 #include "Data/Inventory/InventoryTypes.h"
 #include "UIInventoryManager.generated.h"
 
+class IInteractionUIProvider;
+class UInteractionComponent;
 class IInvUIProvider;
 class UEquipmentComponent;
 enum class EInteractableType : uint8;
@@ -52,16 +54,24 @@ public:
 	//====================================================================
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void CreateInventories();
+protected:
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	void CreateWidget(FInventoryStartupData StartupData);
+public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void InitWidgets();
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Trade")
 	void OpenTradeModal(bool bIsSaleOperation, UItemBase* OperationalItem);
-	
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Initialization")
+	virtual void SetupStartingResources();	
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Transfer")
 	void OnQuickTransferItem(FItemMoveData ItemMoveData);
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Transfer")
 	void ItemTransferRequest(FItemMoveData ItemMoveData);
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Transfer")
+	void ItemDropRequest(UItemBase* ItemToDrop);
 		
 	UFUNCTION(BlueprintPure, Category = "Inventory|Settings")
 	FUISettings GetUISettings() const { return UISettings; }
@@ -79,7 +89,9 @@ public:
 	UInventoryBase* GetInventoryByID(FString ContainerID);
 
 	UFUNCTION(Category = "Inventory|UI")
-	void SetUIProvider(const TScriptInterface<IInvUIProvider>& NewUIProvider) { UIProvider = NewUIProvider; }
+	void SetUIProvider(const TScriptInterface<IInvUIProvider>& NewUIProvider) { UIInvProvider = NewUIProvider; }
+	UFUNCTION(Category = "Inventory|UI")
+	void SetInteractionUIProvider(const TScriptInterface<IInteractionUIProvider>& NewUIProvider) { InteractionUIProvider = NewUIProvider; }
 
 protected:
 	//====================================================================
@@ -92,6 +104,8 @@ protected:
 	// Startup
 	UPROPERTY(EditAnywhere, Category="Inventory")
 	TArray<FInventoryStartupData> StartupInventories;
+	
+	TMap<UInventoryBase*, TArray<FInitItemsEntry>> StartingItems;
 
 	//
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Settings")
@@ -99,24 +113,25 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Settings")
 	FInventoryModifierState InventoryModifierState;
 	
-	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Data")
-	//TObjectPtr<UDataTable> ItemDataTable;
-	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
 	TObjectPtr<UModalTradeWidget> ModalTradeWidget;
 
 	//
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	TScriptInterface<IInvUIProvider> UIProvider;
+	TScriptInterface<IInvUIProvider> UIInvProvider;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	TScriptInterface<IInteractionUIProvider> InteractionUIProvider;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	TMap<FGameplayTag, TObjectPtr<UInventoryBase>> Inventories;
+	TMap<FString, TObjectPtr<UInventoryBase>> Inventories;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TObjectPtr<UInventoryBase> MainPawnInventory;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TObjectPtr<UEquipmentComponent> EquipmentComponentRef;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TObjectPtr<UItemCollection> ItemCollectionRef;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	TObjectPtr<UInteractionComponent> InteractionComponent;
 	
 	//====================================================================
 	// FUNCTIONS
@@ -134,6 +149,8 @@ protected:
 	void SetInteractableType(UInteractableComponent* InteractData);
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
 	void ClearInteractableType(UInteractableComponent* InteractData = nullptr);
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
+	void BindInteractionWidget();
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
 	void BindEvents();
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")

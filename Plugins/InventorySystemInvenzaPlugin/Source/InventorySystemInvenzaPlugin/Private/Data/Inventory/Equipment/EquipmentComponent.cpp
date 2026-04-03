@@ -10,7 +10,7 @@
 #include "Data/Inventory/Equipment/EquipmentSlotDefinition.h"
 
 
-UEquipmentComponent::UEquipmentComponent(): SlotDefinitionTable(nullptr)
+UEquipmentComponent::UEquipmentComponent()
 {
 	
 }
@@ -23,21 +23,23 @@ void UEquipmentComponent::BeginPlay()
 
 void UEquipmentComponent::InitializeSlotsFromTable()
 {
-	if (!SlotDefinitionTable) return;
-
-	for (auto& Row : SlotDefinitionTable->GetRowMap())
+	for (const FDataTableRowHandle& RowHandle : SlotRows)
 	{
-		if (const FEquipmentSlotDefinition* SlotData = reinterpret_cast<FEquipmentSlotDefinition*>(Row.Value))
-		{
-			FEquipmentSlotData EquipmentSlotData;
-			EquipmentSlotData.EquipmentSlotTag = SlotData->EquipmentSlotTag;
-			EquipmentSlotData.AllowedCategory = SlotData->AllowedCategory;
+		const FString Context = RowHandle.RowName.ToString();
 
-			EquipmentSlots.Add(SlotData->EquipmentSlotTag, EquipmentSlotData);
-		}
+		const FEquipmentSlotDefinition* Row =
+			RowHandle.GetRow<FEquipmentSlotDefinition>(*Context);
+
+		if (!Row)
+			continue;
+
+		FEquipmentSlotRuntime SlotRuntime;
+		SlotRuntime.SlotTag = Row->SlotTag;
+		SlotRuntime.AllowedCategory = Row->AllowedCategory;
+
+		EquipmentSlots.Add(Row->SlotTag, SlotRuntime);
 	}
 }
-
 
 bool UEquipmentComponent::EquipItem(UItemBase* Item)
 {
@@ -94,7 +96,8 @@ void UEquipmentComponent::UnequipItemFromSlot(FGameplayTag SlotTag)
 	
 	RemovedItem->OnAmountChangedDelegate.RemoveDynamic(this, &UEquipmentComponent::ResourceAmountChanged);
 	Slot->EquippedItem = nullptr;
-	
+
+	UE_LOG(LogTemp, Log, TEXT("Unequipped Successfully %s from %s"), *RemovedItem->GetName(), *SlotTag.ToString());
 	OnUnequippedItem.Broadcast(SlotTag, RemovedItem);
 }
 

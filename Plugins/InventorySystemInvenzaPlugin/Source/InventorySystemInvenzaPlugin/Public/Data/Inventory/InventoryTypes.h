@@ -9,6 +9,7 @@
 #include "InventoryTypes.generated.h"
 
 
+class UInventoryListEntry;
 class UInventoryBase;
 class USlotbasedInventory;
 class USlotbasedInventoryWidget;
@@ -187,6 +188,25 @@ struct FItemMoveData
 };
 
 USTRUCT(BlueprintType)
+struct FInventorySlotBasedSettings
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|Slots", 
+		meta=(ToolTip="If true, item size will be ignored when placing items. Used for slot-based inventory systems"))
+	bool bIgnoreItemSize = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
+	int NumberRows = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
+	int NumColumns = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
+	FMargin SlotSpacing;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
+	FVector2D InvCellSize = FVector2D(64.0f, 64.0f);
+};
+
+USTRUCT(BlueprintType)
 struct FInventorySettings
 {
 	GENERATED_BODY()
@@ -220,10 +240,22 @@ struct FInventorySettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|Restrictions")
 	TArray<TSoftObjectPtr<UItemBase>> AllowedItems;*/
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|UI")
+	bool bCollectInvDataFromWidget = true;
+
+	// Assets
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|UI")
+	TSubclassOf<UInvBaseContainerWidget> ContainerWidgetClass;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|UI")
+	TSubclassOf<UUInventoryWidgetBase> InventoryWidgetClass;
+
 	// Slot-based inventory settings
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|Slots", 
-		meta=(ToolTip="If true, item size will be ignored when placing items. Used for slot-based inventory systems"))
-	bool bIgnoreItemSize = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|UI")
+	FInventorySlotBasedSettings InventorySlotBasedSettings;
+
+	// List-based inventory settings
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|UI")
+	TSubclassOf<UInventoryListEntry> EntryClass;
 
 };
 

@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "InputAction.h"
 #include "Data/Inventory/InventoryTypes.h"
-#include "UI/BaseUserWidget.h"
+#include "UI/InvenzaBaseWidget.h"
 #include "InventorySlot.generated.h"
 
 class UCoreCellWidget;
@@ -15,15 +15,17 @@ class UItemBase;
  * 
  */
 UCLASS()
-class INVENTORYSYSTEMINVENZAPLUGIN_API UInventorySlot : public UBaseUserWidget
+class INVENTORYSYSTEMINVENZAPLUGIN_API UInventorySlot : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
 public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Config")
 	EItemCategory AllowedSlotCategory = EItemCategory::All;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Config")
+	FGameplayTag LinkedEquipmentSlotTag;
 	
 	//====================================================================
 	// FUNCTIONS
@@ -58,7 +60,7 @@ protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory Data")
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Inventory Data")
 	TObjectPtr<UInventorySlotData> SlotData;
 	
 	//====================================================================

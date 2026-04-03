@@ -14,6 +14,7 @@
 #include "UI/Core/OperationsPanel/OperationPanelWidget.h"
 #include "UI/Core/Weight/InvWeightWidget.h"
 #include "GameFramework/Pawn.h"
+#include "UI/Core/LabelBaseText.h"
 #include "UI/Inventory/SlotbasedInventoryWidget.h"
 
 
@@ -34,8 +35,11 @@ void UInvBaseContainerWidget::NativeConstruct()
 		TitleBar->Button_Close->OnClicked.AddDynamic(this, &UInvBaseContainerWidget::CloseButtonClicked);
 		if (!bIsShowCloseButton)
 			TitleBar->Button_Close->SetVisibility(ESlateVisibility::Collapsed);
-		if (!bIsShowTotalMoney)
-			TitleBar->Money->SetVisibility(ESlateVisibility::Collapsed);
+		if (!bIsShowTotalMoney && InvMoney)
+			InvMoney->SetVisibility(ESlateVisibility::Collapsed);
+		if (!bIsShowWeight)
+			InvWeight->SetVisibility(ESlateVisibility::Collapsed);
+		
 	}
 }
 
@@ -58,6 +62,7 @@ void UInvBaseContainerWidget::InitializeInventoryBindings()
 		else
 		{
 			InventoryRef->OnWeightUpdatedDelegate.AddDynamic(this, &UInvBaseContainerWidget::UpdateWeightInfo);
+			InventoryRef->UpdateWeightInfo();
 		}
 	}
 
@@ -78,9 +83,10 @@ void UInvBaseContainerWidget::InitializeInventoryBindings()
 	}
 
 	Inventory->OnMoneyUpdatedDelegate.AddDynamic(this, &UInvBaseContainerWidget::UpdateMoneyInfo);
+	Inventory->UpdateMoneyInfo();
 }
 
-void UInvBaseContainerWidget::ChangeInventoryInContainerSlot(TSubclassOf<UBaseUserWidget> NewInventory)
+void UInvBaseContainerWidget::ChangeInventoryInContainerSlot(TSubclassOf<UInvenzaBaseWidget> NewInventory)
 {
 	if (!NewInventory) return;
 
@@ -134,17 +140,17 @@ void UInvBaseContainerWidget::UpdateWeightInfo(float InventoryTotalWeight)
 
 void UInvBaseContainerWidget::UpdateMoneyInfo(int32 TotalMoney)
 {
-	if (!TitleBar)
+	if (!InvMoney)
 		return;
 
 	if (bIsShowTotalMoney)
 	{
 		FString MoneyText = {"$ " + FString::FromInt(TotalMoney)};
-		TitleBar->Money->SetText(FText::FromString(MoneyText));
+		InvMoney->UpdateText(FText::FromString(MoneyText));
 	}
 	else
 	{
-		TitleBar->Money->SetVisibility(ESlateVisibility::Collapsed);
+		InvMoney->SetVisibility(ESlateVisibility::Collapsed);
 	}
 }
 
@@ -212,9 +218,8 @@ void UInvBaseContainerWidget::TransferAllItems(UInvBaseContainerWidget* SourceCo
 
 void UInvBaseContainerWidget::SortItems()
 {
-	/*const auto Inv = GetInventoryFromContainerSlot();
-	if (!Inv)
+	if (!InventoryRef)
 		return;
 
-	Inv->GetInventoryData().ItemCollectionLink->SortInContainer(this);*/
+	InventoryRef->SortItemsInContainerByName();
 }

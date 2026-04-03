@@ -19,7 +19,7 @@ class UInventorySlot;
 class UHighlightSlotWidget;
 class APickup;
 class UInventoryItemWidget;
-class UBaseUserWidget;
+class UInvenzaBaseWidget;
 
 USTRUCT(Blueprintable)
 struct FUISettings
@@ -49,7 +49,21 @@ struct FUISettings
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|World")
     TSubclassOf<AActor> PickupClass;
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|World")
-    TSubclassOf<UBaseUserWidget> DefaultWorldContainerInventoryWidgetClass;
+    TSubclassOf<UInvenzaBaseWidget> DefaultWorldContainerInventoryWidgetClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Highlight")
+	FLinearColor AllowedColor = FLinearColor::Green;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Highlight")
+	FLinearColor NotAllowedColor = FLinearColor::Red;
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Highlight")
+	//FLinearColor PartialColor = FLinearColor::Yellow;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Highlight")
+	float HighlightItemOpacity = 0.25f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Highlight")
+	TObjectPtr<UMaterialInterface> HighlightItemMaterial;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|SlotBasedInv")
+	TObjectPtr<UMaterialInterface> SlotBasedInventoryItemMaterial;
 	
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
     TSubclassOf<USlotbasedInventorySlot> DefaultSlotbasedInventorySlotClass;
@@ -57,24 +71,24 @@ struct FUISettings
     TSubclassOf<UInventoryItemWidget> InventoryItemVisualClass;
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
     TSubclassOf<UInventoryItemWidget> DraggedWidgetClass;
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Widgets")
     TSubclassOf<UHighlightSlotWidget> HighlightSlotWidgetClass;
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
     TSubclassOf<UItemTooltipWidget> ItemTooltipWidgetClass;
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
     TSubclassOf<UModalTradeWidget> ModalTradeWidgetClass;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Widgets")
-	TSubclassOf<UBaseUserWidget> DragContainerWidgetClass;
+	TSubclassOf<UInvenzaBaseWidget> DragContainerWidgetClass;
 	
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Layout")
-    FVector2D SlotSize = FVector2D(0.f);
+    FVector2D DragWidgetSlotSize = FVector2D(0.f);
 
 	FUISettings(): InventoryMappingContext(nullptr),
 	               ToggleInventoryAction(nullptr),
 	               ToggleEquipmentAction(nullptr),
 	               IA_Mod_QuickGrab(nullptr),
-	               IA_Mod_GrabAllSame(nullptr),
-					ItemSelectKey(EKeys::LeftMouseButton),
+	               IA_Mod_GrabAllSame(nullptr), IA_RotateDraggedItem(nullptr),
+	               ItemSelectKey(EKeys::LeftMouseButton),
 	               ItemUseKey(EKeys::RightMouseButton)
 	{
 	}

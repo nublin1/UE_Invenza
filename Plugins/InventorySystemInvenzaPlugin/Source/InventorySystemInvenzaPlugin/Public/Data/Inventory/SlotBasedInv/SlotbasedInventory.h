@@ -44,7 +44,7 @@ public:
 
 	//
 	UFUNCTION(BlueprintCallable)
-	bool CanPlaceItemAt(const FIntPoint& StartPos, UItemBase* ItemBase, EItemOrientationType Orientation, bool bIgnoreOccupiedSlots = false);
+	bool CanPlaceItemAt(const FIntPoint& StartPos, UItemBase* ItemBase, EItemOrientationType Orientation, TArray<UInventorySlotData*> IgnoreSlots);
 
 	
 	virtual void HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity) override;
@@ -60,7 +60,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	TArray<UInventorySlotData*> GetSlotsForItemAt(const FIntPoint& StartPos, UItemBase* ItemBase, EItemOrientationType Orientation);
 	UFUNCTION()
-	TArray<FIntPoint> GetItemGridPositions(const FIntPoint& StartPos, int32 Width, int32 Height, EItemOrientationType Orientation = EItemOrientationType::Horizontal);
+	TArray<FIntPoint> GetItemGridPositions(const FIntPoint& StartPos, FIntPoint Size);
 	UFUNCTION(BlueprintCallable)
 	TArray<UInventorySlotData*> GetAvailableSlotForItem(UItemBase* Item, EItemOrientationType& OutOrientation);
 
@@ -94,9 +94,8 @@ protected:
 		bool bOnlyCheck,TMap<UInventorySlotData*, FItemPlacementData>& AffectedSlots);
 	
 	virtual UItemBase* AddNewItem(FItemMoveData& ItemMoveData, FItemMapping OccupiedSlots, int32 AddAmount) override;
-	void ReplaceItem(UItemBase* Item, const TArray<UInventorySlotData*>& NewSlotDatas);
-	virtual int32 TryInsertToStackItem(UItemBase* ResourceToInsertInto, UItemBase* ResourceToDeductFrom, int32 AmountToDistribute, bool bOnlyCheck) override;
-	virtual int32 TryRemoveFromStackItem(UItemBase* Item, int32 RequestedRemoveAmount) override;
+	void ReplaceItem(UItemBase* Item, const TArray<UInventorySlotData*>& NewSlotDatas, EItemOrientationType NewItemOrientation);
+	virtual int32 TryInsertToStackItem(UItemBase* ResourceToInsertInto, int32 AmountToDistribute, bool bOnlyCheck) override;
 	
 
 public:
@@ -105,17 +104,19 @@ public:
 	UFUNCTION()
 	bool bIsItemCategoryCompatible(EItemCategory ItemCategory, EItemCategory SlotCategory);
 	UFUNCTION()
-	bool bIsSlotEmptyByPos(FIntPoint SlotPosition);
+	bool bIsSlotEmptyByPos(FIntPoint SlotPosition, const TArray<UInventorySlotData*>& SlotsToIgnore);
 	UFUNCTION()
-	bool bIsSlotEmpty(UInventorySlotData* Slot);
+	bool bIsSlotEmpty(UInventorySlotData* SlotToCheck, const TArray<UInventorySlotData*>& SlotsToIgnore);
 	UFUNCTION()
-	bool AreSlotsEmpty(const TArray<UInventorySlotData*>& Slots);
+	bool AreSlotsEmpty(const TArray<UInventorySlotData*>& SlotsToCheck, const TArray<UInventorySlotData*>& SlotsToIgnore);
 	UFUNCTION()
 	static bool DoSlotsMatch(const TArray<UInventorySlotData*>& FirstSlots, const TArray<UInventorySlotData*>& SecondSlots);
 	UFUNCTION()
 	float GetInventoryOccupancyPercent();
 	UFUNCTION()
 	TArray<UInventorySlotData*> CollectOccupiedSlots();
+	UFUNCTION()
+	TArray<UInventorySlotData*> GetIgnoreSlotsForItem(UItemBase* Item);
 
 protected:
 	UFUNCTION()

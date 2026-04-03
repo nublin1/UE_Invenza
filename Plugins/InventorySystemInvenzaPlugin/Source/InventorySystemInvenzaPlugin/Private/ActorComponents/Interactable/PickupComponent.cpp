@@ -11,7 +11,7 @@
 #include "Factory/ItemFactory.h"
 
 
-UPickupComponent::UPickupComponent()
+UPickupComponent::UPickupComponent(): InitialItem()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 }
@@ -25,25 +25,28 @@ void UPickupComponent::OnRegister()
 void UPickupComponent::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	CachedMesh = GetOwner()->FindComponentByClass<UStaticMeshComponent>();
+
 	GetWorld()->GetTimerManager().SetTimerForNextTick([this]()
 	{
-		InitializePickupComponent();
+	   InitializePickupComponent();
 	});
 }
 
 void UPickupComponent::BeginFocus()
 {
-	if (auto StaticMesh = GetOwner()->FindComponentByClass<UStaticMeshComponent>())
+	if (CachedMesh)
 	{
-		StaticMesh->SetRenderCustomDepth(true);
+		CachedMesh->SetRenderCustomDepth(true);
 	}
 }
 
 void UPickupComponent::EndFocus()
 {
-	if (auto StaticMesh = GetOwner()->FindComponentByClass<UStaticMeshComponent>())
+	if (CachedMesh)
 	{
-		StaticMesh->SetRenderCustomDepth(false);
+		CachedMesh->SetRenderCustomDepth(false);
 	}
 }
 
@@ -57,14 +60,14 @@ void UPickupComponent::Interact(UInteractionComponent* InteractionComponent)
 void UPickupComponent::InitializeDrop(UItemBase* ItemToDrop)
 {
 	ItemBase = ItemToDrop;
-	
+    
 	InteractableData.Quantity = ItemBase->GetQuantity();
 	if (InteractableData.Name.IsEmpty())
 		InteractableData.Name = ItemBase->GetItemRef().ItemTextData.DisplayName;
 	
-	if (auto StaticMesh = GetOwner()->FindComponentByClass<UStaticMeshComponent>())
+	if (CachedMesh && ItemBase->GetItemRef().ItemAssetData.Mesh)
 	{
-		StaticMesh->SetStaticMesh(ItemBase->GetItemRef().ItemAssetData.Mesh);
+		CachedMesh->SetStaticMesh(ItemBase->GetItemRef().ItemAssetData.Mesh);
 	}
 
 	UpdateInteractableData();
@@ -72,53 +75,54 @@ void UPickupComponent::InitializeDrop(UItemBase* ItemToDrop)
 
 void UPickupComponent::InitializePickupComponent()
 {
-	if (DesiredItemID.IsNone())
+	if (InitialItem.Item.RowName.IsNone())
 		return;
-
-	/*ItemBase = UItemFactory::CreateItemByID(this, DesiredItemID, InitQuantity);
-	if (!ItemBase)
+    
+	UItemBase* NewItem = UItemFactory::CreateItemByHandle(this, InitialItem.Item, InitialItem.Amount);
+	if (!NewItem)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Item create is failed!"));
+		UE_LOG(LogTemp, Error, TEXT("Item creation failed for %s!"), *InitialItem.Item.RowName.ToString());
 		return;
 	}
+    
+	ItemBase = NewItem;
 
 	InteractableData.Quantity = ItemBase->GetQuantity();
 	if (InteractableData.Name.IsEmpty())
 		InteractableData.Name = ItemBase->GetItemRef().ItemTextData.DisplayName;
 
-	if (auto StaticMesh = GetOwner()->FindComponentByClass<UStaticMeshComponent>())
+	if (CachedMesh && ItemBase->GetItemRef().ItemAssetData.Mesh)
 	{
-		StaticMesh->SetStaticMesh(ItemBase->GetItemRef().ItemAssetData.Mesh);
-	}*/
+		CachedMesh->SetStaticMesh(ItemBase->GetItemRef().ItemAssetData.Mesh);
+	}
 }
 
-void UPickupComponent::TakePickup(const UInteractionComponent* Taker)
+void UPickupComponent::TakePickup(UInteractionComponent* Taker)
 {
-	UIInventoryManager* InventoryManager = Taker->GetOwner()->FindComponentByClass<UIInventoryManager>();
+	if (bIsPendingDestruction || !ItemBase || !Taker)
+		return;
+
+	UIInventoryManager* InventoryManager = Taker->GetInventoryManager();
 	if (!InventoryManager)
 		return;
 
-	/*auto Inv = InventoryManager->GetMainInventory()->GetInventoryFromContainerSlot();
-
+	auto Inv = InventoryManager->GetInventoryByTag(InventoryManager->GetUISettings().MainInvTag);
 	if (!Inv)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("MainInventory is NULL!"));
 		return;
 	}
-	if (!ItemBase)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Item is NULL!"));
-		return;
-	}
+	
+	bIsPendingDestruction = true;
 
 	FItemMoveData Data;
 	Data.SourceItem = ItemBase;
 	Data.TargetInventory = Inv;
+	Data.SourceInventory = nullptr;
+	
+	InventoryManager->ItemTransferRequest(Data);
 
-	FItemAddResult Result = Inv->HandleAddItem(Data);
-	//UE_LOG(LogTemp, Warning, TEXT("USpecialInteractableComponent"));
-
-	GetOwner()->Destroy();*/
+	GetOwner()->Destroy();
 }
 
 void UPickupComponent::UpdateInteractableData()

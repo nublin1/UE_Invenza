@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UI/BaseUserWidget.h"
+#include "UI/InvenzaBaseWidget.h"
 #include "UIButton.generated.h"
 
 class UInputAction;
@@ -20,7 +20,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnButtonClicked, UUIButton*, UIButt
  * UI Button Widget - A customizable button with optional toggle functionality.
  */
 UCLASS()
-class INVENTORYSYSTEMINVENZAPLUGIN_API UUIButton : public UBaseUserWidget
+class INVENTORYSYSTEMINVENZAPLUGIN_API UUIButton : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
 

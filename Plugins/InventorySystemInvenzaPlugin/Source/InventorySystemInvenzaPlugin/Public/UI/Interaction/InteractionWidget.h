@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UI/BaseUserWidget.h"
+#include "UI/InvenzaBaseWidget.h"
 #include "InteractionWidget.generated.h"
 
 
@@ -16,10 +16,16 @@ struct FInteractionData;
  * 
  */
 UCLASS()
-class INVENTORYSYSTEMINVENZAPLUGIN_API UInteractionWidget : public UBaseUserWidget
+class INVENTORYSYSTEMINVENZAPLUGIN_API UInteractionWidget : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
 	
+public:
+	UInteractionWidget();
+
+protected:
+	virtual void NativeConstruct() override;
+
 public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
@@ -42,8 +48,6 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UInteractionWidget();
-
 	UFUNCTION(BlueprintNativeEvent, Category = "Interaction Logic")
 	void OnFoundInteractable(FInteractableData& NewInteractableData);
 	virtual void OnFoundInteractable_Implementation( FInteractableData& NewInteractableData);
@@ -63,8 +67,6 @@ protected:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	virtual void NativeConstruct() override;
-
 	UFUNCTION(BlueprintCallable, Category = "UI Updates")
 	void UpdateText(FInteractableData& NewInteractableData);
 };

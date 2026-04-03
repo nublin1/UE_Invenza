@@ -3,10 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UI/BaseUserWidget.h"
+#include "UI/InvenzaBaseWidget.h"
 #include "Data/Inventory/InventoryTypes.h"
 #include "InvBaseContainerWidget.generated.h"
 
+class ULabelBaseText;
 enum class EInventoryType : uint8;
 class UMovableTitleBar;
 class UUInventoryWidgetBase;
@@ -19,12 +20,12 @@ class USlotbasedInventoryWidget;
  * 
  */
 UCLASS()
-class INVENTORYSYSTEMINVENZAPLUGIN_API UInvBaseContainerWidget : public UBaseUserWidget
+class INVENTORYSYSTEMINVENZAPLUGIN_API UInvBaseContainerWidget : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
 
 #pragma region Delegates
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FWidgetClose, UBaseUserWidget*, Widget);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FWidgetClose, UInvenzaBaseWidget*, Widget);
 #pragma endregion Delegates
 	
 public:
@@ -43,6 +44,8 @@ public:
 	//Widgets
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Container", meta=(BindWidgetOptional))
 	TObjectPtr<UMovableTitleBar> TitleBar;
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<ULabelBaseText> InvMoney;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Container", meta=(BindWidgetOptional))
 	TObjectPtr<UNamedSlot> ContainerSlot;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Container", meta=(BindWidgetOptional))
@@ -57,7 +60,7 @@ public:
 	void InitializeInventoryBindings();
 	
 	UFUNCTION(BlueprintCallable, Category = "Container")
-	virtual void ChangeInventoryInContainerSlot(TSubclassOf<UBaseUserWidget> NewInventory);
+	virtual void ChangeInventoryInContainerSlot(TSubclassOf<UInvenzaBaseWidget> NewInventory);
 	
 	UFUNCTION(BlueprintCallable, Category = "Container")
 	virtual UUInventoryWidgetBase* GetInventoryWidgetFromContainerSlot();

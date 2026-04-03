@@ -6,6 +6,7 @@
 #include "Blueprint/DragDropOperation.h"
 #include "Data/Inventory/InventoryTypes.h"
 #include "Blueprint/UserWidget.h"
+#include "Settings/InvnzaSettings.h"
 #include "ItemDragDropOperation.generated.h"
 
 /**
@@ -41,12 +42,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Drag & Drop")
 	void RotateDraggedWidget();
 
+	virtual void SetUISettings(FUISettings NewSettings) {UISettings = NewSettings;}
+
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Drag & Drop")
-	TObjectPtr<UUserWidget> WidgetReference;
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category="Inventory|Settings")
+	FUISettings UISettings;
 	
 	//===================================================================
 	// FUNCTIONS

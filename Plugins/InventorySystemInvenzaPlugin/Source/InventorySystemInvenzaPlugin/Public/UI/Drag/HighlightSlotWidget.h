@@ -3,8 +3,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UI/BaseUserWidget.h"
+#include "UI/InvenzaBaseWidget.h"
 #include "Data/Inventory/InventoryTypes.h"
+#include "UI/Item/InventoryItemWidget.h"
 #include "HighlightSlotWidget.generated.h"
 
 enum class EHighlightState : uint8;
@@ -13,35 +14,37 @@ class UCoreCellWidget;
  * 
  */
 UCLASS()
-class INVENTORYSYSTEMINVENZAPLUGIN_API UHighlightSlotWidget : public UBaseUserWidget
+class INVENTORYSYSTEMINVENZAPLUGIN_API UHighlightSlotWidget : public UInventoryItemWidget
 {
 	GENERATED_BODY()
 public:
+	UHighlightSlotWidget();
+
+protected:
+	virtual void NativeConstruct() override;
+
+public:
+	
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	
-	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UHighlightSlotWidget();
-	
 	UFUNCTION(BlueprintCallable, Category = "Highlight")
 	void SetHighlightState(EHighlightState NewState);
 
 	UFUNCTION(BlueprintCallable, Category = "Highlight")
 	virtual void UpdateVisualWithTexture(UTexture2D* NewTexture);
 
+	UFUNCTION(BlueprintCallable, Category = "Highlight")
+	void SetHighlightColors(FLinearColor Allowed, FLinearColor NotAllowed/*, FLinearColor Partial*/);
+
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	// Widgets
-	UPROPERTY(VisibleAnywhere, blueprintReadOnly, Category = "Highlight", meta=(BindWidget))
-	TObjectPtr<UCoreCellWidget> CoreCellWidget;
-
-	//
 	UPROPERTY(blueprintReadOnly, Category = "Highlight")
 	EHighlightState CurrentState = EHighlightState::NotAllowed;
 	
@@ -55,7 +58,6 @@ protected:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	virtual void NativeConstruct() override;
 	
 	virtual void SetBordersColor(const FLinearColor& Color);
 };

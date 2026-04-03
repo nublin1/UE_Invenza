@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UI/BaseUserWidget.h"
+#include "UI/InvenzaBaseWidget.h"
 #include "UI/Inrefaces/UDraggableWidgetInterface.h"
 #include "MovableTitleBar.generated.h"
 
@@ -14,7 +14,7 @@ class UTextBlock;
  * 
  */
 UCLASS()
-class INVENTORYSYSTEMINVENZAPLUGIN_API UMovableTitleBar : public UBaseUserWidget, public IUDraggableWidgetInterface
+class INVENTORYSYSTEMINVENZAPLUGIN_API UMovableTitleBar : public UInvenzaBaseWidget, public IUDraggableWidgetInterface
 {
 	GENERATED_BODY()
 	
@@ -25,8 +25,6 @@ public:
 	//Widgets
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|TitleBar", meta = (BindWidget))
 	TObjectPtr<UTextBlock> TitleName;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|TitleBar", meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> Money;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|TitleBar", meta = (BindWidgetOptional))
 	TObjectPtr<UButton> Button_Close;
 

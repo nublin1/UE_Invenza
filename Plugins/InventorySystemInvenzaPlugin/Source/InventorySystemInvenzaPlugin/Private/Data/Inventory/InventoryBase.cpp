@@ -16,30 +16,12 @@ UInventoryBase::UInventoryBase()
 	}
 }
 
-void UInventoryBase::SetupStartingResources()
+void UInventoryBase::RequestToResetItemVisual(UItemBase* Item)
 {
-	for (auto InitResource : InitialItems)
-	{
-		if (InitResource.Item.RowName.IsNone()) continue;
+	if (!Item) return;
 
-		FItemMoveData Data;
-		Data.TargetInventory = this;
-		UItemBase* NewItem = UItemFactory::CreateItemByHandle(
-			this,
-			InitResource.Item,
-			InitResource.Amount
-		);
-
-		if (!NewItem) continue;
-
-		Data.SourceItem = NewItem;
-		if (Data.SourceItem->GetItemRef().ItemNumeraticData.InventoryVerticalSlots > Data.SourceItem->GetItemRef().ItemNumeraticData.InventoryHorizontalSlots)
-		{
-			Data.SavedOrientation = EItemOrientationType::Vertical;
-			Data.TargetOrientation = EItemOrientationType::Vertical;
-		}
-		HandleAddItem(Data);
-	}
+	if (ItemCollectionLinked->ItemHasInventory(Item, InventoryContainerID))
+		NotifyRequestToResetItemVisual(Item);
 }
 
 void UInventoryBase::MergeStackableItems()
@@ -61,7 +43,7 @@ void UInventoryBase::MergeStackableItems()
 		{
 			if (SameItem == Items[i])
 				continue;
-			auto AddedQuantity = TryInsertToStackItem(SameItem, Items[i], Items[i]->GetQuantity(), false);
+			auto AddedQuantity = TryInsertToStackItem(SameItem, Items[i]->GetQuantity(), false);
 		}
 	}
 }
@@ -105,11 +87,12 @@ void UInventoryBase::UpdateMoneyInfo()
 {
 	if (!ItemCollectionLinked)
 		return;
+
+	InventoryTotalMoney = 0;
 	
 	auto AllItems = ItemCollectionLinked->GetAllItemsByContainer(InventoryContainerID);
 	if (AllItems.IsEmpty())
 	{
-		InventoryTotalMoney = 0;
 		NotifyUpdateMoney();
 	}
 	else
@@ -147,8 +130,7 @@ int32 UInventoryBase::CalculateActualAmountToAdd(int32 InAmountToAdd, float Item
 	return InAmountToAdd;
 }
 
-int32 UInventoryBase::TryInsertToStackItem(UItemBase* ResourceToInsertInto, UItemBase* ResourceToDeductFrom,
-	int32 AmountToDistribute, bool bOnlyCheck)
+int32 UInventoryBase::TryInsertToStackItem(UItemBase* ResourceToInsertInto,	int32 AmountToDistribute, bool bOnlyCheck)
 {
 	if (ResourceToInsertInto->IsFullItemStack())
 		return 0;
@@ -158,29 +140,34 @@ int32 UInventoryBase::TryInsertToStackItem(UItemBase* ResourceToInsertInto, UIte
 										  ResourceToInsertInto->GetQuantity());
 	
 	int32 ActualAmountToAdd = CalculateActualAmountToAdd(AmountToAddToStack, ResourceToInsertInto->GetItemSingleWeight());
-	int32 OldAmount = ResourceToInsertInto->GetQuantity();
 
 	if (!bOnlyCheck)
 	{
-		DeductResourceOnAddToInventory(ResourceToDeductFrom, ActualAmountToAdd);
+		int32 OldAmount = ResourceToInsertInto->GetQuantity();
+		//DeductResourceOnAddToInventory(ResourceToDeductFrom, ActualAmountToAdd);
 		ResourceToInsertInto->SetQuantity(OldAmount + ActualAmountToAdd);
 		NotifyAddItemToStack(ResourceToInsertInto, ActualAmountToAdd);
 	}
-	//ActualAmountToAdd = OldAmount + ActualAmountToAdd;
-
+	
 	return ActualAmountToAdd;
 }
 
 int32 UInventoryBase::TryRemoveFromStackItem(UItemBase* Item, int32 RequestedRemoveAmount)
 {
-	if (!Item || Item->GetQuantity() <= 0)
+	if (!Item || RequestedRemoveAmount <= 0)
 		return 0;
 
 	int32 AmountToRemove = FMath::Min(RequestedRemoveAmount, Item->GetQuantity());
-	Item->SetQuantity(Item->GetQuantity() - AmountToRemove);
 
-	NotifyRemoveItemFromStack(Item, RequestedRemoveAmount);
-	if (Item->GetQuantity() <= 0)
+	if (AmountToRemove <= 0)
+	{
+		RemoveItemFromInventory(Item);
+		return 0;
+	}
+
+	NotifyRemoveItemFromStack(Item, AmountToRemove);
+
+	if (Item->GetQuantity() - AmountToRemove <= 0)
 	{
 		RemoveItemFromInventory(Item);
 	}
@@ -195,23 +182,27 @@ void UInventoryBase::RemoveItemFromInventory(UItemBase* Item)
 		UE_LOG(LogTemp, Warning, TEXT("RemoveItemFromInventory: Item is null"));
 		return;
 	}
-
-	auto MappingWrapper = ItemCollectionLinked->GetItemLocations().FindRef(TObjectPtr<UItemBase>(Item));
+	
 	auto Mapping = ItemCollectionLinked->FindItemMappingByContainerName(Item, InventoryContainerID);
+	if (!Mapping)
+		return;
 
 	NotifyFullyRemoveItem(*Mapping, Item);
 
-	ItemCollectionLinked->RemoveItem(TObjectPtr<UItemBase>(Item), InventoryContainerID);
+	ItemCollectionLinked->RemoveItem(Item, InventoryContainerID);
+
+	UpdateWeightInfo();
+	UpdateMoneyInfo();
 }
 
-void UInventoryBase::DeductResourceOnAddToInventory(UItemBase* Resource, int32 DeductAmount)
+/*void UInventoryBase::DeductResourceOnAddToInventory(UItemBase* Resource, int32 DeductAmount)
 {
 	Resource->SetQuantity(Resource->GetQuantity() - DeductAmount);
 	if (Resource->GetQuantity() <= 0)
 	{
 		ItemCollectionLinked->RemoveItem(Resource, InventoryContainerID);
 	}
-}
+}*/
 
 void UInventoryBase::NotifyAddNewItem(FItemMapping& FromSlots, UItemBase* NewItem, int32 ChangeQuantity)
 {
@@ -231,7 +222,7 @@ void UInventoryBase::NotifyRemoveItemFromStack(UItemBase* Item, int32 ChangeQuan
 		OnUnstackedItemDelegate.Broadcast(Item, ChangeQuantity);
 }
 
-void UInventoryBase::NotifyFullyRemoveItem(FItemMapping& FromSlots, UItemBase* Item)
+void UInventoryBase::NotifyFullyRemoveItem(FItemMapping FromSlots, UItemBase* Item)
 {
 	if (OnItemRemovedDelegate.IsBound())
 		OnItemRemovedDelegate.Broadcast(FromSlots, Item);
@@ -266,4 +257,10 @@ void UInventoryBase::NotifyReDrawRequest()
 {
 	if (OnInventoryRedrawRequested.IsBound())
 		OnInventoryRedrawRequested.Broadcast();
+}
+
+void UInventoryBase::NotifyRequestToResetItemVisual(UItemBase* Item)
+{
+	if (OnRequestToResetItemVisual.IsBound())
+		OnRequestToResetItemVisual.Broadcast(Item);
 }

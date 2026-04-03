@@ -24,4 +24,10 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API IInvUIProvider
 public:
 	virtual TArray<UUInventoryWidgetBase*> GetAllPawnInventories() const
 	PURE_VIRTUAL(IInvUIProvider::GetAllPawnInventories, return TArray<UUInventoryWidgetBase*>(););
+
+	virtual TArray<UInvBaseContainerWidget*> GetAllPawnInvContainers() const
+	PURE_VIRTUAL(IInvUIProvider::GetAllPawnInvContainers, return TArray<UInvBaseContainerWidget*>(););
+
+	virtual UPanelSlot* AddPawnInvContainers(UInvBaseContainerWidget* InvContainerToAdd) const
+	PURE_VIRTUAL(IInvUIProvider::AddPawnInvContainers, return nullptr;);
 };

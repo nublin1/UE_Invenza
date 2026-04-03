@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UI/BaseUserWidget.h"
+#include "UI/InvenzaBaseWidget.h"
 #include "UILayer.generated.h"
 
 class UBorder;
@@ -11,7 +11,7 @@ class UBorder;
  * 
  */
 UCLASS()
-class INVENTORYSYSTEMINVENZAPLUGIN_API UUILayer : public UBaseUserWidget
+class INVENTORYSYSTEMINVENZAPLUGIN_API UUILayer : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
 
@@ -36,7 +36,7 @@ protected:
 
 	//
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	TObjectPtr<UBaseUserWidget> PushedWidget;
+	TObjectPtr<UInvenzaBaseWidget> PushedWidget;
 	
 	//====================================================================
 	// FUNCTIONS

@@ -79,11 +79,16 @@ FItemAddResult UListInventory::HandleAddItem(FItemMoveData ItemMoveData, bool bO
 		&& InventorySettings.bIsReferenceContainer)
 	{
 		return FItemAddResult::AddedNone(
-			FText::Format(
-				FText::FromString("Item {0} cannot be added because the source inventory does not allow referencing."),
-				ItemMoveData.SourceItem->GetItemRef().ItemTextData.NameID
-			)
-		);
+		FText::Format(
+			FText::FromString("Item {0} cannot be added because the source inventory does not allow referencing."),
+			FText::FromName(ItemMoveData.SourceItem->GetItemID())));
+	}
+
+	if (ItemMoveData.SourceInventory == this)
+	{
+		return FItemAddResult::AddedNone(
+			FText::Format( FText::FromString("Item {0} is already inside this inventory."),
+			FText::FromName(ItemMoveData.SourceItem->GetItemID())));
 	}
 
 	if (InventorySettings.bIsReferenceContainer)
@@ -107,7 +112,7 @@ FItemAddResult UListInventory::HandleAddReferenceItem(FItemMoveData& ItemMoveDat
 {
 	if (ItemMoveData.TargetSlot == nullptr)
 		return FItemAddResult::AddedNone(FText::Format(FText::FromString("Can't be added {0} of {1} to inventory"),
-		                                               1, ItemMoveData.SourceItem->GetItemRef().ItemTextData.NameID));
+		                                               1, FText::FromName(ItemMoveData.SourceItem->GetItemID())));
 
 	if (ItemMoveData.SourceInventory == this)
 	{
@@ -132,7 +137,7 @@ FItemAddResult UListInventory::HandleAddReferenceItem(FItemMoveData& ItemMoveDat
 
 	return FItemAddResult::AddedAll(1, true, FText::Format(
 		                                FText::FromString("Successfully added {0} to inventory as a reference"),
-		                                ItemMoveData.SourceItem->GetItemRef().ItemTextData.NameID), AffectedSlots);
+		                                FText::FromName(ItemMoveData.SourceItem->GetItemID())), AffectedSlots);
 }
 
 FItemAddResult UListInventory::HandleNonStackableItems(FItemMoveData ItemMoveData, bool bOnlyCheck)
@@ -156,7 +161,8 @@ FItemAddResult UListInventory::HandleNonStackableItems(FItemMoveData ItemMoveDat
 	}
 
 	TMap<UInventorySlotData*, FItemPlacementData> AffectedSlots;
-	AffectedSlots.Add(ItemMoveData.TargetSlot->GetSlotData(), {1, ItemMoveData.SavedOrientation});
+	if (ItemMoveData.TargetSlot)
+		AffectedSlots.Add(ItemMoveData.TargetSlot->GetSlotData(), {1, ItemMoveData.SavedOrientation});
 
 	return FItemAddResult::AddedAll(1, false, FText::Format(
 										FText::FromString("Successfully added {0} of {1} to inventory"),
@@ -166,7 +172,6 @@ FItemAddResult UListInventory::HandleNonStackableItems(FItemMoveData ItemMoveDat
 FItemAddResult UListInventory::TryAddStackableItem(FItemMoveData& ItemMoveData, bool bOnlyCheck)
 {
 	TMap<UInventorySlotData*, FItemPlacementData> AffectedSlots;
-	AffectedSlots.Add(ItemMoveData.TargetSlot->GetSlotData(), {1, ItemMoveData.SavedOrientation});
 
 	const int32 InitialRequestedAddAmount = ItemMoveData.SourceItem->GetQuantity();
 	const int32 StackableAmountAdded = HandleStackableItems(ItemMoveData, InitialRequestedAddAmount, bOnlyCheck, AffectedSlots);
@@ -205,7 +210,7 @@ int32 UListInventory::HandleStackableItems(FItemMoveData& ItemMoveData, int32 Re
 			if(AmountToDistribute<=0)
 				break;
 			
-			int32 ActualAmountToAdd = TryInsertToStackItem(SameItem, ItemMoveData.SourceItem, AmountToDistribute, bOnlyCheck);
+			int32 ActualAmountToAdd = TryInsertToStackItem(SameItem, AmountToDistribute, bOnlyCheck);
 			AmountToDistribute -= ActualAmountToAdd;
 			TotalAddedAmount += ActualAmountToAdd;
 		}
@@ -248,4 +253,3 @@ UItemBase* UListInventory::AddNewItem(FItemMoveData& ItemMoveData, FItemMapping 
 
 	return FinalItem;
 }
-

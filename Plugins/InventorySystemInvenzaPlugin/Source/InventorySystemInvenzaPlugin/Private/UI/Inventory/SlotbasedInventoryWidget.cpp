@@ -18,6 +18,7 @@
 #include "UI/Core/CoreCellWidget.h"
 #include "UI/Core/Buttons/ItemCategoryButton.h"
 #include "UI/Core/Buttons/UIButton.h"
+#include "UI/Core/Image/ImageBaseWidget.h"
 #include "UI/Core/ItemFiltersPanel/ItemFiltersPanel.h"
 #include "UI/Drag/HighlightSlotWidget.h"
 #include "UI/HelpersWidgets/ItemTooltipWidget.h"
@@ -56,6 +57,69 @@ void USlotbasedInventoryWidget::InitializeInventoryWidget()
 	CreateTooltipWidget();
 }
 
+void USlotbasedInventoryWidget::InitializeInventoryWidgetWithSettings(FInventoryStartupData InventoryStartupData)
+{
+	if (!SlotsGridPanel || !UISettings.DefaultSlotbasedInventorySlotClass || !SlotBasedInventoryRef)
+	{
+		return;
+	}
+
+	TargetInventoryTag = InventoryStartupData.Settings.InventoryTag;
+
+	NumberRows  = InventoryStartupData.Settings.InventorySlotBasedSettings.NumberRows;
+	NumColumns  = InventoryStartupData.Settings.InventorySlotBasedSettings.NumColumns;
+	SlotSpacing = InventoryStartupData.Settings.InventorySlotBasedSettings.SlotSpacing;
+	InvCellSize = InventoryStartupData.Settings.InventorySlotBasedSettings.InvCellSize;
+	
+	SlotsGridPanel->ClearChildren();
+	InventorySlots.Empty();
+
+	SlotsGridPanel->SetSlotPadding(SlotSpacing);
+
+	for (int32 Row = 0; Row < NumberRows; ++Row)
+	{
+		for (int32 Col = 0; Col < NumColumns; ++Col) 
+		{
+			USlotbasedInventorySlot* NewSlot = CreateWidget<USlotbasedInventorySlot>(
+				GetOwningPlayer(), 
+				UISettings.DefaultSlotbasedInventorySlotClass
+			);
+          
+			if (!NewSlot)
+				continue;
+			
+			if (!NewSlot->GetDefaultCellImage() && DefaultCellImage)
+			{
+				NewSlot->UpdateVisualWithTexture(DefaultCellImage);
+			}
+			
+			FIntPoint SlotPosit = FIntPoint(Row, Col);
+          
+			UInventorySlotData* NewInventorySlotData = UInventorySlotData::CreateWithData(
+				this, 
+				NAME_None, 
+				SlotPosit, 
+				nullptr, 
+				NewSlot->AllowedSlotCategory
+			);
+          
+			NewInventorySlotData->LinkedEquipmentSlot = NewSlot->LinkedEquipmentSlotTag;
+          
+			NewSlot->SetSlotData(NewInventorySlotData);
+			NewSlot->SetSlotPosition(SlotPosit);
+			
+			UUniformGridSlot* GridSlot = SlotsGridPanel->AddChildToUniformGrid(NewSlot, Row, Col);
+			if (GridSlot)
+			{
+				//GridSlot->SetHorizontalAlignment(HAlign_Fill);
+				//GridSlot->SetVerticalAlignment(VAlign_Fill);
+			}
+			
+			InventorySlots.Add(NewSlot);
+		}
+	}
+}
+
 void USlotbasedInventoryWidget::BindDelegated()
 {
 	if (!SlotBasedInventoryRef)
@@ -73,6 +137,7 @@ void USlotbasedInventoryWidget::BindDelegated()
 	SlotBasedInventoryRef->OnWeightUpdatedDelegate.AddDynamic(this, &USlotbasedInventoryWidget::UpdateWeightInfo);
 	SlotBasedInventoryRef->OnMoneyUpdatedDelegate.AddDynamic(this, &USlotbasedInventoryWidget::UpdateMoneyInfo);
 	SlotBasedInventoryRef->OnInventoryRedrawRequested.AddDynamic(this, &USlotbasedInventoryWidget::ReDrawAllItems);
+	SlotBasedInventoryRef->OnRequestToResetItemVisual.AddDynamic(this, &USlotbasedInventoryWidget::ResetItemVisual);
 }
 
 void USlotbasedInventoryWidget::ReDrawAllItems()
@@ -97,42 +162,6 @@ void USlotbasedInventoryWidget::ReDrawAllItems()
 		auto Mapping = SlotBasedInventoryRef->GetItemCollectionLinked()->FindItemMappingByContainerName(Item, InvId);
 		AddItemToPanel(*Mapping, Item);
 	}
-}
-
-void USlotbasedInventoryWidget::RebuildSlots(int32 InRows, int32 InColumns)
-{
-	if (!SlotsGridPanel || !UISettings.DefaultSlotbasedInventorySlotClass)
-	{
-		return;
-	}
-	
-	SlotsGridPanel->ClearChildren();
-	InventorySlots.Empty();
-
-	for (int32 Row = 0; Row < InRows; ++Row)
-	{
-		for (int32 Col = 0; Col < InColumns; ++Col)
-		{
-			USlotbasedInventorySlot* NewSlot = CreateWidget<USlotbasedInventorySlot>(GetOwningPlayer(),
-				UISettings.DefaultSlotbasedInventorySlotClass);
-			if (!NewSlot)
-				continue;
-
-			UInventorySlotData* NewInventorySlotData = UInventorySlotData::Create(this);
-			NewSlot->SetSlotData(NewInventorySlotData);
-			NewSlot->SetSlotPosition({ Row, Col });
-			
-			UUniformGridSlot* GridSlot = SlotsGridPanel->AddChildToUniformGrid(NewSlot, Row, Col);
-			if (GridSlot)
-			{
-			}
-			
-			InventorySlots.Add(NewSlot);
-		}
-	}
-	
-	NumberRows  = InRows;
-	NumColumns  = InColumns;
 }
 
 TArray<UInventorySlotData*> USlotbasedInventoryWidget::GetSlotData()
@@ -176,6 +205,11 @@ void USlotbasedInventoryWidget::InitSlots()
 			{
 				if (auto InventorySlot = Cast<USlotbasedInventorySlot>(ChildWidget))
 				{
+					if (NewInvSlots.Num() == 0)
+					{
+						InvCellSize = InventorySlot->GetSlotSize();
+					}
+					
 					if (!InventorySlot->GetDefaultCellImage() && DefaultCellImage)
 						InventorySlot->UpdateVisualWithTexture(DefaultCellImage);
 					NewInvSlots.Add(InventorySlot);
@@ -197,6 +231,7 @@ void USlotbasedInventoryWidget::InitSlots()
 			auto SlotPosit = FIntPoint(UniSlot->GetRow(),  UniSlot->GetColumn());
 			
 			UInventorySlotData* NewInventorySlotData = UInventorySlotData::CreateWithData(this, NAME_None, SlotPosit, nullptr, NewInvSlots[i]->AllowedSlotCategory);
+			NewInventorySlotData->LinkedEquipmentSlot = NewInvSlots[i]->LinkedEquipmentSlotTag;
 			NewInvSlots[i]->SetSlotData(NewInventorySlotData);
 		}
 	}
@@ -227,7 +262,7 @@ void USlotbasedInventoryWidget::ClearFilters()
 
 		if (ItemMapping->ItemVisualLinked)
 		{
-			ItemMapping->ItemVisualLinked->GetCoreCellWidget()->ResetBorderColor();
+			ItemMapping->ItemVisualLinked->CoreCellWidget->ResetBorderColor();
 			ItemMapping->ItemVisualLinked->ChangeOpacity(1.0f);
 		}
 	}
@@ -255,32 +290,42 @@ void USlotbasedInventoryWidget::OnFilterStatusChanged(UUIButton* ItemCategoryBut
 }
 
 void USlotbasedInventoryWidget::RefreshFilteredItemsList()
+{if (ActiveFilters.Num() == 0)
 {
-	if (ActiveFilters.Num() == 0)
-	{
-		ClearFilters();
-		return;
-	}
+	ClearFilters();
+	return;
+}
 
-	auto Mappings = SlotBasedInventoryRef->GetItemCollectionLinked()->GetAllMappingsByContainer(SlotBasedInventoryRef->GetInventoryContainerID());
-	if (Mappings.Num() == 0)
+	auto ItemsWithMappings =
+		SlotBasedInventoryRef->GetItemCollectionLinked()
+		->GetItemsWithMappingsByContainer(SlotBasedInventoryRef->GetInventoryContainerID());
+
+	if (ItemsWithMappings.Num() == 0)
 		return;
-	
-	for (auto& Mapping : Mappings)
+
+	for (auto& Item : ItemsWithMappings)
 	{
-		Mapping.ItemVisualLinked->ChangeOpacity(ItemFiltersPanel->FilterOpacity);
-		Mapping.ItemVisualLinked->GetCoreCellWidget()->ResetBorderColor();
-	}
-	
-	for (auto ActiveCategory : ActiveFilters)
-	{
-		for (auto& Mapping : Mappings)
+		auto* Mapping = Item.Value;
+		auto Visual = Mapping->ItemVisualLinked;
+
+		if (!Visual)
+			continue;
+
+		const bool bPassFilter = ActiveFilters.Contains(Item.Key->GetItemRef().ItemCategory);
+
+		if (bPassFilter)
 		{
 			if (ItemFiltersPanel->bUseFilterColor)
 			{
-				Mapping.ItemVisualLinked->ChangeBorderColor(ItemFiltersPanel->ItemFilterBorderColor);
+				Visual->ChangeBorderColor(ItemFiltersPanel->ItemFilterBorderColor);
 			}
-			Mapping.ItemVisualLinked->ChangeOpacity(1.0f);
+
+			Visual->ChangeOpacity(1.0f);
+		}
+		else
+		{
+			Visual->ChangeOpacity(ItemFiltersPanel->FilterOpacity);
+			Visual->CoreCellWidget->ResetBorderColor();
 		}
 	}
 }
@@ -298,7 +343,7 @@ void USlotbasedInventoryWidget::SearchTextChanged(const FText& NewText)
 			if (!ItemMapping)
 				continue;
 
-			ItemMapping->ItemVisualLinked->GetCoreCellWidget()->ResetBorderColor();
+			ItemMapping->ItemVisualLinked->CoreCellWidget->ResetBorderColor();
 			ItemMapping->ItemVisualLinked->ChangeOpacity(1.0f);
 
 			RefreshFilteredItemsList();
@@ -324,7 +369,7 @@ void USlotbasedInventoryWidget::SearchTextChanged(const FText& NewText)
 				}
 				else
 				{
-					ItemMapping->ItemVisualLinked->GetCoreCellWidget()->ResetBorderColor();
+					ItemMapping->ItemVisualLinked->CoreCellWidget->ResetBorderColor();
 					ItemMapping->ItemVisualLinked->ChangeOpacity(ItemFiltersPanel->FilterOpacity);
 				}
 			}
@@ -347,10 +392,26 @@ void USlotbasedInventoryWidget::SearchTextChanged(const FText& NewText)
 		}
 		else
 		{
-			ItemMapping->ItemVisualLinked->GetCoreCellWidget()->ResetBorderColor();
+			ItemMapping->ItemVisualLinked->CoreCellWidget->ResetBorderColor();
 			ItemMapping->ItemVisualLinked->ChangeOpacity(ItemFiltersPanel->FilterOpacity);
 		}
 	}
+}
+
+void USlotbasedInventoryWidget::ResetItemVisual(UItemBase* ItemToReset)
+{
+	if (!ItemToReset)
+		return;
+
+	auto ItemCollection =SlotBasedInventoryRef->GetItemCollectionLinked();
+	auto InvID = SlotBasedInventoryRef->GetInventoryContainerID();
+	
+	auto ItemMapping = ItemCollection->FindItemMappingByContainerName(ItemToReset, InvID);
+	if (!ItemMapping || !ItemMapping->ItemVisualLinked)
+		return;
+
+	ItemMapping->ItemVisualLinked->CoreCellWidget->ResetBorderColor();
+	ItemMapping->ItemVisualLinked->ChangeOpacity(1.0f);
 }
 
 UInventorySlot* USlotbasedInventoryWidget::GetSlotByPosition(FIntPoint SlotPosition)
@@ -371,13 +432,28 @@ bool USlotbasedInventoryWidget::bIsGridPositionValid(FIntPoint& GridPosition)
 
 FVector2D USlotbasedInventoryWidget::CalculateItemVisualPosition(FIntPoint SlotPosition) const
 {
-	const float StepX = UISettings.SlotSize.X + SlotSpacing.Left + SlotSpacing.Right;
-	const float StepY = UISettings.SlotSize.Y + SlotSpacing.Top + SlotSpacing.Bottom;
+	const float StepX = InvCellSize.X + SlotSpacing.Left + SlotSpacing.Right;
+	const float StepY = InvCellSize.Y + SlotSpacing.Top + SlotSpacing.Bottom;
 	
 	float X = SlotPosition.X * StepX + SlotSpacing.Left;
 	float Y = SlotPosition.Y * StepY + SlotSpacing.Top;
 
 	return FVector2D(Y, X);
+}
+
+FVector2D USlotbasedInventoryWidget::CalculateItemVisualSize(UItemBase* Item, EItemOrientationType Orientation, FVector2D SlotSize,
+	bool bIgnoreSize) const
+{
+	if (!Item)
+		return FVector2D::ZeroVector;
+
+	FIntPoint ItemSize = bIgnoreSize
+		? FIntPoint(1, 1)
+		: Item->GetItemSize(Orientation);
+
+	return FVector2D(
+		SlotSize.X * ItemSize.X + SlotSpacing.Left * (ItemSize.X - 1),
+		SlotSize.Y * ItemSize.Y + SlotSpacing.Top  * (ItemSize.Y - 1));
 }
 
 void USlotbasedInventoryWidget::AddItemToPanel(FItemMapping& ItemSlots, UItemBase* Item)
@@ -400,19 +476,16 @@ void USlotbasedInventoryWidget::AddItemToPanel(FItemMapping& ItemSlots, UItemBas
 		UE_LOG(LogTemp, Warning, TEXT("USlotbasedInventoryWidget::InventoryItemVisualClass is not set in UISettings!"));
 		return;
 	}
-	
-	const FIntPoint ItemSize = Item->GetItemSize(ItemSlots.ItemOrientation);
-	
-	TObjectPtr<UInventoryItemWidget> ItemVisual = CreateWidget<UInventoryItemWidget>(GetAsContainerWidget(), UISettings.InventoryItemVisualClass);
-	auto SlotInCanvas = ItemsVisualsPanel->AddChildToCanvas(ItemVisual);
-	if (SlotInCanvas)
-		SlotInCanvas->SetSize(FVector2D(UISettings.SlotSize.X * ItemSize.X, UISettings.SlotSize.Y * ItemSize.Y));
+
+	TObjectPtr<UInventoryItemWidget> ItemVisual = CreateWidget<UInventoryItemWidget>(
+		GetAsContainerWidget(), UISettings.InventoryItemVisualClass);
+	ItemsVisualsPanel->AddChildToCanvas(ItemVisual);
+	ItemVisual->CoreCellWidget->Content_Image->SetBaseMaterial(UISettings.SlotBasedInventoryItemMaterial);
 	ItemSlots.ItemVisualLinked = ItemVisual;
 
 	for (auto ItemSlotData : ItemSlots.OccupiedSlots)
 	{
-		auto ItemSlot = GetSlotByPosition(ItemSlotData->CellPosition);
-		if(ItemSlot)
+		if (auto ItemSlot = GetSlotByPosition(ItemSlotData->CellPosition))
 		{
 			if (bHideBackgroundWhenOccupied)
 				ItemSlot->ClearVisual();
@@ -421,22 +494,19 @@ void USlotbasedInventoryWidget::AddItemToPanel(FItemMapping& ItemSlots, UItemBas
 		}
 	}
 
-	ItemVisual->UpdateVisualSize(UISettings.SlotSize, ItemSize);
+	bool IgnoreSize = SlotBasedInventoryRef->GetInventorySettings().InventorySlotBasedSettings.bIgnoreItemSize;
+	auto TotalSize = CalculateItemVisualSize(Item, ItemSlots.ItemOrientation, InvCellSize, IgnoreSize);
+	
+	ItemVisual->UpdateItemVisual(Item, ItemSlots.ItemOrientation, TotalSize, VisualPosition, IgnoreSize);
 	ItemVisual->UpdateItemName(Item->GetItemRef().ItemTextData.DisplayName);
 	ItemVisual->UpdateQuantityText(Item->GetQuantity());
-	ItemVisual->UpdateVisual(Item);
-	
-	//ItemVisual->SetPivotSlot(ItemPivotSlot);			
-	SlotInCanvas->SetPosition(VisualPosition);
 
 	RefreshFilteredItemsList();
 	if (ItemFiltersPanel)
 	{
 		auto SearchText = ItemFiltersPanel->GetSearchText()->GetText();
 		if (!SearchText.IsEmpty())
-		{
 			SearchTextChanged(SearchText);
-		}
 	}
 }
 
@@ -463,16 +533,17 @@ void USlotbasedInventoryWidget::ReplaceItemInPanel(TArray<UInventorySlotData*> O
 		}
 	}
 
-	const FVector2D NewVisualPosition = CalculateItemVisualPosition(NewItemSlots.OccupiedSlots[0]->CellPosition);
 	if (!NewItemSlots.ItemVisualLinked)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("USlotbasedInventoryWidget::ReplaceItemInPanel ItemVisualLinked is null!"));
 		return;
 	}
-	if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(NewItemSlots.ItemVisualLinked->Slot))
-	{
-		CanvasSlot->SetPosition(NewVisualPosition);
-	}
+
+	FVector2D NewVisualPosition = CalculateItemVisualPosition(NewItemSlots.OccupiedSlots[0]->CellPosition);
+	//UE_LOG(LogTemp, Log, TEXT("Row: %f, Column: %f"),  NewVisualPosition.X,  NewVisualPosition.Y);
+	bool IgnoreSize = SlotBasedInventoryRef->GetInventorySettings().InventorySlotBasedSettings.bIgnoreItemSize;
+	auto TotalSize = CalculateItemVisualSize(Item,NewItemSlots.ItemOrientation, InvCellSize, IgnoreSize);
+	NewItemSlots.ItemVisualLinked->UpdateItemVisual(Item, NewItemSlots.ItemOrientation, TotalSize, NewVisualPosition, IgnoreSize);
 }
 
 void USlotbasedInventoryWidget::UpdateItem(UItemBase* Item, int32 ChangedAmount)
@@ -500,8 +571,8 @@ void USlotbasedInventoryWidget::UpdateSlotInPanel(FItemMapping FromSlots, UItemB
 
 void USlotbasedInventoryWidget::RemoveItemFromPanel(FItemMapping FromSlots, UItemBase* Item)
 {
-	if (!FromSlots.ItemVisualLinked || !Item)
-		return;
+	if (!Item || !FromSlots.ItemVisualLinked)
+	return;
 
 	FromSlots.ItemVisualLinked->RemoveFromParent();
 
@@ -554,7 +625,8 @@ void USlotbasedInventoryWidget::CreateHighlightWidget()
 	{
 		return;
 	}
-
+	HighlightWidgetPreview->SetHighlightColors(UISettings.AllowedColor, UISettings.NotAllowedColor);
+	HighlightWidgetPreview->CoreCellWidget->Content_Image->SetBaseMaterial(UISettings.HighlightItemMaterial);
 	HighlightWidgetPreview->SetVisibility(ESlateVisibility::Collapsed);
 }
 
@@ -607,8 +679,8 @@ FIntPoint USlotbasedInventoryWidget::CalculateGridPosition(const FGeometry& Geom
 	}
 	else
 	{
-		int32 Column = FMath::FloorToInt(LocalCursorPos.X / (UISettings.SlotSize.X + SlotSpacing.Left + SlotSpacing.Right));
-		int32 Row    = FMath::FloorToInt(LocalCursorPos.Y / (UISettings.SlotSize.Y + SlotSpacing.Top + SlotSpacing.Bottom));
+		int32 Column = FMath::FloorToInt(LocalCursorPos.X / (InvCellSize.X + SlotSpacing.Left + SlotSpacing.Right));
+		int32 Row    = FMath::FloorToInt(LocalCursorPos.Y / (InvCellSize.Y + SlotSpacing.Top + SlotSpacing.Bottom));
 
 		return FIntPoint(Row, Column);
 	}
@@ -739,20 +811,16 @@ void USlotbasedInventoryWidget::NativeOnDragDetected(const FGeometry& InGeometry
     auto DraggedWidget = CreateWidget<UInventoryItemWidget>(GetOwningPlayer(), UISettings.DraggedWidgetClass);
 
     if (!DraggedWidget || !Item || !ItemMap) return;
-	
-    const FIntPoint ItemSize = Item->GetItemSize(ItemMap->ItemOrientation);
-
-	DraggedWidget->SetDesiredSizeInViewport(FVector2D(
-	 UISettings.SlotSize.X * ItemSize.X,
-	 UISettings.SlotSize.Y * ItemSize.Y));
 
     DraggedWidget->AddToPlayerScreen(1);
     DraggedWidget->SetPositionInViewport(FVector2D(-10000, -10000));
-    DraggedWidget->UpdateVisual(Item);
-    DraggedWidget->UpdateVisualSize(UISettings.SlotSize, ItemSize);
-		
-
+	
+	bool IgnoreSize = SlotBasedInventoryRef->GetInventorySettings().InventorySlotBasedSettings.bIgnoreItemSize;
+	auto TotalSize = CalculateItemVisualSize(Item, ItemMap->ItemOrientation, UISettings.DragWidgetSlotSize, IgnoreSize);
+	DraggedWidget->UpdateItemVisual(Item,ItemMap->ItemOrientation, TotalSize, FVector2D(0.0f), IgnoreSize);
+	
     UItemDragDropOperation* DragOp = NewObject<UItemDragDropOperation>();
+	DragOp->SetUISettings(UISettings);
     DragOp->DefaultDragVisual = DraggedWidget;
     DragOp->Pivot = EDragPivot::TopLeft;
     DragOp->ItemMoveData.SourceItem = Item;
@@ -768,6 +836,8 @@ void USlotbasedInventoryWidget::NativeOnDragDetected(const FGeometry& InGeometry
 
     DraggedWidget->SetVisibility(ESlateVisibility::Hidden);
     OutOperation = DragOp;
+
+	ItemMap->ItemVisualLinked->ChangeOpacity(0.33f);
 
     if (!HighlightWidgetPreview)
         CreateHighlightWidget();
@@ -798,6 +868,10 @@ void USlotbasedInventoryWidget::NativeOnDragLeave(const FDragDropEvent& InDragDr
 bool USlotbasedInventoryWidget::NativeOnDragOver(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent,
                                             UDragDropOperation* InOperation)
 {
+	auto DragOp = Cast<UItemDragDropOperation>(InOperation);
+	if (!DragOp) 
+		return false;
+	
 	if (!SlotsGridPanel) return false;
 	
 	FVector2D ScreenCursorPos = InDragDropEvent.GetScreenSpacePosition();
@@ -809,20 +883,17 @@ bool USlotbasedInventoryWidget::NativeOnDragOver(const FGeometry& InGeometry, co
 
 		if (!HighlightWidgetPreview)
 			return Super::NativeOnDragOver(InGeometry, InDragDropEvent, InOperation);
-
-		auto DragOp = Cast<UItemDragDropOperation>(InOperation);
+		
 		auto TargetSlot = GetSlotByPosition(GridPosition);
 		DragOp->ItemMoveData.TargetInventory = SlotBasedInventoryRef;
 		DragOp->ItemMoveData.TargetSlot = TargetSlot;
 
-		const FIntPoint ItemSize = DragOp->ItemMoveData.SourceItem->GetItemSize(DragOp->ItemMoveData.TargetOrientation);
-
 		const FVector2D VisualPosition = CalculateItemVisualPosition(GridPosition);
-		UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(HighlightWidgetPreview->Slot);
-		CanvasSlot->SetSize(FVector2D(UISettings.SlotSize.X * ItemSize.X, UISettings.SlotSize.Y * ItemSize.Y));
-		CanvasSlot->SetPosition(VisualPosition);
 
-		HighlightWidgetPreview->UpdateVisualWithTexture(DragOp->ItemMoveData.SourceItem->GetItemRef().ItemAssetData.Icon);
+		bool IgnoreSize = SlotBasedInventoryRef->GetInventorySettings().InventorySlotBasedSettings.bIgnoreItemSize;
+		auto TotalSize = CalculateItemVisualSize(DragOp->ItemMoveData.SourceItem, DragOp->ItemMoveData.TargetOrientation, InvCellSize, IgnoreSize);
+		HighlightWidgetPreview->UpdateItemVisual(DragOp->ItemMoveData.SourceItem, DragOp->ItemMoveData.TargetOrientation, TotalSize, VisualPosition, IgnoreSize);
+		HighlightWidgetPreview->ChangeOpacity(UISettings.HighlightItemOpacity);
 
 		auto Result = InventoryRef->HandleAddItem(DragOp->ItemMoveData, true);
 		switch (Result.OperationResult)
@@ -856,16 +927,24 @@ bool USlotbasedInventoryWidget::NativeOnDrop(const FGeometry& InGeometry, const 
 	if (HighlightWidgetPreview)
 		HighlightWidgetPreview->SetVisibility(ESlateVisibility::Collapsed);
 	
-	if (!InOperation || !SlotsGridPanel) return false;
+	if (!InOperation || !SlotsGridPanel ||!SlotBasedInventoryRef) return false;
 	
 	FVector2D ScreenCursorPos = InDragDropEvent.GetScreenSpacePosition();
 	FIntPoint GridPosition = CalculateGridPosition(InGeometry, ScreenCursorPos);
+
+	auto ItemCollection = SlotBasedInventoryRef->GetItemCollectionLinked();
+	auto InvID = SlotBasedInventoryRef->GetInventoryContainerID();
+	
 	
 	//UE_LOG(LogTemp, Log, TEXT("Row: %d, Column: %d"),  GridPosition.X,  GridPosition.Y);
 	if (bIsGridPositionValid(GridPosition))
 	{
 		auto DragOp = Cast<UItemDragDropOperation>(InOperation);
 		auto TargetSlot = GetSlotByPosition(GridPosition);
+
+		if (auto ItemMap = ItemCollection->FindItemMappingByContainerName(DragOp->ItemMoveData.SourceItem, InvID))
+			ItemMap->ItemVisualLinked->ChangeOpacity(1.0f);
+		
 		DragOp->ItemMoveData.TargetInventory = SlotBasedInventoryRef;
 		DragOp->ItemMoveData.TargetSlot = TargetSlot;
 
@@ -876,4 +955,21 @@ bool USlotbasedInventoryWidget::NativeOnDrop(const FGeometry& InGeometry, const 
 	}
 	
 	return Super::NativeOnDrop(InGeometry, InDragDropEvent, InOperation);
+}
+
+void USlotbasedInventoryWidget::NativeOnDragCancelled(const FDragDropEvent& InDragDropEvent,
+	UDragDropOperation* InOperation)
+{
+	Super::NativeOnDragCancelled(InDragDropEvent, InOperation);
+	
+	auto ItemCollection = SlotBasedInventoryRef->GetItemCollectionLinked();
+	auto InvID = SlotBasedInventoryRef->GetInventoryContainerID();
+	
+	auto DragOp = Cast<UItemDragDropOperation>(InOperation);
+	if (DragOp && DragOp->ItemMoveData.SourceItem)
+	{
+		if (auto ItemMap = ItemCollection->FindItemMappingByContainerName(DragOp->ItemMoveData.SourceItem, InvID))
+			ItemMap->ItemVisualLinked->ChangeOpacity(1.0f);
+	}
+	
 }

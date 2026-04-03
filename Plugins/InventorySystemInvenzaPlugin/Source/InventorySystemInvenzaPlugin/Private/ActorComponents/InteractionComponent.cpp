@@ -32,13 +32,38 @@ void UInteractionComponent::BeginPlay()
 	}, 0.3f, false);
 }
 
+void UInteractionComponent::TickComponent(float DeltaTime, ELevelTick TickType,
+										  FActorComponentTickFunction* ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	if (GetWorld()->TimeSince(InteractionData.LastInteractionCheckTime) > InteractionCheckInterval)
+	{
+		PerformInteractionCheck();
+	}
+
+	if (TargetInteractableComponent && GetWorld()->GetTimerManager().IsTimerActive(TimerHandle_Interaction))
+	{
+		float Elapsed = GetWorld()->GetTimeSeconds() - InteractionStartTime;
+		float Progress = FMath::Clamp(Elapsed / TargetInteractableComponent->InteractableData.InteractableDuration, 0.0f, 1.0f);
+		if(OnInteractionProgress.IsBound())
+			OnInteractionProgress.Broadcast(Progress);
+	}
+	else
+	{
+		if(OnInteractionProgress.IsBound())
+			OnInteractionProgress.Broadcast(0);
+	}
+}
+
 void UInteractionComponent::InitInteractionComponent()
 {
 	auto PlayerCharacter = Cast<ACharacter>(GetOwner());
 	if (!PlayerCharacter)
 		return;
 
-	CameraComponent = PlayerCharacter->FindComponentByClass<UCameraComponent>();
+	if (auto CameraComp = PlayerCharacter->FindComponentByClass<UCameraComponent>())
+		CameraComponent = CameraComp;
 	
 	UEnhancedInputComponent* Input = Cast<UEnhancedInputComponent>(GetOwner()->InputComponent);
 	if (!Input)
@@ -233,28 +258,4 @@ void UInteractionComponent::EndIteractNotify()
 {
 	if (IteractableDataDelegate.IsBound())
 		EndIteractDelegate.Broadcast(TargetInteractableComponent);
-}
-
-void UInteractionComponent::TickComponent(float DeltaTime, ELevelTick TickType,
-                                          FActorComponentTickFunction* ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	if (GetWorld()->TimeSince(InteractionData.LastInteractionCheckTime) > InteractionCheckInterval)
-	{
-		PerformInteractionCheck();
-	}
-
-	if (TargetInteractableComponent && GetWorld()->GetTimerManager().IsTimerActive(TimerHandle_Interaction))
-	{
-		float Elapsed = GetWorld()->GetTimeSeconds() - InteractionStartTime;
-		float Progress = FMath::Clamp(Elapsed / TargetInteractableComponent->InteractableData.InteractableDuration, 0.0f, 1.0f);
-		if(OnInteractionProgress.IsBound())
-			OnInteractionProgress.Broadcast(Progress);
-	}
-	else
-	{
-		if(OnInteractionProgress.IsBound())
-			OnInteractionProgress.Broadcast(0);
-	}
 }

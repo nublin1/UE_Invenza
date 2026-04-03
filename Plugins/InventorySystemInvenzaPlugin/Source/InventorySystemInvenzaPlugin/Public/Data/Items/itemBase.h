@@ -42,7 +42,9 @@ public:
 	static bool bIsSameItems(UItemBase* FirstItem, UItemBase* SecondItem);
 
 	UFUNCTION(BlueprintCallable, Category = "Item")
-	static bool DoItemsHaveSameFootprint(UItemBase* FirstItem, UItemBase* SecondItem);
+	static bool DoItemsHaveSameFootprint(UItemBase* FirstItem, UItemBase* SecondItem,
+		EItemOrientationType OrientationFirstItem, EItemOrientationType OrientationSecondItem,
+		bool bIgnoreSize = false);
 
 	//====================================================================
 	// FUNCTIONS
@@ -75,16 +77,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Item|Properties")
 	FORCEINLINE float GetItemSingleWeight() const { return ItemRef.ItemNumeraticData.Weight; }
 
-	/** Gets the number of slots occupied by the item */
-	UFUNCTION(Category = "Item|Properties")
-	FORCEINLINE FIntVector2 GetOccupiedSlots() const
-	{
-		return FIntVector2(ItemRef.ItemNumeraticData.InventoryHorizontalSlots,
-		                   ItemRef.ItemNumeraticData.InventoryVerticalSlots);
-	}
+	UFUNCTION(blueprintCallable, Category = "Item|Properties")
+	EItemOrientationType GetInitialItemOrientation();
+	
 
 	UFUNCTION(Category = "Item|Properties")
-	FIntPoint GetItemSize(EItemOrientationType Orientation) const;
+	FIntPoint GetItemSize(EItemOrientationType Orientation);
 
 	UFUNCTION(BlueprintCallable, Category = "Item|Properties")
 	FString CategoryToString();

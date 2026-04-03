@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UI/BaseUserWidget.h"
+#include "UI/InvenzaBaseWidget.h"
 #include "Components/Image.h"
 #include "ItemTooltipWidget.generated.h"
 
@@ -16,7 +16,7 @@ class UTextBlock;
  * 
  */
 UCLASS()
-class INVENTORYSYSTEMINVENZAPLUGIN_API UItemTooltipWidget : public UBaseUserWidget
+class INVENTORYSYSTEMINVENZAPLUGIN_API UItemTooltipWidget : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
 	

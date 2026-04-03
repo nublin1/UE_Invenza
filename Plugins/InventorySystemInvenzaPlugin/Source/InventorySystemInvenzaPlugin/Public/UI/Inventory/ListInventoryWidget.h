@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "UInventoryWidgetBase.h"
-#include "UI/BaseUserWidget.h"
+#include "UI/InvenzaBaseWidget.h"
 #include "ListInventoryWidget.generated.h"
 
 class UListInventory;

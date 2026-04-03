@@ -9,7 +9,7 @@
 #include "ActorComponents/Interactable/InteractableComponent.h"
 #include "ContainerComponent.generated.h"
 
-class UBaseUserWidget;
+class UInvenzaBaseWidget;
 class UInvBaseContainerWidget;
 /**
  * 
@@ -20,6 +20,13 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UContainerComponent : public UInteractabl
 	GENERATED_BODY()
 
 public:
+	UContainerComponent();
+
+protected:
+	virtual void OnRegister() override;
+	virtual void BeginPlay() override;
+
+public:	
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
@@ -27,7 +34,7 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UContainerComponent();
+	
 	virtual void BeginFocus() override;
 	virtual void EndFocus() override;
 	
@@ -37,24 +44,28 @@ public:
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
-	//====================================================================
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Inventory|Container")
-	TObjectPtr<UItemCollection> ItemCollection;
-	
-	UPROPERTY()
-	TObjectPtr<UUInventoryWidgetBase> InventoryWidget;
-	UPROPERTY()
-	TObjectPtr<UInvBaseContainerWidget> ContainerWidget;
-	
+	//====================================================================	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Container")
-	FVector2D InventorySize = FVector2D(5,4); // Only for SlotBased 
+	FInventoryStartupData InventoryStartupData;
+
+	//
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Container")
 	bool bDestroyWhenEmpty = false;
+
+	// Data
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	TMap<FString, TObjectPtr<UInventoryBase>> Inventories;
+	UPROPERTY()
+	TObjectPtr<UStaticMeshComponent> CachedMesh;
+
+	//Refs
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Inventory|Container")
+	TObjectPtr<UItemCollection> ItemCollection;
 
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	virtual void OnRegister() override;
+	
 
 	UFUNCTION()
 	virtual void ContainerWidgetVisibilityChanged(ESlateVisibility NewVisibility);

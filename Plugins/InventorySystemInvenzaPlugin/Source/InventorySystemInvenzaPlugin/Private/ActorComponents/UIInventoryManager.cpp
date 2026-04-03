@@ -17,9 +17,12 @@
 #include "Data/Items/itemBase.h"
 #include "Data/Inventory/InventoryBase.h"
 #include "Data/Inventory/Equipment/EquipmentComponent.h"
+#include "Data/Inventory/ListInventory/ListInventory.h"
 #include "Data/Inventory/SlotBasedInv/SlotbasedInventory.h"
 #include "DragDrop/ItemDragDropOperation.h"
+#include "Factory/InvenzaWidgetFactory.h"
 #include "Factory/ItemFactory.h"
+#include "Interface/Interaction/InteractionUIProvider.h"
 #include "Interface/Inventory/InvUIProvider.h"
 #include "Kismet/GameplayStatics.h"
 #include "Service/TradeService.h"
@@ -46,10 +49,28 @@ void UIInventoryManager::BeginPlay()
 
 	ItemCollectionRef = Collection;
 
+	if (auto EquipmentComponent = GetOwner()->FindComponentByClass<UEquipmentComponent>())
+	{
+		EquipmentComponentRef = EquipmentComponent;
+	}
+
+	UInteractionComponent* InteractionComp = GetOwner()->FindComponentByClass<UInteractionComponent>();
+	if (InteractionComp)
+	{
+		InteractionComponent = InteractionComp;
+		InteractionComponent->SetInventoryManager(this);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("InteractionComponent is not valid!"));
+	}
+
 	CreateInventories();
 	InitWidgets();
 
 	InitializeBindings();
+	BindEvents();
+	SetupStartingResources();
 }
 
 void UIInventoryManager::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -67,10 +88,10 @@ void UIInventoryManager::CreateInventories()
 			continue;
 
 		Inventory->SetInventorySettings(StartupData.Settings);
-		Inventory->SetInitialItems(StartupData.StartItems);
 		Inventory->SetItemCollectionLink(ItemCollectionRef);
+		StartingItems.Add(Inventory, StartupData.StartItems);
 
-		Inventories.Add(StartupData.Settings.InventoryTag, Inventory);
+		Inventories.Add(Inventory->GetInventoryContainerID(), Inventory);
 		BindInventoryEvents(Inventory);
 
 		if (StartupData.Settings.InventoryTag == UISettings.MainInvTag)
@@ -80,20 +101,40 @@ void UIInventoryManager::CreateInventories()
 	}
 }
 
+void UIInventoryManager::CreateWidget(FInventoryStartupData StartupData)
+{
+	auto InvContainer =  UInvenzaWidgetFactory::CreateInventoryWidget(
+		UGameplayStatics::GetPlayerController(GetWorld(), 0),
+		StartupData.Settings.ContainerWidgetClass,
+		StartupData.Settings.InventoryWidgetClass,
+		nullptr);
+
+	if (!InvContainer)
+		return;
+
+	InvContainer->GetInventoryWidgetFromContainerSlot()->InitializeInventoryWidgetWithSettings(StartupData);
+	
+}
+
 void UIInventoryManager::InitWidgets()
 {
-	if (!UIProvider)
+	if (!UIInvProvider)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("UIInventoryManager::InitWidgets: UIProvider is not set!"));
 		return;
 	}
 	
-	for (auto WidgetBase : UIProvider->GetAllPawnInventories())
+	for (auto WidgetBase : UIInvProvider->GetAllPawnInventories())
 	{
 		if (!WidgetBase)
 			continue;
 
-		WidgetBase->InitializeInventoryWidget();
+		if (!WidgetBase->TargetInventoryTag.IsValid())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("UIInventoryManager::InitWidgets: TargetInventoryTag is not set!"));
+			continue;
+		};
+		
 
 		auto TarInv = GetInventoryByTag(WidgetBase->TargetInventoryTag);
 		if (!TarInv)
@@ -101,6 +142,9 @@ void UIInventoryManager::InitWidgets()
 
 		if (USlotbasedInventoryWidget* SlotBased = Cast<USlotbasedInventoryWidget>(WidgetBase))
 		{
+			SlotBased->SetInventoryBaseRef(TarInv);			
+			WidgetBase->InitializeInventoryWidget();
+			
 			auto TarSlotInv = Cast<USlotbasedInventory>(TarInv);
 			if (!TarSlotInv)
 				continue;
@@ -111,19 +155,29 @@ void UIInventoryManager::InitWidgets()
 			TarSlotInv->SetInvSlots(SlotBased->GetSlotData());
 			
 			SlotBased->SetUISettings(UISettings);
-			SlotBased->SetInventoryBaseRef(TarInv);			
 			SlotBased->BindDelegated();
 		}
 		else if (UListInventoryWidget* ListBased = Cast<UListInventoryWidget>(WidgetBase))
 		{
-			ListBased->SetInventoryBaseRef(TarInv);
+			WidgetBase->InitializeInventoryWidget();
+			
+			auto TarListInv = Cast<UListInventory>(TarInv);
+			if (!TarListInv)
+				continue;
+
+			TarListInv->SetEntryClass(TarListInv->GetInventorySettings().EntryClass);
+			
+			ListBased->SetInventoryBaseRef(TarListInv);
 			ListBased->SetUISettings(UISettings);
 			ListBased->BindDelegated();
 		}
 
-		TarInv->SetupStartingResources();
-
 		WidgetBase->OnItemDroppedDelegate.AddDynamic(this, &UIInventoryManager::ItemTransferRequest);
+	}
+
+	for (auto ContainerBase : UIInvProvider->GetAllPawnInvContainers())
+	{
+		ContainerBase->InitializeInventoryBindings();
 	}
 }
 
@@ -209,6 +263,44 @@ void UIInventoryManager::OpenTradeModal(bool bIsSaleOperation, UItemBase* Operat
 	};*/
 }
 
+void UIInventoryManager::SetupStartingResources()
+{
+	for (auto& [TargetInventory, InitItems] : StartingItems)
+	{
+		if (!TargetInventory 
+			|| TargetInventory->GetInventoryContainerID().IsEmpty() 
+			|| InitItems.IsEmpty() 
+			|| !TargetInventory->GetItemCollectionLinked())
+		{
+			continue;
+		}
+
+		for (const auto& InitResource : InitItems)
+		{
+			if (InitResource.Item.RowName.IsNone()) continue;
+
+			int32 RemainingAmount = InitResource.Amount;
+			while (RemainingAmount > 0)
+			{
+				UItemBase* NewItem = UItemFactory::CreateItemByHandle(this, InitResource.Item, RemainingAmount);
+				if (!NewItem) break;
+
+				RemainingAmount -= NewItem->GetQuantity();
+
+				const EItemOrientationType InitOrientation = NewItem->GetInitialItemOrientation();
+                
+				FItemMoveData Data;
+				Data.TargetInventory  = TargetInventory;
+				Data.SourceItem       = NewItem;
+				Data.SavedOrientation = InitOrientation;
+				Data.TargetOrientation = InitOrientation;
+
+				ItemTransferRequest(Data);
+			}
+		}
+	}
+}
+
 void UIInventoryManager::OnItemAddedToInventory(FItemMapping& ItemSlots, UItemBase* Item)
 {
 	if (!Item || !EquipmentComponentRef) return;
@@ -290,22 +382,26 @@ void UIInventoryManager::ItemTransferRequest(FItemMoveData ItemMoveData)
 	}*/
 	
 	auto Result = ItemMoveData.TargetInventory->HandleAddItem(ItemMoveData, false);
+	auto ActualAmountAdded = Result.ActualAmountAdded;
 	UE_LOG(LogTemp, Log, TEXT("InventoryManager::ItemTransferRequest. Is ResultMessage: %s"), *Result.ResultMessage.ToString());
+
+	if (ItemMoveData.SourceInventory)
+		ItemMoveData.SourceInventory->RequestToResetItemVisual(ItemMoveData.SourceItem);
+	
 	switch (Result.OperationResult)
 	{
 	case EItemAddResult::IAR_AllItemAdded:
-		if (Result.bIsUsedReferences)
-		{
-			break;
-		}
 		if (ItemMoveData.SourceInventory && ItemMoveData.SourceInventory->GetItemCollectionLinked()
 			== ItemMoveData.TargetInventory->GetItemCollectionLinked())
 		{
-			ItemMoveData.SourceInventory->HandleRemoveItem(ItemMoveData.SourceItem, ItemMoveData.SourceItem->GetQuantity());
+			ItemMoveData.SourceInventory->HandleRemoveItem(ItemMoveData.SourceItem, ActualAmountAdded);
 			break;
 		}
 		break;
 	case EItemAddResult::IAR_NoItemAdded:
+		if (ItemMoveData.SourceInventory == nullptr)
+			ItemDropRequest(ItemMoveData.SourceItem);
+		
 		/*if (CoreHUDWidget->GetVendorInvWidget())
 		{
 			if (!ItemMoveData.SourceInventory || ItemMoveData.SourceInventory == CoreHUDWidget->GetVendorInvWidget()->GetInventoryFromContainerSlot())
@@ -331,7 +427,7 @@ void UIInventoryManager::ItemTransferRequest(FItemMoveData ItemMoveData)
 		}
 		if (ItemMoveData.SourceInventory)
 		{
-			ItemMoveData.SourceInventory->HandleRemoveItem(ItemMoveData.SourceItem, Result.ActualAmountAdded);
+			ItemMoveData.SourceInventory->HandleRemoveItem(ItemMoveData.SourceItem, ActualAmountAdded);
 			break;
 		}
 		break;
@@ -340,17 +436,29 @@ void UIInventoryManager::ItemTransferRequest(FItemMoveData ItemMoveData)
 			&& ItemMoveData.SourceInventory->GetInventorySettings().bAllowItemReferencing
 			&& ItemMoveData.SourceInventory != ItemMoveData.TargetInventory)
 		{
-			ItemMoveData.SourceInventory->HandleRemoveItem(ItemMoveData.SourceItem, ItemMoveData.SourceItem->GetQuantity());
+			ItemMoveData.SourceInventory->HandleRemoveItem(ItemMoveData.SourceItem, ActualAmountAdded);
 		}
 		break;
 	}
 }
 
+void UIInventoryManager::ItemDropRequest(UItemBase* ItemToDrop)
+{
+	if (auto Pawn = UGameplayStatics::GetPlayerController(GetWorld(), 0)->GetPawn())
+	{
+		/*auto Interaction = Pawn->FindComponentByClass<UInteractionComponent>();
+		if (!Interaction) break;*/
+
+		ItemToDrop->DropItem(GetWorld());
+	}
+}
+
 UInventoryBase* UIInventoryManager::GetInventoryByTag(const FGameplayTag& Tag)
 {
-	if (const TObjectPtr<UInventoryBase>* Found = Inventories.Find(Tag))
+	for (auto Element : Inventories)
 	{
-		return *Found;
+		if (Element.Value->GetInventorySettings().InventoryTag == Tag)
+			return Element.Value;
 	}
 
 	return nullptr;
@@ -361,10 +469,9 @@ UInventoryBase* UIInventoryManager::GetInventoryByID(FString ContainerID)
 	if (ContainerID.IsEmpty())
 		return nullptr;
 	
-	for (auto Element : Inventories)
+	if (const TObjectPtr<UInventoryBase>* Found = Inventories.Find(ContainerID))
 	{
-		if (Element.Value->GetInventoryContainerID() == ContainerID)
-			return Element.Value;
+		return *Found;
 	}
 
 	return nullptr;
@@ -418,17 +525,28 @@ void UIInventoryManager::ClearInteractableType(UInteractableComponent* IteractDa
 	}*/
 }
 
+void UIInventoryManager::BindInteractionWidget()
+{
+	if (!InteractionComponent)
+		return;
+
+	if (!InteractionUIProvider)
+		return;
+
+	UInteractionWidget* InteractionWidget = InteractionUIProvider->GetPawnInteractionWidget();
+	if (!InteractionWidget)
+		return;
+	
+	InteractionComponent->BeginFocusDelegate.AddDynamic(InteractionWidget, &UInteractionWidget::OnFoundInteractable);
+	InteractionComponent->EndFocusDelegate.AddDynamic(InteractionWidget, &UInteractionWidget::OnLostInteractable);
+	InteractionComponent->OnInteractionProgress.AddDynamic(InteractionWidget, &UInteractionWidget::UpdateProgressBar);
+}
+
 void UIInventoryManager::BindEvents()
 {
-		
+	BindInteractionWidget();
+	
 	/*	
-	UInteractionComponent* InteractionComponent = TargetActor->FindComponentByClass<UInteractionComponent>();
-
-	if (!InteractionComponent)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("InteractionComponent is not valid!"));
-		return;
-	}
 
 	auto InteractionWidget = CoreHUDWidget->GetInteractionWidget();
 
@@ -438,24 +556,11 @@ void UIInventoryManager::BindEvents()
 		return;
 	}
 	
-	//
-	InteractionComponent->RegularSettings = this->UISettings;
-	InteractionComponent->BeginFocusDelegate.AddDynamic(InteractionWidget, &UInteractionWidget::OnFoundInteractable);
-	InteractionComponent->EndFocusDelegate.AddDynamic(InteractionWidget, &UInteractionWidget::OnLostInteractable);
-	InteractionComponent->OnInteractionProgress.AddDynamic(InteractionWidget, &UInteractionWidget::UpdateProgressBar);
-	
+	//	
 	InteractionComponent->IteractableDataDelegate.AddDynamic(this, &UIInventoryManager::SetInteractableType);
 	InteractionComponent->StopIteractDelegate.AddDynamic(this, &UIInventoryManager::ClearInteractableType);
 
 
-	UItemCollection* ItemCollection = TargetActor->FindComponentByClass<UItemCollection>();
-	if (!ItemCollection) return;
-		
-	if (!CoreHUDWidget->GetMainInvWidget())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("MainInv is not Found!"));
-		return;
-	}
 	CoreHUDWidget->GetMainInvWidget()->GetInventoryFromContainerSlot()->SetItemCollection(ItemCollection);
 	CoreHUDWidget->GetMainInvWidget()->GetInventoryFromContainerSlot()->InitItemsInItemsCollection();
 

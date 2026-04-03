@@ -7,7 +7,7 @@
 #include "GameFramework/HUD.h"
 #include "GameHUD_Inz.generated.h"
 
-class UBaseUserWidget;
+class UInvenzaBaseWidget;
 class UPrimaryLayout;
 /**
  * 
@@ -38,7 +38,7 @@ protected:
 	TObjectPtr<UPrimaryLayout> PrimaryLayout;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TMap<FGameplayTag, TSoftClassPtr<UBaseUserWidget>> InitialScreens;
+	TMap<FGameplayTag, TSoftClassPtr<UInvenzaBaseWidget>> InitialScreens;
 
 	//====================================================================
 	// FUNCTIONS

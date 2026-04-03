@@ -4,9 +4,10 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UI/BaseUserWidget.h"
+#include "UI/InvenzaBaseWidget.h"
 #include "InventoryItemWidget.generated.h"
 
+enum class EItemOrientationType : uint8;
 class UItemBase;
 class UTextBlock;
 class UHorizontalBox;
@@ -18,38 +19,11 @@ class USlotbasedInventorySlot;
  * Inventory Item Widget - Handles visual updates and interactions for inventory items.
  */
 UCLASS()
-class INVENTORYSYSTEMINVENZAPLUGIN_API UInventoryItemWidget : public UBaseUserWidget
+class INVENTORYSYSTEMINVENZAPLUGIN_API UInventoryItemWidget : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
 
 public:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-	
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
-	UInventoryItemWidget();
-
-	UCoreCellWidget* GetCoreCellWidget() const {return CoreCellWidget.Get();}
-
-	UFUNCTION()
-	void UpdateVisual(UItemBase* Item);
-	UFUNCTION()
-	void UpdateVisualSize(FVector2D SlotSize, FIntVector2 ItemSize);
-	UFUNCTION()
-	void UpdateItemName(FText Name);
-	UFUNCTION()
-	void UpdateQuantityText(int Quantity);
-
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Styling")
-	void ChangeBorderColor(FLinearColor NewColor) const;
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Styling")
-	void ChangeOpacity(float NewValue);
-	
-protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
@@ -66,6 +40,39 @@ protected:
 	TObjectPtr<UHorizontalBox> HBoxQuantity;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Inventory|UI Elements", meta=(BindWidget))
 	TObjectPtr<UTextBlock> ItemQuantity;
+	
+	//====================================================================
+	// FUNCTIONS
+	//====================================================================
+	UInventoryItemWidget();
+
+	UFUNCTION()
+	void UpdateItemVisual(UItemBase* Item, EItemOrientationType Orientation,FVector2D TotalSize, FVector2D Position, bool bIgnoreSize);
+	UFUNCTION()
+	void UpdateVisual(UItemBase* Item, float AngleDegrees = 0.0f);
+	UFUNCTION()
+	void ClearVisual();
+	UFUNCTION()
+	void UpdateVisualSize(FVector2D ItemTotalSize) const;
+	UFUNCTION()
+	void UpdateItemName(FText Name);
+	UFUNCTION()
+	void UpdateQuantityText(int Quantity);
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Styling")
+	void ChangeBorderColor(FLinearColor NewColor) const;
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Styling")
+	void ChangeOpacity(float NewValue);
+	
+protected:
+	//====================================================================
+	// PROPERTIES AND VARIABLES
+	//====================================================================
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Settings")
+	TObjectPtr<UMaterialInterface> IconMaterial;
+	
+	UPROPERTY()
+	TObjectPtr<UMaterialInstanceDynamic> CachedIconMaterial;
 		
 	//====================================================================
 	// FUNCTIONS

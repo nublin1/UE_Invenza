@@ -51,7 +51,7 @@ public:
 	TArray<UItemBase*> GetAllItemsByContainer(FString InvID);
 	TArray<UItemBase*> GetAllSameItemsInContainer(FString InvID, UItemBase* ReferenceItem) const;
 	TArray<FItemMapping> GetAllMappingsByContainer(const FString& InvID);
-	TMap<UItemBase*, FItemMapping> GetItemsWithMappingsByContainer(const FString& InvID);
+	TMap<UItemBase*, FItemMapping*> GetItemsWithMappingsByContainer(const FString& InvID);
 	TArray<UItemBase*> GetAllItemsByCategory(EItemCategory ItemCategory);
 	UItemBase* GetItemFromSlot(UInventorySlotData* TargetSlotData, const FString& InventoryID);
 	

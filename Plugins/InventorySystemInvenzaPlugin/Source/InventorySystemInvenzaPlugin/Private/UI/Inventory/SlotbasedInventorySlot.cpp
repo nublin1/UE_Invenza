@@ -8,57 +8,70 @@
 #include "Engine/Texture2D.h"
 #include "TimerManager.h"
 #include "UI/Core/CoreCellWidget.h"
+#include "UI/Core/LabelBaseText.h"
+#include "UI/Core/Image/ImageBaseWidget.h"
 
 USlotbasedInventorySlot::USlotbasedInventorySlot()
 {
 }
-void USlotbasedInventorySlot::NativeConstruct()
-{
-	Super::NativeConstruct();
 
+void USlotbasedInventorySlot::NativePreConstruct()
+{
+	Super::NativePreConstruct();
+	
 	if (SlotData)
 	{
 		SetSlotNameText(SlotData->SlotName.ToString());
 	}
+	ResetVisual();
+}
 
-	if (DefaultCellImage)
-	{
-		FSlateBrush Brush;
-		Brush.SetResourceObject(DefaultCellImage);
-		CoreCellWidget->Content_Image->SetBrush(Brush);
-	}
+void USlotbasedInventorySlot::NativeConstruct()
+{
+	Super::NativeConstruct();
 }
 
 void USlotbasedInventorySlot::UpdateVisualWithTexture(UTexture2D* NewTexture)
 {
 	Super::UpdateVisualWithTexture(NewTexture);
 
+	if (!CoreCellWidget || !CoreCellWidget->Content_Image) return;
+
 	if (!NewTexture)
 	{
-		CoreCellWidget->Content_Image->SetBrush(FSlateBrush());
+		ClearVisual();
 		return;
 	}
-
-	FSlateBrush Brush;
-	Brush.SetResourceObject(NewTexture);
-	CoreCellWidget->Content_Image->SetBrush(Brush);
+	
+	CoreCellWidget->Content_Image->UpdateImage(NewTexture);
 }
 
 void USlotbasedInventorySlot::ResetVisual()
 {
 	Super::ResetVisual();
 
-	FSlateBrush Brush;
-	Brush.SetResourceObject(DefaultCellImage);
-	CoreCellWidget->Content_Image->SetBrush(Brush);
+	if (!CoreCellWidget || !CoreCellWidget->Content_Image) return;
+	if (DefaultCellImage)
+	{
+		CoreCellWidget->Content_Image->UpdateImage(DefaultCellImage);
+	}
+	else 
+	{
+		ClearVisual();
+	}
 }
 
 void USlotbasedInventorySlot::ClearVisual()
 {
 	Super::ClearVisual();
-	FSlateBrush Brush = CoreCellWidget->Content_Image->GetBrush();
-	Brush.SetResourceObject(nullptr);
-	CoreCellWidget->Content_Image->SetBrush(Brush);
+	if (!CoreCellWidget || !CoreCellWidget->Content_Image) return;
+	
+	CoreCellWidget->Content_Image->UpdateImage(nullptr);
+}
+
+FVector2D USlotbasedInventorySlot::GetSlotSize()
+{
+	return CoreCellWidget->GetCurrentSlotSize();
 }
 
 void USlotbasedInventorySlot::SetSlotNameText(FString SlotNameText)
@@ -68,11 +81,11 @@ void USlotbasedInventorySlot::SetSlotNameText(FString SlotNameText)
 	{
 		if (SlotNameText.IsEmpty() || SlotNameText.Equals("None"))
 		{
-			SlotName->SetText(FText::GetEmpty());
+			SlotName->UpdateText(FText::GetEmpty());
 			return;
 		}
 		
-		SlotName->SetText(FText::FromString(SlotNameText));
+		SlotName->UpdateText(FText::FromString(SlotNameText));
 		SlotName->SetVisibility(ESlateVisibility::Visible);
 	}
 }

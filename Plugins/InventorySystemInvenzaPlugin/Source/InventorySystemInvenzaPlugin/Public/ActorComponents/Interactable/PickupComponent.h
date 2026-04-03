@@ -5,9 +5,11 @@
 #include "CoreMinimal.h"
 #include "InteractableComponent.h"
 #include "Components/ActorComponent.h"
+#include "Data/ItemDataStructures.h"
 #include "PickupComponent.generated.h"
 
 
+struct FInitItemsEntry;
 class UItemBase;
 class UBoxComponent;
 
@@ -35,21 +37,24 @@ public:
 
 	//Getters
 	UFUNCTION(BlueprintCallable, Category = "Pickup | Getters")
-	UItemBase* GetItemBase() { return ItemBase; }
+	FInitItemsEntry GetInitialItem() { return InitialItem; }
 
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
-	//====================================================================	
+	//====================================================================
+	UPROPERTY()
+	TObjectPtr<UStaticMeshComponent> CachedMesh;
+	
 	UPROPERTY(EditAnywhere, Category = "Pickup | Item Initialization")
-	FName DesiredItemID;
+	FInitItemsEntry InitialItem;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Pickup | Item Reference")
 	TObjectPtr<UItemBase> ItemBase;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Pickup | Item Reference")
-	int InitQuantity = 1;
-	
+		
 	UPROPERTY(EditAnywhere, Category = "Pickup | Debug")
 	bool bIsDebug = false;
+
+	bool bIsPendingDestruction = false;
 
 	//====================================================================
 	// FUNCTIONS
@@ -61,7 +66,7 @@ protected:
 	void InitializePickupComponent();
 
 	UFUNCTION()
-	virtual void TakePickup(const UInteractionComponent *Taker);
+	virtual void TakePickup(UInteractionComponent *Taker);
 
 	virtual void UpdateInteractableData() override;
 };

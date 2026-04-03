@@ -18,20 +18,25 @@ bool UItemBase::bIsSameItems(UItemBase* FirstItem, UItemBase* SecondItem)
 	if (!FirstItem || !SecondItem)
 		return false;
 	
-	if (FirstItem->GetItemRef().ItemTextData.NameID.EqualTo(SecondItem->GetItemRef().ItemTextData.NameID))
+	if (FirstItem->GetItemID() == SecondItem->GetItemID())
 		return true;
 
 	return false;
 }
 
-bool UItemBase::DoItemsHaveSameFootprint(UItemBase* FirstItem, UItemBase* SecondItem)
+bool UItemBase::DoItemsHaveSameFootprint(UItemBase* FirstItem, UItemBase* SecondItem,
+	EItemOrientationType OrientationFirstItem, EItemOrientationType OrientationSecondItem, bool bIgnoreSize)
 {
 	if (!FirstItem || !SecondItem)
 		return false;
+
+	if (bIgnoreSize)
+		return true;
+
+	auto FirstSize = FirstItem->GetItemSize(OrientationFirstItem);
+	auto SecondSize = SecondItem->GetItemSize(OrientationSecondItem);
 	
-	if (FirstItem->GetItemRef().ItemNumeraticData.InventoryHorizontalSlots != SecondItem->GetItemRef().ItemNumeraticData.InventoryHorizontalSlots)
-		return false;
-	if (FirstItem->GetItemRef().ItemNumeraticData.InventoryVerticalSlots != SecondItem->GetItemRef().ItemNumeraticData.InventoryVerticalSlots)
+	if (FirstSize != SecondSize)
 		return false;
 
 	return true;
@@ -97,14 +102,34 @@ void UItemBase::DropItem(UWorld* World)
 	}
 }
 
-FIntPoint UItemBase::GetItemSize(EItemOrientationType Orientation) const
+EItemOrientationType UItemBase::GetInitialItemOrientation()
+{
+	if (ItemRef.ItemNumeraticData.InventoryVerticalSlots > ItemRef.ItemNumeraticData.InventoryHorizontalSlots)
+		return EItemOrientationType::Vertical;
+	return EItemOrientationType::Horizontal;
+}
+
+FIntPoint UItemBase::GetItemSize(EItemOrientationType Orientation) 
 {
 	const int32 H = ItemRef.ItemNumeraticData.InventoryHorizontalSlots;
 	const int32 V = ItemRef.ItemNumeraticData.InventoryVerticalSlots;
 
-	return Orientation == EItemOrientationType::Vertical
-		? FIntPoint(H, V)
-		: FIntPoint(V, H);
+	EItemOrientationType Initial = GetInitialItemOrientation();
+
+	if (GetInitialItemOrientation() == EItemOrientationType::Horizontal)
+	{
+		if (Orientation == Initial)
+			return FIntPoint(H, V);
+		else
+			return FIntPoint(V, H);
+	}
+
+	if (Orientation == Initial)
+	{
+		return FIntPoint(H, V);
+	}
+
+	return FIntPoint(V, H);
 }
 
 FString UItemBase::CategoryToString()

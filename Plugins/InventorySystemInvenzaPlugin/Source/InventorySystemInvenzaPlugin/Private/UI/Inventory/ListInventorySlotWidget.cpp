@@ -159,13 +159,22 @@ void UListInventorySlotWidget::NativeOnDragDetected(const FGeometry& InGeometry,
 {
 	Super::NativeOnDragDetected(InGeometry, InMouseEvent, OutOperation);
 	
-	UIInventoryManager* InventoryManager = GetOwningPlayerPawn()->FindComponentByClass<UIInventoryManager>();
-	if (!InventoryManager || !CachedEntry || !CachedEntry->ParentInventoryWidget)
+	if ( !CachedEntry || !CachedEntry->ParentInventoryWidget)
 		return;
 
-	UInventoryItemWidget* DraggedWidget = CreateWidget<UInventoryItemWidget>(GetOwningPlayer(), InventoryManager->GetUISettings().DraggedWidgetClass);
+	auto Inv = CachedEntry->ParentInventoryWidget->GetInventoryRef();
+	if (!Inv)
+		return;
+
+	UInventoryItemWidget* DraggedWidget = CreateWidget<UInventoryItemWidget>(GetOwningPlayer(), CachedEntry->ParentInventoryWidget->GetUISettings().DraggedWidgetClass);
 	if (!DraggedWidget) return;
 	DraggedWidget->SetVisibility(ESlateVisibility::Hidden);
+
+	DraggedWidget->AddToPlayerScreen(1);
+	DraggedWidget->SetPositionInViewport(FVector2D(-10000, -10000));
+
+	FVector2D TotalSize = FVector2D(64.0f, 64.0f); 
+	DraggedWidget->UpdateItemVisual( CachedEntry->Item, EItemOrientationType::Horizontal, TotalSize, FVector2D(0.0f), true);
 	
 	UItemDragDropOperation* DragItemDragDropOperation = NewObject<UItemDragDropOperation>();
 	DragItemDragDropOperation->DefaultDragVisual = DraggedWidget;
@@ -184,7 +193,6 @@ void UListInventorySlotWidget::NativeOnDragDetected(const FGeometry& InGeometry,
 	TimerManager.SetTimer(TimerHandle, TimerDelegate, 0.125f, false);
 
 	OutOperation = DragItemDragDropOperation;
-
 	
 }
 

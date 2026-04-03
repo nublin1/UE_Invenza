@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UI/BaseUserWidget.h"
+#include "UI/InvenzaBaseWidget.h"
 #include "BinaryPromptButtons.generated.h"
 
 class UUIButton;
@@ -11,7 +11,7 @@ class UUIButton;
  * 
  */
 UCLASS()
-class INVENTORYSYSTEMINVENZAPLUGIN_API UBinaryPromptButtons : public UBaseUserWidget
+class INVENTORYSYSTEMINVENZAPLUGIN_API UBinaryPromptButtons : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
 

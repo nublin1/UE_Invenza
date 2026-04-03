@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UI/BaseUserWidget.h"
+#include "UI/InvenzaBaseWidget.h"
 #include "TrashDropZoneWidget.generated.h"
 
 class UBorder;
@@ -12,7 +12,7 @@ class UImage;
  * 
  */
 UCLASS()
-class INVENTORYSYSTEMINVENZAPLUGIN_API UTrashDropZoneWidget : public UBaseUserWidget
+class INVENTORYSYSTEMINVENZAPLUGIN_API UTrashDropZoneWidget : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
 public:

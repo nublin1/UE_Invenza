@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UI/BaseUserWidget.h"
+#include "UI/InvenzaBaseWidget.h"
 #include "PrimaryLayout.generated.h"
 
 class UUILayer;
@@ -11,7 +11,7 @@ class UUILayer;
  * 
  */
 UCLASS()
-class INVENTORYSYSTEMINVENZAPLUGIN_API UPrimaryLayout : public UBaseUserWidget
+class INVENTORYSYSTEMINVENZAPLUGIN_API UPrimaryLayout : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
 
@@ -40,8 +40,8 @@ protected:
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TObjectPtr<UBaseUserWidget> LayersDebugger;
+	TObjectPtr<UInvenzaBaseWidget> LayersDebugger;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	TObjectPtr<UBaseUserWidget> GameMenuLayer_Obs;
+	TObjectPtr<UInvenzaBaseWidget> GameMenuLayer_Obs;
 };

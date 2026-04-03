@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UI/BaseUserWidget.h"
+#include "UI/InvenzaBaseWidget.h"
 #include "ItemFiltersPanel.generated.h"
 
 class UEditableText;
@@ -15,7 +15,7 @@ class UHorizontalBox;
  * 
  */
 UCLASS()
-class INVENTORYSYSTEMINVENZAPLUGIN_API UItemFiltersPanel : public UBaseUserWidget
+class INVENTORYSYSTEMINVENZAPLUGIN_API UItemFiltersPanel : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
 

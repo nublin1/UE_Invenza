@@ -9,6 +9,7 @@
 #include "Data/Inventory/InventoryTypes.h"
 #include "SlotbasedInventorySlot.generated.h"
 
+class ULabelBaseText;
 class UTextBlock;
 class UCoreCellWidget;
 /**
@@ -20,6 +21,13 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API USlotbasedInventorySlot : public UInvento
 	GENERATED_BODY()
 
 public:
+	USlotbasedInventorySlot();
+
+protected:
+	virtual void NativePreConstruct() override;
+	virtual void NativeConstruct() override;
+
+public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
@@ -27,19 +35,20 @@ public:
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UCoreCellWidget> CoreCellWidget;
 	UPROPERTY(meta=(BindWidgetOptional))
-	TObjectPtr<UTextBlock> SlotName;
+	TObjectPtr<ULabelBaseText> SlotName;
 
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	USlotbasedInventorySlot();
-
 	virtual void UpdateVisualWithTexture(UTexture2D* NewTexture) override;
 	virtual void ResetVisual() override;
 	virtual void ClearVisual() override;
 
 	UFUNCTION(BlueprintCallable, Category="Inventory")
-	UTexture2D* GetDefaultCellImage() {return DefaultCellImage;}
+	virtual UTexture2D* GetDefaultCellImage() {return DefaultCellImage;}
+
+	UFUNCTION(BlueprintCallable, Category="Inventory")
+	virtual FVector2D GetSlotSize();
 
 	virtual void SetSlotNameText(FString InUseKeyText) override;
 
@@ -61,6 +70,4 @@ protected:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-
-	virtual void NativeConstruct() override;
 };

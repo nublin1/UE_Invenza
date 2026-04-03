@@ -26,6 +26,7 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UInventoryBase : public UObject
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWeightUpdatedDelegate, float, InventoryTotalWeight);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMoneyUpdatedDelegate, int32, InventoryTotalMoney);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryRedrawRequested);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRequestToResetItemVisual, UItemBase*, Item);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSlotsReservedDelegate, TArray<FSlotReservationData>, ReservationData);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnConsumeReservedDelegate, TArray<FSlotReservationData>,
 	                                            ReservationData);
@@ -57,25 +58,26 @@ public:
 	FOnMoneyUpdatedDelegate OnMoneyUpdatedDelegate;
 	UPROPERTY(BlueprintAssignable)
 	FOnInventoryRedrawRequested OnInventoryRedrawRequested;
+	UPROPERTY(BlueprintAssignable)
+	FOnRequestToResetItemVisual OnRequestToResetItemVisual;
 
 	UPROPERTY(BlueprintAssignable)
 	FOnSlotsReservedDelegate OnSlotsReservedDelegate;
 	UPROPERTY(BlueprintAssignable)
 	FOnConsumeReservedDelegate OnConsumeReservedDelegate;
-
+	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Initialization")
 	virtual void InitInventory(UItemCollection* ItemCollectionRef, FVector2D NewSize) {};
-
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Initialization")
-	virtual void SetupStartingResources();
+	
+	UFUNCTION(BlueprintCallable)
+	virtual void RequestToResetItemVisual(UItemBase* Item);
 
 	UFUNCTION(BlueprintCallable)
 	virtual void SortItemsInContainerByName() {};
 	
-
 	UFUNCTION(BlueprintCallable)
 	virtual void HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity)
 	PURE_VIRTUAL(UInventoryBase::HandleRemoveItem,);
@@ -178,7 +180,7 @@ protected:
 	PURE_VIRTUAL(UInventoryBase::AddNewItem, return nullptr;);
 
 	UFUNCTION()
-	virtual int32 TryInsertToStackItem(UItemBase* ResourceToInsertInto, UItemBase* ResourceToDeductFrom, int32 AmountToDistribute, bool bOnlyCheck = false);
+	virtual int32 TryInsertToStackItem(UItemBase* ResourceToInsertInto, int32 AmountToDistribute, bool bOnlyCheck = false);
 	
 	UFUNCTION()
 	virtual int32 TryRemoveFromStackItem(UItemBase* Item, int32 RequestedRemoveAmount);
@@ -186,8 +188,8 @@ protected:
 	UFUNCTION()
 	virtual void RemoveItemFromInventory(UItemBase* Item);
 
-	UFUNCTION()
-	virtual void DeductResourceOnAddToInventory(UItemBase* Resource, int32 DeductAmount);
+	//UFUNCTION()
+	//virtual void DeductResourceOnAddToInventory(UItemBase* Resource, int32 DeductAmount);
 
 	//====================================================================
 	// Event Notifiers
@@ -199,7 +201,7 @@ protected:
 	UFUNCTION()
 	void NotifyRemoveItemFromStack(UItemBase* Item, int32 ChangeQuantity);
 	UFUNCTION()
-	void NotifyFullyRemoveItem(FItemMapping& FromSlots, UItemBase* Item);
+	void NotifyFullyRemoveItem(FItemMapping FromSlots, UItemBase* Item);
 	UFUNCTION()
 	virtual void NotifyReplaceItem(TArray<UInventorySlotData*> OldItemSlots, FItemMapping& NewItemSlots,
 	                               UItemBase* Item);
@@ -212,4 +214,6 @@ protected:
 	virtual void NotifyUpdateMoney();
 	UFUNCTION()
 	virtual void NotifyReDrawRequest();
+	UFUNCTION()
+	virtual void NotifyRequestToResetItemVisual(UItemBase* Item);
 };

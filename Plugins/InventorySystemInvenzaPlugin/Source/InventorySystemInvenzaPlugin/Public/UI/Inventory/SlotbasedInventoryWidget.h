@@ -7,7 +7,7 @@
 #include "UInventoryWidgetBase.h"
 #include "Components/ActorComponent.h"
 #include "Settings/InvnzaSettings.h"
-#include "UI/BaseUserWidget.h"
+#include "UI/InvenzaBaseWidget.h"
 #include "SlotbasedInventoryWidget.generated.h"
 
 class UItemFiltersPanel;
@@ -43,9 +43,9 @@ public:
 	// FUNCTIONS
 	//====================================================================
 	virtual void InitializeInventoryWidget() override;
+	virtual void InitializeInventoryWidgetWithSettings(FInventoryStartupData InventoryStartupData) override;
 	virtual void BindDelegated() override;
 	virtual void ReDrawAllItems() override;
-	virtual void RebuildSlots(int32 InRows, int32 InColumns);
 
 	virtual FIntPoint GetNumberRowsAndColumns() {return FIntPoint(NumberRows, NumColumns);}
 	virtual TArray<UInventorySlotData*> GetSlotData();
@@ -109,6 +109,8 @@ protected:
 	int NumColumns = 0;
 	UPROPERTY()
 	FMargin SlotSpacing;
+	UPROPERTY()
+	FVector2D InvCellSize = FVector2D(64.0f, 64.0f);
 
 	UPROPERTY()
 	TArray<TObjectPtr<UInventorySlot>> InventorySlots;
@@ -124,6 +126,10 @@ protected:
 	virtual void OnFilterStatusChanged(UUIButton* ItemCategoryButton) override;
 	virtual void RefreshFilteredItemsList() override;
 	virtual void SearchTextChanged(const FText& NewText) override;
+
+	//
+	UFUNCTION(BlueprintCallable)
+	virtual void ResetItemVisual(UItemBase* ItemToReset);
 	
 	//
 	virtual UInventorySlot* GetSlotByPosition(FIntPoint SlotPosition);
@@ -131,7 +137,8 @@ protected:
 
 	UFUNCTION()
 	FVector2D CalculateItemVisualPosition(FIntPoint SlotPosition) const;
-
+	UFUNCTION()
+	FVector2D CalculateItemVisualSize(UItemBase* Item, EItemOrientationType Orientation, FVector2D SlotSize, bool bIgnoreSize) const;
 	
 	virtual void AddItemToPanel(FItemMapping& ItemSlots, UItemBase* Item) override;
 	UFUNCTION()
@@ -139,6 +146,7 @@ protected:
 	virtual void UpdateItem(UItemBase* Item, int32 ChangedAmount) override;
 	virtual void UpdateSlotInPanel(FItemMapping FromSlots, UItemBase* Item);
 	virtual void RemoveItemFromPanel(FItemMapping FromSlots, UItemBase* Item) override;
+	
 	UFUNCTION()
 	virtual void UsedItemInPanel(UInventorySlotData* UsedSlot);
 	
@@ -158,5 +166,5 @@ protected:
 	virtual void NativeOnDragLeave(const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 	virtual bool NativeOnDragOver(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 	virtual bool NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
-	
+	virtual void NativeOnDragCancelled(const FDragDropEvent& InDragDropEvent,UDragDropOperation* InOperation) override;
 };

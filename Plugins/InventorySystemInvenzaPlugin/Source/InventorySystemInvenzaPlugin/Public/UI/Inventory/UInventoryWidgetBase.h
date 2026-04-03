@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Data/Inventory/InventoryTypes.h"
 #include "Settings/InvnzaSettings.h"
-#include "UI/BaseUserWidget.h"
+#include "UI/InvenzaBaseWidget.h"
 #include "UI/Inventory/Container/InvBaseContainerWidget.h"
 #include "UInventoryWidgetBase.generated.h"
 
@@ -18,7 +18,7 @@ class UInventoryBase;
  * 
  */
 UCLASS(Abstract)
-class INVENTORYSYSTEMINVENZAPLUGIN_API UUInventoryWidgetBase : public UBaseUserWidget
+class INVENTORYSYSTEMINVENZAPLUGIN_API UUInventoryWidgetBase : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
 
@@ -44,7 +44,9 @@ public:
 	// FUNCTIONS
 	//====================================================================
 	UFUNCTION(Category="Inventory")
-	virtual void InitializeInventoryWidget() PURE_VIRTUAL(UUInventoryWidgetBase::InitializeInventory,);
+	virtual void InitializeInventoryWidget(){} /*PURE_VIRTUAL(UUInventoryWidgetBase::InitializeInventory,)*/;
+	UFUNCTION(Category="Inventory")
+	virtual void InitializeInventoryWidgetWithSettings(FInventoryStartupData InventoryStartupData){}
 
 	UFUNCTION(Category="Inventory")
 	virtual void BindDelegated() PURE_VIRTUAL(UUInventoryWidgetBase::BindDelegated,);
