@@ -53,10 +53,13 @@ public:
 	// FUNCTIONS
 	//====================================================================
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	void CreateInventories();
+	void InitializeInventoryManager();
+	
 protected:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	void CreateWidget(FInventoryStartupData StartupData);
+	void CreateInventories();
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	bool CreateWidget(FInventoryStartupData StartupData, UInventoryBase* InvToLink);
 public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void InitWidgets();
@@ -124,6 +127,9 @@ protected:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TMap<FString, TObjectPtr<UInventoryBase>> Inventories;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	TMap<TObjectPtr<UInventoryBase>, TObjectPtr<UInvBaseContainerWidget>> InventorContainerWidgetMap;
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TObjectPtr<UInventoryBase> MainPawnInventory;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)

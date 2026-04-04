@@ -3,9 +3,11 @@
 
 #include "UI/GameMenu/GameMenuLayerInv.h"
 
+#include "Blueprint/WidgetLayoutLibrary.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Components/NamedSlot.h"
 #include "Components/PanelWidget.h"
+#include "Data/Inventory/InventoryBase.h"
 
 UGameMenuLayerInv::UGameMenuLayerInv()
 {
@@ -53,10 +55,22 @@ UPanelSlot* UGameMenuLayerInv::AddPawnInvContainers(UInvBaseContainerWidget* Inv
 	if (!PawnInventories) return nullptr;
 
 	UPanelSlot* InvContainerSlot = PawnInventories->AddChild(InvContainerToAdd);
+	EInventoryType Type = InvContainerToAdd->GetInventoryWidgetFromContainerSlot()->GetInventoryRef()->GetInventorySettings().InventoryType;
+
+	if (InventoryDefaultPositions.Contains(Type))
+	{
+		if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(Slot))
+		{
+			CanvasSlot->SetPosition(InventoryDefaultPositions[Type]);
+		}
+	}
+
+	
 	return InvContainerSlot;
 }
 
-/*FVector2D UGameMenuLayerInv::CalculateNextInventoryPosition(UCanvasPanelSlot* ParentSlot, FVector2D WindowSize) const
+/*
+FVector2D UGameMenuLayerInv::CalculateNextInventoryPosition(UCanvasPanelSlot* ParentSlot, FVector2D WindowSize) const
 {
 	const float OffsetX = 40.f;
 	const float OffsetY = -20.f;
@@ -66,22 +80,32 @@ UPanelSlot* UGameMenuLayerInv::AddPawnInvContainers(UInvBaseContainerWidget* Inv
 	{
 		FVector2D ParentPos = ParentSlot->GetPosition();
 		FVector2D ParentSize = ParentSlot->GetSize();
-
+		
 		Position = ParentPos + FVector2D(ParentSize.X + OffsetX, OffsetY);
 	}
 	else
 	{
-		const int32 Index = PawnInventories->GetChildrenCount();
-
+		const int32 Index = PawnInventories ? PawnInventories->GetChildrenCount() : 0;
 		Position.X = 500.f + Index * OffsetX;
 		Position.Y = 200.f + Index * OffsetY;
 	}
 
-	FVector2D ViewportSize;
-	GEngine->GameViewport->GetViewportSize(ViewportSize);
+	if (UWorld* World = GetWorld())
+	{
+		// Получаем размер вьюпорта (уже в Slate Units, адаптированный под DPI!)
+		FVector2D ViewportSize = UWidgetLayoutLibrary::GetViewportSize(World);
+		float DPIScale = UWidgetLayoutLibrary::GetViewportScale(World);
+        
+		// Переводим пиксели в единицы интерфейса (если GetViewportSize вернул сырые пиксели)
+		// В зависимости от версии UE, GetViewportSize может отдавать нескалированные значения.
+		// Чтобы железно работало везде, делим размер вьюпорта на DPI Scale:
+		FVector2D ScaledViewportSize = ViewportSize / DPIScale;
 
-	Position.X = FMath::Clamp(Position.X, 0.f, ViewportSize.X - WindowSize.X);
-	Position.Y = FMath::Clamp(Position.Y, 0.f, ViewportSize.Y - WindowSize.Y);
+		// Теперь Clamp работает в одной системе координат!
+		Position.X = FMath::Clamp(Position.X, 0.f, ScaledViewportSize.X - WindowSize.X);
+		Position.Y = FMath::Clamp(Position.Y, 0.f, ScaledViewportSize.Y - WindowSize.Y);
+	}
 
 	return Position;
-}*/
+}
+*/

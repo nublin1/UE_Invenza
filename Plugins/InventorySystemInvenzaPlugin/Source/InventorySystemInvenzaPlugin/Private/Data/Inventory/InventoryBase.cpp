@@ -16,6 +16,19 @@ UInventoryBase::UInventoryBase()
 	}
 }
 
+UInventoryBase* UInventoryBase::CreateInventory(UObject* Outer, FInventoryStartupData StartupData)
+{
+	UInventoryBase* Inventory =
+			NewObject<UInventoryBase>(Outer, StartupData.InventoryClass);
+
+	if (!Inventory)
+		return nullptr;
+
+	Inventory->SetInventorySettings(StartupData.Settings);
+
+	return Inventory;
+}
+
 void UInventoryBase::RequestToResetItemVisual(UItemBase* Item)
 {
 	if (!Item) return;

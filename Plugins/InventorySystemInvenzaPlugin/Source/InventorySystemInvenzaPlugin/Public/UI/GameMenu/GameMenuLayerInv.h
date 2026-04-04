@@ -46,6 +46,8 @@ protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory UI")
+	TMap<EInventoryType, FVector2D> InventoryDefaultPositions;
 	
 	//====================================================================
 	// FUNCTIONS

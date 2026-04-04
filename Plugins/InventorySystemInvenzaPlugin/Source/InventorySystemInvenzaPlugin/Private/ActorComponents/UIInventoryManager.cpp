@@ -42,7 +42,15 @@ UIInventoryManager::UIInventoryManager()
 void UIInventoryManager::BeginPlay()
 {
 	Super::BeginPlay();
+	InitializeInventoryManager();
+}
 
+void UIInventoryManager::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+{
+}
+
+void UIInventoryManager::InitializeInventoryManager()
+{
 	auto Collection = GetOwner()->FindComponentByClass<UItemCollection>();
 	if (!Collection)
 		return;
@@ -73,21 +81,15 @@ void UIInventoryManager::BeginPlay()
 	SetupStartingResources();
 }
 
-void UIInventoryManager::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
-{
-}
-
 void UIInventoryManager::CreateInventories()
 {
-	for (const FInventoryStartupData& StartupData : StartupInventories)
+	for (FInventoryStartupData& StartupData : StartupInventories)
 	{
-		UInventoryBase* Inventory =
-			NewObject<UInventoryBase>(this, StartupData.InventoryClass);
+		UInventoryBase* Inventory =	UInventoryBase::CreateInventory(this, StartupData);
 
 		if (!Inventory)
 			continue;
-
-		Inventory->SetInventorySettings(StartupData.Settings);
+		
 		Inventory->SetItemCollectionLink(ItemCollectionRef);
 		StartingItems.Add(Inventory, StartupData.StartItems);
 
@@ -98,22 +100,57 @@ void UIInventoryManager::CreateInventories()
 		{
 			MainPawnInventory = Inventory;
 		}
+
+		if (!StartupData.Settings.bCollectInvDataFromWidget)
+		{
+			CreateWidget(StartupData, Inventory);
+		}
 	}
 }
 
-void UIInventoryManager::CreateWidget(FInventoryStartupData StartupData)
+bool UIInventoryManager::CreateWidget(FInventoryStartupData StartupData, UInventoryBase* InvToLink)
 {
+	if (!UIInvProvider)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UIInventoryManager::InitWidgets: UIProvider is not set!"));
+		return false;
+	}
+	
 	auto InvContainer =  UInvenzaWidgetFactory::CreateInventoryWidget(
 		UGameplayStatics::GetPlayerController(GetWorld(), 0),
 		StartupData.Settings.ContainerWidgetClass,
 		StartupData.Settings.InventoryWidgetClass,
 		nullptr);
 
-	if (!InvContainer)
-		return;
+	if (!InvContainer || !InvToLink)
+		return false;
 
-	InvContainer->GetInventoryWidgetFromContainerSlot()->InitializeInventoryWidgetWithSettings(StartupData);
+	auto InvWidget = InvContainer->GetInventoryWidgetFromContainerSlot();
+	InvWidget->InitializeInventoryWidgetWithSettings(StartupData);
 	
+	if (UListInventoryWidget* ListBased = Cast<UListInventoryWidget>(InvWidget))
+	{
+		auto TarListInv = Cast<UListInventory>(InvToLink);
+		if (!TarListInv)
+		{
+			InvContainer->BeginDestroy();
+			return false;
+		}
+		
+		TarListInv->SetEntryClass(TarListInv->GetInventorySettings().EntryClass);
+	}
+	
+	InvWidget->SetInventoryBaseRef(InvToLink);		
+	InvWidget->SetUISettings(UISettings);
+	InvWidget->BindDelegated();
+
+	InvWidget->OnItemDroppedDelegate.AddDynamic(this, &UIInventoryManager::ItemTransferRequest);
+
+	UIInvProvider->AddPawnInvContainers(InvContainer);
+
+	InventorContainerWidgetMap.Add(InvToLink, InvContainer);
+	
+	return true;
 }
 
 void UIInventoryManager::InitWidgets()
@@ -123,27 +160,36 @@ void UIInventoryManager::InitWidgets()
 		UE_LOG(LogTemp, Warning, TEXT("UIInventoryManager::InitWidgets: UIProvider is not set!"));
 		return;
 	}
-	
-	for (auto WidgetBase : UIInvProvider->GetAllPawnInventories())
+
+	auto AllPawnContInvs = UIInvProvider->GetAllPawnInvContainers();
+	if (AllPawnContInvs.IsEmpty())
 	{
-		if (!WidgetBase)
+		UE_LOG(LogTemp, Warning, TEXT("UIInventoryManager::InitWidgets: PawnInvs is empty!"));
+		return;
+	}
+	
+	for (auto ContInvs : AllPawnContInvs)
+	{
+		if (!ContInvs || !ContInvs->GetInventoryWidgetFromContainerSlot())
 			continue;
 
-		if (!WidgetBase->TargetInventoryTag.IsValid())
+		auto InvWidget = ContInvs->GetInventoryWidgetFromContainerSlot();
+
+		if (!InvWidget->TargetInventoryTag.IsValid())
 		{
 			UE_LOG(LogTemp, Warning, TEXT("UIInventoryManager::InitWidgets: TargetInventoryTag is not set!"));
 			continue;
 		};
 		
 
-		auto TarInv = GetInventoryByTag(WidgetBase->TargetInventoryTag);
+		auto TarInv = GetInventoryByTag(InvWidget->TargetInventoryTag);
 		if (!TarInv)
 			continue;
 
-		if (USlotbasedInventoryWidget* SlotBased = Cast<USlotbasedInventoryWidget>(WidgetBase))
+		if (USlotbasedInventoryWidget* SlotBased = Cast<USlotbasedInventoryWidget>(InvWidget))
 		{
 			SlotBased->SetInventoryBaseRef(TarInv);			
-			WidgetBase->InitializeInventoryWidget();
+			InvWidget->InitializeInventoryWidget();
 			
 			auto TarSlotInv = Cast<USlotbasedInventory>(TarInv);
 			if (!TarSlotInv)
@@ -157,9 +203,9 @@ void UIInventoryManager::InitWidgets()
 			SlotBased->SetUISettings(UISettings);
 			SlotBased->BindDelegated();
 		}
-		else if (UListInventoryWidget* ListBased = Cast<UListInventoryWidget>(WidgetBase))
+		else if (UListInventoryWidget* ListBased = Cast<UListInventoryWidget>(InvWidget))
 		{
-			WidgetBase->InitializeInventoryWidget();
+			InvWidget->InitializeInventoryWidget();
 			
 			auto TarListInv = Cast<UListInventory>(TarInv);
 			if (!TarListInv)
@@ -172,7 +218,9 @@ void UIInventoryManager::InitWidgets()
 			ListBased->BindDelegated();
 		}
 
-		WidgetBase->OnItemDroppedDelegate.AddDynamic(this, &UIInventoryManager::ItemTransferRequest);
+		InvWidget->OnItemDroppedDelegate.AddDynamic(this, &UIInventoryManager::ItemTransferRequest);
+
+		InventorContainerWidgetMap.Add(TarInv, ContInvs);
 	}
 
 	for (auto ContainerBase : UIInvProvider->GetAllPawnInvContainers())

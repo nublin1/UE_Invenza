@@ -127,12 +127,10 @@ UENUM(BlueprintType)
 enum class EInventoryType : uint8
 {
 	None UMETA(DisplayName = "None"),
-	Hotbar UMETA(DisplayName = "Hotbar"),
-	Inventory UMETA(DisplayName = "Inventory"),
 	MainInventory UMETA(DisplayName = "MainInventory"),
+	Inventory UMETA(DisplayName = "Inventory"),
 	VendorInventory UMETA(DisplayName = "VendorInventory"),
-	ContainerInventory UMETA(DisplayName = "ContainerInventory"),
-	EquipmentInventory UMETA(DisplayName = "EquipmentInventory"),
+	LootContainer UMETA(DisplayName = "LootContainer"),
 };
 
 USTRUCT(BlueprintType)
@@ -211,8 +209,11 @@ struct FInventorySettings
 {
 	GENERATED_BODY()
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
 	FGameplayTag InventoryTag;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
+	EInventoryType InventoryType = EInventoryType::None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory", meta = (ToolTip = "-1 means infinite capacity"))
 	float InventoryMaxWeightCapacity = -1.0f;

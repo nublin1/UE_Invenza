@@ -69,6 +69,9 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	static UInventoryBase* CreateInventory(UObject* Outer, FInventoryStartupData StartupData);
+	
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Initialization")
 	virtual void InitInventory(UItemCollection* ItemCollectionRef, FVector2D NewSize) {};
 	
