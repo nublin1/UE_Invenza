@@ -14,6 +14,8 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UInteractableComponent : public UActorCom
 	GENERATED_BODY()
 
 public:
+	UInteractableComponent();
+	
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
@@ -21,8 +23,6 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UInteractableComponent();
-
 	UFUNCTION()
 	virtual void BeginFocus();
 	UFUNCTION()
@@ -56,6 +56,4 @@ protected:
 	virtual void InitializeInteractionComponent();
 	UFUNCTION()
 	virtual void UpdateInteractableData();
-
-
 };

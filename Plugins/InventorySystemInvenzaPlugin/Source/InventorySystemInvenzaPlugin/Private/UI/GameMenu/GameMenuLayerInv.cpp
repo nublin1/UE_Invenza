@@ -50,23 +50,42 @@ TArray<UInvBaseContainerWidget*> UGameMenuLayerInv::GetAllPawnInvContainers() co
 	return Result;
 }
 
-UPanelSlot* UGameMenuLayerInv::AddPawnInvContainers(UInvBaseContainerWidget* InvContainerToAdd) const
+UPanelSlot* UGameMenuLayerInv::AddPawnInvContainerWidget(UInvBaseContainerWidget* InvContainerWidgetToAdd) const
 {
 	if (!PawnInventories) return nullptr;
 
-	UPanelSlot* InvContainerSlot = PawnInventories->AddChild(InvContainerToAdd);
-	EInventoryType Type = InvContainerToAdd->GetInventoryWidgetFromContainerSlot()->GetInventoryRef()->GetInventorySettings().InventoryType;
+	UPanelSlot* InvContainerSlot = PawnInventories->AddChild(InvContainerWidgetToAdd);
+
+	auto InvWidget = InvContainerWidgetToAdd->GetInventoryWidgetFromContainerSlot();
+	InvWidget->ReDrawAllItems();
+	EInventoryType Type = InvWidget->GetInventoryRef()->GetInventorySettings().InventoryType;
 
 	if (InventoryDefaultPositions.Contains(Type))
 	{
-		if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(Slot))
+		if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(InvContainerSlot))
 		{
+			CanvasSlot->SetAutoSize(true);
+			CanvasSlot->SetSize(FVector2D(0,0));
 			CanvasSlot->SetPosition(InventoryDefaultPositions[Type]);
 		}
 	}
 
 	
 	return InvContainerSlot;
+}
+
+void UGameMenuLayerInv::RemovePawnInvContainer(UInvBaseContainerWidget* InvContainerToRemove) const
+{
+	if (!PawnInventories) return;
+
+	for (int32 i = 0; i < PawnInventories->GetChildrenCount(); i++)
+	{
+		if (PawnInventories->GetChildAt(i) == InvContainerToRemove)
+		{
+			PawnInventories->RemoveChildAt(i);
+			break;
+		}
+	}
 }
 
 /*

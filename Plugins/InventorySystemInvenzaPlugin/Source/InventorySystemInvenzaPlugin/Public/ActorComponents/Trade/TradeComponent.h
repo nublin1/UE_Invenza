@@ -1,19 +1,14 @@
-//  Nublin Studio 2025 All Rights Reserved.
+//  Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "TradeTypes.h"
 #include "Components/ActorComponent.h"
+#include "Data/Trade/TradeTypes.h"
 #include "TradeComponent.generated.h"
 
-#pragma region Delegates
 class UUInventoryWidgetBase;
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSoldItem, UItemBase*, Item);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBoughtItem, UItemBase*, Item);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFaildToBuyItem, UItemBase*, Item);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFaildToSellItem, UItemBase*, Item);
-#pragma endregion Delegates
 
 struct FItemMapping;
 class UIInventoryManager;
@@ -25,6 +20,13 @@ UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class INVENTORYSYSTEMINVENZAPLUGIN_API UTradeComponent : public UActorComponent
 {
 	GENERATED_BODY()
+
+#pragma region Delegates
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSoldItem, UItemBase*, Item);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBoughtItem, UItemBase*, Item);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFaildToBuyItem, UItemBase*, Item);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFaildToSellItem, UItemBase*, Item);
+#pragma endregion Delegates
 
 public:
 	//====================================================================
@@ -84,8 +86,7 @@ protected:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UFUNCTION()
-	static float CalculateAvailableMoney(UItemCollection* Collection);
-	UFUNCTION()
-	static FMoneyCalculationResult AccumulatePayment(UItemCollection* ItemCollection, float FullPrice);
+
+	/*UFUNCTION()
+	static FMoneyCalculationResult AccumulatePayment(UItemCollection* ItemCollection, float FullPrice);*/
 };

@@ -46,7 +46,7 @@ public:
 	UFUNCTION(Category="Inventory")
 	virtual void InitializeInventoryWidget(){} /*PURE_VIRTUAL(UUInventoryWidgetBase::InitializeInventory,)*/;
 	UFUNCTION(Category="Inventory")
-	virtual void InitializeInventoryWidgetWithSettings(FInventoryStartupData InventoryStartupData){}
+	virtual void InitializeInventoryWidgetWithSettings(FInventorySettings InventoryStartupData){}
 
 	UFUNCTION(Category="Inventory")
 	virtual void BindDelegated() PURE_VIRTUAL(UUInventoryWidgetBase::BindDelegated,);

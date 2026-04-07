@@ -22,6 +22,36 @@ UInvBaseContainerWidget::UInvBaseContainerWidget()
 {
 }
 
+void UInvBaseContainerWidget::NativePreConstruct()
+{
+	Super::NativePreConstruct();
+	
+	if (TitleBar)
+	{
+		TitleBar->TitleName->SetText(Title);
+		
+		if (!bIsShowCloseButton)
+			TitleBar->Button_Close->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
+	if (OperationsSlot)
+	{
+		if (!OperationsSlot->GetContent())
+		{
+			OperationsSlot->SetVisibility(ESlateVisibility::Collapsed);
+		}
+		else
+		{
+			OperationsSlot->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+		}
+	}
+	
+	if (!bIsShowTotalMoney && InvMoney)
+		InvMoney->SetVisibility(ESlateVisibility::Collapsed);
+	if (!bIsShowWeight)
+		InvWeight->SetVisibility(ESlateVisibility::Collapsed);
+}
+
 void UInvBaseContainerWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
@@ -31,15 +61,9 @@ void UInvBaseContainerWidget::NativeConstruct()
 	if (TitleBar)
 	{
 		TitleBar->SetParentWidget(this);
-		TitleBar->TitleName->SetText(Title);
-		TitleBar->Button_Close->OnClicked.AddDynamic(this, &UInvBaseContainerWidget::CloseButtonClicked);
-		if (!bIsShowCloseButton)
-			TitleBar->Button_Close->SetVisibility(ESlateVisibility::Collapsed);
-		if (!bIsShowTotalMoney && InvMoney)
-			InvMoney->SetVisibility(ESlateVisibility::Collapsed);
-		if (!bIsShowWeight)
-			InvWeight->SetVisibility(ESlateVisibility::Collapsed);
 		
+		if (!bIsShowCloseButton)
+			TitleBar->Button_Close->OnClicked.AddDynamic(this, &UInvBaseContainerWidget::CloseButtonClicked);
 	}
 }
 

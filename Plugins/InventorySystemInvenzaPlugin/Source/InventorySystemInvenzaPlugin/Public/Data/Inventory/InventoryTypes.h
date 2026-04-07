@@ -1,4 +1,4 @@
-//  Nublin Studio 2025 All Rights Reserved.
+//  Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -9,6 +9,7 @@
 #include "InventoryTypes.generated.h"
 
 
+class USlotbasedInventorySlot;
 class UInventoryListEntry;
 class UInventoryBase;
 class USlotbasedInventory;
@@ -190,6 +191,9 @@ struct FInventorySlotBasedSettings
 {
 	GENERATED_BODY()
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
+	TSubclassOf<USlotbasedInventorySlot> SlotbasedInventorySlotClass;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|Slots", 
 		meta=(ToolTip="If true, item size will be ignored when placing items. Used for slot-based inventory systems"))
 	bool bIgnoreItemSize = false;
@@ -209,10 +213,13 @@ struct FInventorySettings
 {
 	GENERATED_BODY()
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory")
+	//FName InventoryTitleName;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory")
 	FGameplayTag InventoryTag;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory")
 	EInventoryType InventoryType = EInventoryType::None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory", meta = (ToolTip = "-1 means infinite capacity"))
@@ -245,6 +252,8 @@ struct FInventorySettings
 	bool bCollectInvDataFromWidget = true;
 
 	// Assets
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<UInventoryBase> InventoryClass;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|UI")
 	TSubclassOf<UInvBaseContainerWidget> ContainerWidgetClass;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|UI")
@@ -266,32 +275,11 @@ struct FInventoryStartupData
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<UInventoryBase> InventoryClass;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FInventorySettings Settings;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FInitItemsEntry> StartItems;
 };
-
-/*USTRUCT(BlueprintType)
-struct FInventoryData
-{
-	GENERATED_BODY()
-	
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Inventory")
-	TObjectPtr<UItemTooltipWidget> ItemTooltipWidget = nullptr;
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Inventory")
-	TArray<UInventorySlot*> InventorySlots;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
-	float InventoryTotalWeight = 0;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
-	int32 InventoryTotalMoney = 0;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
-	TObjectPtr<USlotbasedInventoryWidget> InventoryLink;
-};*/
-
 
 USTRUCT(Blueprintable)
 struct FItemMapping
@@ -300,6 +288,8 @@ struct FItemMapping
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
 	FString InventoryID;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
+	bool bIsReferenceContainer = false;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
 	EInventoryType InventoryType = EInventoryType::None;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
@@ -321,6 +311,7 @@ struct FItemMapping
 	bool operator==(const FItemMapping& Other) const
 	{
 		return InventoryID == Other.InventoryID
+			&& bIsReferenceContainer == Other.bIsReferenceContainer
 			&& ItemOrientation == Other.ItemOrientation
 			&& ItemVisualLinked == Other.ItemVisualLinked
 			&& ItemVisualRepresentation == Other.ItemVisualRepresentation

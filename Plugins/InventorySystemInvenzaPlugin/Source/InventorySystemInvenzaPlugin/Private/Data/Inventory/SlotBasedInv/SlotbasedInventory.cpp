@@ -9,16 +9,14 @@ USlotbasedInventory::USlotbasedInventory()
 {
 }
 
-void USlotbasedInventory::InitInventory(UItemCollection* ItemCollectionRef, FVector2D NewSize)
+void USlotbasedInventory::InitInventory()
 {
-	if (!ItemCollectionRef)
-		return;
+	Super::InitInventory();
 
-	if (NewSize.X <= 0 || NewSize.Y <= 0)
-		return;
-
-	ItemCollectionLinked = ItemCollectionRef;
-	InvSize = NewSize;
+	if (!InventorySettings.bCollectInvDataFromWidget)
+	{
+		GenerateInventorySlots();
+	}
 
 	bWasInit = true;
 }
@@ -934,7 +932,7 @@ TArray<UInventorySlotData*> USlotbasedInventory::GetIgnoreSlotsForItem(UItemBase
 
 UInventorySlotData* USlotbasedInventory::GetSlotByPosition(FIntPoint SlotPosition)
 {
-	for (auto& Elem : InvSlotsDatas)
+	for (auto& Elem : InventorySlotData)
 	{
 		if (Elem->CellPosition == SlotPosition)
 			return Elem;
@@ -977,4 +975,32 @@ UItemBase* USlotbasedInventory::GetItemFromSlot(UInventorySlotData* Slot)
 	}
 
 	return nullptr;
+}
+
+void USlotbasedInventory::GenerateInventorySlots()
+{
+	if (InvSize.X <= 0 || InvSize.Y <= 0)
+		return;
+
+	TArray<UInventorySlotData*> ResultSlots;
+	int32 TotalSlots = InvSize.X * InvSize.Y;
+	ResultSlots.Reserve(TotalSlots);
+
+	for (int32 X = 0; X < InvSize.X; X++)
+	{
+		for (int32 Y = 0; Y < InvSize.Y; Y++)
+		{
+			UInventorySlotData* NewSlot = UInventorySlotData::CreateWithData(
+				this->GetOuter(),
+				NAME_None,
+				FIntPoint(X, Y),
+				nullptr,
+				EItemCategory::All);
+
+			if (NewSlot)
+				ResultSlots.Add(NewSlot);
+		}
+	}
+
+	InventorySlotData = ResultSlots;
 }

@@ -71,9 +71,12 @@ public:
 	//====================================================================
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	static UInventoryBase* CreateInventory(UObject* Outer, FInventoryStartupData StartupData);
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	virtual void InitInventory();
 	
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Initialization")
-	virtual void InitInventory(UItemCollection* ItemCollectionRef, FVector2D NewSize) {};
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	virtual void InitInventoryWithSettings(FInventorySettings NewInventorySettings);
 	
 	UFUNCTION(BlueprintCallable)
 	virtual void RequestToResetItemVisual(UItemBase* Item);
@@ -116,10 +119,8 @@ public:
 
 	// Setters
 	UFUNCTION(BlueprintCallable)
-	virtual void SetInventorySettings(FInventorySettings NewInventorySettings)
-	{
-		InventorySettings = NewInventorySettings;
-	}
+	virtual void SetInventorySettings(FInventorySettings NewInventorySettings) {InventorySettings = NewInventorySettings;}
+	
 
 	UFUNCTION(BlueprintCallable)
 	virtual void SetInitialItems(TArray<FInitItemsEntry> NewInitialItems) { InitialItems = NewInitialItems; }

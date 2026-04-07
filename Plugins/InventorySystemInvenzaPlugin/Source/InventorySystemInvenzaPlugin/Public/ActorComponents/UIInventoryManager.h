@@ -10,6 +10,7 @@
 #include "Data/Inventory/InventoryTypes.h"
 #include "UIInventoryManager.generated.h"
 
+class IVendorProvider;
 class IInteractionUIProvider;
 class UInteractionComponent;
 class IInvUIProvider;
@@ -59,11 +60,13 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void CreateInventories();
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	bool CreateWidget(FInventoryStartupData StartupData, UInventoryBase* InvToLink);
-public:
+	void CreateWidgetsForInventories(); 
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	bool CreateWidget(UInventoryBase* InvToLink);
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void InitWidgets();
-
+	
+public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Trade")
 	void OpenTradeModal(bool bIsSaleOperation, UItemBase* OperationalItem);
 
@@ -110,24 +113,29 @@ protected:
 	
 	TMap<UInventoryBase*, TArray<FInitItemsEntry>> StartingItems;
 
+	TArray<UInventoryBase*> InventoryWidgetInitMap;
+
 	//
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Settings")
 	FUISettings UISettings;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Settings")
 	FInventoryModifierState InventoryModifierState;
-	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
-	TObjectPtr<UModalTradeWidget> ModalTradeWidget;
 
 	//
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TScriptInterface<IInvUIProvider> UIInvProvider;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TScriptInterface<IInteractionUIProvider> InteractionUIProvider;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	TScriptInterface<IVendorProvider> VendorProviderCurrent;
+
+	//
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
+	TObjectPtr<UInventoryBase> ExternalInventory;
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
 	TMap<FString, TObjectPtr<UInventoryBase>> Inventories;
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
 	TMap<TObjectPtr<UInventoryBase>, TObjectPtr<UInvBaseContainerWidget>> InventorContainerWidgetMap;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
@@ -149,12 +157,17 @@ protected:
 
 	
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Trade")
-	virtual ETradeResult VendorRequest(FTradeRequest TradeRequest);
+	virtual void VendorRequest(FItemMoveData ItemMoveData);
 
+	
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
-	void SetInteractableType(UInteractableComponent* InteractData);
+	void HandleInteract(UInteractableComponent* TargetInteractableComponent);
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
-	void ClearInteractableType(UInteractableComponent* InteractData = nullptr);
+	void HandleClearInteraction(UInteractableComponent* TargetInteractableComponent = nullptr);
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	void OpenExternalInventory(UInventoryBase* Inv);
+	
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
 	void BindInteractionWidget();
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")

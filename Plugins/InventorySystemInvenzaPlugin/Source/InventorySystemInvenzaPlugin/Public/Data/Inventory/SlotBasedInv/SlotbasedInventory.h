@@ -28,9 +28,9 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	virtual void InitInventory(UItemCollection* ItemCollectionRef, FVector2D NewSize ) override;
-	
 
+	virtual void InitInventory() override;
+	
 	//
 	virtual void SortItemsInContainerByName() override;
 	
@@ -52,7 +52,7 @@ public:
 
 	// Getters
 	UFUNCTION()
-	TArray<UInventorySlotData*> GetInvSlots() const {return InvSlotsDatas;}
+	TArray<UInventorySlotData*> GetInventorySlots() const {return InventorySlotData;}
 	UFUNCTION(BlueprintCallable)
 	TArray<UItemBase*> GetAllItems();
 	UFUNCTION(BlueprintCallable, meta = (ToolTip = "Returns a list of resources stored in this container, aggregating identical resources and summing their total amount."))
@@ -66,14 +66,14 @@ public:
 
 	// Setters
 	UFUNCTION()
-	void SetInvSlots (const TArray<UInventorySlotData*>& InSlots) {this->InvSlotsDatas = InSlots;}
+	void SetInventorySlots (const TArray<UInventorySlotData*>& InSlots) {this->InventorySlotData = InSlots;}
 
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	TArray<TObjectPtr<UInventorySlotData>> InvSlotsDatas;
+	TArray<TObjectPtr<UInventorySlotData>> InventorySlotData;
 	
 	//UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TMap<TObjectPtr<AActor>, TArray<FSlotReservationData>> ReservedSlotsToAdd;
@@ -125,5 +125,8 @@ protected:
 	TArray<UItemBase*> GetAllSameItems(UItemBase* ReferenceItem);
 	UFUNCTION()
 	UItemBase* GetItemFromSlot(UInventorySlotData* Slot);
+
+	UFUNCTION()
+	void GenerateInventorySlots();
 	
 };

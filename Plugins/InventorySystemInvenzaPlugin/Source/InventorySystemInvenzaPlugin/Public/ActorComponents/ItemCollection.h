@@ -44,6 +44,8 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+	UFUNCTION(BlueprintCallable, Category = "Item Collection")
+	float CalculateAvailableMoney();
 
 	TMap<TObjectPtr<UItemBase>, FItemMappingArrayWrapper> GetItemLocations() const {return ItemLocations;}
 
@@ -71,7 +73,6 @@ public:
 	UFUNCTION()
 	void SetInvManager(UIInventoryManager* NewManager) {InvManager = NewManager;}
 	
-
 	void SerializeForSave(TArray<FItemSaveEntry>& OutData);
 	void DeserializeFromSave(TArray<FItemSaveEntry> InData);
 

@@ -11,6 +11,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Data/Inventory/InventoryBase.h"
+#include "Factory/ItemFactory.h"
 #include "Kismet/GameplayStatics.h"
 #include "UI/Inventory/SlotbasedInventoryWidget.h"
 #include "UI/Inventory/UInventoryWidgetBase.h"
@@ -25,13 +26,13 @@ UContainerComponent::UContainerComponent()
 void UContainerComponent::OnRegister()
 {
 	Super::OnRegister();
-	
 }
 
 void UContainerComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	CachedMesh = GetOwner()->FindComponentByClass<UStaticMeshComponent>();
+	
 	InitializeInteractionComponent();
 }
 
@@ -57,85 +58,42 @@ void UContainerComponent::Interact(UInteractionComponent* InteractionComponent)
 {
 	Super::Interact(InteractionComponent);
 
-	if (!ItemCollection) return;
-	
-	FindContainerWidget();
-	InitializeItemCollection();	
-	
-	/*if (!InventoryWidget) return;
+	if (!ItemCollectionRef) return;
 
-	CurrentInteractionComponent = InteractionComponent;
-	InventoryWidget->OnVisibilityChanged.AddDynamic(this, &UContainerComponent::ContainerWidgetVisibilityChanged);
-	//InventoryWidget->OnPostRemoveItemDelegate.AddDynamic(this, &UContainerComponent::DestroyWhenEmpty);
-	
+	CurrentInteractionComponent = InteractionComponent;	
 	if (bIsInteracting == false)
 	{
-		InventoryWidget->ReDrawAllItems();
 		bIsInteracting = true;
 	}
 	else
 	{
 		bIsInteracting = false;
-	}*/
+	}
 }
 
 void UContainerComponent::StopInteract(UInteractionComponent* InteractionComponent)
 {
 	Super::StopInteract(InteractionComponent);
-
-	/*if (InventoryWidget)
-	{
-		InventoryWidget->OnVisibilityChanged.RemoveDynamic(this, &UContainerComponent::ContainerWidgetVisibilityChanged);
-		//InventoryWidget->OnPostRemoveItemDelegate.RemoveDynamic(this, &UContainerComponent::DestroyWhenEmpty);
-	}
-	ContainerWidget=nullptr;
+	
 	bIsInteracting = false;
-	CurrentInteractionComponent = nullptr;*/
+	CurrentInteractionComponent = nullptr;
 }
 
-void UContainerComponent::ContainerWidgetVisibilityChanged(ESlateVisibility NewVisibility)
+const TMap<FString, TObjectPtr<UInventoryBase>>& UContainerComponent::GetInventoriesToDisplay() const
 {
-	if (NewVisibility != ESlateVisibility::Visible)
-	{
-		CurrentInteractionComponent->StopInteract();
-	}
+	return Inventories;
 }
 
 void UContainerComponent::InitializeInteractionComponent()
 {
 	Super::InitializeInteractionComponent();
-	ItemCollection = GetOwner()->FindComponentByClass<UItemCollection>();
+	
+	if (auto ItemCollection = GetOwner()->FindComponentByClass<UItemCollection>())
+		ItemCollectionRef = ItemCollection;
+	
 	UpdateInteractableData();
 
-	if (!InventoryStartupData.InventoryClass)
-		return;
-
-	UInventoryBase* Inventory =
-		NewObject<UInventoryBase>(this, InventoryStartupData.InventoryClass);
-
-	if (!Inventory)
-		return;
-
-	Inventory->SetInventorySettings(InventoryStartupData.Settings);
-	Inventory->SetItemCollectionLink(ItemCollection);
-}
-
-void UContainerComponent::InitializeItemCollection() 
-{
-
-	/*InventoryWidget = ContainerWidget->GetInventoryFromContainerSlot();
-	if (!InventoryWidget) return;
-
-	if (InventorySize != FVector2D::ZeroVector)
-	{
-		if (auto SlotBased = Cast<USlotbasedInventoryWidget>(InventoryWidget))
-		{
-			SlotBased->RebuildSlots(InventorySize.X, InventorySize.Y);
-		}
-	}*/
-	
-//	InventoryWidget->SetItemCollection(ItemCollection);
-	//InventoryWidget->InitItemsInItemsCollection();
+	InitializeInventoryStartupData();
 }
 
 void UContainerComponent::UpdateInteractableData()
@@ -145,41 +103,76 @@ void UContainerComponent::UpdateInteractableData()
 	InteractableData.DefaultInteractableType = EInteractableType::Container;
 	InteractableData.Action = FText::FromString(TEXT("Open"));
 	InteractableData.Quantity = -1;
-	
 }
 
-void UContainerComponent::FindContainerWidget()
+void UContainerComponent::InitializeInventoryStartupData()
 {
-	auto* PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
-	if (!PlayerPawn)
-		return;
-
-	UIInventoryManager* InventoryManager = PlayerPawn->FindComponentByClass<UIInventoryManager>();
-	if (!InventoryManager)
-		return;
-
-	/*//auto* CoreHUDWidget = InventoryManager->GetCoreHUDWidget();
-	if (!CoreHUDWidget)
-		return;
-
-	auto* FoundContainerWidget = CoreHUDWidget->GetContainerInWorldWidget();
-	if (!FoundContainerWidget)
-		return;
-
-	auto* FoundInventoryWidget = FoundContainerWidget->GetInventoryFromContainerSlot();
-	if (!FoundInventoryWidget)
-		return;
-
-	ContainerWidget = FoundContainerWidget;
-	InventoryWidget = FoundInventoryWidget;*/
-}
-
-void UContainerComponent::DestroyWhenEmpty()
-{
-	if (ItemCollection->GetItemLocations().IsEmpty()
-		&& this->bDestroyWhenEmpty)
+	if (!MainLootContainerInvTag.IsValid())
 	{
-		CurrentInteractionComponent->StopInteract();
-		GetOwner()->K2_DestroyActor();
+		UE_LOG(LogTemp, Warning, TEXT("MainLootContainerInvTag is not set!"));
+		return;
 	}
+
+	UInventoryBase* Inventory =	UInventoryBase::CreateInventory(this, InventoryStartupData);
+	if (!Inventory)
+		return;
+	
+	Inventory->InitInventory();
+	
+	Inventory->SetItemCollectionLink(ItemCollectionRef);
+	Inventory->SetInventorySettings(InventoryStartupData.Settings);
+
+	Inventories.Add(Inventory->GetInventoryContainerID(), Inventory);
+
+	if (InventoryStartupData.Settings.InventoryTag == MainLootContainerInvTag)
+	{
+		MainLootInventory = Inventory;
+	}
+
+	SetupStartingResources();
+
+	Inventory->OnItemRemovedDelegate.AddDynamic(this, &UContainerComponent::DestroyWhenEmpty);
+}
+
+void UContainerComponent::SetupStartingResources()
+{
+	if (Inventories.IsEmpty())
+		return;
+	
+	for (const auto& InitResource : InventoryStartupData.StartItems)
+	{
+		if (InitResource.Item.RowName.IsNone()) continue;
+
+		int32 RemainingAmount = InitResource.Amount;
+		while (RemainingAmount > 0)
+		{
+			UItemBase* NewItem = UItemFactory::CreateItemByHandle(this, InitResource.Item, RemainingAmount);
+			if (!NewItem) break;
+
+			RemainingAmount -= NewItem->GetQuantity();
+
+			const EItemOrientationType InitOrientation = NewItem->GetInitialItemOrientation();
+                
+			FItemMoveData Data;
+			Data.TargetInventory  = MainLootInventory;
+			Data.SourceItem       = NewItem;
+			Data.SavedOrientation = InitOrientation;
+			Data.TargetOrientation = InitOrientation;
+
+			MainLootInventory->HandleAddItem(Data);
+		}
+	}
+}
+
+void UContainerComponent::DestroyWhenEmpty(FItemMapping ItemSlots, UItemBase* Item)
+{
+	GetWorld()->GetTimerManager().SetTimerForNextTick([this]()
+	{
+		if (ItemCollectionRef->GetItemLocations().IsEmpty()
+		   && this->bDestroyWhenEmpty)
+		{
+		   CurrentInteractionComponent->StopInteract();
+		   GetOwner()->K2_DestroyActor();
+		}
+	});
 }

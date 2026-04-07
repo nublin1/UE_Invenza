@@ -7,6 +7,7 @@
 #include "Engine/StaticMesh.h"
 #include "ActorComponents/ItemCollection.h"
 #include "ActorComponents/Interactable/InteractableComponent.h"
+#include "Interface/Interaction/LootContainerProvider.h"
 #include "ContainerComponent.generated.h"
 
 class UInvenzaBaseWidget;
@@ -15,7 +16,7 @@ class UInvBaseContainerWidget;
  * 
  */
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class INVENTORYSYSTEMINVENZAPLUGIN_API UContainerComponent : public UInteractableComponent
+class INVENTORYSYSTEMINVENZAPLUGIN_API UContainerComponent : public UInteractableComponent, public ILootContainerProvider
 {
 	GENERATED_BODY()
 
@@ -34,12 +35,14 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	
 	virtual void BeginFocus() override;
 	virtual void EndFocus() override;
 	
 	virtual void Interact(UInteractionComponent* InteractionComponent) override;
 	virtual void StopInteract(UInteractionComponent* InteractionComponent) override;
+
+	virtual const TObjectPtr<UInventoryBase>& GetMainLootContainer() const override {return MainLootInventory;}
+	virtual const TMap<FString, TObjectPtr<UInventoryBase>>& GetInventoriesToDisplay() const override;
 
 protected:
 	//====================================================================
@@ -50,34 +53,34 @@ protected:
 
 	//
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Container")
+	FGameplayTag MainLootContainerInvTag;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Container")
 	bool bDestroyWhenEmpty = false;
 
 	// Data
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	TObjectPtr<UInventoryBase> MainLootInventory;
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
 	TMap<FString, TObjectPtr<UInventoryBase>> Inventories;
 	UPROPERTY()
 	TObjectPtr<UStaticMeshComponent> CachedMesh;
 
 	//Refs
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Inventory|Container")
-	TObjectPtr<UItemCollection> ItemCollection;
+	TObjectPtr<UItemCollection> ItemCollectionRef;
 
 	//====================================================================
 	// FUNCTIONS
-	//====================================================================
-	
-
-	UFUNCTION()
-	virtual void ContainerWidgetVisibilityChanged(ESlateVisibility NewVisibility);
-	
+	//====================================================================	
 	virtual void InitializeInteractionComponent() override;
-	UFUNCTION()
-	void InitializeItemCollection();
-	
 	virtual void UpdateInteractableData() override;
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Container")
-	virtual void FindContainerWidget();
-	
+
+	UFUNCTION(BlueprintCallable)
+	void InitializeInventoryStartupData();
+
+	UFUNCTION(BlueprintCallable)
+	void SetupStartingResources();
+		
 	UFUNCTION()
-	virtual void DestroyWhenEmpty();
+	virtual void DestroyWhenEmpty(FItemMapping ItemSlots, UItemBase* Item);
 };

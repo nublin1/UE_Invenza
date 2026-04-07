@@ -28,6 +28,9 @@ public:
 	virtual TArray<UInvBaseContainerWidget*> GetAllPawnInvContainers() const
 	PURE_VIRTUAL(IInvUIProvider::GetAllPawnInvContainers, return TArray<UInvBaseContainerWidget*>(););
 
-	virtual UPanelSlot* AddPawnInvContainers(UInvBaseContainerWidget* InvContainerToAdd) const
+	virtual UPanelSlot* AddPawnInvContainerWidget(UInvBaseContainerWidget* InvContainerWidgetToAdd) const
 	PURE_VIRTUAL(IInvUIProvider::AddPawnInvContainers, return nullptr;);
+
+	virtual void RemovePawnInvContainer(UInvBaseContainerWidget* InvContainerToRemove) const
+	PURE_VIRTUAL(IInvUIProvider::RemovePawnInvContainer,;);
 };

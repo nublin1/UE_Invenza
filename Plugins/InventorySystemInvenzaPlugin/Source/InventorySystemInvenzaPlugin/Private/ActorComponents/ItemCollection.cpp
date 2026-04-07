@@ -20,9 +20,46 @@ void UItemCollection::BeginPlay()
 {
 	Super::BeginPlay();
 
-	auto Manager = UGameplayStatics::GetPlayerPawn(GetWorld(), 0)->FindComponentByClass<UIInventoryManager>();
-	if (Manager)
+	if (auto Manager = UGameplayStatics::GetPlayerPawn(GetWorld(), 0)->FindComponentByClass<UIInventoryManager>())
 		InvManager = Manager;
+}
+
+float UItemCollection::CalculateAvailableMoney()
+{
+	if (ItemLocations.IsEmpty())
+	{
+		return 0;
+	}
+
+	TArray<TObjectPtr<UItemBase>> MoneyItems;
+	for (const auto& Pair : ItemLocations)
+	{
+		auto Item = Pair.Key;
+		if (Item->GetItemRef().ItemCategory != EItemCategory::Money)
+			continue;
+		
+		for (auto& Mapping : Pair.Value.Mappings)
+		{
+			if (Mapping.bIsReferenceContainer)
+				continue;
+
+			MoneyItems.Add(Item);
+		}
+	}
+
+	if (MoneyItems.IsEmpty())
+		return 0;
+
+	float AvailableMoney = 0.0f;
+	for (UItemBase* MoneyItem : MoneyItems)
+	{
+		if (MoneyItem)
+		{
+			AvailableMoney += MoneyItem->GetItemRef().ItemTradeData.BasePrice * MoneyItem->GetQuantity();
+		}
+	}
+
+	return AvailableMoney;
 }
 
 int32 UItemCollection::GetTotalItemCountInContainer(FString InvID)
@@ -328,12 +365,12 @@ void UItemCollection::SerializeForSave(TArray<FItemSaveEntry>& OutData)
 		for (const FItemMapping& Mapping : Pair.Value.Mappings)
 		{
 			auto ContainerType = Mapping.InventoryType;
-			if (ContainerType != EInventoryType::VendorInventory && ContainerType!= EInventoryType::ContainerInventory)
+			/*if (ContainerType != EInventoryType::VendorInventory && ContainerType!= EInventoryType::ContainerInventory)
 			{
 				FItemMappingSaveData Data;
 				Data.InitializeFromMapping(Mapping);
 				SaveMappings.Add(Data);
-			}
+			}*/
 		}
 
 		FItemSaveEntry ItemSaveEntry;

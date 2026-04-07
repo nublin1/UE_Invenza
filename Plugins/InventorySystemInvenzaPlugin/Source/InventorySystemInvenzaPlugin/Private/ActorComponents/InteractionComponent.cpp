@@ -134,9 +134,9 @@ void UInteractionComponent::FoundInteractable(AActor* NewInteractable, UInteract
 	TargetInteractableComponent = NewInteractableComp;
 
 	TargetInteractableComponent->BeginFocus();
-	if (BeginFocusDelegate.IsBound())
+	if (OnBeginFocus.IsBound())
 	{
-		BeginFocusDelegate.Broadcast(TargetInteractableComponent->InteractableData);
+		OnBeginFocus.Broadcast(TargetInteractableComponent->InteractableData);
 	}
 }
 
@@ -151,9 +151,9 @@ void UInteractionComponent::NotFoundInteractable()
 			TargetInteractableComponent->EndFocus();
 		}
 
-		if (EndFocusDelegate.IsBound() && InteractionData.CurrentInteractable)
+		if (OnEndFocus.IsBound() && InteractionData.CurrentInteractable)
 		{
-			EndFocusDelegate.Broadcast(InteractionData.CurrentInteractable->InteractableData);
+			OnEndFocus.Broadcast(InteractionData.CurrentInteractable->InteractableData);
 		}
 		InteractionData.CurrentInteractable = nullptr;		
 		
@@ -213,11 +213,10 @@ void UInteractionComponent::EndInteract()
 		GetWorld()->GetTimerManager().ClearTimer(TimerHandle_Interaction);	
 		
 		TargetInteractableComponent->EndInteract(this);
-		EndIteractNotify();
+		EndInteractNotify();
 		return;
 		
 	}
-	
 }
 
 void UInteractionComponent::Interact()
@@ -227,7 +226,7 @@ void UInteractionComponent::Interact()
 	if (IsValid(TargetInteractableComponent))
 	{
 		TargetInteractableComponent->Interact(this);
-		IteractNotify();
+		InteractNotify();
 	}
 
 	if (GetWorld()->GetTimerManager().IsTimerActive(TimerHandle_Interaction))
@@ -241,21 +240,21 @@ void UInteractionComponent::StopInteract()
 	if (!CurrentInteractableComponent)
 		return;
 	
-	if (StopIteractDelegate.IsBound())
-		StopIteractDelegate.Broadcast(CurrentInteractableComponent);
+	if (OnStopInteract.IsBound())
+		OnStopInteract.Broadcast(CurrentInteractableComponent);
 
 	CurrentInteractableComponent->StopInteract(this);
 	CurrentInteractableComponent = nullptr;
 }
 
-void UInteractionComponent::IteractNotify()
+void UInteractionComponent::InteractNotify()
 {
-	if (IteractableDataDelegate.IsBound())
-		IteractableDataDelegate.Broadcast(TargetInteractableComponent);
+	if (OnInteract.IsBound())
+		OnInteract.Broadcast(TargetInteractableComponent);
 }
 
-void UInteractionComponent::EndIteractNotify()
+void UInteractionComponent::EndInteractNotify()
 {
-	if (IteractableDataDelegate.IsBound())
-		EndIteractDelegate.Broadcast(TargetInteractableComponent);
+	if (OnEndInteract.IsBound())
+		OnEndInteract.Broadcast(TargetInteractableComponent);
 }

@@ -3,7 +3,6 @@
 #include "ActorComponents/Trade/TradeComponent.h"
 #include "GameFramework/Actor.h"
 #include "ActorComponents/ItemCollection.h"
-#include "ActorComponents/Trade/TradeTypes.h"
 
 void UTradeComponent::OpenTradeMenu(AActor* Vendor, AActor* Buyer)
 {
@@ -20,51 +19,11 @@ void UTradeComponent::CloseTradeMenu()
 	BuyerItemCollection = nullptr;
 }
 
-float UTradeComponent::CalculateAvailableMoney(UItemCollection* Collection)
-{	
-	TArray<UItemBase*> SellerMoneyItems = Collection->GetAllItemsByCategory(EItemCategory::Money);
-	if (SellerMoneyItems.Num() <= 0)
-	{
-		return 0;
-	}
 
-	float AvailableMoney = 0.0f;
-	for (UItemBase* MoneyItem : SellerMoneyItems)
-	{
-		if (MoneyItem)
-		{
-			AvailableMoney += MoneyItem->GetItemRef().ItemTradeData.BasePrice * MoneyItem->GetQuantity();
-		}
-	}
-
-	return AvailableMoney;
-}
-
-FMoneyCalculationResult UTradeComponent::AccumulatePayment(UItemCollection* ItemCollection, const float FullPrice)
-{
-	FMoneyCalculationResult Result;
-	Result.AvailableMoney  = CalculateAvailableMoney(ItemCollection);
-	if (FullPrice == 0)
-	{
-		Result.bHasEnough = true;
-		return Result;
-	}
-	
-	TArray<UItemBase*> MoneyItems = ItemCollection->GetAllItemsByCategory(EItemCategory::Money);
-	if (MoneyItems.IsEmpty())
-	{
-		Result.bHasEnough = false;
-		return Result;
-	}
-
-	Result.bHasEnough = Result.AvailableMoney >= FullPrice;
-
-	return Result;
-}
 
 bool UTradeComponent::TryBuyItem(UItemBase* ItemToBuy)
 {
-	if (TradeSettings.bSellOnly)
+	/*if (TradeSettings.bSellOnly)
 		return false;
 
 	if (ItemToBuy->GetItemRef().ItemCategory == EItemCategory::Money)
@@ -78,7 +37,7 @@ bool UTradeComponent::TryBuyItem(UItemBase* ItemToBuy)
 	}
 
 	if (OnFaildToBuyItemDelegate.IsBound())
-		OnFaildToBuyItemDelegate.Broadcast(ItemToBuy);
+		OnFaildToBuyItemDelegate.Broadcast(ItemToBuy);*/
 	
 	return false;
 }
@@ -91,7 +50,7 @@ void UTradeComponent::BuyItem(UItemBase* ItemToBuy)
 
 bool UTradeComponent::TrySellItem(UItemBase* ItemForSale)
 {
-	if (ItemForSale->GetItemRef().ItemCategory == EItemCategory::Money)
+	/*if (ItemForSale->GetItemRef().ItemCategory == EItemCategory::Money)
 		return false;
 	
 	auto Result = AccumulatePayment(BuyerItemCollection, GetTotalSellPrice(ItemForSale));
@@ -102,7 +61,7 @@ bool UTradeComponent::TrySellItem(UItemBase* ItemForSale)
 	}
 
 	if (OnFaildToSellItemDelegate.IsBound())
-		OnFaildToSellItemDelegate.Broadcast(ItemForSale);
+		OnFaildToSellItemDelegate.Broadcast(ItemForSale);*/
 	
 	return false;
 }

@@ -29,6 +29,8 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+	virtual void InitInventory() override;
+	
 	virtual void SortItemsInContainerByName() override;
 	
 	virtual void HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity) override;
@@ -59,4 +61,3 @@ protected:
 	virtual UItemBase* AddNewItem(FItemMoveData& ItemMoveData, FItemMapping OccupiedSlots, int32 AddAmount) override;
 	
 };
-

@@ -43,7 +43,7 @@ public:
 	// FUNCTIONS
 	//====================================================================
 	virtual void InitializeInventoryWidget() override;
-	virtual void InitializeInventoryWidgetWithSettings(FInventoryStartupData InventoryStartupData) override;
+	virtual void InitializeInventoryWidgetWithSettings(FInventorySettings InventoryStartupData) override;
 	virtual void BindDelegated() override;
 	virtual void ReDrawAllItems() override;
 

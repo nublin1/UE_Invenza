@@ -18,8 +18,13 @@ UInventoryBase::UInventoryBase()
 
 UInventoryBase* UInventoryBase::CreateInventory(UObject* Outer, FInventoryStartupData StartupData)
 {
+	if (!StartupData.Settings.InventoryClass)
+	{
+		return nullptr;
+	}
+	
 	UInventoryBase* Inventory =
-			NewObject<UInventoryBase>(Outer, StartupData.InventoryClass);
+			NewObject<UInventoryBase>(Outer, StartupData.Settings.InventoryClass);
 
 	if (!Inventory)
 		return nullptr;
@@ -27,6 +32,17 @@ UInventoryBase* UInventoryBase::CreateInventory(UObject* Outer, FInventoryStartu
 	Inventory->SetInventorySettings(StartupData.Settings);
 
 	return Inventory;
+}
+
+void UInventoryBase::InitInventory()
+{
+	InvSize = FVector2D(InventorySettings.InventorySlotBasedSettings.NumberRows, InventorySettings.InventorySlotBasedSettings.NumColumns);
+}
+
+void UInventoryBase::InitInventoryWithSettings(FInventorySettings NewInventorySettings)
+{
+	InventorySettings = NewInventorySettings;
+	InitInventory();
 }
 
 void UInventoryBase::RequestToResetItemVisual(UItemBase* Item)

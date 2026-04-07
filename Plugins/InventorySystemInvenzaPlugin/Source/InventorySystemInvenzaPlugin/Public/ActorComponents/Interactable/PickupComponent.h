@@ -6,6 +6,7 @@
 #include "InteractableComponent.h"
 #include "Components/ActorComponent.h"
 #include "Data/ItemDataStructures.h"
+#include "Interface/Interaction/Pickupableass.h"
 #include "PickupComponent.generated.h"
 
 
@@ -14,11 +15,18 @@ class UItemBase;
 class UBoxComponent;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class INVENTORYSYSTEMINVENZAPLUGIN_API UPickupComponent : public UInteractableComponent
+class INVENTORYSYSTEMINVENZAPLUGIN_API UPickupComponent : public UInteractableComponent, public IPickupableass
 {
 	GENERATED_BODY()
 
 public:
+	UPickupComponent();
+
+protected:
+	virtual void OnRegister() override;
+	virtual void BeginPlay() override;
+
+public:	
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
@@ -26,8 +34,6 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UPickupComponent();
-	
 	virtual void BeginFocus() override;
 	virtual void EndFocus() override;
 	virtual void Interact(UInteractionComponent* InteractionComponent) override;
@@ -38,6 +44,11 @@ public:
 	//Getters
 	UFUNCTION(BlueprintCallable, Category = "Pickup | Getters")
 	FInitItemsEntry GetInitialItem() { return InitialItem; }
+	UFUNCTION(BlueprintCallable, Category = "Pickup | Getters")
+	virtual UItemBase* GetItemData() override;
+
+	UFUNCTION(BlueprintCallable, Category = "Pickup")
+	virtual void OnPickedUp() override;
 
 protected:
 	//====================================================================
@@ -46,27 +57,19 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UStaticMeshComponent> CachedMesh;
 	
-	UPROPERTY(EditAnywhere, Category = "Pickup | Item Initialization")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Pickup | Item Initialization")
 	FInitItemsEntry InitialItem;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Pickup | Item Reference")
 	TObjectPtr<UItemBase> ItemBase;
-		
-	UPROPERTY(EditAnywhere, Category = "Pickup | Debug")
-	bool bIsDebug = false;
 
 	bool bIsPendingDestruction = false;
 
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	virtual void OnRegister() override;
-	virtual void BeginPlay() override;
 		
 	UFUNCTION()
 	void InitializePickupComponent();
-
-	UFUNCTION()
-	virtual void TakePickup(UInteractionComponent *Taker);
 
 	virtual void UpdateInteractableData() override;
 };

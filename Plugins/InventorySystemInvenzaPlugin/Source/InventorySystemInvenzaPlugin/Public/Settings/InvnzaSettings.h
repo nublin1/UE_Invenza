@@ -48,8 +48,6 @@ struct FUISettings
 	
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|World")
     TSubclassOf<AActor> PickupClass;
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|World")
-    TSubclassOf<UInvenzaBaseWidget> DefaultWorldContainerInventoryWidgetClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Highlight")
 	FLinearColor AllowedColor = FLinearColor::Green;
@@ -65,8 +63,6 @@ struct FUISettings
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|SlotBasedInv")
 	TObjectPtr<UMaterialInterface> SlotBasedInventoryItemMaterial;
 	
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
-    TSubclassOf<USlotbasedInventorySlot> DefaultSlotbasedInventorySlotClass;
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
     TSubclassOf<UInventoryItemWidget> InventoryItemVisualClass;
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")

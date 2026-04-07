@@ -12,6 +12,14 @@ UListInventory::UListInventory()
 {
 }
 
+void UListInventory::InitInventory()
+{
+	Super::InitInventory();
+
+	if (InventorySettings.EntryClass)
+		EntryClass = InventorySettings.EntryClass;
+}
+
 void UListInventory::SortItemsInContainerByName()
 {
 	if (!ItemCollectionLinked)

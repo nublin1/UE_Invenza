@@ -32,6 +32,7 @@ public:
 	UInvBaseContainerWidget();
 
 protected:
+	virtual void NativePreConstruct() override;
 	virtual void NativeConstruct() override;
 
 public:	
@@ -42,15 +43,15 @@ public:
 	FWidgetClose OnClose;
 
 	//Widgets
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Container", meta=(BindWidgetOptional))
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Container|Widgets", meta=(BindWidgetOptional))
 	TObjectPtr<UMovableTitleBar> TitleBar;
-	UPROPERTY(meta=(BindWidgetOptional))
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta=(BindWidgetOptional), Category = "Container|Widgets")
 	TObjectPtr<ULabelBaseText> InvMoney;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Container", meta=(BindWidgetOptional))
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Container|Widgets", meta=(BindWidgetOptional))
 	TObjectPtr<UNamedSlot> ContainerSlot;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Container", meta=(BindWidgetOptional))
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Container|Widgets", meta=(BindWidgetOptional))
 	TObjectPtr<UNamedSlot> OperationsSlot;
-	UPROPERTY(meta=(BindWidgetOptional))
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta=(BindWidgetOptional), Category = "Container|Widgets")
 	TObjectPtr<UInvWeightWidget> InvWeight;
 	
 	//====================================================================
@@ -69,20 +70,19 @@ protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-
-	// Settings
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory Container|Config")
 	bool bIsShowTotalMoney = true;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Container")
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory Container|Config")
 	bool bIsShowWeight = true;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Container")
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory Container|Config")
 	bool bIsShowCloseButton = true;
 
-	// Data
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Container")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory Container|Config")
 	FText Title;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Container")
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Inventory Container|Runtime")
 	TObjectPtr<UInventoryBase> InventoryRef;
 	
 	//====================================================================

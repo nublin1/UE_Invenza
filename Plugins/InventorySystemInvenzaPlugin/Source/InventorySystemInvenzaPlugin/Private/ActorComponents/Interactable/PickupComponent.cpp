@@ -53,8 +53,6 @@ void UPickupComponent::EndFocus()
 void UPickupComponent::Interact(UInteractionComponent* InteractionComponent)
 {
 	Super::Interact(InteractionComponent);
-
-	TakePickup(InteractionComponent);
 }
 
 void UPickupComponent::InitializeDrop(UItemBase* ItemToDrop)
@@ -71,6 +69,21 @@ void UPickupComponent::InitializeDrop(UItemBase* ItemToDrop)
 	}
 
 	UpdateInteractableData();
+}
+
+UItemBase* UPickupComponent::GetItemData()
+{
+	if (bIsPendingDestruction)
+		return nullptr;
+
+	bIsPendingDestruction = true;
+	
+	return ItemBase;
+}
+
+void UPickupComponent::OnPickedUp()
+{
+	GetOwner()->Destroy();
 }
 
 void UPickupComponent::InitializePickupComponent()
@@ -95,34 +108,6 @@ void UPickupComponent::InitializePickupComponent()
 	{
 		CachedMesh->SetStaticMesh(ItemBase->GetItemRef().ItemAssetData.Mesh);
 	}
-}
-
-void UPickupComponent::TakePickup(UInteractionComponent* Taker)
-{
-	if (bIsPendingDestruction || !ItemBase || !Taker)
-		return;
-
-	UIInventoryManager* InventoryManager = Taker->GetInventoryManager();
-	if (!InventoryManager)
-		return;
-
-	auto Inv = InventoryManager->GetInventoryByTag(InventoryManager->GetUISettings().MainInvTag);
-	if (!Inv)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("MainInventory is NULL!"));
-		return;
-	}
-	
-	bIsPendingDestruction = true;
-
-	FItemMoveData Data;
-	Data.SourceItem = ItemBase;
-	Data.TargetInventory = Inv;
-	Data.SourceInventory = nullptr;
-	
-	InventoryManager->ItemTransferRequest(Data);
-
-	GetOwner()->Destroy();
 }
 
 void UPickupComponent::UpdateInteractableData()

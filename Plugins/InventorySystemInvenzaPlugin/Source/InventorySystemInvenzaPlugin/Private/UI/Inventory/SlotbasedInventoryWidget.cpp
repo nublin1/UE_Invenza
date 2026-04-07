@@ -57,67 +57,102 @@ void USlotbasedInventoryWidget::InitializeInventoryWidget()
 	CreateTooltipWidget();
 }
 
-void USlotbasedInventoryWidget::InitializeInventoryWidgetWithSettings(FInventoryStartupData InventoryStartupData)
+void USlotbasedInventoryWidget::InitializeInventoryWidgetWithSettings(FInventorySettings InventoryStartupData)
 {
-	if (!SlotsGridPanel || !UISettings.DefaultSlotbasedInventorySlotClass || !SlotBasedInventoryRef)
+	if (!SlotsGridPanel || !InventoryStartupData.InventorySlotBasedSettings.SlotbasedInventorySlotClass || !SlotBasedInventoryRef)
 	{
+		if (!InventoryStartupData.InventorySlotBasedSettings.SlotbasedInventorySlotClass)
+		{
+			UE_LOG(LogTemp, Error, TEXT("USlotbasedInventoryWidget: SlotbasedInventorySlotClass is NULL"));
+		}
 		return;
 	}
 
-	TargetInventoryTag = InventoryStartupData.Settings.InventoryTag;
+	const bool bCollectFromWidget = InventoryStartupData.bCollectInvDataFromWidget;
 
-	NumberRows  = InventoryStartupData.Settings.InventorySlotBasedSettings.NumberRows;
-	NumColumns  = InventoryStartupData.Settings.InventorySlotBasedSettings.NumColumns;
-	SlotSpacing = InventoryStartupData.Settings.InventorySlotBasedSettings.SlotSpacing;
-	InvCellSize = InventoryStartupData.Settings.InventorySlotBasedSettings.InvCellSize;
-	
+	TargetInventoryTag = InventoryStartupData.InventoryTag;
+
+	NumberRows  = InventoryStartupData.InventorySlotBasedSettings.NumberRows;
+	NumColumns  = InventoryStartupData.InventorySlotBasedSettings.NumColumns;
+	SlotSpacing = InventoryStartupData.InventorySlotBasedSettings.SlotSpacing;
+	InvCellSize = InventoryStartupData.InventorySlotBasedSettings.InvCellSize;
+
 	SlotsGridPanel->ClearChildren();
 	InventorySlots.Empty();
 
 	SlotsGridPanel->SetSlotPadding(SlotSpacing);
 
+	TArray<UInventorySlotData*> ExistingSlots;
+
+	if (!bCollectFromWidget)
+	{
+		ExistingSlots = SlotBasedInventoryRef->GetInventorySlots();
+	}
+
 	for (int32 Row = 0; Row < NumberRows; ++Row)
 	{
-		for (int32 Col = 0; Col < NumColumns; ++Col) 
+		for (int32 Col = 0; Col < NumColumns; ++Col)
 		{
 			USlotbasedInventorySlot* NewSlot = CreateWidget<USlotbasedInventorySlot>(
-				GetOwningPlayer(), 
-				UISettings.DefaultSlotbasedInventorySlotClass
+				GetOwningPlayer(),
+				InventoryStartupData.InventorySlotBasedSettings.SlotbasedInventorySlotClass
 			);
-          
+
 			if (!NewSlot)
 				continue;
-			
+
 			if (!NewSlot->GetDefaultCellImage() && DefaultCellImage)
 			{
 				NewSlot->UpdateVisualWithTexture(DefaultCellImage);
 			}
-			
-			FIntPoint SlotPosit = FIntPoint(Row, Col);
-          
-			UInventorySlotData* NewInventorySlotData = UInventorySlotData::CreateWithData(
-				this, 
-				NAME_None, 
-				SlotPosit, 
-				nullptr, 
-				NewSlot->AllowedSlotCategory
-			);
-          
-			NewInventorySlotData->LinkedEquipmentSlot = NewSlot->LinkedEquipmentSlotTag;
-          
-			NewSlot->SetSlotData(NewInventorySlotData);
-			NewSlot->SetSlotPosition(SlotPosit);
-			
-			UUniformGridSlot* GridSlot = SlotsGridPanel->AddChildToUniformGrid(NewSlot, Row, Col);
-			if (GridSlot)
+
+			FIntPoint SlotPosit(Row, Col);
+
+			UInventorySlotData* SlotData = nullptr;
+
+			if (bCollectFromWidget)
 			{
-				//GridSlot->SetHorizontalAlignment(HAlign_Fill);
-				//GridSlot->SetVerticalAlignment(VAlign_Fill);
+				SlotData = UInventorySlotData::CreateWithData(
+					this,
+					NAME_None,
+					SlotPosit,
+					nullptr,
+					NewSlot->AllowedSlotCategory
+				);
+
+				SlotData->LinkedEquipmentSlot = NewSlot->LinkedEquipmentSlotTag;
 			}
-			
+			else
+			{
+				for (UInventorySlotData* ExistingSlot : ExistingSlots)
+				{
+					if (ExistingSlot && ExistingSlot->CellPosition == SlotPosit)
+					{
+						SlotData = ExistingSlot;
+						break;
+					}
+				}
+			}
+
+			if (!SlotData)
+				continue;
+
+			NewSlot->SetSlotData(SlotData);
+			NewSlot->SetSlotPosition(SlotPosit);
+
+			UUniformGridSlot* GridSlot = SlotsGridPanel->AddChildToUniformGrid(NewSlot, Row, Col);
+
 			InventorySlots.Add(NewSlot);
 		}
 	}
+
+	if (bCollectFromWidget)
+	{
+		auto SizeInv = GetNumberRowsAndColumns();
+		SlotBasedInventoryRef->SetInventorySize(SizeInv);
+		SlotBasedInventoryRef->SetInventorySlots(GetSlotData());
+	}
+	
 }
 
 void USlotbasedInventoryWidget::BindDelegated()
@@ -247,6 +282,14 @@ void USlotbasedInventoryWidget::InitSlots()
 		}
 	}
 	InventorySlots = ConvertedSlots;
+
+	if (SlotBasedInventoryRef)
+	{
+		auto SizeInv = GetNumberRowsAndColumns();
+		
+		SlotBasedInventoryRef->SetInventorySize(SizeInv);
+		SlotBasedInventoryRef->SetInventorySlots(GetSlotData());
+	}
 }
 
 void USlotbasedInventoryWidget::ClearFilters()
@@ -837,6 +880,10 @@ void USlotbasedInventoryWidget::NativeOnDragDetected(const FGeometry& InGeometry
     DraggedWidget->SetVisibility(ESlateVisibility::Hidden);
     OutOperation = DragOp;
 
+	if (!ItemMap->ItemVisualLinked)
+	{
+		return;
+	}
 	ItemMap->ItemVisualLinked->ChangeOpacity(0.33f);
 
     if (!HighlightWidgetPreview)
