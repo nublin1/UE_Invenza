@@ -12,7 +12,6 @@
 #include "ItemCollection.generated.h"
 
 
-struct FItemSaveEntry;
 class UIInventoryManager;
 struct FItemMappingSaveData;
 struct FItemSaveData;
@@ -39,7 +38,6 @@ public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	
 	
 	//====================================================================
 	// FUNCTIONS
@@ -72,9 +70,11 @@ public:
 	//
 	UFUNCTION()
 	void SetInvManager(UIInventoryManager* NewManager) {InvManager = NewManager;}
-	
-	void SerializeForSave(TArray<FItemSaveEntry>& OutData);
-	void DeserializeFromSave(TArray<FItemSaveEntry> InData);
+
+	UFUNCTION(BlueprintCallable)
+	void SerializeForSave(TArray<FItemSaveEntry>& OutData, const TArray<FString>& InventoryFilter);
+	UFUNCTION(BlueprintCallable)
+	void DeserializeFromSave(const TArray<FItemSaveEntry>& InData, UInventoryBase* InInventory);
 
 protected:
 	//====================================================================

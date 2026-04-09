@@ -73,6 +73,9 @@ public:
 	static UInventoryBase* CreateInventory(UObject* Outer, FInventoryStartupData StartupData);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	UInventoryBase* DuplicateInventory(UObject* Outer);
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	virtual void InitInventory();
 	
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
@@ -83,6 +86,10 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	virtual void SortItemsInContainerByName() {};
+
+	UFUNCTION(BlueprintCallable)
+	virtual void HandleRemoveItemsByType(UItemBase* ItemSample, int32 RequestedAmount)
+	PURE_VIRTUAL(UInventoryBase::HandleRemoveItemsByType,);
 	
 	UFUNCTION(BlueprintCallable)
 	virtual void HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity)

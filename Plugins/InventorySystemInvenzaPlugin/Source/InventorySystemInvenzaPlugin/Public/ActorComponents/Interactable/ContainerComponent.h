@@ -11,7 +11,7 @@
 #include "ContainerComponent.generated.h"
 
 class UInvenzaBaseWidget;
-class UInvBaseContainerWidget;
+class UInventoryContainerWidget;
 /**
  * 
  */

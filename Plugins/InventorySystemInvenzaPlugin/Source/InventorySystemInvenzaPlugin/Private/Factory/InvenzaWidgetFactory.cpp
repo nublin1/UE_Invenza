@@ -6,16 +6,16 @@
 #include "Components/NamedSlot.h"
 #include "UI/Core/OperationsPanel/OperationPanelWidget.h"
 #include "UI/Inventory/UInventoryWidgetBase.h"
-#include "UI/Inventory/Container/InvBaseContainerWidget.h"
+#include "UI/Inventory/Container/InventoryContainerWidget.h"
 
-UInvBaseContainerWidget* UInvenzaWidgetFactory::CreateInventoryWidget(APlayerController* OwningPlayer,
-                                                                      TSubclassOf<UInvBaseContainerWidget> ContainerWidgetClass, TSubclassOf<UUInventoryWidgetBase> InventoryWidgetClass,
+UInventoryContainerWidget* UInvenzaWidgetFactory::CreateInventoryWidget(APlayerController* OwningPlayer,
+                                                                      TSubclassOf<UInventoryContainerWidget> ContainerWidgetClass, TSubclassOf<UUInventoryWidgetBase> InventoryWidgetClass,
                                                                       TSubclassOf<UOperationPanelWidget> OperationPanelClass)
 {
 	if (!OwningPlayer || !ContainerWidgetClass )
 		return nullptr;
 
-	auto InvContWidget = CreateWidget<UInvBaseContainerWidget>(OwningPlayer, ContainerWidgetClass);
+	auto InvContWidget = CreateWidget<UInventoryContainerWidget>(OwningPlayer, ContainerWidgetClass);
 	if (!InvContWidget)
 		return nullptr;
 

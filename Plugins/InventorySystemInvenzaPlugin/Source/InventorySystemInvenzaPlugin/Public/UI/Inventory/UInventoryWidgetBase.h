@@ -6,7 +6,7 @@
 #include "Data/Inventory/InventoryTypes.h"
 #include "Settings/InvnzaSettings.h"
 #include "UI/InvenzaBaseWidget.h"
-#include "UI/Inventory/Container/InvBaseContainerWidget.h"
+#include "UI/Inventory/Container/InventoryContainerWidget.h"
 #include "UInventoryWidgetBase.generated.h"
 
 class UUIButton;
@@ -119,5 +119,5 @@ public:
 protected:
 	//
 	UFUNCTION()
-	virtual UInvBaseContainerWidget* GetAsContainerWidget() { return Cast<UInvBaseContainerWidget>(ParentWidget);}
+	virtual UInventoryContainerWidget* GetAsContainerWidget() { return Cast<UInventoryContainerWidget>(ParentWidget);}
 };

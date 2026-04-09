@@ -46,7 +46,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	bool CanPlaceItemAt(const FIntPoint& StartPos, UItemBase* ItemBase, EItemOrientationType Orientation, TArray<UInventorySlotData*> IgnoreSlots);
 
-	
+	virtual void HandleRemoveItemsByType(UItemBase* ItemSample, int32 RequestedAmount) override;
 	virtual void HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity) override;
 	virtual FItemAddResult HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck = false) override;
 
@@ -117,10 +117,10 @@ public:
 	TArray<UInventorySlotData*> CollectOccupiedSlots();
 	UFUNCTION()
 	TArray<UInventorySlotData*> GetIgnoreSlotsForItem(UItemBase* Item);
-
-protected:
 	UFUNCTION()
 	UInventorySlotData* GetSlotByPosition(FIntPoint SlotPosition);
+	
+protected:
 	UFUNCTION()
 	TArray<UItemBase*> GetAllSameItems(UItemBase* ReferenceItem);
 	UFUNCTION()

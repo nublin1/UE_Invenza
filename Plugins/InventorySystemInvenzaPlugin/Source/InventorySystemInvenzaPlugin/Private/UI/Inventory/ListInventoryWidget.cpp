@@ -79,32 +79,37 @@ void UListInventoryWidget::BindDelegated()
 void UListInventoryWidget::ReDrawAllItems()
 {
 	ItemsList->ClearListItems();
-	ListInventoryRef->FilteredInvSlotsArray.Empty();
-	
+	ListInventoryRef->FilteredInvSlotsArray.Reset();
+
 	for (auto InvSlot : ListInventoryRef->InvSlotsArray)
 	{
-		if (!InvSlot || !InvSlot->Item) continue;
+		if (!InvSlot || !InvSlot->Item)
+			continue;
 
 		InvSlot->ParentInventoryWidget = this;
 
-		if (ActiveFilters.Num() == 0 || ActiveFilters.Contains(InvSlot->Item->GetItemRef().ItemCategory))
+		if (ActiveFilters.Num() == 0 ||
+			ActiveFilters.Contains(InvSlot->Item->GetItemRef().ItemCategory))
 		{
-			ListInventoryRef->FilteredInvSlotsArray.AddUnique(InvSlot);
+			ListInventoryRef->FilteredInvSlotsArray.Add(InvSlot);
 		}
 	}
-	
+
 	RefreshFilteredItemsList();
-	if (ItemFiltersPanel && ItemFiltersPanel->GetSearchText())
+
+	if (ItemFiltersPanel)
 	{
-		FText SearchText = ItemFiltersPanel->GetSearchText()->GetText();
-		if (!SearchText.IsEmpty())
+		if (auto SearchBox = ItemFiltersPanel->GetSearchText())
 		{
-			SearchTextChanged(SearchText);
+			FText SearchText = SearchBox->GetText();
+			if (!SearchText.IsEmpty())
+			{
+				SearchTextChanged(SearchText);
+			}
 		}
 	}
-    
-	ItemsList->RegenerateAllEntries();
-	ItemsList->RequestRefresh();
+
+	ItemsList->SetListItems(ListInventoryRef->FilteredInvSlotsArray);
 }
 
 void UListInventoryWidget::ClearFilters()
@@ -160,7 +165,7 @@ void UListInventoryWidget::RebuildFilteredSlots()
 		if (!InvSlot || !InvSlot->Item)
 			continue;
 		if (ActiveFilters.Contains(InvSlot->Item->GetItemRef().ItemCategory))
-			ListInventoryRef->FilteredInvSlotsArray.AddUnique(InvSlot);
+			ListInventoryRef->FilteredInvSlotsArray.Add(InvSlot);
 	}
 }
 

@@ -24,8 +24,5 @@ public:
 	// FUNCTIONS
 	//====================================================================
 	UFUNCTION(BlueprintCallable, Category = "Item Creation")
-	static UItemBase* CreateItemByID(UObject* Outer, UDataTable* InTable, FName ID, int32 Quantity = 1);
-
-	UFUNCTION(BlueprintCallable, Category = "Item Creation")
 	static UItemBase* CreateItemByHandle(UObject* Outer, FDataTableRowHandle Handle, int32 Quantity = 1);
 };

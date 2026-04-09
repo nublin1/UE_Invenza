@@ -21,7 +21,7 @@ void USlotbasedInventorySlot::NativePreConstruct()
 	
 	if (SlotData)
 	{
-		SetSlotNameText(SlotData->SlotName.ToString());
+		SetSlotNameText(SlotData->InventorySlotInfo.SlotName.ToString());
 	}
 	ResetVisual();
 }

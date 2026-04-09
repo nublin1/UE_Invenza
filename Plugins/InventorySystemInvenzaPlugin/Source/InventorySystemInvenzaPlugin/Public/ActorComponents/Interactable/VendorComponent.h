@@ -9,7 +9,7 @@
 #include "VendorComponent.generated.h"
 
 class UTradeComponent;
-class UInvBaseContainerWidget;
+class UInventoryContainerWidget;
 class UUInventoryWidgetBase;
 class UItemCollection;
 
@@ -26,7 +26,8 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
-	
+
+public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
@@ -41,8 +42,6 @@ protected:
 	virtual void StopInteract(UInteractionComponent* InteractionComponent) override;
 
 	virtual FTradeResult ProcessTradeRequest(const FItemMoveData& TradeData) override;
-
-	virtual bool CanTransferItem(FItemMoveData ItemMoveData);
 
 	UFUNCTION()
 	FTradeSettings GetTradeSettings() const {return TradeSettings;}
@@ -93,6 +92,14 @@ protected:
 	void InitializeInventoryStartupData();
 	UFUNCTION(BlueprintCallable)
 	void SetupStartingResources();
+
+	UFUNCTION(BlueprintCallable)
+	bool SimulateTrade(const FItemMoveData& TradeData,
+		int32 Price, bool bIsBuyingFromVendor, UItemBase* CurrencyItem, FTradeResult& OutResult);
+
+	UFUNCTION(BlueprintCallable)
+	void ExecuteTrade(const FItemMoveData& TradeData,  float Price,
+		bool bIsBuyingFromVendor, UInventoryBase* PlayerInventory, UItemBase* CurrencyItem);
 
 	UFUNCTION(BlueprintCallable)
 	float CalculateTotalBuyPrice(UItemBase* ItemToBuy);

@@ -2,7 +2,9 @@
 
 #include "Data/Inventory/InventorySlotData.h"
 
-UInventorySlotData::UInventorySlotData()
+#include "InputAction.h"
+
+UInventorySlotData::UInventorySlotData(): InventorySlotInfo()
 {
 }
 
@@ -17,10 +19,23 @@ UInventorySlotData* UInventorySlotData::CreateWithData(UObject* Outer, FName Nam
 	UInventorySlotData* Slot = NewObject<UInventorySlotData>(Outer);
 	if (!Slot) return nullptr;
 
-	Slot->AllowedCategory = Category;
-	Slot->SlotName = Name;
-	Slot->CellPosition = Position;
-	Slot->UseAction = Action;
+	Slot->InventorySlotInfo.AllowedCategory = Category;
+	Slot->InventorySlotInfo.SlotName = Name;
+	Slot->InventorySlotInfo.CellPosition = Position;
+	Slot->InventorySlotInfo.UseAction = TSoftObjectPtr<UInputAction>(Action);
 
 	return Slot;
+}
+
+UInventorySlotData* UInventorySlotData::DuplicateSlotData(UObject* Outer)
+{
+	UInventorySlotData* NewSlot = NewObject<UInventorySlotData>(Outer);
+	if (!NewSlot) return nullptr;
+	
+	NewSlot->InventorySlotInfo.AllowedCategory	= this->InventorySlotInfo.AllowedCategory;
+	NewSlot->InventorySlotInfo.SlotName			= this->InventorySlotInfo.SlotName;
+	NewSlot->InventorySlotInfo.CellPosition		= this->InventorySlotInfo.CellPosition;
+	NewSlot->InventorySlotInfo.UseAction		= this->InventorySlotInfo.UseAction;
+
+	return NewSlot;
 }

@@ -184,7 +184,8 @@ bool USlotbasedInventory::CanPlaceItemAt(const FIntPoint& StartPos, UItemBase* I
 
 		return bIsSlotPositionValid(StartPos)
 			&& bIsSlotEmptyByPos(StartPos, IgnoreSlots)
-			&& bIsItemCategoryCompatible(ItemBase->GetItemRef().ItemCategory, CheckSlot->AllowedCategory);
+			&& bIsItemCategoryCompatible(ItemBase->GetItemRef().ItemCategory,
+				CheckSlot->InventorySlotInfo.AllowedCategory);
 	}
 
 	TArray<FIntPoint> Positions = GetItemGridPositions(StartPos, ItemBase->GetItemSize(Orientation));
@@ -196,7 +197,8 @@ bool USlotbasedInventory::CanPlaceItemAt(const FIntPoint& StartPos, UItemBase* I
 		if (!CheckSlot) return false;
 
 		if (!bIsSlotEmptyByPos(CheckPos, IgnoreSlots)) return false;
-		if (!bIsItemCategoryCompatible(ItemBase->GetItemRef().ItemCategory, CheckSlot->AllowedCategory)) return false;
+		if (!bIsItemCategoryCompatible(ItemBase->GetItemRef().ItemCategory,
+			CheckSlot->InventorySlotInfo.AllowedCategory)) return false;
 	}
 
 	return true;
@@ -296,6 +298,28 @@ TArray<UInventorySlotData*> USlotbasedInventory::GetAvailableSlotForItem(
 
 	OutOrientation = EItemOrientationType::Horizontal;
 	return {};
+}
+
+void USlotbasedInventory::HandleRemoveItemsByType(UItemBase* ItemSample, int32 RequestedAmount)
+{
+	if (!ItemSample || RequestedAmount <= 0) return;
+	
+	int32 RemainingToRemove = RequestedAmount;
+	int32 RemovedTotal = 0;
+	TArray<UItemBase*> FoundItems =	ItemCollectionLinked->GetAllSameItemsInContainer(InventoryContainerID, ItemSample);
+	if (FoundItems.IsEmpty())
+		return;
+
+	for (UItemBase* Item : FoundItems)
+	{
+		if (!Item || RemainingToRemove <= 0)
+			break;
+
+		int32 Removed = TryRemoveFromStackItem(Item, RemainingToRemove);
+
+		RemainingToRemove -= Removed;
+		RemovedTotal += Removed;
+	}
 }
 
 void USlotbasedInventory::HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity)
@@ -758,13 +782,14 @@ UItemBase* USlotbasedInventory::AddNewItem(FItemMoveData& ItemMoveData, FItemMap
 
 	// Add item
 	OccupiedSlots.InventoryID = InventoryContainerID;
+	OccupiedSlots.bIsReferenceContainer = InventorySettings.bIsReferenceContainer;
 	FItemMapping& StoredMapping = ItemCollectionLinked->AddItem(FinalItem, OccupiedSlots);
 
 	NotifyAddNewItem(StoredMapping, FinalItem, ItemMoveData.SourceItem->GetQuantity());
 	UpdateWeightInfo();
 	UpdateMoneyInfo();
 
-	return FinalItem;
+	return FinalItem.Get();
 }
 
 void USlotbasedInventory::ReplaceItem(UItemBase* Item, const TArray<UInventorySlotData*>& NewSlotDatas,
@@ -802,17 +827,16 @@ int32 USlotbasedInventory::TryInsertToStackItem(UItemBase* ItemToInsertInto,
 		return 0;
 
 	int32 AmountToAddToStack = FMath::Min(AmountToDistribute,
-	                                      ItemToInsertInto->GetItemRef().ItemNumeraticData.MaxStackSizeInCharacter -
-	                                      ItemToInsertInto
-	                                      ->GetQuantity());
+	                                      ItemToInsertInto->GetItemRef().ItemNumeraticData.MaxStackSizeInCharacter
+	                                      - ItemToInsertInto ->GetQuantity());
 	int32 ActualAmountToAdd = CalculateActualAmountToAdd(AmountToAddToStack, ItemToInsertInto->GetItemSingleWeight());
 	int32 OldAmount = ItemToInsertInto->GetQuantity();
 
 	if (!bOnlyCheck)
 	{
-		//DeductResourceOnAddToInventory(ItemToDeductFrom, ActualAmountToAdd);
 		ItemToInsertInto->SetQuantity(OldAmount + ActualAmountToAdd);
 		NotifyAddItemToStack(ItemToInsertInto, ActualAmountToAdd);
+		
 	}
 	//ActualAmountToAdd = OldAmount + ActualAmountToAdd;
 
@@ -842,7 +866,7 @@ bool USlotbasedInventory::bIsSlotEmptyByPos(FIntPoint SlotPosition, const TArray
 		if (SlotsToIgnore.Contains(InvSlotData))
 			continue;
 		
-		if (InvSlotData->CellPosition == SlotPosition)
+		if (InvSlotData->InventorySlotInfo.CellPosition == SlotPosition)
 			return false;
 	}
 
@@ -851,7 +875,7 @@ bool USlotbasedInventory::bIsSlotEmptyByPos(FIntPoint SlotPosition, const TArray
 
 bool USlotbasedInventory::bIsSlotEmpty(UInventorySlotData* SlotToCheck, const TArray<UInventorySlotData*>& SlotsToIgnore)
 {
-	auto Posit = (SlotToCheck->CellPosition);
+	auto Posit = (SlotToCheck->InventorySlotInfo.CellPosition);
 	return bIsSlotEmptyByPos(Posit, SlotsToIgnore);
 }
 
@@ -934,7 +958,7 @@ UInventorySlotData* USlotbasedInventory::GetSlotByPosition(FIntPoint SlotPositio
 {
 	for (auto& Elem : InventorySlotData)
 	{
-		if (Elem->CellPosition == SlotPosition)
+		if (Elem->InventorySlotInfo.CellPosition == SlotPosition)
 			return Elem;
 	}
 
@@ -968,7 +992,7 @@ UItemBase* USlotbasedInventory::GetItemFromSlot(UInventorySlotData* Slot)
 		{
 			for (auto MapSlot : Mapping.OccupiedSlots)
 			{
-				if (MapSlot && MapSlot->CellPosition == Slot->CellPosition)
+				if (MapSlot && MapSlot->InventorySlotInfo.CellPosition == Slot->InventorySlotInfo.CellPosition)
 					return Pair.Key.Get();
 			}
 		}

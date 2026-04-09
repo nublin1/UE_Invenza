@@ -1,7 +1,7 @@
 //  Nublin Studio 2025 All Rights Reserved.
 
 
-#include "UI/Inventory/Container/InvBaseContainerWidget.h"
+#include "UI/Inventory/Container/InventoryContainerWidget.h"
 
 #include "ActorComponents/ItemCollection.h"
 #include "ActorComponents/UIInventoryManager.h"
@@ -18,11 +18,11 @@
 #include "UI/Inventory/SlotbasedInventoryWidget.h"
 
 
-UInvBaseContainerWidget::UInvBaseContainerWidget()
+UInventoryContainerWidget::UInventoryContainerWidget()
 {
 }
 
-void UInvBaseContainerWidget::NativePreConstruct()
+void UInventoryContainerWidget::NativePreConstruct()
 {
 	Super::NativePreConstruct();
 	
@@ -52,7 +52,7 @@ void UInvBaseContainerWidget::NativePreConstruct()
 		InvWeight->SetVisibility(ESlateVisibility::Collapsed);
 }
 
-void UInvBaseContainerWidget::NativeConstruct()
+void UInventoryContainerWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
@@ -63,11 +63,11 @@ void UInvBaseContainerWidget::NativeConstruct()
 		TitleBar->SetParentWidget(this);
 		
 		if (!bIsShowCloseButton)
-			TitleBar->Button_Close->OnClicked.AddDynamic(this, &UInvBaseContainerWidget::CloseButtonClicked);
+			TitleBar->Button_Close->OnClicked.AddDynamic(this, &UInventoryContainerWidget::CloseButtonClicked);
 	}
 }
 
-void UInvBaseContainerWidget::InitializeInventoryBindings()
+void UInventoryContainerWidget::InitializeInventoryBindings()
 {
 	UUInventoryWidgetBase* InventoryWidget = GetInventoryWidgetFromContainerSlot();
 	if (!InventoryWidget)
@@ -85,7 +85,7 @@ void UInvBaseContainerWidget::InitializeInventoryBindings()
 			InvWeight->SetVisibility(ESlateVisibility::Collapsed);
 		else
 		{
-			InventoryRef->OnWeightUpdatedDelegate.AddDynamic(this, &UInvBaseContainerWidget::UpdateWeightInfo);
+			InventoryRef->OnWeightUpdatedDelegate.AddDynamic(this, &UInventoryContainerWidget::UpdateWeightInfo);
 			InventoryRef->UpdateWeightInfo();
 		}
 	}
@@ -96,21 +96,21 @@ void UInvBaseContainerWidget::InitializeInventoryBindings()
 		{
 			if (OperationsWidget->Button_TakeAll && OperationsWidget->Button_TakeAll->MainButton)
 				OperationsWidget->Button_TakeAll->MainButton->OnClicked.AddDynamic(
-					this, &UInvBaseContainerWidget::TakeAll);
+					this, &UInventoryContainerWidget::TakeAll);
 			if (OperationsWidget->Button_PlaceAll && OperationsWidget->Button_PlaceAll->MainButton)
 				OperationsWidget->Button_PlaceAll->MainButton->OnClicked.AddDynamic(
-					this, &UInvBaseContainerWidget::PlaceAll);
+					this, &UInventoryContainerWidget::PlaceAll);
 			if (OperationsWidget->Button_Sort && OperationsWidget->Button_Sort->MainButton)
 				OperationsWidget->Button_Sort->MainButton->OnClicked.AddDynamic(
-					this, &UInvBaseContainerWidget::SortItems);
+					this, &UInventoryContainerWidget::SortItems);
 		}
 	}
 
-	Inventory->OnMoneyUpdatedDelegate.AddDynamic(this, &UInvBaseContainerWidget::UpdateMoneyInfo);
+	Inventory->OnMoneyUpdatedDelegate.AddDynamic(this, &UInventoryContainerWidget::UpdateMoneyInfo);
 	Inventory->UpdateMoneyInfo();
 }
 
-void UInvBaseContainerWidget::ChangeInventoryInContainerSlot(TSubclassOf<UInvenzaBaseWidget> NewInventory)
+void UInventoryContainerWidget::ChangeInventoryInContainerSlot(TSubclassOf<UInvenzaBaseWidget> NewInventory)
 {
 	if (!NewInventory) return;
 
@@ -124,13 +124,13 @@ void UInvBaseContainerWidget::ChangeInventoryInContainerSlot(TSubclassOf<UInvenz
 	ContainerSlot->AddChild(NewInvWidget);
 }
 
-void UInvBaseContainerWidget::CloseButtonClicked()
+void UInventoryContainerWidget::CloseButtonClicked()
 {
 	if (OnClose.IsBound())
 		OnClose.Broadcast(this);
 }
 
-UUInventoryWidgetBase* UInvBaseContainerWidget::GetInventoryWidgetFromContainerSlot()
+UUInventoryWidgetBase* UInventoryContainerWidget::GetInventoryWidgetFromContainerSlot()
 {
 	if (!ContainerSlot || ContainerSlot->GetChildrenCount() == 0)
 	{
@@ -145,7 +145,7 @@ UUInventoryWidgetBase* UInvBaseContainerWidget::GetInventoryWidgetFromContainerS
 	return nullptr;
 }
 
-void UInvBaseContainerWidget::UpdateWeightInfo(float InventoryTotalWeight)
+void UInventoryContainerWidget::UpdateWeightInfo(float InventoryTotalWeight)
 {
 	if (bIsShowWeight)
 	{
@@ -162,7 +162,7 @@ void UInvBaseContainerWidget::UpdateWeightInfo(float InventoryTotalWeight)
 	}
 }
 
-void UInvBaseContainerWidget::UpdateMoneyInfo(int32 TotalMoney)
+void UInventoryContainerWidget::UpdateMoneyInfo(int32 TotalMoney)
 {
 	if (!InvMoney)
 		return;
@@ -178,7 +178,7 @@ void UInvBaseContainerWidget::UpdateMoneyInfo(int32 TotalMoney)
 	}
 }
 
-void UInvBaseContainerWidget::TakeAll()
+void UInventoryContainerWidget::TakeAll()
 {
 	/*UIInventoryManager* InventoryManager = GetOwningPlayerPawn()->FindComponentByClass<UIInventoryManager>();
 	if (!InventoryManager || !InventoryManager->GetCoreHUDWidget())
@@ -191,7 +191,7 @@ void UInvBaseContainerWidget::TakeAll()
 	TransferAllItems(this, TargetInv);*/
 }
 
-void UInvBaseContainerWidget::PlaceAll()
+void UInventoryContainerWidget::PlaceAll()
 {
 	/*UIInventoryManager* InventoryManager = GetOwningPlayerPawn()->FindComponentByClass<UIInventoryManager>();
 	if (!InventoryManager || !InventoryManager->GetCoreHUDWidget())
@@ -204,8 +204,8 @@ void UInvBaseContainerWidget::PlaceAll()
 	TransferAllItems(SourceInv, this);*/
 }
 
-void UInvBaseContainerWidget::TransferAllItems(UInvBaseContainerWidget* SourceContainer,
-                                               UInvBaseContainerWidget* TargetContainer)
+void UInventoryContainerWidget::TransferAllItems(UInventoryContainerWidget* SourceContainer,
+                                               UInventoryContainerWidget* TargetContainer)
 {
 	/*if (!SourceContainer || !TargetContainer) return;
 
@@ -240,7 +240,7 @@ void UInvBaseContainerWidget::TransferAllItems(UInvBaseContainerWidget* SourceCo
 	}*/
 }
 
-void UInvBaseContainerWidget::SortItems()
+void UInventoryContainerWidget::SortItems()
 {
 	if (!InventoryRef)
 		return;

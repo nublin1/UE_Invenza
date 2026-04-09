@@ -37,12 +37,12 @@ public:
 	virtual TArray<UUInventoryWidgetBase*> GetAllPawnInventories() const override;
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|UI")
-	virtual TArray<UInvBaseContainerWidget*> GetAllPawnInvContainers() const override;
+	virtual TArray<UInventoryContainerWidget*> GetAllPawnInvContainers() const override;
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|UI")
-	virtual UPanelSlot* AddPawnInvContainerWidget(UInvBaseContainerWidget* InvContainerWidgetToAdd) const override;
+	virtual UPanelSlot* AddPawnInvContainerWidget(UInventoryContainerWidget* InvContainerWidgetToAdd) const override;
 	UFUNCTION(BlueprintCallable, Category = "Inventory|UI")
-	virtual void RemovePawnInvContainer(UInvBaseContainerWidget* InvContainerToRemove) const override;
+	virtual void RemovePawnInvContainer(UInventoryContainerWidget* InvContainerToRemove) const override;
 
 protected:
 	//====================================================================

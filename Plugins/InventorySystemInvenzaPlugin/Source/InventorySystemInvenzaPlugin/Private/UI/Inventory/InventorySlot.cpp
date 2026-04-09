@@ -24,6 +24,14 @@ void UInventorySlot::ClearVisual()
 {
 }
 
+UInputAction* UInventorySlot::GetUseAction() const
+{
+	if (SlotData->InventorySlotInfo.UseAction.IsNull())
+		return nullptr;
+
+	return SlotData->InventorySlotInfo.UseAction.LoadSynchronous();
+}
+
 void UInventorySlot::SetSlotNameText(FString InUseKeyText)
 {
 }

@@ -5,7 +5,9 @@
 #include "ActorComponents/ItemCollection.h"
 #include "ActorComponents/Trade/TradeComponent.h"
 #include "Data/Inventory/InventoryBase.h"
+#include "Data/Inventory/Simulator/InventorySimulator.h"
 #include "Factory/ItemFactory.h"
+#include "Utility/InventoryUtility.h"
 
 UVendorComponent::UVendorComponent()
 {
@@ -24,6 +26,8 @@ void UVendorComponent::BeginPlay()
 
 	if (auto ItemCollection = GetOwner()->FindComponentByClass<UItemCollection>())
 		ItemCollectionRef = ItemCollection;
+
+	InitializeInventoryStartupData();
 }
 
 void UVendorComponent::BeginFocus()
@@ -69,8 +73,13 @@ FTradeResult UVendorComponent::ProcessTradeRequest(const FItemMoveData& TradeDat
 	}
 	
 	bool bIsBuyingFromVendor = (TradeData.SourceInventory == MainVendorLootInventory);
-	float Price = bIsBuyingFromVendor ? CalculateTotalSellPrice(TradeData.SourceItem) : CalculateTotalBuyPrice(TradeData.SourceItem);
-	float AvailableMoney = bIsBuyingFromVendor ? TradePartnerItemCollection->CalculateAvailableMoney() : ItemCollectionRef->CalculateAvailableMoney();
+	float Price = bIsBuyingFromVendor
+		? CalculateTotalSellPrice(TradeData.SourceItem)
+		: CalculateTotalBuyPrice(TradeData.SourceItem);
+	
+	float AvailableMoney = bIsBuyingFromVendor
+		? TradePartnerItemCollection->CalculateAvailableMoney()
+		: ItemCollectionRef->CalculateAvailableMoney();
 
 	if (Price > 0 && AvailableMoney < Price)
 	{
@@ -80,58 +89,23 @@ FTradeResult UVendorComponent::ProcessTradeRequest(const FItemMoveData& TradeDat
 			FText::FromString(FString::Printf(TEXT("%s doesn't have enough money. Need: %.0f, Has: %.0f, Missing: %.0f"),
 				*Who, Price, AvailableMoney, Deficit)));
 	}
-	
-	UInventoryBase* PlayerInventory = ResolvePlayerInventory(TradeData, bIsBuyingFromVendor);
-	UInventoryBase* MoneyTargetInventory = bIsBuyingFromVendor ? MainVendorLootInventory : PlayerInventory;
-	UInventoryBase* ItemTargetInventory = bIsBuyingFromVendor ? PlayerInventory : MainVendorLootInventory;
 
-	// test money transfer
 	UItemBase* CurrencyItem = UItemFactory::CreateItemByHandle(this, TradeSettings.CurrencyItemClass, Price);
-
-	FItemMoveData MoneyMoveData;
-	MoneyMoveData.SourceItem = CurrencyItem;
-	MoneyMoveData.TargetInventory = MoneyTargetInventory;
-
-	if (!CanTransferItem(MoneyMoveData))
+	if (!CurrencyItem)
+		return FTradeResult::Failed(FText::FromString("CurrencyItemClass is not set"));
+	
+	FTradeResult SimulationResult;
+	if (!SimulateTrade(TradeData, Price, bIsBuyingFromVendor, CurrencyItem, SimulationResult))
 	{
-		FString Who = bIsBuyingFromVendor ? TEXT("Vendor") : TEXT("Player");
-		return FTradeResult::InventoryFull(
-			FText::FromString(FString::Printf(TEXT("%s inventory is full — no room for money"), *Who)));
+		return SimulationResult;
 	}
 
-	// test item transfer
-	FItemMoveData ItemMoveData;
-	ItemMoveData.SourceItem = TradeData.SourceItem;
-	ItemMoveData.TargetInventory = ItemTargetInventory;
-
-	if (!CanTransferItem(ItemMoveData))
-	{
-		FString Who = bIsBuyingFromVendor ? TEXT("Player") : TEXT("Vendor");
-		return FTradeResult::InventoryFull(
-			FText::FromString(FString::Printf(TEXT("%s inventory is full — no room for item"), *Who)));
-	}
-
-	// --- ЕСЛИ ВСЕ ПРОВЕРКИ ПРОЙДЕНЫ: АТОМАРНАЯ СДЕЛКА ---
-
-	if (bIsBuyingFromVendor)
-	{
-		RemoveCurrencyFromInventory(PlayerInventory, Price);
-		ExecutePhysicalTransfer(TradeData); // Перемещаем товар
-	}
-	else
-	{
-		ExecutePhysicalTransfer(TradeData); // Сначала забираем товар
-		AddCurrencyToInventory(PlayerInventory, Price); // Выдаем золото
-	}
+	// FINAL TRADE EXECUTION
+	UInventoryBase* PlayerInventory = ResolvePlayerInventory(TradeData, bIsBuyingFromVendor);
+	ExecuteTrade(TradeData, Price, bIsBuyingFromVendor, PlayerInventory, CurrencyItem);
 
 	Result.OperationResult = ETradeResult::TR_Success;
 	return Result;
-}
-
-bool UVendorComponent::CanTransferItem(FItemMoveData ItemMoveData)
-{
-	auto Result = ItemMoveData.TargetInventory->HandleAddItem(ItemMoveData, true);
-	return Result.OperationResult == EItemAddResult::IAR_AllItemAdded;
 }
 
 const TObjectPtr<UInventoryBase>& UVendorComponent::GetVendorLootContainer() const
@@ -192,24 +166,91 @@ void UVendorComponent::SetupStartingResources()
 	{
 		if (InitResource.Item.RowName.IsNone()) continue;
 
-		int32 RemainingAmount = InitResource.Amount;
-		while (RemainingAmount > 0)
+		UItemBase* NewItemSample = UItemFactory::CreateItemByHandle(this, InitResource.Item, 1);
+
+		UInventoryUtility::AddItemQuantity(this, MainVendorLootInventory, NewItemSample, InitResource.Amount);
+	}
+}
+
+bool UVendorComponent::SimulateTrade(const FItemMoveData& TradeData, int32 Price, bool bIsBuyingFromVendor,
+	UItemBase* CurrencyItem, FTradeResult& OutResult)
+{
+	UInventoryBase* PlayerInventory = ResolvePlayerInventory(TradeData, bIsBuyingFromVendor);
+	UInventoryBase* MoneyTargetInventory = bIsBuyingFromVendor ? MainVendorLootInventory.Get() : PlayerInventory;
+	UInventoryBase* ItemTargetInventory = bIsBuyingFromVendor ? PlayerInventory : MainVendorLootInventory.Get();
+
+	// create simulators
+	UInventorySimulator* MoneySim = NewObject<UInventorySimulator>(this);
+	UInventorySimulator* ItemSim = NewObject<UInventorySimulator>(this);
+
+	MoneySim->DuplicateInventoryForSimulation(MoneyTargetInventory);
+	ItemSim->DuplicateInventoryForSimulation(ItemTargetInventory);
+	
+	// MONEY TRANSFER SIMULATION
+	MoneySim->TransferRequestSimulateQuantity(CurrencyItem, Price);
+	
+	if (!MoneySim->AreAllOperationsSuccessful())
+	{
+		FString Who = bIsBuyingFromVendor ? TEXT("Vendor") : TEXT("Player");
+
+		OutResult = FTradeResult::InventoryFull(
+			FText::FromString(FString::Printf(TEXT("%s inventory is full — no room for money"), *Who)));
+
+		return false;
+	}
+	
+	// ITEM TRANSFER SIMULATION
+	FItemMoveData ItemMoveData;
+	ItemMoveData.SourceItem = TradeData.SourceItem;
+	ItemMoveData.TargetInventory = ItemSim->GetSimulationInventory();
+	//ItemMoveData.TargetSlot = TradeData.TargetSlot;
+	ItemMoveData.SavedOrientation = TradeData.SavedOrientation;
+	ItemMoveData.TargetOrientation = TradeData.TargetOrientation;
+
+	ItemSim->TransferRequestSimulate(ItemMoveData);
+
+	if (!ItemSim->WasLastOperationSuccessful())
+	{
+		FString Who = bIsBuyingFromVendor ? TEXT("Player") : TEXT("Vendor");
+
+		OutResult = FTradeResult::InventoryFull(
+			FText::FromString(FString::Printf(TEXT("%s inventory is full — no room for item"), *Who)));
+
+		return false;
+	}
+
+	return true;
+}
+
+void UVendorComponent::ExecuteTrade(const FItemMoveData& TradeData, float Price, bool bIsBuyingFromVendor,
+	UInventoryBase* PlayerInventory, UItemBase* CurrencyItem)
+{
+	if (bIsBuyingFromVendor)
+	{
+		// Deduct currency from player inventory
+		PlayerInventory->HandleRemoveItemsByType(CurrencyItem, Price);
+
+		// Add currency to vendor
+		UInventoryUtility::AddItemQuantity(this, MainVendorLootInventory, CurrencyItem, Price);
+
+		if (TradeSettings.RemoveItemAfterPurchase)
 		{
-			UItemBase* NewItem = UItemFactory::CreateItemByHandle(this, InitResource.Item, RemainingAmount);
-			if (!NewItem) break;
-
-			RemainingAmount -= NewItem->GetQuantity();
-
-			const EItemOrientationType InitOrientation = NewItem->GetInitialItemOrientation();
-                
-			FItemMoveData Data;
-			Data.TargetInventory  = MainVendorLootInventory;
-			Data.SourceItem       = NewItem;
-			Data.SavedOrientation = InitOrientation;
-			Data.TargetOrientation = InitOrientation;
-
-			MainVendorLootInventory->HandleAddItem(Data);
+			MainVendorLootInventory->HandleRemoveItem(TradeData.SourceItem, TradeData.SourceItem->GetQuantity());
 		}
+
+		// Move purchased item to player inventory
+		PlayerInventory->HandleAddItem(TradeData);
+	}
+	else
+	{
+		// Remove sold item from player inventory
+		PlayerInventory->HandleRemoveItem(TradeData.SourceItem, TradeData.SourceItem->GetQuantity());
+		
+		// Pay player for the sold item
+		UInventoryUtility::AddItemQuantity(this, PlayerInventory, CurrencyItem, Price);
+
+		// Add sold item to vendor
+		UInventoryUtility::AddItemQuantity(this, MainVendorLootInventory, TradeData.SourceItem, TradeData.SourceItem->GetQuantity());
 	}
 }
 
@@ -239,7 +280,7 @@ UInventoryBase* UVendorComponent::ResolvePlayerInventory(const FItemMoveData& Tr
 	}
 	
 	// Player sells → item comes from SourceInventory
-	if (TradeData.SourceInventory && !TradeData.SourceInventory->GetInventorySettings().bIsReferenceContainer())
+	if (TradeData.SourceInventory && !TradeData.SourceInventory->GetInventorySettings().bIsReferenceContainer)
 	{
 		return TradeData.SourceInventory;
 	}

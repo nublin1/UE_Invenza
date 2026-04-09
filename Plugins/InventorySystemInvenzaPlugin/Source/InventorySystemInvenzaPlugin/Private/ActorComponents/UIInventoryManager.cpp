@@ -13,6 +13,7 @@
 #include "ActorComponents/Trade/TradeComponent.h"
 #include "UI/Inventory/SlotbasedInventoryWidget.h"
 #include "ActorComponents/Interactable/PickupComponent.h"
+#include "ActorComponents/Interactable/VendorComponent.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Data/Items/itemBase.h"
 #include "Data/Inventory/InventoryBase.h"
@@ -27,13 +28,13 @@
 #include "Interface/Interaction/VendorProvider.h"
 #include "Interface/Inventory/InvUIProvider.h"
 #include "Kismet/GameplayStatics.h"
-#include "Service/TradeService.h"
-#include "UI/Inventory/Container/InvBaseContainerWidget.h"
+#include "UI/Inventory/Container/InventoryContainerWidget.h"
 #include "UI/Interaction/InteractionWidget.h"
 #include "UI/Inventory/InventorySlot.h"
 #include "UI/Inventory/ListInventoryWidget.h"
 #include "Data/Trade/TradeTypes.h"
 #include "UI/ModalWidgets/ModalTradeWidget.h"
+#include "Utility/InventoryUtility.h"
 
 class UEnhancedInputLocalPlayerSubsystem;
 
@@ -333,24 +334,9 @@ void UIInventoryManager::SetupStartingResources()
 		{
 			if (InitResource.Item.RowName.IsNone()) continue;
 
-			int32 RemainingAmount = InitResource.Amount;
-			while (RemainingAmount > 0)
-			{
-				UItemBase* NewItem = UItemFactory::CreateItemByHandle(this, InitResource.Item, RemainingAmount);
-				if (!NewItem) break;
+			UItemBase* NewItemSample = UItemFactory::CreateItemByHandle(this, InitResource.Item, 1);
 
-				RemainingAmount -= NewItem->GetQuantity();
-
-				const EItemOrientationType InitOrientation = NewItem->GetInitialItemOrientation();
-                
-				FItemMoveData Data;
-				Data.TargetInventory  = TargetInventory;
-				Data.SourceItem       = NewItem;
-				Data.SavedOrientation = InitOrientation;
-				Data.TargetOrientation = InitOrientation;
-
-				ItemTransferRequest(Data);
-			}
+			UInventoryUtility::AddItemQuantity(this, TargetInventory, NewItemSample, InitResource.Amount);
 		}
 	}
 
@@ -364,9 +350,9 @@ void UIInventoryManager::OnItemAddedToInventory(FItemMapping& ItemSlots, UItemBa
 	for (UInventorySlotData* SlotData : ItemSlots.OccupiedSlots)
 	{
 		if (!SlotData) continue;
-		if (!SlotData->LinkedEquipmentSlot.IsValid()) continue;
+		if (!SlotData->InventorySlotInfo.LinkedEquipmentSlot.IsValid()) continue;
 		
-		EquipmentComponentRef->EquipItemToSlot(SlotData->LinkedEquipmentSlot, Item);
+		EquipmentComponentRef->EquipItemToSlot(SlotData->InventorySlotInfo.LinkedEquipmentSlot, Item);
 		return;
 	}
 }
@@ -378,57 +364,64 @@ void UIInventoryManager::OnItemRemovedFromInventory(FItemMapping ItemSlots, UIte
 	for (UInventorySlotData* SlotData : ItemSlots.OccupiedSlots)
 	{
 		if (!SlotData) continue;
-		if (!SlotData->LinkedEquipmentSlot.IsValid()) continue;
+		if (!SlotData->InventorySlotInfo.LinkedEquipmentSlot.IsValid()) continue;
 
-		EquipmentComponentRef->UnequipItemFromSlot(SlotData->LinkedEquipmentSlot);
+		EquipmentComponentRef->UnequipItemFromSlot(SlotData->InventorySlotInfo.LinkedEquipmentSlot);
 		return;
-	}
-}
-
-void UIInventoryManager::VendorRequest(FItemMoveData ItemMoveData )
-{
-	if (IVendorProvider* Vendor = Cast<IVendorProvider>(VendorProviderCurrent.GetObject()))
-	{
-		FTradeResult TradeResult = Vendor->ProcessTradeRequest(ItemMoveData);
-
-		if (TradeResult.OperationResult == ETradeResult::TR_Success)
-		{
-			NotifyTradeSuccess(TradeResult);
-		}
-		else
-		{
-			NotifyTradeFailed(TradeResult.ResultMessage);
-		}
 	}
 }
 
 void UIInventoryManager::OnQuickTransferItem(FItemMoveData ItemMoveData)
 {
-	/*if (!CurrentInteractInvWidget)
+	if (!MainPawnInventory)
 		return;
-
-	if (ItemMoveData.SourceInventory == GetMainInventory()->GetInventoryFromContainerSlot())
+	
+	if (ExternalInventory)
 	{
-		ItemMoveData.TargetInventory = CurrentInteractInvWidget->GetInventoryFromContainerSlot();
+		if (ItemMoveData.SourceInventory == ExternalInventory)
+			ItemMoveData.TargetInventory = MainPawnInventory;
+		else
+			ItemMoveData.TargetInventory = ExternalInventory;
+
 		ItemTransferRequest(ItemMoveData);
 		return;
 	}
 
-	ItemMoveData.TargetInventory = GetMainInventory()->GetInventoryFromContainerSlot();
-	ItemTransferRequest(ItemMoveData);*/
+	ItemMoveData.TargetInventory = MainPawnInventory;
+	ItemTransferRequest(ItemMoveData);
+}
+
+void UIInventoryManager::VendorRequest(FItemMoveData ItemMoveData )
+{
+	if (ItemMoveData.SourceInventory == ItemMoveData.TargetInventory)
+		return;
+	
+	FTradeResult TradeResult = VendorProviderCurrent->ProcessTradeRequest(ItemMoveData);
+
+	if (TradeResult.OperationResult == ETradeResult::TR_Success)
+	{
+		//NotifyTradeSuccess(TradeResult);
+	}
+	else
+	{
+		//NotifyTradeFailed(TradeResult.ResultMessage);
+	}
+	
 }
 
 void UIInventoryManager::ItemTransferRequest(FItemMoveData ItemMoveData)
 {
-	if (VendorProviderCurrent && ItemMoveData.TargetInventory->GetInventorySettings().InventoryType == EInventoryType::VendorInventory)
+	if (VendorProviderCurrent)
 	{
-		VendorRequest(ItemMoveData);
+		if (ItemMoveData.TargetInventory == VendorProviderCurrent->GetVendorLootContainer()
+			|| ItemMoveData.SourceInventory == VendorProviderCurrent->GetVendorLootContainer())
+			VendorRequest(ItemMoveData);
 		return;
 	}
 	
-	auto Result = ItemMoveData.TargetInventory->HandleAddItem(ItemMoveData, false);
+	FItemAddResult Result = ItemMoveData.TargetInventory->HandleAddItem(ItemMoveData, false);
 	auto ActualAmountAdded = Result.ActualAmountAdded;
-	UE_LOG(LogTemp, Log, TEXT("InventoryManager::ItemTransferRequest. Is ResultMessage: %s"), *Result.ResultMessage.ToString());
+	//UE_LOG(LogTemp, Log, TEXT("InventoryManager::ItemTransferRequest. Is ResultMessage: %s"), *Result.ResultMessage.ToString());
 
 	if (ItemMoveData.SourceInventory)
 		ItemMoveData.SourceInventory->RequestToResetItemVisual(ItemMoveData.SourceItem);
@@ -452,7 +445,7 @@ void UIInventoryManager::ItemTransferRequest(FItemMoveData ItemMoveData)
 			break;
 		}
 		if (ItemMoveData.SourceInventory)
-		{
+		{			
 			ItemMoveData.SourceInventory->HandleRemoveItem(ItemMoveData.SourceItem, ActualAmountAdded);
 			break;
 		}
@@ -465,6 +458,17 @@ void UIInventoryManager::ItemTransferRequest(FItemMoveData ItemMoveData)
 			ItemMoveData.SourceInventory->HandleRemoveItem(ItemMoveData.SourceItem, ActualAmountAdded);
 		}
 		break;
+	}
+
+	if (ItemMoveData.SourceInventory)
+	{
+		ItemMoveData.SourceInventory->UpdateMoneyInfo();
+		ItemMoveData.SourceInventory->UpdateWeightInfo();
+	}
+	if (ItemMoveData.TargetInventory)
+	{
+		ItemMoveData.TargetInventory->UpdateMoneyInfo();
+		ItemMoveData.TargetInventory->UpdateWeightInfo();
 	}
 }
 
@@ -531,16 +535,15 @@ void UIInventoryManager::HandleInteract(UInteractableComponent* TargetInteractab
 		return;
 	}
 
-	if (auto VendorProvider = Cast<IVendorProvider>(TargetInteractableComponent))
+	if (auto VendorComponent = Cast<UVendorComponent>(TargetInteractableComponent))
 	{
-		if (auto InventoryToDisplay = VendorProvider->GetVendorLootContainer())
+		if (auto InventoryToDisplay = VendorComponent->GetVendorLootContainer())
 		{
-			VendorProviderCurrent.SetObject(TargetInteractableComponent);
-			VendorProviderCurrent.SetInterface(VendorProvider);
+			VendorProviderCurrent = VendorComponent;
 			OpenExternalInventory(InventoryToDisplay);
 
-			VendorProvider->SetTradePartnerInventory(MainPawnInventory);
-			VendorProvider->SetTradePartnerItemCollection(ItemCollectionRef);
+			VendorComponent->SetTradePartnerInventory(MainPawnInventory);
+			VendorComponent->SetTradePartnerItemCollection(ItemCollectionRef);
 		}
 	}
 }
@@ -725,11 +728,11 @@ void UIInventoryManager::BindInputActions()
 			if (!SlotData)
 				continue;
 
-			if (!SlotData->UseAction)
+			if (!SlotData->InventorySlotInfo.UseAction)
 				continue;
 
 			Input->BindAction(
-				SlotData->UseAction,
+				SlotData->InventorySlotInfo.UseAction.Get(),
 				ETriggerEvent::Started,
 				Inventory,
 				&UInventoryBase::UseSlot,

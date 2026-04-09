@@ -3,114 +3,50 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Data/Inventory/InventorySlotData.h"
 #include "Data/Items/itemBase.h"
-#include "UI/Inventory/Container/InvBaseContainerWidget.h"
+#include "UI/Inventory/Container/InventoryContainerWidget.h"
 #include "Data/Inventory/InventoryTypes.h"
 #include "SaveLoadStructs.generated.h"
 
 struct FInventorySlotData;
 
 USTRUCT(BlueprintType)
-struct FItemSaveData
+struct FItemMappingSaveEntry
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Save Data")
-	FName ItemID;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Save Data")
-	int32 Quantity = 0;
-
-	FItemSaveData() {}
-	FItemSaveData(UItemBase* Item)
-	{
-		if (Item)
-		{
-			ItemID = Item->GetItemID();
-			Quantity = Item->GetQuantity();
-		}
-		else
-		{
-			ItemID = NAME_None;
-			Quantity = 0;
-		}
-	}
-
-	bool operator==(const FItemSaveData& Other) const
-	{
-		return ItemID == Other.ItemID;
-	}
-};
-
-FORCEINLINE uint32 GetTypeHash(const FItemSaveData& Data)
-{
-	return GetTypeHash(Data.ItemID);
-}
-
-USTRUCT(BlueprintType)
-struct FInventorySlotSaveData
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Slot Save Data")
-	FName SlotName = " ";
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Slot Save Data")
-	FIntVector2 SlotPosition{};
-};
-
-USTRUCT(BlueprintType)
-struct FItemMappingSaveData
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mapping Data")
-	FString InventoryContainerName;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mapping Data")
-	EInventoryType InventoryType;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mapping Data")
-	TArray<FInventorySlotSaveData> SlotSaveDatas;
-
-	FItemMappingSaveData(): InventoryType()
-	{
-	}
+	UPROPERTY()
+	FString InventoryID;
 	
-	void InitializeFromMapping(const FItemMapping& Mapping)
-	{
-		InventoryContainerName = Mapping.InventoryID;
-		InventoryType          = Mapping.InventoryType;
+	UPROPERTY()
+	TArray<FIntPoint> OccupiedCells;
 
-		SlotSaveDatas.Empty();
-		SlotSaveDatas.Reserve(Mapping.OccupiedSlots.Num());
+	UPROPERTY()
+	EItemOrientationType ItemOrientation = EItemOrientationType::Horizontal;
 
-		for (auto SlotData : Mapping.OccupiedSlots)
-		{
-			FInventorySlotSaveData InventorySlotSaveData;
-			InventorySlotSaveData.SlotName     = SlotData->SlotName;
-			InventorySlotSaveData.SlotPosition = SlotData->CellPosition;
-			SlotSaveDatas.Add(MoveTemp(InventorySlotSaveData));
-		}
-	}
+	UPROPERTY()
+	bool bIsReferenceContainer = false;
 };
 
 USTRUCT(BlueprintType)
 struct FItemSaveEntry
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Save Entry")
-	FItemSaveData Item;
+	UPROPERTY()
+	FName ItemID;
+	UPROPERTY()
+	int32 Quantity = 0;
+	UPROPERTY()
+	FDataTableRowHandle SourceItemRow;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Save Entry")
-	TArray<FItemMappingSaveData> Containers;
+	UPROPERTY()
+	TArray<FItemMappingSaveEntry> Mappings;
 };
 
-USTRUCT(BlueprintType)
-struct FInvSaveData
+FORCEINLINE uint32 GetTypeHash(const FItemSaveEntry& Data)
 {
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Save Data")
-	TArray<FItemSaveEntry> SavedItemLocations;
-};
+	return GetTypeHash(Data.ItemID);
+}
 

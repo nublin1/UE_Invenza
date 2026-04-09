@@ -1,0 +1,45 @@
+﻿//  Nublin Studio 2026 All Rights Reserved.
+
+#include "Utility/InventoryUtility.h"
+
+#include "Data/Inventory/InventoryBase.h"
+#include "Data/Inventory/InventoryTypes.h"
+#include "Data/Items/itemBase.h"
+#include "Factory/ItemFactory.h"
+
+bool UInventoryUtility::AddItemQuantity(UObject* Outer, UInventoryBase* TargetInventory, UItemBase* ItemSample,
+                                        int32 TotalQuantity)
+{
+	if (!TargetInventory || !ItemSample ||TotalQuantity <= 0)
+		return false;
+
+	int32 Remaining = TotalQuantity;
+
+	auto ItemClass = ItemSample->GetItemRow();
+	UItemBase* ItemForDuplicate = UItemFactory::CreateItemByHandle(Outer, ItemClass, Remaining);
+	if (!ItemForDuplicate)
+		return false;
+	
+	while (Remaining > 0)
+	{
+		auto Item = ItemForDuplicate->DuplicateItem();
+
+		int32 MaxStack = Item->GetItemRef().ItemNumeraticData.MaxStackSizeInCharacter;
+		int32 AddAmount = FMath::Min(Remaining, MaxStack);
+
+		Item->SetQuantity(AddAmount);
+
+		FItemMoveData MoveData;
+		MoveData.SourceItem = Item;
+		MoveData.TargetInventory = TargetInventory;
+
+		FItemAddResult Result = TargetInventory->HandleAddItem(MoveData);
+
+		if (Result.OperationResult == EItemAddResult::IAR_NoItemAdded)
+			return false;
+
+		Remaining -= AddAmount;
+	}
+
+	return true;
+}

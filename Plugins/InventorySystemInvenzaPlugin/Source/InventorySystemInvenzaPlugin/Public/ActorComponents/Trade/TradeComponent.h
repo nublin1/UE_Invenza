@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "TradeTypes.h"
 #include "Components/ActorComponent.h"
 #include "Data/Trade/TradeTypes.h"
 #include "TradeComponent.generated.h"
@@ -12,7 +11,7 @@ class UUInventoryWidgetBase;
 
 struct FItemMapping;
 class UIInventoryManager;
-class UInvBaseContainerWidget;
+class UInventoryContainerWidget;
 class UItemCollection;
 class UItemBase;
 

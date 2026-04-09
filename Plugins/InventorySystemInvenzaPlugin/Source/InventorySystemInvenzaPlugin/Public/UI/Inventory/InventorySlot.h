@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "InputAction.h"
+#include "Data/Inventory/InventorySlotData.h"
 #include "Data/Inventory/InventoryTypes.h"
 #include "UI/InvenzaBaseWidget.h"
 #include "InventorySlot.generated.h"
@@ -48,12 +49,12 @@ public:
 	
 	//Getters
 	UInventorySlotData* GetSlotData() {return SlotData;}
-	FIntPoint GetSlotPosition() const { return SlotData->CellPosition; }
-	UInputAction* GetUseAction() const { return SlotData->UseAction; }	
+	FIntPoint GetSlotPosition() const { return SlotData->InventorySlotInfo.CellPosition; }
+	UInputAction* GetUseAction() const;	
 	
 	//Setters
 	void SetSlotData(UInventorySlotData* NewSlotData) { this->SlotData = NewSlotData; }
-	void SetSlotPosition(const FIntPoint InSlotPosition) const { this->SlotData->CellPosition = InSlotPosition; }
+	void SetSlotPosition(const FIntPoint InSlotPosition) const { this->SlotData->InventorySlotInfo.CellPosition = InSlotPosition; }
 	virtual void SetSlotNameText(FString InUseKeyText);
 	
 protected:

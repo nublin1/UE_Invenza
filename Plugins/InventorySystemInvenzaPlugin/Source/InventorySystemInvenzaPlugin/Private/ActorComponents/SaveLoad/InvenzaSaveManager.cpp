@@ -106,10 +106,10 @@ void UInvenzaSaveManager::OnSaveGameLoaded(const FString& SlotName, const int32 
 		return;
 	}
 
-	if (!LoadedSaveData->PlayerSavedInventories.SavedItemLocations.IsEmpty())
+	/*if (!LoadedSaveData->PlayerSavedInventories.SavedItemLocations.IsEmpty())
 	{
 		Collection->DeserializeFromSave(LoadedSaveData->PlayerSavedInventories.SavedItemLocations);
-	}
+	}*/
 
 	if (OnGameLoaded.IsBound())
 		OnGameLoaded.Broadcast();
@@ -124,7 +124,7 @@ void UInvenzaSaveManager::HandleSaveInput()
 		return;
 	}
 
-	Collection->SerializeForSave(LoadedSaveData->PlayerSavedInventories.SavedItemLocations);
+	//Collection->SerializeForSave(LoadedSaveData->PlayerSavedInventories.SavedItemLocations);
 	SaveGame_Implementation(false);
 }
 

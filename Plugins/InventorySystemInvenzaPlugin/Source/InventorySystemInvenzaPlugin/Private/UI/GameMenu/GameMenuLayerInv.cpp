@@ -28,7 +28,7 @@ TArray<UUInventoryWidgetBase*> UGameMenuLayerInv::GetAllPawnInventories() const
 
 	for (int32 i = 0; i < PawnInventories->GetChildrenCount(); i++)
 	{
-		if (auto* InvContainer = Cast<UInvBaseContainerWidget>(PawnInventories->GetChildAt(i)))
+		if (auto* InvContainer = Cast<UInventoryContainerWidget>(PawnInventories->GetChildAt(i)))
 		{
 			if (auto InventoryWidget = Cast<UUInventoryWidgetBase>(InvContainer->ContainerSlot->GetContent()))
 				Result.Add(InventoryWidget);
@@ -37,20 +37,20 @@ TArray<UUInventoryWidgetBase*> UGameMenuLayerInv::GetAllPawnInventories() const
 	return Result;
 }
 
-TArray<UInvBaseContainerWidget*> UGameMenuLayerInv::GetAllPawnInvContainers() const
+TArray<UInventoryContainerWidget*> UGameMenuLayerInv::GetAllPawnInvContainers() const
 {
-	TArray<UInvBaseContainerWidget*> Result;
+	TArray<UInventoryContainerWidget*> Result;
 	if (!PawnInventories) return Result;
 	for (int32 i = 0; i < PawnInventories->GetChildrenCount(); i++)
 	{
-		if (auto* InvContainer = Cast<UInvBaseContainerWidget>(PawnInventories->GetChildAt(i)))
+		if (auto* InvContainer = Cast<UInventoryContainerWidget>(PawnInventories->GetChildAt(i)))
 			Result.Add(InvContainer);
 	}
 
 	return Result;
 }
 
-UPanelSlot* UGameMenuLayerInv::AddPawnInvContainerWidget(UInvBaseContainerWidget* InvContainerWidgetToAdd) const
+UPanelSlot* UGameMenuLayerInv::AddPawnInvContainerWidget(UInventoryContainerWidget* InvContainerWidgetToAdd) const
 {
 	if (!PawnInventories) return nullptr;
 
@@ -74,7 +74,7 @@ UPanelSlot* UGameMenuLayerInv::AddPawnInvContainerWidget(UInvBaseContainerWidget
 	return InvContainerSlot;
 }
 
-void UGameMenuLayerInv::RemovePawnInvContainer(UInvBaseContainerWidget* InvContainerToRemove) const
+void UGameMenuLayerInv::RemovePawnInvContainer(UInventoryContainerWidget* InvContainerToRemove) const
 {
 	if (!PawnInventories) return;
 

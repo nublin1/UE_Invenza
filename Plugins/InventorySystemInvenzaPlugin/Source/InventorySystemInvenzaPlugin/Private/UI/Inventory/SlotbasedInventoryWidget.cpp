@@ -120,13 +120,13 @@ void USlotbasedInventoryWidget::InitializeInventoryWidgetWithSettings(FInventory
 					NewSlot->AllowedSlotCategory
 				);
 
-				SlotData->LinkedEquipmentSlot = NewSlot->LinkedEquipmentSlotTag;
+				SlotData->InventorySlotInfo.LinkedEquipmentSlot = NewSlot->LinkedEquipmentSlotTag;
 			}
 			else
 			{
 				for (UInventorySlotData* ExistingSlot : ExistingSlots)
 				{
-					if (ExistingSlot && ExistingSlot->CellPosition == SlotPosit)
+					if (ExistingSlot && ExistingSlot->InventorySlotInfo.CellPosition == SlotPosit)
 					{
 						SlotData = ExistingSlot;
 						break;
@@ -266,7 +266,7 @@ void USlotbasedInventoryWidget::InitSlots()
 			auto SlotPosit = FIntPoint(UniSlot->GetRow(),  UniSlot->GetColumn());
 			
 			UInventorySlotData* NewInventorySlotData = UInventorySlotData::CreateWithData(this, NAME_None, SlotPosit, nullptr, NewInvSlots[i]->AllowedSlotCategory);
-			NewInventorySlotData->LinkedEquipmentSlot = NewInvSlots[i]->LinkedEquipmentSlotTag;
+			NewInventorySlotData->InventorySlotInfo.LinkedEquipmentSlot = NewInvSlots[i]->LinkedEquipmentSlotTag;
 			NewInvSlots[i]->SetSlotData(NewInventorySlotData);
 		}
 	}
@@ -512,7 +512,7 @@ void USlotbasedInventoryWidget::AddItemToPanel(FItemMapping& ItemSlots, UItemBas
 		return;
 	}
 	
-	const FVector2D VisualPosition = CalculateItemVisualPosition(ItemSlots.OccupiedSlots[0]->CellPosition);
+	const FVector2D VisualPosition = CalculateItemVisualPosition(ItemSlots.OccupiedSlots[0]->InventorySlotInfo.CellPosition);
 
 	if (!UISettings.InventoryItemVisualClass)
 	{
@@ -528,7 +528,7 @@ void USlotbasedInventoryWidget::AddItemToPanel(FItemMapping& ItemSlots, UItemBas
 
 	for (auto ItemSlotData : ItemSlots.OccupiedSlots)
 	{
-		if (auto ItemSlot = GetSlotByPosition(ItemSlotData->CellPosition))
+		if (auto ItemSlot = GetSlotByPosition(ItemSlotData->InventorySlotInfo.CellPosition))
 		{
 			if (bHideBackgroundWhenOccupied)
 				ItemSlot->ClearVisual();
@@ -559,7 +559,7 @@ void USlotbasedInventoryWidget::ReplaceItemInPanel(TArray<UInventorySlotData*> O
 
 	for (auto ItemSlotData : OldItemSlots)
 	{
-		if (auto ItemSlot = GetSlotByPosition(ItemSlotData->CellPosition))
+		if (auto ItemSlot = GetSlotByPosition(ItemSlotData->InventorySlotInfo.CellPosition))
 		{
 			ItemSlot->ResetVisual();
 		}
@@ -567,7 +567,7 @@ void USlotbasedInventoryWidget::ReplaceItemInPanel(TArray<UInventorySlotData*> O
 
 	for (auto ItemSlotData : NewItemSlots.OccupiedSlots)
 	{
-		if(const auto ItemSlot = GetSlotByPosition(ItemSlotData->CellPosition))
+		if(const auto ItemSlot = GetSlotByPosition(ItemSlotData->InventorySlotInfo.CellPosition))
 		{
 			if (bHideBackgroundWhenOccupied)
 				ItemSlot->ClearVisual();
@@ -582,7 +582,7 @@ void USlotbasedInventoryWidget::ReplaceItemInPanel(TArray<UInventorySlotData*> O
 		return;
 	}
 
-	FVector2D NewVisualPosition = CalculateItemVisualPosition(NewItemSlots.OccupiedSlots[0]->CellPosition);
+	FVector2D NewVisualPosition = CalculateItemVisualPosition(NewItemSlots.OccupiedSlots[0]->InventorySlotInfo.CellPosition);
 	//UE_LOG(LogTemp, Log, TEXT("Row: %f, Column: %f"),  NewVisualPosition.X,  NewVisualPosition.Y);
 	bool IgnoreSize = SlotBasedInventoryRef->GetInventorySettings().InventorySlotBasedSettings.bIgnoreItemSize;
 	auto TotalSize = CalculateItemVisualSize(Item,NewItemSlots.ItemOrientation, InvCellSize, IgnoreSize);
@@ -621,7 +621,7 @@ void USlotbasedInventoryWidget::RemoveItemFromPanel(FItemMapping FromSlots, UIte
 
 	for (auto ItemSlotData : FromSlots.OccupiedSlots)
 	{
-		if (auto ItemSlot = GetSlotByPosition(ItemSlotData->CellPosition))
+		if (auto ItemSlot = GetSlotByPosition(ItemSlotData->InventorySlotInfo.CellPosition))
 		{
 			ItemSlot->ResetVisual();
 		}

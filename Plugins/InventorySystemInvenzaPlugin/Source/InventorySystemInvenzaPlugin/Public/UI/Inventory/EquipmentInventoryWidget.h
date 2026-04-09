@@ -14,7 +14,7 @@ class UUniformGridPanel;
  * 
  */
 UCLASS()
-class INVENTORYSYSTEMINVENZAPLUGIN_API UEquipmentInventoryWidget : public UInvBaseContainerWidget
+class INVENTORYSYSTEMINVENZAPLUGIN_API UEquipmentInventoryWidget : public UInventoryContainerWidget
 {
 	GENERATED_BODY()
 	

@@ -100,9 +100,11 @@ public:
 
 	/** Get and set methods */
 	FName GetItemID() const { return ItemID; }
+	FDataTableRowHandle GetItemRow() { return ItemRow;}
 	FText GetItemDisplayText() const {return ItemRef.ItemTextData.DisplayName;}
 	FItemMetaData& GetItemRef() { return ItemRef; }
 	int32 GetQuantity() const { return Quantity; }
+	void SetItemRow(const FDataTableRowHandle& InRowHandle) {ItemRow = InRowHandle;}
 	void SetItemRef(const FItemMetaData& NewItemRef) { this->ItemRef = NewItemRef; }
 	void SetQuantity(int32 NewQuantity) { this->Quantity = NewQuantity; }
 
@@ -114,6 +116,8 @@ protected:
 	FName ItemID;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item|Data")
 	FItemMetaData ItemRef;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item|Data")
+	FDataTableRowHandle ItemRow;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Item|Data")
 	int32 Quantity;

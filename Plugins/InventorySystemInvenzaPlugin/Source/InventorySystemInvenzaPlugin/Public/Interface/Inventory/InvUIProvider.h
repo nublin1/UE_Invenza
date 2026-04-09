@@ -25,12 +25,12 @@ public:
 	virtual TArray<UUInventoryWidgetBase*> GetAllPawnInventories() const
 	PURE_VIRTUAL(IInvUIProvider::GetAllPawnInventories, return TArray<UUInventoryWidgetBase*>(););
 
-	virtual TArray<UInvBaseContainerWidget*> GetAllPawnInvContainers() const
-	PURE_VIRTUAL(IInvUIProvider::GetAllPawnInvContainers, return TArray<UInvBaseContainerWidget*>(););
+	virtual TArray<UInventoryContainerWidget*> GetAllPawnInvContainers() const
+	PURE_VIRTUAL(IInvUIProvider::GetAllPawnInvContainers, return TArray<UInventoryContainerWidget*>(););
 
-	virtual UPanelSlot* AddPawnInvContainerWidget(UInvBaseContainerWidget* InvContainerWidgetToAdd) const
+	virtual UPanelSlot* AddPawnInvContainerWidget(UInventoryContainerWidget* InvContainerWidgetToAdd) const
 	PURE_VIRTUAL(IInvUIProvider::AddPawnInvContainers, return nullptr;);
 
-	virtual void RemovePawnInvContainer(UInvBaseContainerWidget* InvContainerToRemove) const
+	virtual void RemovePawnInvContainer(UInventoryContainerWidget* InvContainerToRemove) const
 	PURE_VIRTUAL(IInvUIProvider::RemovePawnInvContainer,;);
 };

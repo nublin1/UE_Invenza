@@ -32,7 +32,8 @@ public:
 	virtual void InitInventory() override;
 	
 	virtual void SortItemsInContainerByName() override;
-	
+
+	virtual void HandleRemoveItemsByType(UItemBase* ItemSample, int32 RequestedAmount) override;
 	virtual void HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity) override;
 	virtual FItemAddResult HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck = false) override;
 
@@ -59,5 +60,7 @@ protected:
 									   TMap<UInventorySlotData*, FItemPlacementData>& AffectedPivotSlots) override;
 	
 	virtual UItemBase* AddNewItem(FItemMoveData& ItemMoveData, FItemMapping OccupiedSlots, int32 AddAmount) override;
+
+	virtual void UpdateInvSlotsArray();
 	
 };

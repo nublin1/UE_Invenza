@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "UI/InvenzaBaseWidget.h"
 #include "Data/Inventory/InventoryTypes.h"
-#include "InvBaseContainerWidget.generated.h"
+#include "InventoryContainerWidget.generated.h"
 
 class ULabelBaseText;
 enum class EInventoryType : uint8;
@@ -20,7 +20,7 @@ class USlotbasedInventoryWidget;
  * 
  */
 UCLASS()
-class INVENTORYSYSTEMINVENZAPLUGIN_API UInvBaseContainerWidget : public UInvenzaBaseWidget
+class INVENTORYSYSTEMINVENZAPLUGIN_API UInventoryContainerWidget : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
 
@@ -29,7 +29,7 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UInvBaseContainerWidget : public UInvenza
 #pragma endregion Delegates
 	
 public:
-	UInvBaseContainerWidget();
+	UInventoryContainerWidget();
 
 protected:
 	virtual void NativePreConstruct() override;
@@ -102,7 +102,7 @@ protected:
 	UFUNCTION()
 	virtual void PlaceAll();
 	UFUNCTION()
-	static void TransferAllItems(UInvBaseContainerWidget* SourceContainer, UInvBaseContainerWidget* TargetContainer);
+	static void TransferAllItems(UInventoryContainerWidget* SourceContainer, UInventoryContainerWidget* TargetContainer);
 	UFUNCTION()
 	virtual void SortItems();
 	

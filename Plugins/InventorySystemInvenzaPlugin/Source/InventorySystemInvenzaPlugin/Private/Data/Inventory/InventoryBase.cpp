@@ -34,6 +34,21 @@ UInventoryBase* UInventoryBase::CreateInventory(UObject* Outer, FInventoryStartu
 	return Inventory;
 }
 
+UInventoryBase* UInventoryBase::DuplicateInventory(UObject* Outer)
+{
+	UInventoryBase* Inventory =
+			NewObject<UInventoryBase>(Outer, this->GetClass());
+
+	if (!Inventory)
+		return nullptr;
+
+	Inventory->SetInventorySettings(InventorySettings);
+	Inventory->SetItemCollectionLink(ItemCollectionLinked);
+	Inventory->SetInventorySize(InvSize);
+
+	return Inventory;
+}
+
 void UInventoryBase::InitInventory()
 {
 	InvSize = FVector2D(InventorySettings.InventorySlotBasedSettings.NumberRows, InventorySettings.InventorySlotBasedSettings.NumColumns);
@@ -187,19 +202,23 @@ int32 UInventoryBase::TryRemoveFromStackItem(UItemBase* Item, int32 RequestedRem
 		return 0;
 
 	int32 AmountToRemove = FMath::Min(RequestedRemoveAmount, Item->GetQuantity());
-
 	if (AmountToRemove <= 0)
 	{
 		RemoveItemFromInventory(Item);
 		return 0;
-	}
-
-	NotifyRemoveItemFromStack(Item, AmountToRemove);
+	}	
 
 	if (Item->GetQuantity() - AmountToRemove <= 0)
 	{
 		RemoveItemFromInventory(Item);
 	}
+	else
+	{
+		Item->SetQuantity(Item->GetQuantity() - AmountToRemove);
+	}
+	
+	NotifyRemoveItemFromStack(Item, AmountToRemove);
+	//NotifyReDrawRequest();
 
 	return AmountToRemove;
 }

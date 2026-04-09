@@ -4,12 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "Service/TradeService.h"
 #include "Settings/InvnzaSettings.h"
-#include "UI/Inventory/Container/InvBaseContainerWidget.h"
+#include "UI/Inventory/Container/InventoryContainerWidget.h"
 #include "Data/Inventory/InventoryTypes.h"
 #include "UIInventoryManager.generated.h"
 
+class UVendorComponent;
 class IVendorProvider;
 class IInteractionUIProvider;
 class UInteractionComponent;
@@ -71,7 +71,8 @@ public:
 	void OpenTradeModal(bool bIsSaleOperation, UItemBase* OperationalItem);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Initialization")
-	virtual void SetupStartingResources();	
+	virtual void SetupStartingResources();
+
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Transfer")
 	void OnQuickTransferItem(FItemMoveData ItemMoveData);
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Transfer")
@@ -81,9 +82,6 @@ public:
 		
 	UFUNCTION(BlueprintPure, Category = "Inventory|Settings")
 	FUISettings GetUISettings() const { return UISettings; }
-	
-	UFUNCTION(BlueprintPure, Category = "Inventory|Query")
-	UInvBaseContainerWidget* GetCurrentInteractInvWidget() const { return CurrentInteractInvWidget.Get(); }
 	
 	UFUNCTION(BlueprintPure, Category = "Inventory|Settings")
 	FInventoryModifierState GetInventoryModifierStates() const { return InventoryModifierState; }
@@ -103,10 +101,6 @@ protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	// Widgets
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
-	TObjectPtr<UInvBaseContainerWidget> CurrentInteractInvWidget;
-
 	// Startup
 	UPROPERTY(EditAnywhere, Category="Inventory")
 	TArray<FInventoryStartupData> StartupInventories;
@@ -127,7 +121,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TScriptInterface<IInteractionUIProvider> InteractionUIProvider;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	TScriptInterface<IVendorProvider> VendorProviderCurrent;
+	TObjectPtr<UVendorComponent> VendorProviderCurrent;
 
 	//
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
@@ -136,7 +130,7 @@ protected:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
 	TMap<FString, TObjectPtr<UInventoryBase>> Inventories;
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
-	TMap<TObjectPtr<UInventoryBase>, TObjectPtr<UInvBaseContainerWidget>> InventorContainerWidgetMap;
+	TMap<TObjectPtr<UInventoryBase>, TObjectPtr<UInventoryContainerWidget>> InventorContainerWidgetMap;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TObjectPtr<UInventoryBase> MainPawnInventory;
@@ -158,7 +152,6 @@ protected:
 	
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Trade")
 	virtual void VendorRequest(FItemMoveData ItemMoveData);
-
 	
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
 	void HandleInteract(UInteractableComponent* TargetInteractableComponent);

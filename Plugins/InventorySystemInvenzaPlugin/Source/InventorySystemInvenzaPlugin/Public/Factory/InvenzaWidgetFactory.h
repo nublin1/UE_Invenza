@@ -8,7 +8,7 @@
 
 class UOperationPanelWidget;
 class UUInventoryWidgetBase;
-class UInvBaseContainerWidget;
+class UInventoryContainerWidget;
 /**
  * 
  */
@@ -26,8 +26,8 @@ public:
 	// FUNCTIONS
 	//====================================================================
 	UFUNCTION(blueprintCallable, Category = "InvenzaWidgetFactory")
-	static UInvBaseContainerWidget* CreateInventoryWidget(APlayerController* OwningPlayer,
-		TSubclassOf<UInvBaseContainerWidget> ContainerWidgetClass,
+	static UInventoryContainerWidget* CreateInventoryWidget(APlayerController* OwningPlayer,
+		TSubclassOf<UInventoryContainerWidget> ContainerWidgetClass,
 		TSubclassOf<UUInventoryWidgetBase> InventoryWidgetClass,
 		TSubclassOf<UOperationPanelWidget> OperationPanelClass);
 };

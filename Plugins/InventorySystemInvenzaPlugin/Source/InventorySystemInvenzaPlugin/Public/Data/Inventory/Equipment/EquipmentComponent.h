@@ -10,7 +10,7 @@
 #include "Data/Inventory/Equipment/EquipmentSlotDefinition.h"
 #include "EquipmentComponent.generated.h"
 
-class UInvBaseContainerWidget;
+class UInventoryContainerWidget;
 struct FInventorySlotData;
 struct FItemMapping;
 class UItemBase;

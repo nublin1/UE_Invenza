@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
 #include "Data/ItemDataStructures.h"
-#include "Data/Inventory/InventorySlotData.h"
 #include "InventoryTypes.generated.h"
 
 
@@ -18,7 +17,7 @@ struct FItemPlacementData;
 class AStorageVisualRepresentation;
 class UInventorySlotData;
 enum class EItemOrientationType : uint8;
-class UInvBaseContainerWidget;
+class UInventoryContainerWidget;
 class UInputAction;
 class UInventorySlot;
 class UItemTooltipWidget;
@@ -255,7 +254,7 @@ struct FInventorySettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<UInventoryBase> InventoryClass;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|UI")
-	TSubclassOf<UInvBaseContainerWidget> ContainerWidgetClass;
+	TSubclassOf<UInventoryContainerWidget> ContainerWidgetClass;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|UI")
 	TSubclassOf<UUInventoryWidgetBase> InventoryWidgetClass;
 
@@ -279,6 +278,38 @@ struct FInventoryStartupData
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FInitItemsEntry> StartItems;
+};
+
+USTRUCT(BlueprintType)
+struct FInventorySimulationOperation
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category="Inventory|Simulation")
+	FItemMoveData MoveData;
+	UPROPERTY(BlueprintReadOnly, Category="Inventory|Simulation")
+	FItemAddResult Result;
+};
+
+USTRUCT(BlueprintType)
+struct FInventorySlotInfo
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FName SlotName = NAME_None;
+
+	UPROPERTY()
+	FIntPoint CellPosition;
+	
+	UPROPERTY()
+	TSoftObjectPtr<UInputAction> UseAction;
+
+	UPROPERTY()
+	EItemCategory AllowedCategory = EItemCategory::All;
+
+	UPROPERTY()
+	FGameplayTag LinkedEquipmentSlot;
 };
 
 USTRUCT(Blueprintable)

@@ -53,11 +53,35 @@ void UListInventory::SortItemsInContainerByName()
 	NotifyUpdateMoney();
 }
 
+void UListInventory::HandleRemoveItemsByType(UItemBase* ItemSample, int32 RequestedAmount)
+{
+	if (!ItemSample || RequestedAmount <= 0) return;
+	
+	int32 RemainingToRemove = RequestedAmount;
+	int32 RemovedTotal = 0;
+	TArray<UItemBase*> FoundItems =	ItemCollectionLinked->GetAllSameItemsInContainer(InventoryContainerID, ItemSample);
+	if (FoundItems.IsEmpty())
+		return;
+
+	for (UItemBase* Item : FoundItems)
+	{
+		if (!Item || RemainingToRemove <= 0)
+			break;
+
+		int32 Removed = TryRemoveFromStackItem(Item, RemainingToRemove);
+
+		RemainingToRemove -= Removed;
+		RemovedTotal += Removed;
+	}
+}
+
 void UListInventory::HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity)
 {
 	if (!Item) return;
 
-	auto removedActual = TryRemoveFromStackItem(Item, RemoveQuantity);
+	auto RemovedActual = TryRemoveFromStackItem(Item, RemoveQuantity);
+
+	UpdateInvSlotsArray();
 }
 
 FItemAddResult UListInventory::HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck)
@@ -255,9 +279,38 @@ UItemBase* UListInventory::AddNewItem(FItemMoveData& ItemMoveData, FItemMapping 
 
 	// Add item
 	OccupiedSlots.InventoryID = InventoryContainerID;
+	OccupiedSlots.bIsReferenceContainer = InventorySettings.bIsReferenceContainer;
 	FItemMapping& StoredMapping = ItemCollectionLinked->AddItem(FinalItem, OccupiedSlots);
 
 	NotifyAddNewItem(StoredMapping, FinalItem, ItemMoveData.SourceItem->GetQuantity());
 
+	UpdateInvSlotsArray();
+
+	UpdateMoneyInfo();
+	UpdateWeightInfo();
+
 	return FinalItem;
+}
+
+void UListInventory::UpdateInvSlotsArray()
+{
+	if (!ItemCollectionLinked)
+		return;
+
+	InvSlotsArray.Reset();
+
+	auto AllItems = ItemCollectionLinked->GetAllItemsByContainer(InventoryContainerID);
+	if (AllItems.IsEmpty())
+		return;
+
+	InvSlotsArray.Reserve(AllItems.Num());
+
+	for (auto Item : AllItems)
+	{
+		UInventoryListEntry* EntryObject = NewObject<UInventoryListEntry>(this, EntryClass);
+		EntryObject->Item = Item;
+		InvSlotsArray.Add(EntryObject);
+	}
+
+	NotifyReDrawRequest();
 }

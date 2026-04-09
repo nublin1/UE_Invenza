@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
+#include "InventoryTypes.h"
 #include "Data/ItemDataStructures.h"
 #include "UObject/Object.h"
 #include "InventorySlotData.generated.h"
@@ -26,19 +27,7 @@ public:
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
-	FName SlotName = NAME_None;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Inventory")
-	FIntPoint CellPosition{};
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
-	TObjectPtr<UInputAction> UseAction;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment")
-	EItemCategory AllowedCategory = EItemCategory::All;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment")
-	FGameplayTag LinkedEquipmentSlot;
+	FInventorySlotInfo InventorySlotInfo;
 
 	//====================================================================
 	// FUNCTIONS
@@ -56,5 +45,8 @@ public:
 	);
 
 	UFUNCTION(BlueprintCallable)
-	bool IsEquipmentSlot() const { return LinkedEquipmentSlot.IsValid(); }
+	UInventorySlotData* DuplicateSlotData (UObject* Outer);
+
+	UFUNCTION(BlueprintCallable)
+	bool IsEquipmentSlot() const { return InventorySlotInfo.LinkedEquipmentSlot.IsValid(); }
 };

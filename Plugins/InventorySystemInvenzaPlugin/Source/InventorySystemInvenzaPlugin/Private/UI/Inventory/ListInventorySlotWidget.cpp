@@ -49,9 +49,9 @@ void UListInventorySlotWidget::UpdatePriceText()
 
 	PriceText->SetText(FText::AsNumber(CachedEntry->Item->GetItemRef().ItemTradeData.BasePrice * CachedEntry->Item->GetQuantity()));
 	
-	UIInventoryManager* InventoryManager = GetOwningPlayerPawn()->FindComponentByClass<UIInventoryManager>();
+	/*UIInventoryManager* InventoryManager = GetOwningPlayerPawn()->FindComponentByClass<UIInventoryManager>();
 	if (!InventoryManager || !InventoryManager->GetCurrentInteractInvWidget())
-		return;
+		return;*/
 
 	/*if (InventoryManager->GetCurrentInteractInvWidget()->GetInventoryType() != EInventoryType::VendorInventory)
 		return;*/
@@ -173,8 +173,9 @@ void UListInventorySlotWidget::NativeOnDragDetected(const FGeometry& InGeometry,
 	DraggedWidget->AddToPlayerScreen(1);
 	DraggedWidget->SetPositionInViewport(FVector2D(-10000, -10000));
 
-	FVector2D TotalSize = FVector2D(64.0f, 64.0f); 
-	DraggedWidget->UpdateItemVisual( CachedEntry->Item, EItemOrientationType::Horizontal, TotalSize, FVector2D(0.0f), true);
+	FVector2D TotalSize = FVector2D(64.0f, 64.0f);
+	auto InitialItemOrientation = CachedEntry->Item->GetInitialItemOrientation();
+	DraggedWidget->UpdateItemVisual( CachedEntry->Item, InitialItemOrientation, TotalSize, FVector2D(0.0f), true);
 	
 	UItemDragDropOperation* DragItemDragDropOperation = NewObject<UItemDragDropOperation>();
 	DragItemDragDropOperation->DefaultDragVisual = DraggedWidget;
@@ -182,6 +183,10 @@ void UListInventorySlotWidget::NativeOnDragDetected(const FGeometry& InGeometry,
 	DragItemDragDropOperation->ItemMoveData.SourceItem = CachedEntry->Item;
 	DragItemDragDropOperation->ItemMoveData.SourceInventory = CachedEntry->ParentInventoryWidget->GetInventoryRef();
 	DragItemDragDropOperation->ItemMoveData.SourceItemPivotSlot = this;
+	DragItemDragDropOperation->ItemMoveData.SavedOrientation = InitialItemOrientation;
+	DragItemDragDropOperation->ItemMoveData.TargetOrientation = InitialItemOrientation;
+
+	DragItemDragDropOperation->SetUISettings(CachedEntry->ParentInventoryWidget->GetUISettings());
 	
 	auto ShowDragVisual = [DraggedWidget]()
 	{

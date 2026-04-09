@@ -6,6 +6,9 @@
 #include "Data//Items/itemBase.h"
 #include "ActorComponents/SaveLoad/SaveLoadStructs.h"
 #include "Data/Inventory/InventoryBase.h"
+#include "Data/Inventory/InventorySlotData.h"
+#include "Data/Inventory/SlotBasedInv/SlotbasedInventory.h"
+#include "Factory/ItemFactory.h"
 #include "Kismet/GameplayStatics.h"
 
 
@@ -334,97 +337,74 @@ bool UItemCollection::ItemHasInventory(UItemBase* Item, FString InventoryID)
 		});
 }
 
-
-/*UInventoryItemWidget* UItemCollection::GetItemLinkedWidgetForSlot(FInventorySlotData ItemSlotData)
-{	
-	for (const auto& Pair : ItemLocations)
-	{
-		const FItemMappingArrayWrapper& MappingArrayWrapper = Pair.Value;
-		for (const FItemMapping& Mapping : MappingArrayWrapper.Mappings)
-		{
-			if (Mapping.OccupiedSlots.Contains(ItemSlotData))
-			{
-				return Mapping.ItemVisualLinked;
-			}
-		}
-	}
-	return nullptr;
-}*/
-
-
-void UItemCollection::SerializeForSave(TArray<FItemSaveEntry>& OutData)
+void UItemCollection::SerializeForSave(TArray<FItemSaveEntry>& OutData, const TArray<FString>& InventoryFilter)
 {
 	OutData.Empty();
 
 	for (const auto& Pair : ItemLocations)
 	{
-		FItemSaveData Key(Pair.Key.Get());
-		//UE_LOG(LogTemp, Warning, TEXT("ItemID: %s"), *Pair.Key->GetItemID().ToString());
-		TArray<FItemMappingSaveData> SaveMappings;
+		UItemBase* Item = Pair.Key.Get();
+		if (!Item) continue;
+
+		FItemSaveEntry Entry;
+		Entry.ItemID = Item->GetItemID();
+		Entry.Quantity = Item->GetQuantity();
+		Entry.SourceItemRow = Item->GetItemRow();
 
 		for (const FItemMapping& Mapping : Pair.Value.Mappings)
 		{
-			auto ContainerType = Mapping.InventoryType;
-			/*if (ContainerType != EInventoryType::VendorInventory && ContainerType!= EInventoryType::ContainerInventory)
+			if (InventoryFilter.Num() > 0 && !InventoryFilter.Contains(Mapping.InventoryID))
+				continue;
+			
+			FItemMappingSaveEntry MSave;
+			MSave.InventoryID = Mapping.InventoryID;
+			MSave.bIsReferenceContainer = Mapping.bIsReferenceContainer;
+			MSave.ItemOrientation = Mapping.ItemOrientation;
+
+			for (UInventorySlotData* Slot : Mapping.OccupiedSlots)
 			{
-				FItemMappingSaveData Data;
-				Data.InitializeFromMapping(Mapping);
-				SaveMappings.Add(Data);
-			}*/
+				if (Slot)
+				{
+					MSave.OccupiedCells.Add(Slot->InventorySlotInfo.CellPosition);
+				}
+			}
+			Entry.Mappings.Add(MSave);
 		}
-
-		FItemSaveEntry ItemSaveEntry;
-		ItemSaveEntry.Item = Key;
-		ItemSaveEntry.Containers = SaveMappings;
-
-		OutData.Add(ItemSaveEntry);
+		OutData.Add(Entry);
 	}
 }
 
-void UItemCollection::DeserializeFromSave(TArray<FItemSaveEntry> InData)
+void UItemCollection::DeserializeFromSave(const TArray<FItemSaveEntry>& InData, UInventoryBase* InInventory)
 {
+	if (!InData.IsEmpty() || !InInventory) return;
+	
 	ItemLocations.Empty();
 
-	/*for (const auto& Data : InData)
+	for (const FItemSaveEntry& Entry : InData)
 	{
-		UItemBase* Item = UItemFactory::CreateItemByID(GetOwner(), Data.Item.ItemID, Data.Item.Quantity);
-		if (!Item) continue;
+		UItemBase* NewItem = UItemFactory::CreateItemByHandle(this, Entry.SourceItemRow, Entry.Quantity);
+		if (!NewItem) continue;
+		
+		FItemMappingArrayWrapper& Wrapper = ItemLocations.FindOrAdd(NewItem);
 
-		FItemMappingArrayWrapper RestoredMappingArrayWrapper;
-		for (FItemMappingSaveData SaveMapping : Data.Containers)
+		for (const FItemMappingSaveEntry& MSave : Entry.Mappings)
 		{
-			FItemMapping Mapping;
-			Mapping.InventoryID = SaveMapping.InventoryContainerName;
-			Mapping.InventoryType = SaveMapping.InventoryType;
-			for (auto SlotSaveData : SaveMapping.SlotSaveDatas)
+			FItemMapping NewMapping;
+			NewMapping.InventoryID = MSave.InventoryID;
+			NewMapping.bIsReferenceContainer = MSave.bIsReferenceContainer;
+			NewMapping.ItemOrientation = MSave.ItemOrientation;
+			
+			if (auto SlotbasedInventory = Cast<USlotbasedInventory>(InInventory))
+			
+			for (const FIntPoint& CellPos : MSave.OccupiedCells)
 			{
-				FInventorySlotData SlotData;
-				SlotData.SlotName = SlotSaveData.SlotName;
-				SlotData.SlotPosition = SlotSaveData.SlotPosition;
-				Mapping.OccupiedSlots.Add(SlotData);
-			}
-
-			RestoredMappingArrayWrapper.Mappings.Add(Mapping);
-		}
-
-		ItemLocations.Add(Item, RestoredMappingArrayWrapper);
-
-		for (auto RestoredMapping : RestoredMappingArrayWrapper.Mappings)
-		{
-			if (UWidget* FoundWidget = InvManager->GetCoreHUDWidget()->GetWidgetFromName(RestoredMapping.InventoryID))
-			{
-				if (!IsValid(FoundWidget))
-					continue;
-				
-				if (auto InvBaseContainerWidget = Cast<UInvBaseContainerWidget>(FoundWidget))
+				if (UInventorySlotData* Slot = SlotbasedInventory->GetSlotByPosition(CellPos))
 				{
-					InvBaseContainerWidget->GetInventoryFromContainerSlot()->ReDrawAllItems();
-					InvBaseContainerWidget->GetInventoryFromContainerSlot()->UpdateMoneyInfo();
-					InvBaseContainerWidget->GetInventoryFromContainerSlot()->UpdateWeightInfo();
+					NewMapping.OccupiedSlots.Add(Slot);
 				}
 			}
+			
+			Wrapper.Mappings.Add(NewMapping);
 		}
-	}*/
+	}
 }
-
-
