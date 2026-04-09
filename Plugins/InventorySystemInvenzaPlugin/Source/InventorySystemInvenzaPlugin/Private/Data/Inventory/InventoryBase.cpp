@@ -29,6 +29,9 @@ UInventoryBase* UInventoryBase::CreateInventory(UObject* Outer, FInventoryStartu
 	if (!Inventory)
 		return nullptr;
 
+	if (!StartupData.Settings.InventoryID.IsEmpty())
+		Inventory->SetInventoryContainerID(StartupData.Settings.InventoryID);
+		
 	Inventory->SetInventorySettings(StartupData.Settings);
 
 	return Inventory;
@@ -160,10 +163,10 @@ int32 UInventoryBase::CalculateActualAmountToAdd(int32 InAmountToAdd, float Item
 		return FMath::Min(MaxItemsThatFit, InAmountToAdd);
 	}
 
-	if (InventorySettings.MaxUniqueItemCount >= 0)
+	if (InventorySettings.MaxStackCount >= 0)
 	{
-		const int32 TotalCount = ItemCollectionLinked->GetTotalItemCountInContainer(InventoryContainerID);
-		const int32 RemainingSlots = InventorySettings.MaxUniqueItemCount - TotalCount;
+		const int32 TotalCount = ItemCollectionLinked->GetStackCountInContainer(InventoryContainerID);
+		const int32 RemainingSlots = InventorySettings.MaxStackCount - TotalCount;
 		if (RemainingSlots <= 0)
 		{
 			return 0;
@@ -191,6 +194,8 @@ int32 UInventoryBase::TryInsertToStackItem(UItemBase* ResourceToInsertInto,	int3
 		//DeductResourceOnAddToInventory(ResourceToDeductFrom, ActualAmountToAdd);
 		ResourceToInsertInto->SetQuantity(OldAmount + ActualAmountToAdd);
 		NotifyAddItemToStack(ResourceToInsertInto, ActualAmountToAdd);
+		UpdateMoneyInfo();
+		UpdateWeightInfo();
 	}
 	
 	return ActualAmountToAdd;
@@ -218,7 +223,8 @@ int32 UInventoryBase::TryRemoveFromStackItem(UItemBase* Item, int32 RequestedRem
 	}
 	
 	NotifyRemoveItemFromStack(Item, AmountToRemove);
-	//NotifyReDrawRequest();
+	UpdateMoneyInfo();
+	UpdateWeightInfo();
 
 	return AmountToRemove;
 }

@@ -1,4 +1,4 @@
-//  Nublin Studio 2025 All Rights Reserved.
+//  Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -21,6 +21,10 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UVendorComponent : public UInteractableCo
 {
 	GENERATED_BODY()
 
+#pragma region Delegates
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTradeTransaction, const FTradeTransaction&, Transaction);
+#pragma endregion Delegates
+
 public:
 	UVendorComponent();
 
@@ -31,6 +35,8 @@ public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
+	UPROPERTY(BlueprintAssignable, Category="Trade")
+	FOnTradeTransaction OnTradeExecuted;
 
 	//====================================================================
 	// FUNCTIONS
@@ -74,8 +80,6 @@ protected:
 	// Refs
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Vendor")
 	TObjectPtr<UItemCollection> ItemCollectionRef;
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category="Vendor|Components")
-	TObjectPtr<UTradeComponent> TradeComponentRef;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TObjectPtr<UInventoryBase> TradePartnerMainInventory;
@@ -98,7 +102,7 @@ protected:
 		int32 Price, bool bIsBuyingFromVendor, UItemBase* CurrencyItem, FTradeResult& OutResult);
 
 	UFUNCTION(BlueprintCallable)
-	void ExecuteTrade(const FItemMoveData& TradeData,  float Price,
+	FTradeTransaction ExecuteTrade(const FItemMoveData& TradeData, int32 Price,
 		bool bIsBuyingFromVendor, UInventoryBase* PlayerInventory, UItemBase* CurrencyItem);
 
 	UFUNCTION(BlueprintCallable)

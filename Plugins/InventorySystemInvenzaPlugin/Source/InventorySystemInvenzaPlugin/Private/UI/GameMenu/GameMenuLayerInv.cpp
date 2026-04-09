@@ -70,6 +70,7 @@ UPanelSlot* UGameMenuLayerInv::AddPawnInvContainerWidget(UInventoryContainerWidg
 		}
 	}
 
+	InvContainerWidgetToAdd->SetVisibility(ESlateVisibility::Collapsed);
 	
 	return InvContainerSlot;
 }
@@ -85,6 +86,49 @@ void UGameMenuLayerInv::RemovePawnInvContainer(UInventoryContainerWidget* InvCon
 			PawnInventories->RemoveChildAt(i);
 			break;
 		}
+	}
+}
+
+void UGameMenuLayerInv::ToggleInventoryLayout()
+{
+	bInventoryOpen = !bInventoryOpen;
+	
+	const auto Containers = GetAllPawnInvContainers();
+	if (Containers.IsEmpty())
+		return;
+	
+	const ESlateVisibility NewVisibility =
+		bInventoryOpen ? ESlateVisibility::Visible : ESlateVisibility::Collapsed;
+	
+	for (auto* Container : Containers)
+	{
+		if (Container)
+		{
+			Container->SetVisibility(NewVisibility);
+		}
+	}
+
+	if (!GetWorld())
+		return;
+
+	APlayerController* PC = GetWorld()->GetFirstPlayerController();
+	if (!PC)
+		return;
+
+	if (bInventoryOpen)
+	{
+		FInputModeGameAndUI InputMode;
+		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+		InputMode.SetHideCursorDuringCapture(false);
+
+		PC->SetInputMode(InputMode);
+		PC->bShowMouseCursor = true;
+	}
+	else
+	{
+		FInputModeGameOnly InputMode;
+		PC->SetInputMode(InputMode);
+		PC->bShowMouseCursor = false;
 	}
 }
 

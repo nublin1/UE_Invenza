@@ -7,6 +7,7 @@
 #include "Components/Image.h"
 #include "ItemTooltipWidget.generated.h"
 
+class ULabelBaseText;
 class UInventoryBase;
 class UUInventoryWidgetBase;
 class UItemBase;
@@ -24,7 +25,27 @@ public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
+	//Widgets
+	UPROPERTY(meta=(BindWidget))
+	TObjectPtr<ULabelBaseText> ItemName;
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<ULabelBaseText> ItemType;
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<ULabelBaseText> ItemDescription;
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<ULabelBaseText> MaxStackSize;
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<ULabelBaseText> StackSizeValue;
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<ULabelBaseText> StackWeightValue;
 
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UImage> MoneyIcon;
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<ULabelBaseText> PriceText;
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<ULabelBaseText> PriceValue;
+	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
@@ -36,24 +57,7 @@ protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	//Widgets
-	UPROPERTY(meta=(BindWidget))
-	TObjectPtr<UTextBlock> ItemName;
-	UPROPERTY(meta=(BindWidget))
-	TObjectPtr<UTextBlock> ItemType;
-	UPROPERTY(meta=(BindWidget))
-	TObjectPtr<UTextBlock> ItemDescription;
-	UPROPERTY(meta=(BindWidgetOptional))
-	TObjectPtr<UTextBlock> MaxStackSize;
-	UPROPERTY(meta=(BindWidgetOptional))
-	TObjectPtr<UTextBlock> StackSizeValue;
-	UPROPERTY(meta=(BindWidgetOptional))
-	TObjectPtr<UTextBlock> StackWeightValue;
-
-	UPROPERTY(meta=(BindWidgetOptional))
-	TObjectPtr<UImage> MoneyIcon;
-	UPROPERTY(meta=(BindWidgetOptional))
-	TObjectPtr<UTextBlock> PriceText;
+	
 
 	//====================================================================
 	// FUNCTIONS

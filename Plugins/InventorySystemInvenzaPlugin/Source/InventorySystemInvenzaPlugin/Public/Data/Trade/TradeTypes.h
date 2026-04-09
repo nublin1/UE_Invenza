@@ -7,6 +7,7 @@
 #include "TradeTypes.generated.h"
 
 
+class UInventoryBase;
 class UItemBase;
 
 USTRUCT(BlueprintType, Blueprintable)
@@ -115,4 +116,52 @@ struct FTradeResult
 		Result.ResultMessage = ErrorText;
 		return Result;
 	}
+};
+
+USTRUCT(BlueprintType)
+struct FTradeEntry
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly)
+	TObjectPtr<UInventoryBase> Inventory = nullptr;
+
+	UPROPERTY(BlueprintReadOnly)
+	TObjectPtr<UItemBase> Item = nullptr;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 QuantityDelta = 0;
+
+	UPROPERTY(BlueprintReadOnly)
+	bool bIsCurrency = false;
+
+	FTradeEntry(){};
+
+	FTradeEntry(UInventoryBase* InInventory, UItemBase* InItem, int32 InQuantityDelta, bool bInIsCurrency)
+		: Inventory(InInventory)
+		, Item(InItem)
+		, QuantityDelta(InQuantityDelta)
+		, bIsCurrency(bInIsCurrency)
+	{}
+};
+
+USTRUCT(BlueprintType)
+struct FTradeTransaction
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly)
+	bool bSuccess = false;
+
+	UPROPERTY(BlueprintReadOnly)
+	bool bIsBuyingFromVendor = false;
+
+	UPROPERTY(BlueprintReadOnly)
+	float TotalPrice = 0;
+
+	UPROPERTY(BlueprintReadOnly)
+	TArray<FTradeEntry> Entries;
+
+	UPROPERTY(BlueprintReadOnly)
+	FText Message;
 };

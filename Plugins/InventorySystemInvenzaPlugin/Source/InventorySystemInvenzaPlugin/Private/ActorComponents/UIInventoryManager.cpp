@@ -10,7 +10,6 @@
 #include "EnhancedInputSubsystems.h"
 #include "ActorComponents/InteractionComponent.h"
 #include "ActorComponents/ItemCollection.h"
-#include "ActorComponents/Trade/TradeComponent.h"
 #include "UI/Inventory/SlotbasedInventoryWidget.h"
 #include "ActorComponents/Interactable/PickupComponent.h"
 #include "ActorComponents/Interactable/VendorComponent.h"
@@ -236,88 +235,6 @@ void UIInventoryManager::InitWidgets()
 	}
 }
 
-void UIInventoryManager::OpenTradeModal(bool bIsSaleOperation, UItemBase* OperationalItem)
-{
-	/*auto TradeComponent = CurrentInteractInvWidget->GetInventoryFromContainerSlot()->
-		GetInventoryData().ItemCollectionLink->GetOwner()->FindComponentByClass<UTradeComponent>();
-	if (!TradeComponent)
-		return;
-
-	if (!ModalTradeWidget)
-	{
-		ModalTradeWidget = CreateWidget<UModalTradeWidget>(GetWorld()->GetFirstPlayerController(),
-					UISettings.ModalTradeWidgetClass);
-		ModalTradeWidget->SetAnchorsInViewport(FAnchors(0.5f, 0.5f));
-		ModalTradeWidget->SetAlignmentInViewport(FVector2D(0.5f, 0.5f));
-		ModalTradeWidget->AddToViewport();
-
-		FVector2D ViewportSize;
-		if (GEngine && GEngine->GameViewport)
-		{
-			GEngine->GameViewport->GetViewportSize(ViewportSize);
-		}
-		//const FVector2D ViewportSize = FVector2D(GEngine->GameViewport->Viewport->GetSizeXY());
-		const FVector2D ViewportCenter = ViewportSize * 0.5f;
-		const FVector2D Center = ViewportCenter;
-		
-		ModalTradeWidget->SetPositionInViewport(Center, true);
-	}
-
-	if (!ModalTradeWidget)
-		return;
-
-	FText OperationalText;
-	float PriceFactor = 1.0f;
-	int MaxAmount = 1.0f;
-	FItemMetaData ItemData = OperationalItem->GetItemRef();
-	if (bIsSaleOperation)
-	{
-		OperationalText = FText::FromString("Buy");
-		PriceFactor = TradeComponent->GetTradeSettings().SellPriceFactor;
-		if (TradeComponent->GetTradeSettings().RemoveItemAfterPurchase)
-			MaxAmount = OperationalItem->GetQuantity();
-		else
-			MaxAmount = ItemData.ItemNumeraticData.MaxStackSize;
-	}
-	else
-	{
-		OperationalText = FText::FromString("Sell");
-		PriceFactor = TradeComponent->GetTradeSettings().BuyPriceFactor;
-		MaxAmount = ItemData.ItemNumeraticData.MaxStackSize;
-	}
-	
-	FModalTradeData TradeData (OperationalText,
-					MaxAmount,
-					ItemData.ItemTextData.NameID,
-					ItemData.ItemTradeData.BasePrice * PriceFactor);
-
-	ModalTradeWidget->InitializeTradeWidget(TradeData);
-	ModalTradeWidget->SetVisibility(ESlateVisibility::Visible);
-
-	ModalTradeWidget->ConfirmCallback = [this, bIsSaleOperation, OperationalItem](int32 Quantity)
-	{
-		UE_LOG(LogTemp, Log, TEXT("Trade confirmed: %d items"), Quantity);
-		
-		FTradeRequest Req;
-		Req.Vendor				= CoreHUDWidget->GetVendorInvWidget()->GetInventoryFromContainerSlot()->
-			GetInventoryData().ItemCollectionLink->GetOwner()->FindComponentByClass<UTradeComponent>();
-		Req.BuyerContainer		= CoreHUDWidget->GetMainInvWidget();
-		Req.VendorContainer		= CoreHUDWidget->GetVendorInvWidget();
-		Req.Item				= OperationalItem;
-		Req.Quantity			= Quantity;
-		Req.bIsSaleOperation	= bIsSaleOperation;
-		
-			
-		auto Result = VendorRequest(Req);
-		if (Result == ETradeResult::Success)
-			ModalTradeWidget->SetVisibility(ESlateVisibility::Collapsed);
-	};
-	ModalTradeWidget->CancelCallback = [this]()
-	{
-		ModalTradeWidget->SetVisibility(ESlateVisibility::Collapsed);
-	};*/
-}
-
 void UIInventoryManager::SetupStartingResources()
 {
 	for (auto& [TargetInventory, InitItems] : StartingItems)
@@ -375,6 +292,9 @@ void UIInventoryManager::OnQuickTransferItem(FItemMoveData ItemMoveData)
 {
 	if (!MainPawnInventory)
 		return;
+
+	if (ItemMoveData.SourceInventory == ItemMoveData.TargetInventory)
+		return;
 	
 	if (ExternalInventory)
 	{
@@ -387,6 +307,7 @@ void UIInventoryManager::OnQuickTransferItem(FItemMoveData ItemMoveData)
 		return;
 	}
 
+	
 	ItemMoveData.TargetInventory = MainPawnInventory;
 	ItemTransferRequest(ItemMoveData);
 }
@@ -529,6 +450,8 @@ void UIInventoryManager::HandleInteract(UInteractableComponent* TargetInteractab
 	{
 		if (auto InventoryToDisplay = LootProvider->GetMainLootContainer())
 		{
+			LootContainerProvider.SetObject(TargetInteractableComponent);
+			LootContainerProvider.SetInterface(LootProvider);
 			OpenExternalInventory(InventoryToDisplay);
 		}
 
@@ -560,9 +483,8 @@ void UIInventoryManager::HandleClearInteraction(UInteractableComponent* TargetIn
 			return;
 		
 		UIInvProvider->RemovePawnInvContainer(FindResult->Get());
-
-		InventorContainerWidgetMap.Remove(ExternalInventory);
-		ExternalInventory = nullptr;
+		CloseExternalInventory(ExternalInventory);
+		LootProvider = nullptr;
 	}
 
 	if (auto VendorProvider = Cast<IVendorProvider>(TargetInteractableComponent))
@@ -572,9 +494,7 @@ void UIInventoryManager::HandleClearInteraction(UInteractableComponent* TargetIn
 			return;
 		
 		UIInvProvider->RemovePawnInvContainer(FindResult->Get());
-
-		InventorContainerWidgetMap.Remove(ExternalInventory);
-		ExternalInventory = nullptr;
+		CloseExternalInventory(ExternalInventory);
 		
 		VendorProviderCurrent = nullptr;
 	}
@@ -584,7 +504,14 @@ void UIInventoryManager::OpenExternalInventory(UInventoryBase* Inv)
 {
 	ExternalInventory = Inv;
 	CreateWidget(ExternalInventory);
-	
+	HandleToggleInventory();
+}
+
+void UIInventoryManager::CloseExternalInventory(UInventoryBase* Inv)
+{
+	InventorContainerWidgetMap.Remove(ExternalInventory);
+	ExternalInventory = nullptr;
+	HandleToggleInventory();
 }
 
 void UIInventoryManager::BindInteractionWidget()
@@ -654,6 +581,27 @@ void UIInventoryManager::RotateDraggedItem()
 	}
 }
 
+void UIInventoryManager::HandleToggleInventory()
+{
+	if (!UIInvProvider)
+		return;
+	
+	if (InteractionComponent && ExternalInventory)
+	{
+		/*APlayerController* PC = GetWorld()->GetFirstPlayerController();
+		if (!PC)
+			return;
+
+		if (PC->bShowMouseCursor)
+			InteractionComponent->StopInteract();
+
+		return;*/
+	}
+	
+	UIInvProvider->ToggleInventoryLayout();
+	
+}
+
 void UIInventoryManager::InitializeBindings()
 {
 	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
@@ -673,12 +621,12 @@ void UIInventoryManager::InitializeBindings()
 		InputSubsystem->AddMappingContext(UISettings.InventoryMappingContext, 1);
 	}
 	
-	/*if (UISettings.ToggleInventoryAction)
+	if (UISettings.ToggleInventoryAction)
 	{
-		Input->BindAction(UISettings.ToggleInventoryAction, ETriggerEvent::Started, CoreHUDWidget.Get(), &UCoreHUDWidget::ToggleInventoryLayout);
+		Input->BindAction(UISettings.ToggleInventoryAction, ETriggerEvent::Started, this, &UIInventoryManager::HandleToggleInventory);
 	}
 
-	if (UISettings.ToggleEquipmentAction)
+	/*if (UISettings.ToggleEquipmentAction)
 	{
 		Input->BindAction(UISettings.ToggleEquipmentAction, ETriggerEvent::Started, CoreHUDWidget.Get(), &UCoreHUDWidget::ToggleEquipmentLayout);
 	}*/
@@ -739,28 +687,5 @@ void UIInventoryManager::BindInputActions()
 				SlotData);
 		}
 	}
-}
-
-bool UUInventoryWidgetBase::HandleTradeModalOpening(UItemBase* Item)
-{
-	if (!Item) return false;
-
-	if (Item->GetItemRef().ItemCategory == EItemCategory::Money) return false;
-	
-	UIInventoryManager* InventoryManager = GetOwningPlayerPawn()->FindComponentByClass<UIInventoryManager>();
-	
-	/*if (InventoryManager->GetCurrentInteractInvWidget()
-			&& InventoryManager->GetCurrentInteractInvWidget()->GetInventoryType() == EInventoryType::VendorInventory)
-	{
-		/*if (InventoryData.ItemCollectionLink->GetOwner() == Cast<APawn>(GetOwningPlayer()->GetPawn()))
-		{
-			InventoryManager->OpenTradeModal(false, Item);
-			return true;
-		}#1#
-				
-		InventoryManager->OpenTradeModal(true, Item);
-		return true;
-	}*/
-	return false;
 }
 

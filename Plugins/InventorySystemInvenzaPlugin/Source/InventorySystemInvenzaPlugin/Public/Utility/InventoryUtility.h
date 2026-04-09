@@ -6,6 +6,7 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "InventoryUtility.generated.h"
 
+enum class EItemOrientationType : uint8;
 class UInventoryBase;
 class UItemBase;
 /**
@@ -19,4 +20,7 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UInventoryUtility : public UBlueprintFunc
 public:
 	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
 	static bool AddItemQuantity(UObject* Outer, UInventoryBase* TargetInventory, UItemBase* ItemSample, int32 TotalQuantity);
+
+	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
+	static FVector2D CalculateItemVisualSize(UItemBase* Item, EItemOrientationType Orientation, FVector2D SlotSize, FMargin SlotSpacing, bool bIgnoreSize);
 };

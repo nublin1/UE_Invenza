@@ -5,6 +5,7 @@
 #include "Components/CanvasPanelSlot.h"
 #include "Data/Items/ItemBase.h"
 #include "UI/Item/InventoryItemWidget.h"
+#include "Utility/InventoryUtility.h"
 
 UItemDragDropOperation::UItemDragDropOperation(): DragOffset()
 {
@@ -23,9 +24,7 @@ void UItemDragDropOperation::RotateDraggedWidget()
 	if (!DraggedWidget) return;
 
 	const FIntPoint ItemSize = ItemMoveData.SourceItem->GetItemSize(ItemMoveData.TargetOrientation);
-	const FVector2D TotalSize = FVector2D(
-	   UISettings.DragWidgetSlotSize.X * ItemSize.X ,
-	   UISettings.DragWidgetSlotSize.Y * ItemSize.Y);
+	const FVector2D TotalSize = UInventoryUtility::CalculateItemVisualSize(ItemMoveData.SourceItem, ItemMoveData.TargetOrientation, UISettings.DragWidgetSlotSize, FMargin(0), false);
 
 	float RotationAngle = 0.f;
 	if (ItemSize.X != ItemSize.Y)

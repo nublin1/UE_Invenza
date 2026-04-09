@@ -9,6 +9,7 @@
 #include "Data/Inventory/InventoryTypes.h"
 #include "UIInventoryManager.generated.h"
 
+class ILootContainerProvider;
 class UVendorComponent;
 class IVendorProvider;
 class IInteractionUIProvider;
@@ -67,8 +68,6 @@ protected:
 	void InitWidgets();
 	
 public:
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Trade")
-	void OpenTradeModal(bool bIsSaleOperation, UItemBase* OperationalItem);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Initialization")
 	virtual void SetupStartingResources();
@@ -121,6 +120,8 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TScriptInterface<IInteractionUIProvider> InteractionUIProvider;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	TScriptInterface<ILootContainerProvider> LootContainerProvider;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TObjectPtr<UVendorComponent> VendorProviderCurrent;
 
 	//
@@ -160,6 +161,8 @@ protected:
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void OpenExternalInventory(UInventoryBase* Inv);
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	void CloseExternalInventory(UInventoryBase* Inv);
 	
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
 	void BindInteractionWidget();
@@ -179,6 +182,9 @@ protected:
 	void OnGrabAllReleased(const FInputActionInstance& Instance);
 	UFUNCTION()
 	void RotateDraggedItem();
+
+	UFUNCTION()
+	void HandleToggleInventory();
 	
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Initialization")
 	void InitializeBindings();

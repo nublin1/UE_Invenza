@@ -160,7 +160,7 @@ struct FItemMoveData
 	UPROPERTY()
 	TObjectPtr<UInventoryBase> TargetInventory;
 	UPROPERTY()
-	TObjectPtr<UInventorySlot> TargetSlot;
+	FIntPoint TargetSlotCoordinate = FIntPoint(-1); // For SlotBased
 	UPROPERTY()
 	EItemOrientationType SavedOrientation = EItemOrientationType::Horizontal;
 	UPROPERTY()
@@ -168,20 +168,19 @@ struct FItemMoveData
 
 	FItemMoveData (): SourceItem(nullptr),
 					   SourceInventory(nullptr),
-					   SourceItemPivotSlot(nullptr), TargetInventory(nullptr),
-					   TargetSlot(nullptr)
+					   SourceItemPivotSlot(nullptr), TargetInventory(nullptr)
 	{
 	}
 
 	FItemMoveData (UItemBase* _SourceItem,
 		UInventoryBase* _SourceInventory,
 		UInventoryBase* _TargetInventory,
-		UInventorySlot* _TargetSlot = nullptr)
+		FIntPoint _TargetSlot = FIntPoint(-1))
 	{
 		SourceItem = _SourceItem;
 		SourceInventory = _SourceInventory;
 		TargetInventory = _TargetInventory;
-		TargetSlot = _TargetSlot;
+		TargetSlotCoordinate = _TargetSlot;
 	}
 };
 
@@ -211,9 +210,10 @@ USTRUCT(BlueprintType)
 struct FInventorySettings
 {
 	GENERATED_BODY()
-	
-	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory")
-	//FName InventoryTitleName;
+
+	/* Must be uniq */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory")
+	FString InventoryID;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory")
 	FGameplayTag InventoryTag;
@@ -226,7 +226,7 @@ struct FInventorySettings
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory",
 		meta=(ToolTip="Maximum number of unique items allowed. -1 means infinite"))
-	int32 MaxUniqueItemCount = -1;
+	int32 MaxStackCount = -1;
 
 	// Reference system
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory|Reference", meta=(ToolTip="If true this container acts as a reference source."))

@@ -46,6 +46,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	bool CanPlaceItemAt(const FIntPoint& StartPos, UItemBase* ItemBase, EItemOrientationType Orientation, TArray<UInventorySlotData*> IgnoreSlots);
 
+	UFUNCTION(BlueprintCallable)
+	virtual bool TrySplitItem(UItemBase* ItemToSplit, int32 SplitAmount) override;
+
 	virtual void HandleRemoveItemsByType(UItemBase* ItemSample, int32 RequestedAmount) override;
 	virtual void HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity) override;
 	virtual FItemAddResult HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck = false) override;
@@ -95,8 +98,8 @@ protected:
 	
 	virtual UItemBase* AddNewItem(FItemMoveData& ItemMoveData, FItemMapping OccupiedSlots, int32 AddAmount) override;
 	void ReplaceItem(UItemBase* Item, const TArray<UInventorySlotData*>& NewSlotDatas, EItemOrientationType NewItemOrientation);
-	virtual int32 TryInsertToStackItem(UItemBase* ResourceToInsertInto, int32 AmountToDistribute, bool bOnlyCheck) override;
 	
+	virtual int32 TryInsertToStackItem(UItemBase* ResourceToInsertInto, int32 AmountToDistribute, bool bOnlyCheck) override;
 
 public:
 	UFUNCTION()

@@ -65,7 +65,7 @@ float UItemCollection::CalculateAvailableMoney()
 	return AvailableMoney;
 }
 
-int32 UItemCollection::GetTotalItemCountInContainer(FString InvID)
+int32 UItemCollection::GetStackCountInContainer(FString InvID)
 {
 	if (ItemLocations.IsEmpty())
 	{
@@ -164,7 +164,7 @@ TArray<FItemMapping> UItemCollection::GetAllMappingsByContainer(const FString& I
 		{
 			if (Mapping.InventoryID == InvID)
 			{
-				Result.AddUnique(Mapping);
+				Result.Add(Mapping);
 			}
 		}
 	}
@@ -372,39 +372,72 @@ void UItemCollection::SerializeForSave(TArray<FItemSaveEntry>& OutData, const TA
 		}
 		OutData.Add(Entry);
 	}
+
+	UE_LOG(LogTemp, Log, TEXT("Serialize: OutData contains %d items"), OutData.Num());
 }
 
-void UItemCollection::DeserializeFromSave(const TArray<FItemSaveEntry>& InData, UInventoryBase* InInventory)
+void UItemCollection::DeserializeFromSave(const TArray<FItemSaveEntry>& InData, UInventoryBase* OverrideInventory,
+	const TMap<FString, FString>& IDMapping)
 {
-	if (!InData.IsEmpty() || !InInventory) return;
+	if (InData.IsEmpty()) return;
+
+	//UE_LOG(LogTemp, Log, TEXT("Deserialize: InData contains %d items"), InData.Num());
 	
 	ItemLocations.Empty();
 
 	for (const FItemSaveEntry& Entry : InData)
-	{
-		UItemBase* NewItem = UItemFactory::CreateItemByHandle(this, Entry.SourceItemRow, Entry.Quantity);
-		if (!NewItem) continue;
-		
-		FItemMappingArrayWrapper& Wrapper = ItemLocations.FindOrAdd(NewItem);
+    {
+        UItemBase* NewItem = UItemFactory::CreateItemByHandle(this, Entry.SourceItemRow, Entry.Quantity);
+        if (!NewItem) continue;
+       
+        FItemMappingArrayWrapper& Wrapper = ItemLocations.FindOrAdd(NewItem);
 
-		for (const FItemMappingSaveEntry& MSave : Entry.Mappings)
-		{
-			FItemMapping NewMapping;
-			NewMapping.InventoryID = MSave.InventoryID;
-			NewMapping.bIsReferenceContainer = MSave.bIsReferenceContainer;
-			NewMapping.ItemOrientation = MSave.ItemOrientation;
-			
-			if (auto SlotbasedInventory = Cast<USlotbasedInventory>(InInventory))
-			
-			for (const FIntPoint& CellPos : MSave.OccupiedCells)
-			{
-				if (UInventorySlotData* Slot = SlotbasedInventory->GetSlotByPosition(CellPos))
-				{
-					NewMapping.OccupiedSlots.Add(Slot);
-				}
-			}
-			
-			Wrapper.Mappings.Add(NewMapping);
-		}
-	}
+        for (const FItemMappingSaveEntry& MSave : Entry.Mappings)
+        {
+            FItemMapping NewMapping;
+            
+        	// --- LOGIC FOR DETERMINING ID AND INVENTORY OBJECT ---
+            FString TargetID = MSave.InventoryID;
+            UInventoryBase* TargetInventory = nullptr;
+
+        	// 1. If this is a simulation of a specific inventory object
+            if (OverrideInventory)
+            {
+                TargetInventory = OverrideInventory;
+                TargetID = OverrideInventory->GetInventoryContainerID();
+            }
+        	// 2. If there is an ID mapping (e.g., for complex simulation of multiple containers)
+            else if (IDMapping.Contains(MSave.InventoryID))
+            {
+                TargetID = IDMapping[MSave.InventoryID];
+                TargetInventory = InvManager ? InvManager->GetInventoryByID(TargetID) : nullptr;
+            }
+        	// 3. Normal loading
+            else
+            {
+                TargetInventory = InvManager ? InvManager->GetInventoryByID(TargetID) : nullptr;
+            }
+
+            if (!TargetInventory) continue;
+
+            NewMapping.InventoryID = TargetID;
+            NewMapping.bIsReferenceContainer = MSave.bIsReferenceContainer;
+            NewMapping.ItemOrientation = MSave.ItemOrientation;
+            
+        	// Find slots in the target inventory
+            if (auto* Slotbased = Cast<USlotbasedInventory>(TargetInventory))
+            {
+                for (const FIntPoint& CellPos : MSave.OccupiedCells)
+                {
+                    if (UInventorySlotData* Slot = Slotbased->GetSlotByPosition(CellPos))
+                    {
+                        NewMapping.OccupiedSlots.Add(Slot);
+                    }
+                }
+            }
+            
+            Wrapper.Mappings.Add(NewMapping);
+        }
+    }
 }
+

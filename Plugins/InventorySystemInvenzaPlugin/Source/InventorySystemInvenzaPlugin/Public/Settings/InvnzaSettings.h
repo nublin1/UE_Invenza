@@ -41,6 +41,7 @@ struct FUISettings
     UInputAction* IA_Mod_GrabAllSame;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Input")
 	UInputAction* IA_RotateDraggedItem;
+	
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Input")
     FKey ItemSelectKey;
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Input")

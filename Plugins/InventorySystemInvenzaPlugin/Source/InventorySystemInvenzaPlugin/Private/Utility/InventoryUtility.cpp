@@ -43,3 +43,18 @@ bool UInventoryUtility::AddItemQuantity(UObject* Outer, UInventoryBase* TargetIn
 
 	return true;
 }
+
+FVector2D UInventoryUtility::CalculateItemVisualSize(UItemBase* Item, EItemOrientationType Orientation,
+	FVector2D SlotSize, FMargin SlotSpacing, bool bIgnoreSize)
+{
+	if (!Item)
+		return FVector2D::ZeroVector;
+
+	FIntPoint ItemSize = bIgnoreSize
+		? FIntPoint(1, 1)
+		: Item->GetItemSize(Orientation);
+
+	return FVector2D(
+		SlotSize.X * ItemSize.X + SlotSpacing.Left * (ItemSize.X - 1),
+		SlotSize.Y * ItemSize.Y + SlotSpacing.Top  * (ItemSize.Y - 1));
+}

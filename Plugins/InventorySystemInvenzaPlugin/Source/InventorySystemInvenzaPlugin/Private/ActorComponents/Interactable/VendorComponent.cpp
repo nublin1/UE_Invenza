@@ -3,7 +3,6 @@
 #include "ActorComponents/Interactable/VendorComponent.h"
 #include "ActorComponents/InteractionComponent.h"
 #include "ActorComponents/ItemCollection.h"
-#include "ActorComponents/Trade/TradeComponent.h"
 #include "Data/Inventory/InventoryBase.h"
 #include "Data/Inventory/Simulator/InventorySimulator.h"
 #include "Factory/ItemFactory.h"
@@ -18,11 +17,6 @@ void UVendorComponent::BeginPlay()
 	Super::BeginPlay();
 	
 	UpdateInteractableData();
-
-	if (auto TradeComp = GetOwner()->FindComponentByClass<UTradeComponent>())
-	{
-		TradeComponentRef = TradeComp;
-	}
 
 	if (auto ItemCollection = GetOwner()->FindComponentByClass<UItemCollection>())
 		ItemCollectionRef = ItemCollection;
@@ -44,7 +38,7 @@ void UVendorComponent::Interact(UInteractionComponent* InteractionComponent)
 {
 	Super::Interact(InteractionComponent);
 
-	if (!TradeComponentRef ||!ItemCollectionRef)
+	if (!ItemCollectionRef)
 		return;
 	
 	if (!bIsInteract)
@@ -203,7 +197,7 @@ bool UVendorComponent::SimulateTrade(const FItemMoveData& TradeData, int32 Price
 	FItemMoveData ItemMoveData;
 	ItemMoveData.SourceItem = TradeData.SourceItem;
 	ItemMoveData.TargetInventory = ItemSim->GetSimulationInventory();
-	//ItemMoveData.TargetSlot = TradeData.TargetSlot;
+	ItemMoveData.TargetSlotCoordinate = TradeData.TargetSlotCoordinate;
 	ItemMoveData.SavedOrientation = TradeData.SavedOrientation;
 	ItemMoveData.TargetOrientation = TradeData.TargetOrientation;
 
@@ -222,36 +216,97 @@ bool UVendorComponent::SimulateTrade(const FItemMoveData& TradeData, int32 Price
 	return true;
 }
 
-void UVendorComponent::ExecuteTrade(const FItemMoveData& TradeData, float Price, bool bIsBuyingFromVendor,
+FTradeTransaction UVendorComponent::ExecuteTrade(const FItemMoveData& TradeData, int32 Price, bool bIsBuyingFromVendor,
 	UInventoryBase* PlayerInventory, UItemBase* CurrencyItem)
 {
-	if (bIsBuyingFromVendor)
-	{
-		// Deduct currency from player inventory
-		PlayerInventory->HandleRemoveItemsByType(CurrencyItem, Price);
+	FTradeTransaction Transaction;
+    Transaction.bSuccess = true;
+    Transaction.bIsBuyingFromVendor = bIsBuyingFromVendor;
+    Transaction.TotalPrice = Price;
 
-		// Add currency to vendor
-		UInventoryUtility::AddItemQuantity(this, MainVendorLootInventory, CurrencyItem, Price);
+    const int32 Quantity = TradeData.SourceItem->GetQuantity();
 
-		if (TradeSettings.RemoveItemAfterPurchase)
-		{
-			MainVendorLootInventory->HandleRemoveItem(TradeData.SourceItem, TradeData.SourceItem->GetQuantity());
-		}
+    if (bIsBuyingFromVendor)
+    {
+        // PLAYER PAYS
+        PlayerInventory->HandleRemoveItemsByType(CurrencyItem, Price);
 
-		// Move purchased item to player inventory
-		PlayerInventory->HandleAddItem(TradeData);
-	}
-	else
-	{
-		// Remove sold item from player inventory
-		PlayerInventory->HandleRemoveItem(TradeData.SourceItem, TradeData.SourceItem->GetQuantity());
-		
-		// Pay player for the sold item
-		UInventoryUtility::AddItemQuantity(this, PlayerInventory, CurrencyItem, Price);
+        Transaction.Entries.Add({
+            PlayerInventory,
+            CurrencyItem,
+            -Price,
+            true
+        });
 
-		// Add sold item to vendor
-		UInventoryUtility::AddItemQuantity(this, MainVendorLootInventory, TradeData.SourceItem, TradeData.SourceItem->GetQuantity());
-	}
+        // VENDOR RECEIVES
+        UInventoryUtility::AddItemQuantity(this, MainVendorLootInventory, CurrencyItem, Price);
+
+        Transaction.Entries.Add({
+            MainVendorLootInventory,
+            CurrencyItem,
+            +Price,
+            true
+        });
+
+        // REMOVE ITEM FROM VENDOR
+        if (TradeSettings.RemoveItemAfterPurchase)
+        {
+            MainVendorLootInventory->HandleRemoveItem(TradeData.SourceItem, Quantity);
+
+            Transaction.Entries.Add({
+                MainVendorLootInventory,
+                TradeData.SourceItem,
+                -Quantity,
+                false
+            });
+        }
+
+        // ADD ITEM TO PLAYER
+        PlayerInventory->HandleAddItem(TradeData);
+
+        Transaction.Entries.Add({
+            PlayerInventory,
+            TradeData.SourceItem,
+            +Quantity,
+            false
+        });
+    }
+    else
+    {
+        // REMOVE ITEM FROM PLAYER
+        PlayerInventory->HandleRemoveItem(TradeData.SourceItem, Quantity);
+
+        Transaction.Entries.Add({
+            PlayerInventory,
+            TradeData.SourceItem,
+            -Quantity,
+            false
+        });
+
+        // PLAYER RECEIVES MONEY
+        UInventoryUtility::AddItemQuantity(this, PlayerInventory, CurrencyItem, Price);
+
+        Transaction.Entries.Add({
+            PlayerInventory,
+            CurrencyItem,
+            +Price,
+            true
+        });
+
+        // VENDOR RECEIVES ITEM
+        UInventoryUtility::AddItemQuantity(this, MainVendorLootInventory, TradeData.SourceItem, Quantity);
+
+        Transaction.Entries.Add({
+            MainVendorLootInventory,
+            TradeData.SourceItem,
+            +Quantity,
+            false
+        });
+    }
+	
+	OnTradeExecuted.Broadcast(Transaction);
+
+    return Transaction;
 }
 
 float UVendorComponent::CalculateTotalBuyPrice(UItemBase* ItemToBuy)

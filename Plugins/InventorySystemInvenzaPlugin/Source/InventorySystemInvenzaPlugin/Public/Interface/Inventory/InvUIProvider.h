@@ -8,7 +8,7 @@
 #include "InvUIProvider.generated.h"
 
 // This class does not need to be modified.
-UINTERFACE()
+UINTERFACE(BlueprintType)
 class UInvUIProvider : public UInterface
 {
 	GENERATED_BODY()
@@ -33,4 +33,6 @@ public:
 
 	virtual void RemovePawnInvContainer(UInventoryContainerWidget* InvContainerToRemove) const
 	PURE_VIRTUAL(IInvUIProvider::RemovePawnInvContainer,;);
+	
+	virtual void ToggleInventoryLayout(){};
 };

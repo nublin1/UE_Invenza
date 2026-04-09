@@ -53,6 +53,41 @@ void UListInventory::SortItemsInContainerByName()
 	NotifyUpdateMoney();
 }
 
+bool UListInventory::TrySplitItem(UItemBase* ItemToSplit, int32 SplitAmount)
+{
+	if (!ItemToSplit || SplitAmount <= 0)
+		return false;
+
+	if (ItemToSplit->GetQuantity() == 1 || ItemToSplit->GetQuantity() <= SplitAmount)
+		return false;
+
+	if (InventorySettings.MaxStackCount > 0)
+	{
+		auto ResultMaxStack = ItemCollectionLinked->GetStackCountInContainer(InventoryContainerID);
+		if (ResultMaxStack + 1 >InventorySettings.MaxStackCount)
+			return false;
+	}
+
+	auto NewItem = ItemToSplit->DuplicateItem();
+	if (!NewItem) return false;
+
+	NewItem->SetQuantity(SplitAmount);
+	
+	FItemMoveData ItemMove;
+	ItemMove.SourceItem = NewItem;
+	ItemMove.TargetInventory = this;
+	ItemMove.SavedOrientation = ItemMove.SourceItem->GetInitialItemOrientation();
+	ItemMove.TargetOrientation = ItemMove.SourceItem->GetInitialItemOrientation();
+
+	HandleRemoveItem(ItemToSplit, SplitAmount);
+	HandleAddItem(ItemMove, false);
+
+	UpdateMoneyInfo();
+	UpdateWeightInfo();
+	
+	return true;
+}
+
 void UListInventory::HandleRemoveItemsByType(UItemBase* ItemSample, int32 RequestedAmount)
 {
 	if (!ItemSample || RequestedAmount <= 0) return;
@@ -82,6 +117,7 @@ void UListInventory::HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity)
 	auto RemovedActual = TryRemoveFromStackItem(Item, RemoveQuantity);
 
 	UpdateInvSlotsArray();
+	
 }
 
 FItemAddResult UListInventory::HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck)
@@ -142,9 +178,9 @@ FItemAddResult UListInventory::HandleAddItem(FItemMoveData ItemMoveData, bool bO
 
 FItemAddResult UListInventory::HandleAddReferenceItem(FItemMoveData& ItemMoveData, bool bOnlyCheck)
 {
-	if (ItemMoveData.TargetSlot == nullptr)
+	/*if (ItemMoveData.TargetSlot == nullptr)
 		return FItemAddResult::AddedNone(FText::Format(FText::FromString("Can't be added {0} of {1} to inventory"),
-		                                               1, FText::FromName(ItemMoveData.SourceItem->GetItemID())));
+		                                               1, FText::FromName(ItemMoveData.SourceItem->GetItemID())));*/
 
 	if (ItemMoveData.SourceInventory == this)
 	{
@@ -165,7 +201,7 @@ FItemAddResult UListInventory::HandleAddReferenceItem(FItemMoveData& ItemMoveDat
 		AddNewItem(ItemMoveData, Slots, ItemMoveData.SourceItem->GetQuantity());
 
 	TMap<UInventorySlotData*, FItemPlacementData> AffectedSlots;
-	AffectedSlots.Add(ItemMoveData.TargetSlot->GetSlotData(), {1, ItemMoveData.SavedOrientation});
+	//AffectedSlots.Add(ItemMoveData.TargetSlot->GetSlotData(), {1, ItemMoveData.SavedOrientation});
 
 	return FItemAddResult::AddedAll(1, true, FText::Format(
 		                                FText::FromString("Successfully added {0} to inventory as a reference"),
@@ -193,8 +229,9 @@ FItemAddResult UListInventory::HandleNonStackableItems(FItemMoveData ItemMoveDat
 	}
 
 	TMap<UInventorySlotData*, FItemPlacementData> AffectedSlots;
-	if (ItemMoveData.TargetSlot)
+	/*if (ItemMoveData.TargetSlot)
 		AffectedSlots.Add(ItemMoveData.TargetSlot->GetSlotData(), {1, ItemMoveData.SavedOrientation});
+		*/
 
 	return FItemAddResult::AddedAll(1, false, FText::Format(
 										FText::FromString("Successfully added {0} of {1} to inventory"),

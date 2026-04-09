@@ -87,6 +87,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	virtual void SortItemsInContainerByName() {};
 
+	virtual bool TrySplitItem(UItemBase* ItemToSplit, int32 SplitAmount)
+	PURE_VIRTUAL(UInventoryBase::TrySplitItem, return false;);
+
 	UFUNCTION(BlueprintCallable)
 	virtual void HandleRemoveItemsByType(UItemBase* ItemSample, int32 RequestedAmount)
 	PURE_VIRTUAL(UInventoryBase::HandleRemoveItemsByType,);
@@ -125,10 +128,12 @@ public:
 	UItemCollection* GetItemCollectionLinked() { return ItemCollectionLinked; }
 
 	// Setters
+	UFUNCTION()
+	virtual void SetInventoryContainerID(FString InID) {InventoryContainerID = InID;}
+	
 	UFUNCTION(BlueprintCallable)
 	virtual void SetInventorySettings(FInventorySettings NewInventorySettings) {InventorySettings = NewInventorySettings;}
 	
-
 	UFUNCTION(BlueprintCallable)
 	virtual void SetInitialItems(TArray<FInitItemsEntry> NewInitialItems) { InitialItems = NewInitialItems; }
 

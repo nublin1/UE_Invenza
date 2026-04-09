@@ -44,12 +44,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|UI")
 	virtual void RemovePawnInvContainer(UInventoryContainerWidget* InvContainerToRemove) const override;
 
+	UFUNCTION(BlueprintCallable, Category = "Inventory|UI")
+	virtual void ToggleInventoryLayout() override;
+
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory UI")
 	TMap<EInventoryType, FVector2D> InventoryDefaultPositions;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory UI")
+	bool bInventoryOpen = false;
 	
 	//====================================================================
 	// FUNCTIONS

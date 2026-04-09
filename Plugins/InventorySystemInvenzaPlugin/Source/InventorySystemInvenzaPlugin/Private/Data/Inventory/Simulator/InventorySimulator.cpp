@@ -20,17 +20,21 @@ void UInventorySimulator::DuplicateInventoryForSimulation(UInventoryBase* InInve
 		return;
 
 	SimulationInventory = NewInv;
+	SimulationInventory->SetInventoryContainerID(InInventory->GetInventoryContainerID() + "_Sim");
 
 	SimulationCollection = NewObject<UItemCollection>(this);
 	SimulationInventory->SetItemCollectionLink(SimulationCollection);
+	//SimulationCollection->SetInvManager(InInventory->GetItemCollectionLinked()->GetInvManager());
+	
 	SimulationInventory->InitInventory();
 
 	TArray<FItemSaveEntry> SavedData;
 	TArray<FString> InventoryFilter;
 	InventoryFilter.Add(SourceInventory->GetInventoryContainerID());
+	TMap<FString, FString> IDMapping;
 
 	SourceInventory->GetItemCollectionLinked()->SerializeForSave(SavedData, InventoryFilter);
-	SimulationCollection->DeserializeFromSave(SavedData, SimulationInventory);
+	SimulationCollection->DeserializeFromSave(SavedData, SimulationInventory, IDMapping);
 }
 
 void UInventorySimulator::TransferRequestSimulateQuantity(UItemBase* ItemSample, int32 TotalQuantity)
@@ -101,8 +105,6 @@ bool UInventorySimulator::WasLastOperationSuccessful()
 		return false;
 
 	auto LastOpResult = OperationHistory.Last().Result.OperationResult;
-	UE_LOG(LogTemp, Warning, TEXT("WasLastOperationSuccessful: LastOpResult=%d, Num=%d"),
-		   (int32)LastOpResult, OperationHistory.Num());
 	
 	if (LastOpResult == EItemAddResult::IAR_NoItemAdded || LastOpResult == EItemAddResult::IAR_PartialAmountItemAdded)
 	{

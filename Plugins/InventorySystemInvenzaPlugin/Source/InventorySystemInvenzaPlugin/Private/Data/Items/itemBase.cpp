@@ -69,6 +69,7 @@ UItemBase* UItemBase::DuplicateItem()
 		NewItem->ItemID = this->ItemID;
 		NewItem->ItemRef = this->ItemRef;
 		NewItem->Quantity = this->Quantity;
+		NewItem->ItemRow = this->ItemRow;
 	}
 	return NewItem;
 }

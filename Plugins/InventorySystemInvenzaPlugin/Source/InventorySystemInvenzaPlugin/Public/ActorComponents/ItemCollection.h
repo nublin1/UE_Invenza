@@ -12,6 +12,7 @@
 #include "ItemCollection.generated.h"
 
 
+struct FItemSaveEntry;
 class UIInventoryManager;
 struct FItemMappingSaveData;
 struct FItemSaveData;
@@ -46,8 +47,8 @@ public:
 	float CalculateAvailableMoney();
 
 	TMap<TObjectPtr<UItemBase>, FItemMappingArrayWrapper> GetItemLocations() const {return ItemLocations;}
-
-	int32 GetTotalItemCountInContainer(FString InvID);
+	
+	int32 GetStackCountInContainer(FString InvID);
 	TArray<UItemBase*> GetAllItemsByContainer(FString InvID);
 	TArray<UItemBase*> GetAllSameItemsInContainer(FString InvID, UItemBase* ReferenceItem) const;
 	TArray<FItemMapping> GetAllMappingsByContainer(const FString& InvID);
@@ -74,7 +75,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void SerializeForSave(TArray<FItemSaveEntry>& OutData, const TArray<FString>& InventoryFilter);
 	UFUNCTION(BlueprintCallable)
-	void DeserializeFromSave(const TArray<FItemSaveEntry>& InData, UInventoryBase* InInventory);
+	void DeserializeFromSave(const TArray<FItemSaveEntry>& InData,
+		UInventoryBase* OverrideInventory, // Used to simulate a specific inventory
+		const TMap<FString, FString>& IDMapping); // Key: Old ID, Value: New ID
 
 protected:
 	//====================================================================

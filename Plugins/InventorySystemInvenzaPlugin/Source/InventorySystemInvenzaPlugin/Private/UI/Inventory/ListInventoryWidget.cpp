@@ -54,14 +54,13 @@ void UListInventoryWidget::InitializeInventoryWidget()
 		UE_LOG(LogTemp, Warning, TEXT("UListInventoryWidget::InitializeInventoryWidget: InventoryRef is null!"));
 		return;
 	}
-	auto InvSettings = InventoryRef->GetInventorySettings();
 	
-	if (!InvSettings.bShowItemTooltips || !UISettings.ItemTooltipWidgetClass)
-		return;
+	CreateTooltipWidget();
+}
 
-	ItemTooltipWidget = CreateWidget<UItemTooltipWidget>(this, UISettings.ItemTooltipWidgetClass);
-	SetToolTip(ItemTooltipWidget);
-	ItemTooltipWidget->SetVisibility(ESlateVisibility::Collapsed);
+void UListInventoryWidget::InitializeInventoryWidgetWithSettings(FInventorySettings InventoryStartupData)
+{
+	InitializeInventoryWidget();
 }
 
 void UListInventoryWidget::BindDelegated()
@@ -333,6 +332,14 @@ FReply UListInventoryWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry
 	return FReply::Unhandled();
 }
 
+FReply UListInventoryWidget::NativeOnMouseButtonDoubleClick(const FGeometry& InGeometry,
+	const FPointerEvent& InMouseEvent)
+{
+	FReply Reply = Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
+
+	return Reply;
+}
+
 void UListInventoryWidget::NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent,
                                                 UDragDropOperation*& OutOperation)
 {
@@ -360,7 +367,7 @@ bool UListInventoryWidget::NativeOnDrop(const FGeometry& InGeometry, const FDrag
 
 	auto DragOp = Cast<UItemDragDropOperation>(InOperation);
 	DragOp->ItemMoveData.TargetInventory = InventoryRef;
-	DragOp->ItemMoveData.TargetSlot = nullptr;
+	DragOp->ItemMoveData.TargetSlotCoordinate = FIntPoint(-1);
 
 	if (OnItemDroppedDelegate.IsBound())
 			OnItemDroppedDelegate.Broadcast(DragOp->ItemMoveData);

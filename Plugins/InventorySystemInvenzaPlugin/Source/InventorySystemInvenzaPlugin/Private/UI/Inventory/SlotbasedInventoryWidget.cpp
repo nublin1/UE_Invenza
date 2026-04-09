@@ -25,6 +25,7 @@
 #include "UI/Inventory/ListInventoryWidget.h"
 #include "UI/Inventory/SlotbasedInventorySlot.h"
 #include "UI/Item/InventoryItemWidget.h"
+#include "Utility/InventoryUtility.h"
 
 USlotbasedInventoryWidget::USlotbasedInventoryWidget(): SlotsGridPanel(nullptr)
 {
@@ -152,6 +153,8 @@ void USlotbasedInventoryWidget::InitializeInventoryWidgetWithSettings(FInventory
 		SlotBasedInventoryRef->SetInventorySize(SizeInv);
 		SlotBasedInventoryRef->SetInventorySlots(GetSlotData());
 	}
+
+	CreateTooltipWidget();
 	
 }
 
@@ -484,20 +487,7 @@ FVector2D USlotbasedInventoryWidget::CalculateItemVisualPosition(FIntPoint SlotP
 	return FVector2D(Y, X);
 }
 
-FVector2D USlotbasedInventoryWidget::CalculateItemVisualSize(UItemBase* Item, EItemOrientationType Orientation, FVector2D SlotSize,
-	bool bIgnoreSize) const
-{
-	if (!Item)
-		return FVector2D::ZeroVector;
 
-	FIntPoint ItemSize = bIgnoreSize
-		? FIntPoint(1, 1)
-		: Item->GetItemSize(Orientation);
-
-	return FVector2D(
-		SlotSize.X * ItemSize.X + SlotSpacing.Left * (ItemSize.X - 1),
-		SlotSize.Y * ItemSize.Y + SlotSpacing.Top  * (ItemSize.Y - 1));
-}
 
 void USlotbasedInventoryWidget::AddItemToPanel(FItemMapping& ItemSlots, UItemBase* Item)
 {
@@ -538,7 +528,7 @@ void USlotbasedInventoryWidget::AddItemToPanel(FItemMapping& ItemSlots, UItemBas
 	}
 
 	bool IgnoreSize = SlotBasedInventoryRef->GetInventorySettings().InventorySlotBasedSettings.bIgnoreItemSize;
-	auto TotalSize = CalculateItemVisualSize(Item, ItemSlots.ItemOrientation, InvCellSize, IgnoreSize);
+	auto TotalSize = UInventoryUtility::CalculateItemVisualSize(Item, ItemSlots.ItemOrientation, InvCellSize, SlotSpacing, IgnoreSize);
 	
 	ItemVisual->UpdateItemVisual(Item, ItemSlots.ItemOrientation, TotalSize, VisualPosition, IgnoreSize);
 	ItemVisual->UpdateItemName(Item->GetItemRef().ItemTextData.DisplayName);
@@ -585,7 +575,7 @@ void USlotbasedInventoryWidget::ReplaceItemInPanel(TArray<UInventorySlotData*> O
 	FVector2D NewVisualPosition = CalculateItemVisualPosition(NewItemSlots.OccupiedSlots[0]->InventorySlotInfo.CellPosition);
 	//UE_LOG(LogTemp, Log, TEXT("Row: %f, Column: %f"),  NewVisualPosition.X,  NewVisualPosition.Y);
 	bool IgnoreSize = SlotBasedInventoryRef->GetInventorySettings().InventorySlotBasedSettings.bIgnoreItemSize;
-	auto TotalSize = CalculateItemVisualSize(Item,NewItemSlots.ItemOrientation, InvCellSize, IgnoreSize);
+	auto TotalSize =UInventoryUtility::CalculateItemVisualSize(Item, NewItemSlots.ItemOrientation, InvCellSize, SlotSpacing, IgnoreSize);
 	NewItemSlots.ItemVisualLinked->UpdateItemVisual(Item, NewItemSlots.ItemOrientation, TotalSize, NewVisualPosition, IgnoreSize);
 }
 
@@ -673,21 +663,6 @@ void USlotbasedInventoryWidget::CreateHighlightWidget()
 	HighlightWidgetPreview->SetVisibility(ESlateVisibility::Collapsed);
 }
 
-void USlotbasedInventoryWidget::CreateTooltipWidget()
-{
-	if (!SlotBasedInventoryRef)
-		return;
-
-	auto InvSettings = SlotBasedInventoryRef->GetInventorySettings();
-	
-	if (!InvSettings.bShowItemTooltips || !UISettings.ItemTooltipWidgetClass)
-		return;
-	
-	ItemTooltipWidget = CreateWidget<UItemTooltipWidget>(this, UISettings.ItemTooltipWidgetClass);
-	SetToolTip(ItemTooltipWidget);
-	ItemTooltipWidget->SetVisibility(ESlateVisibility::Collapsed);
-}
-
 FIntPoint USlotbasedInventoryWidget::CalculateGridPosition(const FGeometry& Geometry, const FVector2D& ScreenCursorPos) const
 {
 	if (!SlotsGridPanel) return FIntPoint(-1, -1);
@@ -732,6 +707,9 @@ FIntPoint USlotbasedInventoryWidget::CalculateGridPosition(const FGeometry& Geom
 FReply USlotbasedInventoryWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
 	FReply Reply = Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
+
+	if (!SlotBasedInventoryRef)
+		return FReply::Unhandled();
 	
 	FVector2D ScreenCursorPos = InMouseEvent.GetScreenSpacePosition();
 	FIntPoint GridPosition = CalculateGridPosition(InGeometry, ScreenCursorPos);
@@ -741,7 +719,7 @@ FReply USlotbasedInventoryWidget::NativeOnMouseButtonDown(const FGeometry& InGeo
 	
 	if (InMouseEvent.GetEffectingButton() == UISettings.ItemSelectKey)
 	{
-		if (GridPosition.X >= 0 && GridPosition.Y >= 0)
+		if (bIsGridPositionValid(GridPosition))
 		{
 			SlotUnderMouse = GetSlotByPosition(GridPosition);
 		}
@@ -788,7 +766,7 @@ FReply USlotbasedInventoryWidget::NativeOnMouseButtonDown(const FGeometry& InGeo
 
 	if (InMouseEvent.GetEffectingButton() == UISettings.ItemUseKey)
 	{
-		if (GridPosition.X >= 0 && GridPosition.Y >= 0)
+		if (bIsGridPositionValid(GridPosition))
 		{
 			SlotUnderMouse = GetSlotByPosition(GridPosition);
 		}
@@ -796,9 +774,6 @@ FReply USlotbasedInventoryWidget::NativeOnMouseButtonDown(const FGeometry& InGeo
 		
 		auto ItemInSlot = ItemCollection->GetItemFromSlot(SlotUnderMouse->GetSlotData(), InvID);
 		if (!ItemInSlot) return FReply::Unhandled();
-
-		if (HandleTradeModalOpening(ItemInSlot))
-			return FReply::Handled();
 
 		if (SlotBasedInventoryRef->GetInventorySettings().bAllowItemUsage)
 		{
@@ -808,6 +783,37 @@ FReply USlotbasedInventoryWidget::NativeOnMouseButtonDown(const FGeometry& InGeo
 	}
 	
 	return FReply::Unhandled();
+}
+
+FReply USlotbasedInventoryWidget::NativeOnMouseButtonDoubleClick(const FGeometry& InGeometry,
+	const FPointerEvent& InMouseEvent)
+{
+	FReply Reply = Super::NativeOnMouseButtonDoubleClick(InGeometry, InMouseEvent);
+
+	if (!SlotBasedInventoryRef)
+		return FReply::Unhandled();
+
+	FVector2D ScreenCursorPos = InMouseEvent.GetScreenSpacePosition();
+	FIntPoint GridPosition = CalculateGridPosition(InGeometry, ScreenCursorPos);
+	
+	auto ItemCollection = SlotBasedInventoryRef->GetItemCollectionLinked();
+	auto InvID = SlotBasedInventoryRef->GetInventoryContainerID();
+	
+	if (InMouseEvent.GetEffectingButton() == UISettings.ItemSelectKey)
+	{
+		if (bIsGridPositionValid(GridPosition))
+		{
+			SlotUnderMouse = GetSlotByPosition(GridPosition);
+		}
+		if (!SlotUnderMouse) return FReply::Unhandled();
+		
+		auto ItemInSlot = ItemCollection->GetItemFromSlot(SlotUnderMouse->GetSlotData(), InvID);
+		if (!ItemInSlot) return FReply::Unhandled();
+
+		SlotBasedInventoryRef->TrySplitItem(ItemInSlot, ItemInSlot->GetQuantity() / 2);
+	}
+
+	return Reply;
 }
 
 FReply USlotbasedInventoryWidget::NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
@@ -859,7 +865,8 @@ void USlotbasedInventoryWidget::NativeOnDragDetected(const FGeometry& InGeometry
     DraggedWidget->SetPositionInViewport(FVector2D(-10000, -10000));
 	
 	bool IgnoreSize = SlotBasedInventoryRef->GetInventorySettings().InventorySlotBasedSettings.bIgnoreItemSize;
-	auto TotalSize = CalculateItemVisualSize(Item, ItemMap->ItemOrientation, UISettings.DragWidgetSlotSize, IgnoreSize);
+	auto TotalSize = UInventoryUtility::CalculateItemVisualSize(Item,  ItemMap->ItemOrientation, UISettings.DragWidgetSlotSize, SlotSpacing, IgnoreSize);
+	
 	DraggedWidget->UpdateItemVisual(Item,ItemMap->ItemOrientation, TotalSize, FVector2D(0.0f), IgnoreSize);
 	
     UItemDragDropOperation* DragOp = NewObject<UItemDragDropOperation>();
@@ -933,12 +940,13 @@ bool USlotbasedInventoryWidget::NativeOnDragOver(const FGeometry& InGeometry, co
 		
 		auto TargetSlot = GetSlotByPosition(GridPosition);
 		DragOp->ItemMoveData.TargetInventory = SlotBasedInventoryRef;
-		DragOp->ItemMoveData.TargetSlot = TargetSlot;
+		DragOp->ItemMoveData.TargetSlotCoordinate = TargetSlot->GetSlotPosition();
 
 		const FVector2D VisualPosition = CalculateItemVisualPosition(GridPosition);
 
 		bool IgnoreSize = SlotBasedInventoryRef->GetInventorySettings().InventorySlotBasedSettings.bIgnoreItemSize;
-		auto TotalSize = CalculateItemVisualSize(DragOp->ItemMoveData.SourceItem, DragOp->ItemMoveData.TargetOrientation, InvCellSize, IgnoreSize);
+		auto TotalSize = UInventoryUtility::CalculateItemVisualSize(DragOp->ItemMoveData.SourceItem, DragOp->ItemMoveData.TargetOrientation, InvCellSize, SlotSpacing, IgnoreSize);
+		
 		HighlightWidgetPreview->UpdateItemVisual(DragOp->ItemMoveData.SourceItem, DragOp->ItemMoveData.TargetOrientation, TotalSize, VisualPosition, IgnoreSize);
 		HighlightWidgetPreview->ChangeOpacity(UISettings.HighlightItemOpacity);
 
@@ -982,7 +990,6 @@ bool USlotbasedInventoryWidget::NativeOnDrop(const FGeometry& InGeometry, const 
 	auto ItemCollection = SlotBasedInventoryRef->GetItemCollectionLinked();
 	auto InvID = SlotBasedInventoryRef->GetInventoryContainerID();
 	
-	
 	//UE_LOG(LogTemp, Log, TEXT("Row: %d, Column: %d"),  GridPosition.X,  GridPosition.Y);
 	if (bIsGridPositionValid(GridPosition))
 	{
@@ -993,7 +1000,7 @@ bool USlotbasedInventoryWidget::NativeOnDrop(const FGeometry& InGeometry, const 
 			ItemMap->ItemVisualLinked->ChangeOpacity(1.0f);
 		
 		DragOp->ItemMoveData.TargetInventory = SlotBasedInventoryRef;
-		DragOp->ItemMoveData.TargetSlot = TargetSlot;
+		DragOp->ItemMoveData.TargetSlotCoordinate = TargetSlot->GetSlotPosition();
 
 		if (OnItemDroppedDelegate.IsBound())
 			OnItemDroppedDelegate.Broadcast(DragOp->ItemMoveData);

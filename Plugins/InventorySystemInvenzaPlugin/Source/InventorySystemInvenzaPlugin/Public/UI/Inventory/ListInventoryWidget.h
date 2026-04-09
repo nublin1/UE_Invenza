@@ -36,6 +36,7 @@ public:
 	UListInventoryWidget();
 
 	virtual void InitializeInventoryWidget() override;
+	virtual void InitializeInventoryWidgetWithSettings(FInventorySettings InventoryStartupData) override;
 	virtual void BindDelegated() override;
 	virtual void ReDrawAllItems() override;
 
@@ -82,6 +83,7 @@ protected:
 	//
 	virtual FReply NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+	virtual FReply NativeOnMouseButtonDoubleClick(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	virtual void NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation) override;
 	virtual bool NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 };

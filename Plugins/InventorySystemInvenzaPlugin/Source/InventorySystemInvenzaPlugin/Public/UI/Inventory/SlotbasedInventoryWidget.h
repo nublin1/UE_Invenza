@@ -137,8 +137,6 @@ protected:
 
 	UFUNCTION()
 	FVector2D CalculateItemVisualPosition(FIntPoint SlotPosition) const;
-	UFUNCTION()
-	FVector2D CalculateItemVisualSize(UItemBase* Item, EItemOrientationType Orientation, FVector2D SlotSize, bool bIgnoreSize) const;
 	
 	virtual void AddItemToPanel(FItemMapping& ItemSlots, UItemBase* Item) override;
 	UFUNCTION()
@@ -155,11 +153,11 @@ protected:
 
 	UFUNCTION()
 	virtual void CreateHighlightWidget();
-	UFUNCTION()
-	virtual void CreateTooltipWidget();
+	
 	UFUNCTION()
 	virtual FIntPoint CalculateGridPosition(const FGeometry& Geometry, const FVector2D& ScreenCursorPos) const;
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+	virtual FReply NativeOnMouseButtonDoubleClick(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	virtual FReply NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	virtual void NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation) override;
 	virtual void NativeOnDragEnter(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;

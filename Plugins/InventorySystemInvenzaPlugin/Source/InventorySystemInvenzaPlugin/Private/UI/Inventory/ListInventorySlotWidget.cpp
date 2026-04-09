@@ -18,6 +18,7 @@
 #include "UI/HelpersWidgets/ItemTooltipWidget.h"
 #include "UI/Inventory/ListInventoryWidget.h"
 #include "UI/Item/InventoryItemWidget.h"
+#include "Utility/InventoryUtility.h"
 
 
 void UListInventorySlotWidget::UpdateVisualWithItemInfo(UItemBase* Item)
@@ -122,7 +123,7 @@ FReply UListInventorySlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeom
 	FReply Reply = Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
 	
 	UIInventoryManager* InventoryManager = GetOwningPlayerPawn()->FindComponentByClass<UIInventoryManager>();
-	if (!InventoryManager ||  !CachedEntry || !CachedEntry->Item || !CachedEntry->ParentInventoryWidget)
+	if (!InventoryManager || !CachedEntry || !CachedEntry->Item || !CachedEntry->ParentInventoryWidget)
 		return FReply::Unhandled();
 	
 	if (InMouseEvent.IsMouseButtonDown(CachedEntry->ParentInventoryWidget->GetUISettings().ItemSelectKey))
@@ -144,9 +145,6 @@ FReply UListInventorySlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeom
 
 	if (InMouseEvent.IsMouseButtonDown(CachedEntry->ParentInventoryWidget->GetUISettings().ItemUseKey))
 	{
-		if (CachedEntry->ParentInventoryWidget->HandleTradeModalOpening(CachedEntry->Item))
-			return FReply::Handled();
-
 		if (CachedEntry->ParentInventoryWidget->GetInventoryRef()->GetInventorySettings().bAllowItemUsage)
 			CachedEntry->Item->UseItem();
 	}
@@ -154,8 +152,31 @@ FReply UListInventorySlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeom
 	return FReply::Unhandled();
 }
 
+FReply UListInventorySlotWidget::NativeOnMouseButtonDoubleClick(const FGeometry& InGeometry,
+	const FPointerEvent& InMouseEvent)
+{
+	FReply Reply = Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
+	
+	UIInventoryManager* InventoryManager = GetOwningPlayerPawn()->FindComponentByClass<UIInventoryManager>();
+	if (!InventoryManager || !CachedEntry || !CachedEntry->Item || !CachedEntry->ParentInventoryWidget)
+		return FReply::Unhandled();
+
+	auto Inv = CachedEntry->ParentInventoryWidget->GetInventoryRef();
+	if (!Inv)
+		return FReply::Unhandled();;
+
+	auto UISettings = CachedEntry->ParentInventoryWidget->GetUISettings();
+
+	if (InMouseEvent.GetEffectingButton() == UISettings.ItemSelectKey)
+	{
+		Inv->TrySplitItem(CachedEntry->Item, CachedEntry->Item->GetQuantity() / 2);
+	}
+
+	return FReply::Unhandled();
+}
+
 void UListInventorySlotWidget::NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent,
-	UDragDropOperation*& OutOperation)
+                                                    UDragDropOperation*& OutOperation)
 {
 	Super::NativeOnDragDetected(InGeometry, InMouseEvent, OutOperation);
 	
@@ -173,8 +194,11 @@ void UListInventorySlotWidget::NativeOnDragDetected(const FGeometry& InGeometry,
 	DraggedWidget->AddToPlayerScreen(1);
 	DraggedWidget->SetPositionInViewport(FVector2D(-10000, -10000));
 
-	FVector2D TotalSize = FVector2D(64.0f, 64.0f);
 	auto InitialItemOrientation = CachedEntry->Item->GetInitialItemOrientation();
+
+	FVector2D WidgetSlotSize = CachedEntry->ParentInventoryWidget->GetUISettings().DragWidgetSlotSize;
+	auto TotalSize = UInventoryUtility::CalculateItemVisualSize(CachedEntry->Item, InitialItemOrientation, WidgetSlotSize, FMargin(0), false);
+	
 	DraggedWidget->UpdateItemVisual( CachedEntry->Item, InitialItemOrientation, TotalSize, FVector2D(0.0f), true);
 	
 	UItemDragDropOperation* DragItemDragDropOperation = NewObject<UItemDragDropOperation>();
