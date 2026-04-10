@@ -8,7 +8,7 @@
 #include "InputCoreTypes.h"
 #include "GameFramework/Actor.h"
 #include "UObject/ObjectPtr.h"
-#include "InvnzaSettings.generated.h"
+#include "InvenzaSettings.generated.h"
 
 class USlotbasedInventorySlot;
 class UModalTradeWidget;
@@ -46,9 +46,6 @@ struct FUISettings
     FKey ItemSelectKey;
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Input")
     FKey ItemUseKey;
-	
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|World")
-    TSubclassOf<AActor> PickupClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Highlight")
 	FLinearColor AllowedColor = FLinearColor::Green;
@@ -91,14 +88,3 @@ struct FUISettings
 	}
 };
 
-USTRUCT(BlueprintType)
-struct FInventoryModifierState
-{
-	GENERATED_BODY()
-
-	UPROPERTY(BlueprintReadWrite, Category = "Inventory|Input")
-	bool bIsQuickGrabModifierActive = false;
-	
-	UPROPERTY(BlueprintReadWrite, Category = "Inventory|Input")
-	bool bIsGrabAllSameModifierActive = false;
-};

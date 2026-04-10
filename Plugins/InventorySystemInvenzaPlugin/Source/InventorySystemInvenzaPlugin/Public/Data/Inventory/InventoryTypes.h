@@ -24,7 +24,7 @@ class UItemTooltipWidget;
 struct FInventoryCheck;
 class UInventoryItemWidget;
 class UItemBase;
-class UUInventoryWidgetBase;
+class UUInventoryBaseWidget;
 class UItemCollection;
 
 USTRUCT(BlueprintType)
@@ -256,7 +256,7 @@ struct FInventorySettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|UI")
 	TSubclassOf<UInventoryContainerWidget> ContainerWidgetClass;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|UI")
-	TSubclassOf<UUInventoryWidgetBase> InventoryWidgetClass;
+	TSubclassOf<UUInventoryBaseWidget> InventoryWidgetClass;
 
 	// Slot-based inventory settings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|UI")
@@ -267,6 +267,19 @@ struct FInventorySettings
 	TSubclassOf<UInventoryListEntry> EntryClass;
 
 };
+
+USTRUCT(BlueprintType)
+struct FInventoryModifierState
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite, Category = "Inventory|Input")
+	bool bIsQuickGrabModifierActive = false;
+	
+	UPROPERTY(BlueprintReadWrite, Category = "Inventory|Input")
+	bool bIsGrabAllSameModifierActive = false;
+};
+
 
 USTRUCT(BlueprintType)
 struct FInventoryStartupData

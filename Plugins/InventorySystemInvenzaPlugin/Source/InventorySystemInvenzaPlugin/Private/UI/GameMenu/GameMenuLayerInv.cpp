@@ -21,16 +21,16 @@ void UGameMenuLayerInv::NativeConstruct()
 {
 }
 
-TArray<UUInventoryWidgetBase*> UGameMenuLayerInv::GetAllPawnInventories() const
+TArray<UUInventoryBaseWidget*> UGameMenuLayerInv::GetAllPawnInventories() const
 {
-	TArray<UUInventoryWidgetBase*> Result;
+	TArray<UUInventoryBaseWidget*> Result;
 	if (!PawnInventories) return Result;
 
 	for (int32 i = 0; i < PawnInventories->GetChildrenCount(); i++)
 	{
 		if (auto* InvContainer = Cast<UInventoryContainerWidget>(PawnInventories->GetChildAt(i)))
 		{
-			if (auto InventoryWidget = Cast<UUInventoryWidgetBase>(InvContainer->ContainerSlot->GetContent()))
+			if (auto InventoryWidget = Cast<UUInventoryBaseWidget>(InvContainer->ContainerSlot->GetContent()))
 				Result.Add(InventoryWidget);
 		}
 	}

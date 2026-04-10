@@ -4,9 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "Data/Inventory/InventoryTypes.h"
-#include "UInventoryWidgetBase.h"
+#include "UInventoryBaseWidget.h"
 #include "Components/ActorComponent.h"
-#include "Settings/InvnzaSettings.h"
+#include "Settings/InvenzaSettings.h"
 #include "UI/InvenzaBaseWidget.h"
 #include "SlotbasedInventoryWidget.generated.h"
 
@@ -23,7 +23,7 @@ class USlotbasedInventorySlot;
 class UHighlightSlotWidget;
 
 UCLASS()
-class INVENTORYSYSTEMINVENZAPLUGIN_API USlotbasedInventoryWidget : public UUInventoryWidgetBase
+class INVENTORYSYSTEMINVENZAPLUGIN_API USlotbasedInventoryWidget : public UUInventoryBaseWidget
 {
 	GENERATED_BODY()
 

@@ -11,12 +11,9 @@ class UInventoryBase;
 class UItemBase;
 
 USTRUCT(BlueprintType, Blueprintable)
-struct FTradeSettings
+struct FTradeData
 {
 	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, Category = "Trade Settings")
-	FDataTableRowHandle CurrencyItemClass;
 
 	UPROPERTY(Category = "Trade Settings", EditAnywhere, BlueprintReadOnly)
 	float BuyPriceFactor = 1.0f;

@@ -1,14 +1,16 @@
-//  Nublin Studio 2025 All Rights Reserved.
+//  Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Data/Inventory/InventoryTypes.h"
-#include "Settings/InvnzaSettings.h"
+#include "Data/Trade/TradeTypes.h"
+#include "Settings/InvenzaSettings.h"
 #include "UI/InvenzaBaseWidget.h"
 #include "UI/Inventory/Container/InventoryContainerWidget.h"
-#include "UInventoryWidgetBase.generated.h"
+#include "UInventoryBaseWidget.generated.h"
 
+struct FTradeData;
 class UUIButton;
 enum class EItemCategory : uint8;
 class UItemCollection;
@@ -18,7 +20,7 @@ class UInventoryBase;
  * 
  */
 UCLASS(Abstract)
-class INVENTORYSYSTEMINVENZAPLUGIN_API UUInventoryWidgetBase : public UInvenzaBaseWidget
+class INVENTORYSYSTEMINVENZAPLUGIN_API UUInventoryBaseWidget : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
 
@@ -27,7 +29,7 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UUInventoryWidgetBase : public UInvenzaBa
 #pragma endregion Delegates
 	
 public:
-	UUInventoryWidgetBase();
+	UUInventoryBaseWidget();
 	
 	//====================================================================
 	// PROPERTIES AND VARIABLES
@@ -44,7 +46,7 @@ public:
 	// FUNCTIONS
 	//====================================================================
 	UFUNCTION(Category="Inventory")
-	virtual void InitializeInventoryWidget(){} /*PURE_VIRTUAL(UUInventoryWidgetBase::InitializeInventory,)*/;
+	virtual void InitializeInventoryWidget(){} /*PURE_VIRTUAL(UUInventoryBaseWidget::InitializeInventory,)*/;
 	UFUNCTION(Category="Inventory")
 	virtual void InitializeInventoryWidgetWithSettings(FInventorySettings InventoryStartupData){}
 
@@ -56,6 +58,9 @@ public:
 	
 	UFUNCTION(Category="Inventory")
 	virtual void ReDrawAllItems() PURE_VIRTUAL(UUInventoryWidgetBase::ReDrawAllItems,);
+
+	UFUNCTION(BlueprintCallable, Category="Inventory")
+	virtual void UpdateTradeData(FTradeData NewTradeData) {TradeData = NewTradeData;}
 	
 	UFUNCTION(Category="Inventory")
 	virtual void HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity) PURE_VIRTUAL(UUInventoryWidgetBase::HandleRemoveItem,);
@@ -67,6 +72,7 @@ public:
 	FUISettings GetUISettings() const {return UISettings;}
 	UItemTooltipWidget* GetItemTooltipWidget() const {return ItemTooltipWidget;}
 	virtual UInventoryBase* GetInventoryRef() const {return InventoryRef;}
+	FTradeData GetTradeData() const {return TradeData;}
 	
 	//Setters
 	virtual void SetInventoryBaseRef(UInventoryBase* NewInventoryRef) {InventoryRef = NewInventoryRef;}
@@ -84,12 +90,14 @@ protected:
 	TObjectPtr<UInventoryBase> InventoryRef;
 
 	// Data
-	UPROPERTY()
+	UPROPERTY(BlueprintReadWrite)
 	TSet<EItemCategory> ActiveFilters;
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 	TObjectPtr<UInventorySlot> SlotUnderMouse = nullptr;
-	UPROPERTY()
+	UPROPERTY(BlueprintReadWrite)
 	TObjectPtr<UItemTooltipWidget> ItemTooltipWidget;
+	UPROPERTY(BlueprintReadWrite)
+	FTradeData TradeData;
 	
 	//====================================================================
 	// FUNCTIONS

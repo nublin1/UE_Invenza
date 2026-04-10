@@ -7,7 +7,7 @@
 #include "Components/Border.h"
 #include "Data/Inventory/InventoryBase.h"
 #include "DragDrop/ItemDragDropOperation.h"
-#include "UI/Inventory/UInventoryWidgetBase.h"
+#include "UI/Inventory/UInventoryBaseWidget.h"
 
 UTrashDropZoneWidget::UTrashDropZoneWidget()
 {

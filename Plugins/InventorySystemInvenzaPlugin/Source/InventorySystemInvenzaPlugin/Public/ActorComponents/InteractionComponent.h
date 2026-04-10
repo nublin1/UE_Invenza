@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Data/Interaction/InteractionData.h"
-#include "Settings/InvnzaSettings.h"
+#include "Settings/InvenzaSettings.h"
 #include "InteractionComponent.generated.h"
 
 class UIInventoryManager;

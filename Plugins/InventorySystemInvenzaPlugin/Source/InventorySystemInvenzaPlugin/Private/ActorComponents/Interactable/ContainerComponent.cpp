@@ -14,7 +14,7 @@
 #include "Factory/ItemFactory.h"
 #include "Kismet/GameplayStatics.h"
 #include "UI/Inventory/SlotbasedInventoryWidget.h"
-#include "UI/Inventory/UInventoryWidgetBase.h"
+#include "UI/Inventory/UInventoryBaseWidget.h"
 
 
 class UIInventoryManager;

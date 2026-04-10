@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "SlotbasedInventoryWidget.h"
-#include "UI/Inventory/UInventoryWidgetBase.h"
+#include "UI/Inventory/UInventoryBaseWidget.h"
 #include "EquipmentInventoryWidget.generated.h"
 
 

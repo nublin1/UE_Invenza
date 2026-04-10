@@ -16,7 +16,7 @@ struct FItemSaveEntry;
 class UIInventoryManager;
 struct FItemMappingSaveData;
 struct FItemSaveData;
-class UUInventoryWidgetBase;
+class UUInventoryBaseWidget;
 class UInventorySlot;
 class UInventoryItemWidget;
 class USlotbasedInventorySlot;

@@ -6,7 +6,7 @@
 #include "Blueprint/DragDropOperation.h"
 #include "Data/Inventory/InventoryTypes.h"
 #include "Blueprint/UserWidget.h"
-#include "Settings/InvnzaSettings.h"
+#include "Settings/InvenzaSettings.h"
 #include "ItemDragDropOperation.generated.h"
 
 /**

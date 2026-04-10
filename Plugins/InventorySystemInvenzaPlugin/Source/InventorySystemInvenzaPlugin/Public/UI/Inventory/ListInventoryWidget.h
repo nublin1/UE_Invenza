@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UInventoryWidgetBase.h"
+#include "UInventoryBaseWidget.h"
 #include "UI/InvenzaBaseWidget.h"
 #include "ListInventoryWidget.generated.h"
 
@@ -21,7 +21,7 @@ class UScrollBox;
  * 
  */
 UCLASS()
-class INVENTORYSYSTEMINVENZAPLUGIN_API UListInventoryWidget : public UUInventoryWidgetBase
+class INVENTORYSYSTEMINVENZAPLUGIN_API UListInventoryWidget : public UUInventoryBaseWidget
 {
 	GENERATED_BODY()
 

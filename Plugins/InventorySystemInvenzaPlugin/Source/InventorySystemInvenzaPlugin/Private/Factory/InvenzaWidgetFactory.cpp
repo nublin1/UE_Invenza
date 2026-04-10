@@ -5,11 +5,11 @@
 
 #include "Components/NamedSlot.h"
 #include "UI/Core/OperationsPanel/OperationPanelWidget.h"
-#include "UI/Inventory/UInventoryWidgetBase.h"
+#include "UI/Inventory/UInventoryBaseWidget.h"
 #include "UI/Inventory/Container/InventoryContainerWidget.h"
 
 UInventoryContainerWidget* UInvenzaWidgetFactory::CreateInventoryWidget(APlayerController* OwningPlayer,
-                                                                      TSubclassOf<UInventoryContainerWidget> ContainerWidgetClass, TSubclassOf<UUInventoryWidgetBase> InventoryWidgetClass,
+                                                                      TSubclassOf<UInventoryContainerWidget> ContainerWidgetClass, TSubclassOf<UUInventoryBaseWidget> InventoryWidgetClass,
                                                                       TSubclassOf<UOperationPanelWidget> OperationPanelClass)
 {
 	if (!OwningPlayer || !ContainerWidgetClass )
@@ -19,7 +19,7 @@ UInventoryContainerWidget* UInvenzaWidgetFactory::CreateInventoryWidget(APlayerC
 	if (!InvContWidget)
 		return nullptr;
 
-	auto InvWidget = CreateWidget<UUInventoryWidgetBase>(OwningPlayer, InventoryWidgetClass);
+	auto InvWidget = CreateWidget<UUInventoryBaseWidget>(OwningPlayer, InventoryWidgetClass);
 	if (!InvWidget)
 		return nullptr;
 
@@ -28,7 +28,7 @@ UInventoryContainerWidget* UInvenzaWidgetFactory::CreateInventoryWidget(APlayerC
 	if (!OperationPanelClass)
 		return InvContWidget;
 
-	auto PanelWidget = CreateWidget<UUInventoryWidgetBase>(OwningPlayer, OperationPanelClass);
+	auto PanelWidget = CreateWidget<UUInventoryBaseWidget>(OwningPlayer, OperationPanelClass);
 	if (!PanelWidget)
 		return nullptr;
 

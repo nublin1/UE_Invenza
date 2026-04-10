@@ -5,6 +5,7 @@
 #include "ActorComponents/ItemCollection.h"
 #include "Data/Inventory/InventoryBase.h"
 #include "Data/Inventory/Simulator/InventorySimulator.h"
+#include "Data/Settings/InvenzaInventoryUISettingsAsset.h"
 #include "Factory/ItemFactory.h"
 #include "Utility/InventoryUtility.h"
 
@@ -84,7 +85,8 @@ FTradeResult UVendorComponent::ProcessTradeRequest(const FItemMoveData& TradeDat
 				*Who, Price, AvailableMoney, Deficit)));
 	}
 
-	UItemBase* CurrencyItem = UItemFactory::CreateItemByHandle(this, TradeSettings.CurrencyItemClass, Price);
+	UItemBase* CurrencyItem = UItemFactory::CreateItemByHandle(this,
+		UInventoryUtility::GetInvenzaGlobalSettings(GetWorld())->CurrencyItemClass, Price);
 	if (!CurrencyItem)
 		return FTradeResult::Failed(FText::FromString("CurrencyItemClass is not set"));
 	

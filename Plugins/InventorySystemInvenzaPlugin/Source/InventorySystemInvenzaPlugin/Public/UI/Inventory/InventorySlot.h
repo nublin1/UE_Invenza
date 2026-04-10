@@ -19,7 +19,10 @@ UCLASS()
 class INVENTORYSYSTEMINVENZAPLUGIN_API UInventorySlot : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
+	
 public:
+	UInventorySlot();
+	
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
@@ -31,8 +34,6 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UInventorySlot();
-
 	bool operator==(const UInventorySlot& Other) const
 	{
 		return SlotData == Other.SlotData;
@@ -54,7 +55,7 @@ public:
 	
 	//Setters
 	void SetSlotData(UInventorySlotData* NewSlotData) { this->SlotData = NewSlotData; }
-	void SetSlotPosition(const FIntPoint InSlotPosition) const { this->SlotData->InventorySlotInfo.CellPosition = InSlotPosition; }
+	void SetSlotPosition(FIntPoint InSlotPosition) const { this->SlotData->InventorySlotInfo.CellPosition = InSlotPosition; }
 	virtual void SetSlotNameText(FString InUseKeyText);
 	
 protected:

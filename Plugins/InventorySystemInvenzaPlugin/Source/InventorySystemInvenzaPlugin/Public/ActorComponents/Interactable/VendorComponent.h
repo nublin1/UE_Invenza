@@ -10,7 +10,7 @@
 
 class UTradeComponent;
 class UInventoryContainerWidget;
-class UUInventoryWidgetBase;
+class UUInventoryBaseWidget;
 class UItemCollection;
 
 /**
@@ -50,7 +50,7 @@ public:
 	virtual FTradeResult ProcessTradeRequest(const FItemMoveData& TradeData) override;
 
 	UFUNCTION()
-	FTradeSettings GetTradeSettings() const {return TradeSettings;}
+	FTradeData GetTradeSettings() const {return TradeSettings;}
 
 	virtual const TObjectPtr<UInventoryBase>& GetVendorLootContainer() const override;
 
@@ -71,7 +71,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vendor|Config")
 	FGameplayTag MainVendorContainerInvTag;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Vendor|Config")
-	FTradeSettings TradeSettings;
+	FTradeData TradeSettings;
 
 	// Data
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)

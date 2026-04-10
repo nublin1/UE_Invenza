@@ -6,6 +6,7 @@
 #include "Data/Inventory/InventoryTypes.h"
 #include "Data/Items/itemBase.h"
 #include "Factory/ItemFactory.h"
+#include "Subsystems/InvenzaInventorySettingsSubsystem.h"
 
 bool UInventoryUtility::AddItemQuantity(UObject* Outer, UInventoryBase* TargetInventory, UItemBase* ItemSample,
                                         int32 TotalQuantity)
@@ -57,4 +58,19 @@ FVector2D UInventoryUtility::CalculateItemVisualSize(UItemBase* Item, EItemOrien
 	return FVector2D(
 		SlotSize.X * ItemSize.X + SlotSpacing.Left * (ItemSize.X - 1),
 		SlotSize.Y * ItemSize.Y + SlotSpacing.Top  * (ItemSize.Y - 1));
+}
+
+const UInvenzaInventoryUISettingsAsset* UInventoryUtility::GetInvenzaGlobalSettings(const UObject* WorldContext)
+{
+	if (!WorldContext) return nullptr;
+
+	if (auto GI = WorldContext->GetWorld()->GetGameInstance())
+	{
+		if (auto Subsystem = GI->GetSubsystem<UInvenzaInventorySettingsSubsystem>())
+		{
+			return Subsystem->GetSettings();
+		}
+	}
+
+	return nullptr;
 }

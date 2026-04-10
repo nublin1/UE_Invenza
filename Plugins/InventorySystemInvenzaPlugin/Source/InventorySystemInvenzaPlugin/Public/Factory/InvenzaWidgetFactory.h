@@ -7,7 +7,7 @@
 #include "InvenzaWidgetFactory.generated.h"
 
 class UOperationPanelWidget;
-class UUInventoryWidgetBase;
+class UUInventoryBaseWidget;
 class UInventoryContainerWidget;
 /**
  * 
@@ -28,6 +28,6 @@ public:
 	UFUNCTION(blueprintCallable, Category = "InvenzaWidgetFactory")
 	static UInventoryContainerWidget* CreateInventoryWidget(APlayerController* OwningPlayer,
 		TSubclassOf<UInventoryContainerWidget> ContainerWidgetClass,
-		TSubclassOf<UUInventoryWidgetBase> InventoryWidgetClass,
+		TSubclassOf<UUInventoryBaseWidget> InventoryWidgetClass,
 		TSubclassOf<UOperationPanelWidget> OperationPanelClass);
 };

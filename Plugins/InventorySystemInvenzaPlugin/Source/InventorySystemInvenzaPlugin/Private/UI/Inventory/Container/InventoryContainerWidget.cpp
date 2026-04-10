@@ -69,7 +69,7 @@ void UInventoryContainerWidget::NativeConstruct()
 
 void UInventoryContainerWidget::InitializeInventoryBindings()
 {
-	UUInventoryWidgetBase* InventoryWidget = GetInventoryWidgetFromContainerSlot();
+	UUInventoryBaseWidget* InventoryWidget = GetInventoryWidgetFromContainerSlot();
 	if (!InventoryWidget)
 		return;
 
@@ -114,7 +114,7 @@ void UInventoryContainerWidget::ChangeInventoryInContainerSlot(TSubclassOf<UInve
 {
 	if (!NewInventory) return;
 
-	auto NewInvWidget = CreateWidget<UUInventoryWidgetBase>(GetWorld(), NewInventory);
+	auto NewInvWidget = CreateWidget<UUInventoryBaseWidget>(GetWorld(), NewInventory);
 	if (!NewInvWidget) return;
 
 	NewInvWidget->SetUISettings(GetInventoryWidgetFromContainerSlot()->GetUISettings());
@@ -130,14 +130,14 @@ void UInventoryContainerWidget::CloseButtonClicked()
 		OnClose.Broadcast(this);
 }
 
-UUInventoryWidgetBase* UInventoryContainerWidget::GetInventoryWidgetFromContainerSlot()
+UUInventoryBaseWidget* UInventoryContainerWidget::GetInventoryWidgetFromContainerSlot()
 {
 	if (!ContainerSlot || ContainerSlot->GetChildrenCount() == 0)
 	{
 		return nullptr;
 	}
 
-	if (UUInventoryWidgetBase* BaseInventoryWidget = Cast<UUInventoryWidgetBase>(ContainerSlot->GetChildAt(0)))
+	if (UUInventoryBaseWidget* BaseInventoryWidget = Cast<UUInventoryBaseWidget>(ContainerSlot->GetChildAt(0)))
 	{
 		return BaseInventoryWidget;
 	}

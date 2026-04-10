@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UI/Inventory/UInventoryWidgetBase.h"
+#include "UI/Inventory/UInventoryBaseWidget.h"
 #include "UObject/Interface.h"
 #include "InvUIProvider.generated.h"
 
@@ -22,8 +22,8 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API IInvUIProvider
 	GENERATED_BODY()
 
 public:
-	virtual TArray<UUInventoryWidgetBase*> GetAllPawnInventories() const
-	PURE_VIRTUAL(IInvUIProvider::GetAllPawnInventories, return TArray<UUInventoryWidgetBase*>(););
+	virtual TArray<UUInventoryBaseWidget*> GetAllPawnInventories() const
+	PURE_VIRTUAL(IInvUIProvider::GetAllPawnInventories, return TArray<UUInventoryBaseWidget*>(););
 
 	virtual TArray<UInventoryContainerWidget*> GetAllPawnInvContainers() const
 	PURE_VIRTUAL(IInvUIProvider::GetAllPawnInvContainers, return TArray<UInventoryContainerWidget*>(););

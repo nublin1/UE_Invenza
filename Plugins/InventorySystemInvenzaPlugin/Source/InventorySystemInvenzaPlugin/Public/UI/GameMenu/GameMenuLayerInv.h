@@ -34,7 +34,7 @@ public:
 	// FUNCTIONS
 	//====================================================================
 	UFUNCTION(BlueprintCallable, Category = "Inventory|UI")
-	virtual TArray<UUInventoryWidgetBase*> GetAllPawnInventories() const override;
+	virtual TArray<UUInventoryBaseWidget*> GetAllPawnInventories() const override;
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|UI")
 	virtual TArray<UInventoryContainerWidget*> GetAllPawnInvContainers() const override;

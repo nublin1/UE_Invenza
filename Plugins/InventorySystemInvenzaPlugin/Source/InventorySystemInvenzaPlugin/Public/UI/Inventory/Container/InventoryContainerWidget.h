@@ -10,7 +10,7 @@
 class ULabelBaseText;
 enum class EInventoryType : uint8;
 class UMovableTitleBar;
-class UUInventoryWidgetBase;
+class UUInventoryBaseWidget;
 class UAUIManagerActor;
 class UInvWeightWidget;
 class USlotbasedInventoryWidget;
@@ -64,7 +64,7 @@ public:
 	virtual void ChangeInventoryInContainerSlot(TSubclassOf<UInvenzaBaseWidget> NewInventory);
 	
 	UFUNCTION(BlueprintCallable, Category = "Container")
-	virtual UUInventoryWidgetBase* GetInventoryWidgetFromContainerSlot();
+	virtual UUInventoryBaseWidget* GetInventoryWidgetFromContainerSlot();
 
 protected:
 	//====================================================================

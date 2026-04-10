@@ -9,7 +9,7 @@
 
 class ULabelBaseText;
 class UInventoryBase;
-class UUInventoryWidgetBase;
+class UUInventoryBaseWidget;
 class UItemBase;
 struct FItemMetaData;
 class UTextBlock;

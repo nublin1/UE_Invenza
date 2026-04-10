@@ -48,7 +48,9 @@ void UListInventorySlotWidget::UpdatePriceText()
 	if (!CachedEntry || !PriceText)
 		return;
 
-	PriceText->SetText(FText::AsNumber(CachedEntry->Item->GetItemRef().ItemTradeData.BasePrice * CachedEntry->Item->GetQuantity()));
+	float BasePrice = CachedEntry->Item->GetItemRef().ItemTradeData.BasePrice * CachedEntry->Item->GetQuantity();
+
+	PriceText->SetText(FText::AsNumber(BasePrice));
 	
 	/*UIInventoryManager* InventoryManager = GetOwningPlayerPawn()->FindComponentByClass<UIInventoryManager>();
 	if (!InventoryManager || !InventoryManager->GetCurrentInteractInvWidget())

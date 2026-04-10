@@ -1,17 +1,17 @@
 //  Nublin Studio 2026 All Rights Reserved.
 
 
-#include "UI/Inventory/UInventoryWidgetBase.h"
+#include "UI/Inventory/UInventoryBaseWidget.h"
 
 #include "Data/Inventory/InventoryBase.h"
 #include "UI/HelpersWidgets/ItemTooltipWidget.h"
 
 
-UUInventoryWidgetBase::UUInventoryWidgetBase()
+UUInventoryBaseWidget::UUInventoryBaseWidget()
 {
 }
 
-void UUInventoryWidgetBase::CreateTooltipWidget()
+void UUInventoryBaseWidget::CreateTooltipWidget()
 {
 	if (!InventoryRef)
 		return;

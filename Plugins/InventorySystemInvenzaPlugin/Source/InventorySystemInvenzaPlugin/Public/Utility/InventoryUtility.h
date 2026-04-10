@@ -6,6 +6,7 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "InventoryUtility.generated.h"
 
+class UInvenzaInventoryUISettingsAsset;
 enum class EItemOrientationType : uint8;
 class UInventoryBase;
 class UItemBase;
@@ -23,4 +24,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
 	static FVector2D CalculateItemVisualSize(UItemBase* Item, EItemOrientationType Orientation, FVector2D SlotSize, FMargin SlotSpacing, bool bIgnoreSize);
+
+	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
+	static const UInvenzaInventoryUISettingsAsset* GetInvenzaGlobalSettings(const UObject* WorldContext);
 };
