@@ -89,11 +89,12 @@ void UIInventoryManager::CreateInventories()
 {
 	for (FInventoryStartupData& StartupData : StartupInventories)
 	{
-		UInventoryBase* Inventory =	UInventoryBase::CreateInventory(this, StartupData);
+		UInventoryBase* Inventory =	UInventoryBase::CreateInventory(GetOwner(), StartupData);
 		if (!Inventory)
 			continue;
 
-		Inventory->InitInventory();		
+		Inventory->InitInventory();
+		Inventory->SetInventoryOwnerActor(GetOwner());
 		Inventory->SetItemCollectionLink(ItemCollectionRef);
 		
 		StartingItems.Add(Inventory, StartupData.StartItems);
@@ -463,8 +464,14 @@ void UIInventoryManager::HandleInteract(UInteractableComponent* TargetInteractab
 		if (auto InventoryToDisplay = VendorComponent->GetVendorLootContainer())
 		{
 			VendorProviderCurrent = VendorComponent;
-			OpenExternalInventory(InventoryToDisplay);
 
+			VendorInventory = InventoryToDisplay;
+
+			FTradeContext TradeContext;
+			TradeContext.TradeSettings = VendorComponent->GetTradeSettings();
+
+			OpenExternalInventory(InventoryToDisplay);
+			
 			VendorComponent->SetTradePartnerInventory(MainPawnInventory);
 			VendorComponent->SetTradePartnerItemCollection(ItemCollectionRef);
 		}

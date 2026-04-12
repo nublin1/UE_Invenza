@@ -113,7 +113,7 @@ void UContainerComponent::InitializeInventoryStartupData()
 		return;
 	}
 
-	UInventoryBase* Inventory =	UInventoryBase::CreateInventory(this, InventoryStartupData);
+	UInventoryBase* Inventory =	UInventoryBase::CreateInventory(GetOwner(), InventoryStartupData);
 	if (!Inventory)
 		return;
 	
@@ -121,6 +121,7 @@ void UContainerComponent::InitializeInventoryStartupData()
 	
 	Inventory->SetItemCollectionLink(ItemCollectionRef);
 	Inventory->SetInventorySettings(InventoryStartupData.Settings);
+	Inventory->SetInventoryOwnerActor(GetOwner());
 
 	Inventories.Add(Inventory->GetInventoryContainerID(), Inventory);
 

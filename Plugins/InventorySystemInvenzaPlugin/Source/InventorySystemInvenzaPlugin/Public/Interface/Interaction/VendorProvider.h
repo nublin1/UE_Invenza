@@ -28,9 +28,10 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API IVendorProvider
 
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
-	virtual const TObjectPtr<UInventoryBase>& GetVendorLootContainer() const = 0;
-
 	virtual FTradeResult ProcessTradeRequest(const FItemMoveData& TradeData) = 0;
+
+	virtual const TObjectPtr<UInventoryBase>& GetVendorLootContainer() const = 0;
+	virtual FTradeSettings GetTradeSettings() const = 0;
 
 	virtual void SetTradePartnerInventory(UInventoryBase* InInventory) = 0;
 	virtual void SetTradePartnerItemCollection(UItemCollection* InCollection) = 0;

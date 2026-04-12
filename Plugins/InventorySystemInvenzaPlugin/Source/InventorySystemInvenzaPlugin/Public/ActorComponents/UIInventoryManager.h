@@ -127,7 +127,14 @@ protected:
 	//
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
 	TObjectPtr<UInventoryBase> ExternalInventory;
+
+	//
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
+	TObjectPtr<UInventoryBase> VendorInventory;
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
+	TObjectPtr<UInventoryContainerWidget> VendorInventoryContainerWidget;
 	
+	//
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
 	TMap<FString, TObjectPtr<UInventoryBase>> Inventories;
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)

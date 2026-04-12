@@ -5,9 +5,11 @@
 #include "ActorComponents/UIInventoryManager.h"
 #include "ActorComponents/Interactable/PickupComponent.h"
 #include "Data/ItemData.h"
+#include "Data/Settings/InvenzaInventoryUISettingsAsset.h"
 #include "GameFramework/Pawn.h"
 #include "Engine/Engine.h"
 #include "Kismet/GameplayStatics.h"
+#include "Utility/InventoryUtility.h"
 
 UItemBase::UItemBase(): ItemRef(), Quantity(0)
 {
@@ -93,7 +95,8 @@ void UItemBase::DropItem(UWorld* World)
 	const FVector SpawnLocation{PawnRaw->GetActorLocation() + (PawnRaw->GetActorForwardVector() * 50.0f)};
 	const FTransform SpawnTransform(PawnRaw->GetActorRotation(), SpawnLocation);
 
-	auto Pickup = World->SpawnActor<AActor>(InventoryManager->GetUISettings().PickupClass, SpawnTransform, SpawnParameters);
+	
+	auto Pickup = World->SpawnActor<AActor>(UInventoryUtility::GetInvenzaGlobalSettings(GetWorld())->PickupClass, SpawnTransform, SpawnParameters);
 	if (!Pickup)
 		return;
 	

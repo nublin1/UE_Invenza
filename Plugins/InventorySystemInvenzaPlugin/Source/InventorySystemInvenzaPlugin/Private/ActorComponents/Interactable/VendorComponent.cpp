@@ -140,7 +140,7 @@ void UVendorComponent::InitializeInventoryStartupData()
 		return;
 	}
 
-	UInventoryBase* Inventory =	UInventoryBase::CreateInventory(this, InventoryStartupData);
+	UInventoryBase* Inventory =	UInventoryBase::CreateInventory(GetOwner(), InventoryStartupData);
 	if (!Inventory)
 		return;
 
@@ -149,6 +149,7 @@ void UVendorComponent::InitializeInventoryStartupData()
 	MainVendorLootInventory->InitInventory();	
 	MainVendorLootInventory->SetItemCollectionLink(ItemCollectionRef);
 	MainVendorLootInventory->SetInventorySettings(InventoryStartupData.Settings);
+	MainVendorLootInventory->SetInventoryOwnerActor(GetOwner());
 
 	SetupStartingResources();
 }
@@ -295,15 +296,19 @@ FTradeTransaction UVendorComponent::ExecuteTrade(const FItemMoveData& TradeData,
             true
         });
 
-        // VENDOR RECEIVES ITEM
-        UInventoryUtility::AddItemQuantity(this, MainVendorLootInventory, TradeData.SourceItem, Quantity);
+    	// VENDOR RECEIVES ITEM
+    	if (TradeSettings.bAddPurchasedItemsToVendorDisplay)
+    	{
+    		UInventoryUtility::AddItemQuantity(this, MainVendorLootInventory, TradeData.SourceItem, Quantity);
 
-        Transaction.Entries.Add({
-            MainVendorLootInventory,
-            TradeData.SourceItem,
-            +Quantity,
-            false
-        });
+    		Transaction.Entries.Add({
+				MainVendorLootInventory,
+				TradeData.SourceItem,
+				+Quantity,
+				false
+			});
+    	}
+    	
     }
 	
 	OnTradeExecuted.Broadcast(Transaction);

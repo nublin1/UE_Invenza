@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Data/Inventory/InventoryTypes.h"
+#include "Data/Trade/TradeTypes.h"
 #include "UObject/Object.h"
 #include "InventoryBase.generated.h"
 
@@ -39,31 +40,40 @@ public:
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	// Delegates
-	UPROPERTY(BlueprintAssignable)
+	UPROPERTY(BlueprintAssignable, Category="Inventory|Events")
 	FOnAddItemDelegate OnAddItemDelegate;
-	UPROPERTY(BlueprintAssignable)
+
+	UPROPERTY(BlueprintAssignable, Category="Inventory|Events")
 	FOnStackedItemDelegate OnStackedItemDelegate;
-	UPROPERTY(BlueprintAssignable)
+
+	UPROPERTY(BlueprintAssignable, Category="Inventory|Events")
 	FOnUnstackedItemDelegate OnUnstackedItemDelegate;
-	UPROPERTY(BlueprintAssignable)
+
+	UPROPERTY(BlueprintAssignable, Category="Inventory|Events")
 	FOnItemRemovedDelegate OnItemRemovedDelegate;
-	UPROPERTY(BlueprintAssignable)
+
+	UPROPERTY(BlueprintAssignable, Category="Inventory|Events")
 	FOnItemReplaceDelegate OnItemReplaceDelegate;
-	UPROPERTY(BlueprintAssignable)
+
+	UPROPERTY(BlueprintAssignable, Category="Inventory|Events")
 	FOnUseSlot OnUseSlotDelegate;
 
-	UPROPERTY(BlueprintAssignable)
+	UPROPERTY(BlueprintAssignable, Category="Inventory|Stats")
 	FOnWeightUpdatedDelegate OnWeightUpdatedDelegate;
-	UPROPERTY(BlueprintAssignable)
+
+	UPROPERTY(BlueprintAssignable, Category="Inventory|Stats")
 	FOnMoneyUpdatedDelegate OnMoneyUpdatedDelegate;
-	UPROPERTY(BlueprintAssignable)
+
+	UPROPERTY(BlueprintAssignable, Category="Inventory|UI")
 	FOnInventoryRedrawRequested OnInventoryRedrawRequested;
-	UPROPERTY(BlueprintAssignable)
+
+	UPROPERTY(BlueprintAssignable, Category="Inventory|UI")
 	FOnRequestToResetItemVisual OnRequestToResetItemVisual;
 
-	UPROPERTY(BlueprintAssignable)
+	UPROPERTY(BlueprintAssignable, Category="Inventory|Reservation")
 	FOnSlotsReservedDelegate OnSlotsReservedDelegate;
-	UPROPERTY(BlueprintAssignable)
+
+	UPROPERTY(BlueprintAssignable, Category="Inventory|Reservation")
 	FOnConsumeReservedDelegate OnConsumeReservedDelegate;
 	
 	//====================================================================
@@ -127,6 +137,12 @@ public:
 	UFUNCTION()
 	UItemCollection* GetItemCollectionLinked() { return ItemCollectionLinked; }
 
+	UFUNCTION()
+	virtual AActor* GetInventoryOwnerActor() {return InventoryOwnerActor;	}
+
+	UFUNCTION()
+	virtual FTradeContext GetTradeContext() {return TradeContext;} 
+
 	// Setters
 	UFUNCTION()
 	virtual void SetInventoryContainerID(FString InID) {InventoryContainerID = InID;}
@@ -138,10 +154,16 @@ public:
 	virtual void SetInitialItems(TArray<FInitItemsEntry> NewInitialItems) { InitialItems = NewInitialItems; }
 
 	UFUNCTION(BlueprintCallable)
-	virtual void SetInventorySize(FVector2D NewSize) { InvSize = NewSize; }
+	virtual void SetInventorySize(FIntPoint NewSize) { InvSize = NewSize; }
 	
 	UFUNCTION()
 	void SetItemCollectionLink(UItemCollection* NewCollection) { ItemCollectionLinked = NewCollection; }
+
+	UFUNCTION()
+	virtual void SetInventoryOwnerActor(AActor* InInventoryOwnerActor){this->InventoryOwnerActor = InInventoryOwnerActor;}
+
+	UFUNCTION()
+	virtual void SetTradeContext(FTradeContext InTradeContext){this->TradeContext = InTradeContext;}
 
 protected:
 	//====================================================================
@@ -170,8 +192,14 @@ protected:
 	int32 InventoryTotalMoney = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FVector2D InvSize = FVector2D(1, 1);
+	FIntPoint InvSize = FIntPoint(1, 1);
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
+	TObjectPtr<AActor> InventoryOwnerActor = nullptr;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
+	FTradeContext TradeContext;
+	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
@@ -204,32 +232,18 @@ protected:
 	UFUNCTION()
 	virtual void RemoveItemFromInventory(UItemBase* Item);
 
-	//UFUNCTION()
-	//virtual void DeductResourceOnAddToInventory(UItemBase* Resource, int32 DeductAmount);
-
 	//====================================================================
 	// Event Notifiers
 	//====================================================================
-	UFUNCTION()
 	void NotifyAddNewItem(FItemMapping& FromSlots, UItemBase* NewItem, int32 ChangeQuantity);
-	UFUNCTION()
 	void NotifyAddItemToStack(UItemBase* Item, int32 ChangeQuantity);
-	UFUNCTION()
 	void NotifyRemoveItemFromStack(UItemBase* Item, int32 ChangeQuantity);
-	UFUNCTION()
 	void NotifyFullyRemoveItem(FItemMapping FromSlots, UItemBase* Item);
-	UFUNCTION()
-	virtual void NotifyReplaceItem(TArray<UInventorySlotData*> OldItemSlots, FItemMapping& NewItemSlots,
-	                               UItemBase* Item);
+	virtual void NotifyReplaceItem(TArray<UInventorySlotData*> OldItemSlots, FItemMapping& NewItemSlots, UItemBase* Item);
 
-	UFUNCTION()
 	virtual void NotifyUseSlot(UInventorySlotData* UsedSlot);
-	UFUNCTION()
 	virtual void NotifyUpdateWeight();
-	UFUNCTION()
 	virtual void NotifyUpdateMoney();
-	UFUNCTION()
 	virtual void NotifyReDrawRequest();
-	UFUNCTION()
 	virtual void NotifyRequestToResetItemVisual(UItemBase* Item);
 };

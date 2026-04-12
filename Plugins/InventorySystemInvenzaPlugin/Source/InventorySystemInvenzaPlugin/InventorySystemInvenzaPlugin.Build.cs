@@ -25,7 +25,7 @@ public class InventorySystemInvenzaPlugin : ModuleRules
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
-				"Core", "UMG","Json","JsonUtilities", "EnhancedInput", "GameplayTags"
+				"Core", "UMG","Json","JsonUtilities", "EnhancedInput", "GameplayTags","DeveloperSettings"
 			}
 			);
 			

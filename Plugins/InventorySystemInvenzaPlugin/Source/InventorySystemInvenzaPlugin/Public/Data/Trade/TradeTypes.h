@@ -10,8 +10,19 @@
 class UInventoryBase;
 class UItemBase;
 
+UENUM(BlueprintType)
+enum class ETradeResult : uint8
+{
+	TR_Success UMETA(DisplayName = "Trade Success"),
+	TR_NotEnoughMoney UMETA(DisplayName = "Not Enough Money"),
+	TR_VendorDoesNotBuyItems UMETA(DisplayName = "Vendor Does Not Buy Items"),
+	TR_InventoryFull UMETA(DisplayName = "Inventory Full"),
+	TR_InvalidItem UMETA(DisplayName = "Invalid Item"),
+	TR_Failed UMETA(DisplayName = "Trade Failed")
+};
+
 USTRUCT(BlueprintType, Blueprintable)
-struct FTradeData
+struct FTradeSettings
 {
 	GENERATED_BODY()
 
@@ -22,18 +33,24 @@ struct FTradeData
 	UPROPERTY(Category = "Trade Settings", EditAnywhere, BlueprintReadOnly)
 	bool RemoveItemAfterPurchase = false;
 	UPROPERTY(Category = "Trade Settings", EditAnywhere, BlueprintReadOnly)
+	bool bAddPurchasedItemsToVendorDisplay = true;
+	UPROPERTY(Category = "Trade Settings", EditAnywhere, BlueprintReadOnly)
 	bool bSellOnly = false;
+	
 };
 
-UENUM(BlueprintType)
-enum class ETradeResult : uint8
+USTRUCT(BlueprintType)
+struct FTradeContext
 {
-	TR_Success UMETA(DisplayName = "Trade Success"),
-	TR_NotEnoughMoney UMETA(DisplayName = "Not Enough Money"),
-	TR_VendorDoesNotBuyItems UMETA(DisplayName = "Vendor Does Not Buy Items"),
-	TR_InventoryFull UMETA(DisplayName = "Inventory Full"),
-	TR_InvalidItem UMETA(DisplayName = "Invalid Item"),
-	TR_Failed UMETA(DisplayName = "Trade Failed")
+	GENERATED_BODY()
+	
+	UPROPERTY(BlueprintReadWrite)
+	AActor* Buyer = nullptr;
+	UPROPERTY(BlueprintReadWrite)
+	AActor* Vendor = nullptr;
+	
+	UPROPERTY(BlueprintReadWrite)
+	FTradeSettings TradeSettings;
 };
 
 USTRUCT(BlueprintType, meta=(ScriptName="FTradeResult"))

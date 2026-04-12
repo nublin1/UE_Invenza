@@ -54,7 +54,7 @@ UInventoryBase* UInventoryBase::DuplicateInventory(UObject* Outer)
 
 void UInventoryBase::InitInventory()
 {
-	InvSize = FVector2D(InventorySettings.InventorySlotBasedSettings.NumberRows, InventorySettings.InventorySlotBasedSettings.NumColumns);
+	InvSize = FIntPoint(InventorySettings.InventorySlotBasedSettings.NumberRows, InventorySettings.InventorySlotBasedSettings.NumColumns);
 }
 
 void UInventoryBase::InitInventoryWithSettings(FInventorySettings NewInventorySettings)
@@ -260,61 +260,51 @@ void UInventoryBase::RemoveItemFromInventory(UItemBase* Item)
 
 void UInventoryBase::NotifyAddNewItem(FItemMapping& FromSlots, UItemBase* NewItem, int32 ChangeQuantity)
 {
-	if (OnAddItemDelegate.IsBound())
-		OnAddItemDelegate.Broadcast(FromSlots, NewItem);
+	OnAddItemDelegate.Broadcast(FromSlots, NewItem);
 }
 
 void UInventoryBase::NotifyAddItemToStack(UItemBase* Item, int32 ChangeQuantity)
 {
-	if (OnStackedItemDelegate.IsBound())
-		OnStackedItemDelegate.Broadcast(Item, ChangeQuantity);
+	OnStackedItemDelegate.Broadcast(Item, ChangeQuantity);
 }
 
 void UInventoryBase::NotifyRemoveItemFromStack(UItemBase* Item, int32 ChangeQuantity)
 {
-	if (OnUnstackedItemDelegate.IsBound())
-		OnUnstackedItemDelegate.Broadcast(Item, ChangeQuantity);
+	OnUnstackedItemDelegate.Broadcast(Item, ChangeQuantity);
 }
 
 void UInventoryBase::NotifyFullyRemoveItem(FItemMapping FromSlots, UItemBase* Item)
 {
-	if (OnItemRemovedDelegate.IsBound())
-		OnItemRemovedDelegate.Broadcast(FromSlots, Item);
+	OnItemRemovedDelegate.Broadcast(FromSlots, Item);
 }
 
 void UInventoryBase::NotifyReplaceItem(TArray<UInventorySlotData*> OldItemSlots,
 	FItemMapping& NewItemSlots, UItemBase* Item)
 {
-	if (OnItemReplaceDelegate.IsBound())
-		OnItemReplaceDelegate.Broadcast(OldItemSlots, NewItemSlots, Item);
+	OnItemReplaceDelegate.Broadcast(OldItemSlots, NewItemSlots, Item);
 }
 
 void UInventoryBase::NotifyUseSlot(UInventorySlotData* UsedSlot)
 {
-	if (OnUseSlotDelegate.IsBound())
-		OnUseSlotDelegate.Broadcast(UsedSlot);
+	OnUseSlotDelegate.Broadcast(UsedSlot);
 }
 
 void UInventoryBase::NotifyUpdateWeight()
 {
-	if (OnWeightUpdatedDelegate.IsBound())
-		OnWeightUpdatedDelegate.Broadcast(InventoryTotalWeight);
+	OnWeightUpdatedDelegate.Broadcast(InventoryTotalWeight);
 }
 
 void UInventoryBase::NotifyUpdateMoney()
 {
-	if (OnMoneyUpdatedDelegate.IsBound())
-		OnMoneyUpdatedDelegate.Broadcast(InventoryTotalMoney);
+	OnMoneyUpdatedDelegate.Broadcast(InventoryTotalMoney);
 }
 
 void UInventoryBase::NotifyReDrawRequest()
 {
-	if (OnInventoryRedrawRequested.IsBound())
-		OnInventoryRedrawRequested.Broadcast();
+	OnInventoryRedrawRequested.Broadcast();
 }
 
 void UInventoryBase::NotifyRequestToResetItemVisual(UItemBase* Item)
 {
-	if (OnRequestToResetItemVisual.IsBound())
-		OnRequestToResetItemVisual.Broadcast(Item);
+	OnRequestToResetItemVisual.Broadcast(Item);
 }
