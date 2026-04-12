@@ -68,11 +68,11 @@ FTradeResult UVendorComponent::ProcessTradeRequest(const FItemMoveData& TradeDat
 	}
 	
 	bool bIsBuyingFromVendor = (TradeData.SourceInventory == MainVendorLootInventory);
-	float Price = bIsBuyingFromVendor
+	int Price = bIsBuyingFromVendor
 		? CalculateTotalSellPrice(TradeData.SourceItem)
 		: CalculateTotalBuyPrice(TradeData.SourceItem);
 	
-	float AvailableMoney = bIsBuyingFromVendor
+	int AvailableMoney = bIsBuyingFromVendor
 		? TradePartnerItemCollection->CalculateAvailableMoney()
 		: ItemCollectionRef->CalculateAvailableMoney();
 
@@ -81,14 +81,23 @@ FTradeResult UVendorComponent::ProcessTradeRequest(const FItemMoveData& TradeDat
 		FString Who = bIsBuyingFromVendor ? TEXT("Player") : TEXT("Vendor");
 		float Deficit = Price - AvailableMoney;
 		return FTradeResult::NotEnoughMoney(
-			FText::FromString(FString::Printf(TEXT("%s doesn't have enough money. Need: %.0f, Has: %.0f, Missing: %.0f"),
+			FText::FromString(FString::Printf(TEXT("%s doesn't have enough money. Need: %.0i, Has: %.0i, Missing: %.0f"),
 				*Who, Price, AvailableMoney, Deficit)));
 	}
 
-	UItemBase* CurrencyItem = UItemFactory::CreateItemByHandle(this,
-		UInventoryUtility::GetInvenzaGlobalSettings(GetWorld())->CurrencyItemClass, Price);
-	if (!CurrencyItem)
+	auto* Settings = UInventoryUtility::GetInvenzaGlobalSettings(GetWorld());
+	if (!Settings)
+	{
+		return FTradeResult::Failed(FText::FromString("Settings not found"));
+	}
+	
+	const FDataTableRowHandle& ItemHandle = Settings->CurrencyItemClass;
+	if (!ItemHandle.DataTable || ItemHandle.RowName.IsNone())
+	{
 		return FTradeResult::Failed(FText::FromString("CurrencyItemClass is not set"));
+	}
+	UItemBase* CurrencyItem = UItemFactory::CreateItemByHandle(this, ItemHandle, Price);
+	
 	
 	FTradeResult SimulationResult;
 	if (!SimulateTrade(TradeData, Price, bIsBuyingFromVendor, CurrencyItem, SimulationResult))

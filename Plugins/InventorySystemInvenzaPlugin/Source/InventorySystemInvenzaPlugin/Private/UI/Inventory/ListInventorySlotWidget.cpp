@@ -21,6 +21,21 @@
 #include "Utility/InventoryUtility.h"
 
 
+UListInventorySlotWidget::UListInventorySlotWidget()
+{
+}
+
+void UListInventorySlotWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+
+	if (CachedEntry)
+	{
+		auto InvRef = CachedEntry->ParentInventoryWidget->GetInventoryRef();
+		InvRef->OnTradeContextUpdated.AddDynamic(this, &UListInventorySlotWidget::UpdatePriceText);
+	}
+}
+
 void UListInventorySlotWidget::UpdateVisualWithItemInfo(UItemBase* Item)
 {
 	if (ItemIcon)
@@ -49,37 +64,20 @@ void UListInventorySlotWidget::UpdatePriceText()
 		return;
 
 	float BasePrice = CachedEntry->Item->GetItemRef().ItemTradeData.BasePrice * CachedEntry->Item->GetQuantity();
-
-	PriceText->SetText(FText::AsNumber(BasePrice));
 	
-	/*UIInventoryManager* InventoryManager = GetOwningPlayerPawn()->FindComponentByClass<UIInventoryManager>();
-	if (!InventoryManager || !InventoryManager->GetCurrentInteractInvWidget())
-		return;*/
-
-	/*if (InventoryManager->GetCurrentInteractInvWidget()->GetInventoryType() != EInventoryType::VendorInventory)
-		return;*/
-	
-	/*if (!CachedEntry->ParentInventoryWidget->GetInventoryData().ItemCollectionLink) return;
-	auto OwnerAc = InventoryManager->GetCurrentInteractInvWidget()->GetInventoryFromContainerSlot()->GetInventoryData().ItemCollectionLink->GetOwner();
-	if (!OwnerAc) return;
-	auto TradeComp = OwnerAc->FindComponentByClass<UTradeComponent>();
-	if (!TradeComp)
+	float PriceMod = 1.0f;
+	auto InvRef = CachedEntry->ParentInventoryWidget->GetInventoryRef();
+	auto TradeContext = InvRef->GetTradeContext();
+	if (TradeContext.Buyer != nullptr && TradeContext.Vendor !=nullptr)
 	{
-		return;
+		bool bIsVendor = false;
+		InvRef->GetInventoryOwnerActor() == TradeContext.Vendor ? bIsVendor = true : bIsVendor = false;
+		bIsVendor ? PriceMod = TradeContext.TradeSettings.SellPriceFactor : PriceMod = TradeContext.TradeSettings.BuyPriceFactor;
 	}
 
-	if (CachedEntry->ParentInventoryWidget == InventoryManager->GetCurrentInteractInvWidget()->GetInventoryFromContainerSlot())
-	{
-		FText FullPriceText = FText::AsNumber(TradeComp->GetTotalSellPrice(CachedEntry->Item));
-		PriceText->SetText(FullPriceText);
-		return;
-	}
+	auto FullPrice = FMath::FloorToInt(PriceMod * BasePrice);
 
-	else if (InventoryManager->GetMainInventory()->GetInventoryFromContainerSlot() == CachedEntry->ParentInventoryWidget)
-	{
-		FText FullPriceText = FText::AsNumber(TradeComp->GetTotalBuyPrice(CachedEntry->Item));
-		PriceText->SetText(FullPriceText);
-	}*/
+	PriceText->SetText(FText::AsNumber(FullPrice));
 }
 
 void UListInventorySlotWidget::NativeOnListItemObjectSet(UObject* ListItemObject)

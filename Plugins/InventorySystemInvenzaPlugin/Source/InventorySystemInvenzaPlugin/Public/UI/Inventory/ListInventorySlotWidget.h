@@ -24,6 +24,13 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UListInventorySlotWidget : public UInvent
 	GENERATED_BODY()
 	
 public:
+	UListInventorySlotWidget();
+
+protected:
+	virtual void NativeConstruct() override;
+
+public:
+	
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================

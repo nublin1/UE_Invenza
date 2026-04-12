@@ -22,6 +22,8 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UItemTooltipWidget : public UInvenzaBaseW
 	GENERATED_BODY()
 	
 public:
+	UItemTooltipWidget();
+	
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
@@ -49,15 +51,20 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UItemTooltipWidget();
-	
-	virtual void SetTooltipData(UItemBase* Item, UInventoryBase* Inventory = nullptr);
+	UFUNCTION(BlueprintCallable)
+	virtual void SetTooltipData(UItemBase* InItem, UInventoryBase* InInventory = nullptr);
+
+	UFUNCTION(BlueprintCallable)
+	virtual void UpdatePrice();
 
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Tooltip")
+	TObjectPtr<UItemBase> Item;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Tooltip")
+	TObjectPtr<UInventoryBase> Inventory;	
 
 	//====================================================================
 	// FUNCTIONS

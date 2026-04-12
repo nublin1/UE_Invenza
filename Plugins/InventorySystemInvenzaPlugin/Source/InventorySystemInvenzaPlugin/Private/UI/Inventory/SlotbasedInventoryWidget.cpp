@@ -175,6 +175,7 @@ void USlotbasedInventoryWidget::BindDelegated()
 	SlotBasedInventoryRef->OnWeightUpdatedDelegate.AddDynamic(this, &USlotbasedInventoryWidget::UpdateWeightInfo);
 	SlotBasedInventoryRef->OnMoneyUpdatedDelegate.AddDynamic(this, &USlotbasedInventoryWidget::UpdateMoneyInfo);
 	SlotBasedInventoryRef->OnInventoryRedrawRequested.AddDynamic(this, &USlotbasedInventoryWidget::ReDrawAllItems);
+	SlotBasedInventoryRef->OnTradeContextUpdated.AddDynamic(this, &USlotbasedInventoryWidget::UpdateTradeContext);
 	SlotBasedInventoryRef->OnRequestToResetItemVisual.AddDynamic(this, &USlotbasedInventoryWidget::ResetItemVisual);
 }
 
@@ -637,6 +638,11 @@ void USlotbasedInventoryWidget::UpdateWeightInfo(float InventoryTotalWeight)
 }
 
 void USlotbasedInventoryWidget::UpdateMoneyInfo(int32 InventoryTotalMoney)
+{
+	
+}
+
+void USlotbasedInventoryWidget::UpdateTradeContext()
 {
 	
 }

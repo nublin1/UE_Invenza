@@ -27,6 +27,7 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UInventoryBase : public UObject
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWeightUpdatedDelegate, float, InventoryTotalWeight);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMoneyUpdatedDelegate, int32, InventoryTotalMoney);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryRedrawRequested);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnTradeContextUpdated);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRequestToResetItemVisual, UItemBase*, Item);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSlotsReservedDelegate, TArray<FSlotReservationData>, ReservationData);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnConsumeReservedDelegate, TArray<FSlotReservationData>,
@@ -66,6 +67,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category="Inventory|UI")
 	FOnInventoryRedrawRequested OnInventoryRedrawRequested;
+
+	UPROPERTY(BlueprintAssignable, Category="Inventory|UI")
+	FOnTradeContextUpdated OnTradeContextUpdated;
 
 	UPROPERTY(BlueprintAssignable, Category="Inventory|UI")
 	FOnRequestToResetItemVisual OnRequestToResetItemVisual;
@@ -163,7 +167,7 @@ public:
 	virtual void SetInventoryOwnerActor(AActor* InInventoryOwnerActor){this->InventoryOwnerActor = InInventoryOwnerActor;}
 
 	UFUNCTION()
-	virtual void SetTradeContext(FTradeContext InTradeContext){this->TradeContext = InTradeContext;}
+	virtual void SetTradeContext(FTradeContext InTradeContext);
 
 protected:
 	//====================================================================

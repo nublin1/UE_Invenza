@@ -2,16 +2,16 @@
 
 
 #include "Subsystems/InvenzaInventorySettingsSubsystem.h"
-
+#include "Data/Settings/InvenzaInventoryUISettingsAsset.h"
 #include "Settings/InvenzaInventoryDeveloperSettings.h"
 
 void UInvenzaInventorySettingsSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
 
-	const UInvenzaInventoryDeveloperSettings* DevSettings = GetDefault<UInvenzaInventoryDeveloperSettings>();
+	 auto DevSettings = GetDefault<UInvenzaInventoryDeveloperSettings>();
 
-	if (DevSettings && DevSettings->InventorySettingsAsset.IsValid())
+	if (DevSettings && !DevSettings->InventorySettingsAsset.IsNull())
 	{
 		Settings = DevSettings->InventorySettingsAsset.LoadSynchronous();
 	}

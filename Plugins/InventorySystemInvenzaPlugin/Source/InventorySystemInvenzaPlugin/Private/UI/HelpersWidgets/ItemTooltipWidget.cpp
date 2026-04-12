@@ -4,6 +4,7 @@
 #include "Data/Items/itemBase.h"
 #include "Components/TextBlock.h"
 #include "Data/ItemDataStructures.h"
+#include "Data/Inventory/InventoryBase.h"
 #include "UI/Core/LabelBaseText.h"
 
 
@@ -11,10 +12,17 @@ UItemTooltipWidget::UItemTooltipWidget()
 {
 }
 
-void UItemTooltipWidget::SetTooltipData(UItemBase* Item, UInventoryBase* Inventory)
+void UItemTooltipWidget::SetTooltipData(UItemBase* InItem, UInventoryBase* InInventory)
 {
-	if (!Item || !ItemName || !ItemType || !ItemDescription)
+	if (!InItem || !ItemName || !ItemType || !ItemDescription)
 		return;
+
+	Item = InItem;
+	if (InInventory)
+	{
+		Inventory = InInventory;	
+		Inventory->OnTradeContextUpdated.AddUniqueDynamic(this, &UItemTooltipWidget::UpdatePrice);
+	}
 	
 	auto ItemData = Item->GetItemRef();
 	
@@ -39,8 +47,31 @@ void UItemTooltipWidget::SetTooltipData(UItemBase* Item, UInventoryBase* Invento
 		StackSizeValue->UpdateText(FText::FromString("Unstackable"));
 	}
 
-	if (PriceText && PriceValue)
+	UpdatePrice();
+}
+
+void UItemTooltipWidget::UpdatePrice()
+{
+	if (!PriceText || !PriceValue)
+		return;
+	
+	float BasePrice = Item->GetItemRef().ItemTradeData.BasePrice * Item->GetQuantity();
+
+	if (!Inventory)
 	{
 		PriceValue->UpdateText(FText::AsNumber(Item->GetItemRef().ItemTradeData.BasePrice * Item->GetQuantity()));
 	}
+	
+	float PriceMod = 1.0f;
+	auto TradeContext = Inventory->GetTradeContext();
+	if (TradeContext.Buyer != nullptr && TradeContext.Vendor !=nullptr)
+	{
+		bool bIsVendor = false;
+		Inventory->GetInventoryOwnerActor() == TradeContext.Vendor ? bIsVendor = true : bIsVendor = false;
+		bIsVendor ? PriceMod = TradeContext.TradeSettings.SellPriceFactor : PriceMod = TradeContext.TradeSettings.BuyPriceFactor;
+	}
+
+	auto FullPrice = FMath::FloorToInt(PriceMod * BasePrice);
+
+	PriceValue->UpdateText(FText::AsNumber(FullPrice));
 }

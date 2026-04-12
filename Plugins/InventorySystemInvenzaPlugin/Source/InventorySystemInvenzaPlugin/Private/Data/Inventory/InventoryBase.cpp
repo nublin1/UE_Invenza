@@ -154,6 +154,12 @@ void UInventoryBase::UpdateMoneyInfo()
 	}
 }
 
+void UInventoryBase::SetTradeContext(FTradeContext InTradeContext)
+{
+	this->TradeContext = InTradeContext;
+	OnTradeContextUpdated.Broadcast();
+}
+
 int32 UInventoryBase::CalculateActualAmountToAdd(int32 InAmountToAdd, float ItemSingleWeight)
 {
 	if (InventorySettings.InventoryMaxWeightCapacity >= 0)

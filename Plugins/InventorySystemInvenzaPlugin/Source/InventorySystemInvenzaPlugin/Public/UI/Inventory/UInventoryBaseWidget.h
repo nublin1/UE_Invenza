@@ -58,9 +58,6 @@ public:
 	
 	UFUNCTION(Category="Inventory")
 	virtual void ReDrawAllItems() PURE_VIRTUAL(UUInventoryWidgetBase::ReDrawAllItems,);
-
-	UFUNCTION(BlueprintCallable, Category="Inventory")
-	virtual void UpdateTradeSettings(FTradeSettings NewTradeData) {TradeData = NewTradeData;}
 	
 	UFUNCTION(Category="Inventory")
 	virtual void HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity) PURE_VIRTUAL(UUInventoryWidgetBase::HandleRemoveItem,);
@@ -72,7 +69,6 @@ public:
 	FUISettings GetUISettings() const {return UISettings;}
 	UItemTooltipWidget* GetItemTooltipWidget() const {return ItemTooltipWidget;}
 	virtual UInventoryBase* GetInventoryRef() const {return InventoryRef;}
-	FTradeSettings GetTradeData() const {return TradeData;}
 	
 	//Setters
 	virtual void SetInventoryBaseRef(UInventoryBase* NewInventoryRef) {InventoryRef = NewInventoryRef;}
@@ -97,7 +93,7 @@ protected:
 	UPROPERTY(BlueprintReadWrite)
 	TObjectPtr<UItemTooltipWidget> ItemTooltipWidget;
 	UPROPERTY(BlueprintReadWrite)
-	FTradeSettings TradeData;
+	FTradeContext TradeContext;
 	
 	//====================================================================
 	// FUNCTIONS

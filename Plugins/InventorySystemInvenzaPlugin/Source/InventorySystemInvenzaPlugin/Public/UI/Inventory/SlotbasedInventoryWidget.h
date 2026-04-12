@@ -130,7 +130,7 @@ protected:
 	//
 	UFUNCTION(BlueprintCallable)
 	virtual void ResetItemVisual(UItemBase* ItemToReset);
-	
+
 	//
 	virtual UInventorySlot* GetSlotByPosition(FIntPoint SlotPosition);
 	virtual bool bIsGridPositionValid(FIntPoint& GridPosition);
@@ -150,6 +150,9 @@ protected:
 	
 	virtual void UpdateWeightInfo(float InventoryTotalWeight) override;
 	virtual void UpdateMoneyInfo(int32 InventoryTotalMoney) override;
+
+	UFUNCTION(BlueprintCallable)
+	virtual void UpdateTradeContext() ;
 
 	UFUNCTION()
 	virtual void CreateHighlightWidget();

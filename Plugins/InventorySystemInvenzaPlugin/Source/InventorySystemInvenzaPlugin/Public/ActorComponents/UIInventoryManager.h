@@ -167,6 +167,11 @@ protected:
 	void HandleClearInteraction(UInteractableComponent* TargetInteractableComponent = nullptr);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	void OpenVendorInventory(UInventoryBase* Inv);
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	void CloseVendorInventory(UInventoryBase* Inv);
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void OpenExternalInventory(UInventoryBase* Inv);
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void CloseExternalInventory(UInventoryBase* Inv);

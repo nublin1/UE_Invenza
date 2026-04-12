@@ -464,13 +464,16 @@ void UIInventoryManager::HandleInteract(UInteractableComponent* TargetInteractab
 		if (auto InventoryToDisplay = VendorComponent->GetVendorLootContainer())
 		{
 			VendorProviderCurrent = VendorComponent;
-
 			VendorInventory = InventoryToDisplay;
 
 			FTradeContext TradeContext;
 			TradeContext.TradeSettings = VendorComponent->GetTradeSettings();
+			TradeContext.Vendor = VendorComponent->GetOwner();
+			TradeContext.Buyer = this->GetOwner();
 
-			OpenExternalInventory(InventoryToDisplay);
+			VendorInventory->SetTradeContext(TradeContext);
+
+			OpenVendorInventory(InventoryToDisplay);
 			
 			VendorComponent->SetTradePartnerInventory(MainPawnInventory);
 			VendorComponent->SetTradePartnerItemCollection(ItemCollectionRef);
@@ -505,6 +508,20 @@ void UIInventoryManager::HandleClearInteraction(UInteractableComponent* TargetIn
 		
 		VendorProviderCurrent = nullptr;
 	}
+}
+
+void UIInventoryManager::OpenVendorInventory(UInventoryBase* Inv)
+{
+	VendorInventory = Inv;
+	CreateWidget(VendorInventory);
+	HandleToggleInventory();
+}
+
+void UIInventoryManager::CloseVendorInventory(UInventoryBase* Inv)
+{
+	InventorContainerWidgetMap.Remove(VendorInventory);
+	VendorInventory = nullptr;
+	HandleToggleInventory();
 }
 
 void UIInventoryManager::OpenExternalInventory(UInventoryBase* Inv)
