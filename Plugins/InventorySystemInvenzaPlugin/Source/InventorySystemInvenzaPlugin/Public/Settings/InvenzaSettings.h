@@ -8,6 +8,7 @@
 #include "InputCoreTypes.h"
 #include "GameFramework/Actor.h"
 #include "UObject/ObjectPtr.h"
+#include "UI/Drag/DragContainerWidget.h"
 #include "InvenzaSettings.generated.h"
 
 class USlotbasedInventorySlot;
@@ -71,8 +72,7 @@ struct FUISettings
     TSubclassOf<UItemTooltipWidget> ItemTooltipWidgetClass;
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
     TSubclassOf<UModalTradeWidget> ModalTradeWidgetClass;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Widgets")
-	TSubclassOf<UInvenzaBaseWidget> DragContainerWidgetClass;
+	
 	
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Layout")
     FVector2D DragWidgetSlotSize = FVector2D(0.f);

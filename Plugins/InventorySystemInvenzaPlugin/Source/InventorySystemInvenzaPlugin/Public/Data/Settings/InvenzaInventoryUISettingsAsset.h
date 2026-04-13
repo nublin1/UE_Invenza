@@ -6,6 +6,7 @@
 #include "Engine/DataAsset.h"
 #include "InvenzaInventoryUISettingsAsset.generated.h"
 
+class UDragContainerWidget;
 /**
  * 
  */
@@ -15,9 +16,12 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UInvenzaInventoryUISettingsAsset : public
 	GENERATED_BODY()
 	
 public:
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
 	TSubclassOf<AActor> PickupClass;
 
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
 	FDataTableRowHandle CurrencyItemClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
+	TSubclassOf<UDragContainerWidget> DragContainerWidgetClass;
 };

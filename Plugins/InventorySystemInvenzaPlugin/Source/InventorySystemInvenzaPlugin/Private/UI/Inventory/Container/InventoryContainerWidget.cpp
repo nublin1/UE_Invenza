@@ -28,7 +28,7 @@ void UInventoryContainerWidget::NativePreConstruct()
 	
 	if (TitleBar)
 	{
-		TitleBar->TitleName->SetText(Title);
+		TitleBar->TitleName->UpdateText(Title);
 		
 		if (!bIsShowCloseButton)
 			TitleBar->Button_Close->SetVisibility(ESlateVisibility::Collapsed);

@@ -7,6 +7,9 @@
 #include "UI/Inrefaces/UDraggableWidgetInterface.h"
 #include "MovableTitleBar.generated.h"
 
+class UInvContainerDragDropOperation;
+class UDragContainerWidget;
+class ULabelBaseText;
 class UCoreCellWidget;
 class UButton;
 class UTextBlock;
@@ -19,43 +22,42 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UMovableTitleBar : public UInvenzaBaseWid
 	GENERATED_BODY()
 	
 public:
+	UMovableTitleBar();
+
+protected:
+	virtual void NativePreConstruct() override;
+	virtual void NativeConstruct() override;
+
+public:	
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	//Widgets
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|TitleBar", meta = (BindWidget))
-	TObjectPtr<UTextBlock> TitleName;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|TitleBar", meta = (BindWidgetOptional))
+	UPROPERTY(BlueprintReadWrite, Category = "TitleBar", meta = (BindWidget))
+	TObjectPtr<ULabelBaseText> TitleName;
+	UPROPERTY(BlueprintReadWrite, Category = "TitleBar", meta = (BindWidgetOptional))
 	TObjectPtr<UButton> Button_Close;
 
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UMovableTitleBar();
+	UFUNCTION(BlueprintCallable, Category="TitleBar|Drag")
+	void OnDragFinished(bool bSuccess, UInvContainerDragDropOperation* DragOp);
 	
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|TitleBar")
-	FText Title;
-
-	//
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Drag")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TitleBar|Config")
 	bool bAllowDragging = true;
 
-	//
-	UPROPERTY()
-	TObjectPtr<UCoreCellWidget> DragContainer_Temp;
-
+	// INTERNAL
+	UPROPERTY(Transient)
+	TObjectPtr<UDragContainerWidget> DragContainer_Temp = nullptr;
+	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	virtual void NativePreConstruct() override;
-	virtual void NativeConstruct() override;
-
-	virtual bool OnDropped_Implementation(const FGeometry& DropGeometry, FVector2D DragOffset) override;
-
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	virtual void NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation) override;
 };

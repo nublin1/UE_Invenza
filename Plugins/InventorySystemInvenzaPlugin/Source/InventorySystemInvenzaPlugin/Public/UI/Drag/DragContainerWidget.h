@@ -1,42 +1,42 @@
-// Nublin Studio 2025 All Rights Reserved.
+﻿//  Nublin Studio 2025 All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/DragDropOperation.h"
-#include "InvContainerDragDropOperation.generated.h"
+#include "UI/InvenzaBaseWidget.h"
+#include "DragContainerWidget.generated.h"
 
-class UDragContainerWidget;
+class UCoreCellWidget;
+class USizeBox;
 /**
  * 
  */
 UCLASS()
-class INVENTORYSYSTEMINVENZAPLUGIN_API UInvContainerDragDropOperation : public UDragDropOperation
+class INVENTORYSYSTEMINVENZAPLUGIN_API UDragContainerWidget : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
-	
+
 public:
-	UInvContainerDragDropOperation();
+	UDragContainerWidget();
 	
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Drag & Drop")
-	FVector2D DragOffset;
-	
+	//Widgets
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TitleBar", meta = (BindWidgetOptional))
+	TObjectPtr<UCoreCellWidget> CoreCellWidget;
+
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	virtual void Drop_Implementation(const FPointerEvent& PointerEvent) override;
-
-	virtual void DragCancelled_Implementation(const FPointerEvent& PointerEvent) override;
-
+	
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	
-	//===================================================================
+	
+	//====================================================================
 	// FUNCTIONS
 	//====================================================================
 };
