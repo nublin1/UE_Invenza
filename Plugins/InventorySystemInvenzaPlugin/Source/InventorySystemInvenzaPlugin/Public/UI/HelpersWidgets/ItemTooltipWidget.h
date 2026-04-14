@@ -51,19 +51,19 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category="Tooltip|Core")
 	virtual void SetTooltipData(UItemBase* InItem, UInventoryBase* InInventory = nullptr);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category="Tooltip|Price")
 	virtual void UpdatePrice();
 
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Tooltip")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Tooltip|Data")
 	TObjectPtr<UItemBase> Item;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Tooltip")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Tooltip|Data")
 	TObjectPtr<UInventoryBase> Inventory;	
 
 	//====================================================================

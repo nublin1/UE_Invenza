@@ -41,8 +41,8 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UFUNCTION(BlueprintCallable, Category="TitleBar|Drag")
-	void OnDragFinished(bool bSuccess, UInvContainerDragDropOperation* DragOp);
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="TitleBar|Drag")
+	void OnDragFinished(bool bSuccess, UDragDropOperation* InOperation);
 	
 protected:
 	//====================================================================

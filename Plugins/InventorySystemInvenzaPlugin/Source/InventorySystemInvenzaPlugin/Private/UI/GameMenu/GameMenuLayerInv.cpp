@@ -8,6 +8,7 @@
 #include "Components/NamedSlot.h"
 #include "Components/PanelWidget.h"
 #include "Data/Inventory/InventoryBase.h"
+#include "DragDrop/InvContainerDragDropOperation.h"
 
 UGameMenuLayerInv::UGameMenuLayerInv()
 {
@@ -130,6 +131,17 @@ void UGameMenuLayerInv::ToggleInventoryLayout()
 		PC->SetInputMode(InputMode);
 		PC->bShowMouseCursor = false;
 	}
+}
+
+bool UGameMenuLayerInv::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent,
+	UDragDropOperation* InOperation)
+{
+	if (UInvContainerDragDropOperation* DragOp = Cast<UInvContainerDragDropOperation>(InOperation))
+	{
+		return true;
+	}
+
+	return false;
 }
 
 /*

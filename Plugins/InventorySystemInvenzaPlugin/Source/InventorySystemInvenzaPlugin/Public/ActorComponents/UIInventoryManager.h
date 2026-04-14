@@ -44,6 +44,8 @@ protected:
 public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
 							   FActorComponentTickFunction* ThisTickFunction) override;
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
 	//====================================================================
 	// Delegates
@@ -135,8 +137,8 @@ protected:
 	TObjectPtr<UInventoryContainerWidget> VendorInventoryContainerWidget;
 	
 	//
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
-	TMap<FString, TObjectPtr<UInventoryBase>> Inventories;
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Replicated )
+	TArray<TObjectPtr<UInventoryBase>> Inventories;
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
 	TMap<TObjectPtr<UInventoryBase>, TObjectPtr<UInventoryContainerWidget>> InventorContainerWidgetMap;
 	
@@ -202,5 +204,7 @@ protected:
 	void InitializeBindings();
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Initialization")
 	void BindInputActions();
+
+	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 	
 };

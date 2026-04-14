@@ -7,6 +7,7 @@
 #include "Input/DragAndDrop.h"
 #include "UDraggableWidgetInterface.generated.h"
 
+class UDragDropOperation;
 // This class does not need to be modified.
 UINTERFACE(MinimalAPI, Blueprintable)
 class UUDraggableWidgetInterface : public UInterface
@@ -24,6 +25,6 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API IUDraggableWidgetInterface
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "DragDrop")
-	bool OnDropped(const FGeometry& DropGeometry, FVector2D DragOffset);
+	void OnDragFinished(bool bSuccess, UDragDropOperation* Operation);
 	
 };

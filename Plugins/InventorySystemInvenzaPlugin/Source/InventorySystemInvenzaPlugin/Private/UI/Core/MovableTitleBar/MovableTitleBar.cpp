@@ -31,38 +31,41 @@ void UMovableTitleBar::NativeConstruct()
 	Super::NativeConstruct();
 }
 
-void UMovableTitleBar::OnDragFinished(bool bSuccess, UInvContainerDragDropOperation* DragOp)
+void UMovableTitleBar::OnDragFinished_Implementation(bool bSuccess, UDragDropOperation* InOperation)
 {
 	if (!ParentWidget)
 		return;
-
-	ParentWidget->SetVisibility(ESlateVisibility::Visible);
-
-	if (bSuccess)
+	
+	if (UInvContainerDragDropOperation* DragOp = Cast<UInvContainerDragDropOperation>(InOperation))
 	{
-		FVector2D CursorPos = FSlateApplication::Get().GetCursorPos();
-		FVector2D ViewportPos;
-		FVector2D PixelPos;
-		USlateBlueprintLibrary::AbsoluteToViewport(GetWorld(), CursorPos, PixelPos, ViewportPos);
+		ParentWidget->SetVisibility(ESlateVisibility::Visible);
 
-		if (auto* CanvasSlot = Cast<UCanvasPanelSlot>(ParentWidget->Slot))
+		if (bSuccess)
 		{
+			FVector2D CursorPos = FSlateApplication::Get().GetCursorPos();
+			FVector2D ViewportPos;
+			FVector2D PixelPos;
+			USlateBlueprintLibrary::AbsoluteToViewport(GetWorld(), CursorPos, PixelPos, ViewportPos);
+
+			if (auto* CanvasSlot = Cast<UCanvasPanelSlot>(ParentWidget->Slot))
+			{
 		
-			if (DragOp)
-			{
-				CanvasSlot->SetPosition(ViewportPos - DragOp->DragOffset);
-			}
-			else
-			{
-				CanvasSlot->SetPosition(ViewportPos);
+				if (DragOp)
+				{
+					CanvasSlot->SetPosition(ViewportPos - DragOp->DragOffset);
+				}
+				else
+				{
+					CanvasSlot->SetPosition(ViewportPos);
+				}
 			}
 		}
-	}
 
-	if (DragContainer_Temp)
-	{
-		DragContainer_Temp->RemoveFromParent();
-		DragContainer_Temp = nullptr;
+		if (DragContainer_Temp)
+		{
+			DragContainer_Temp->RemoveFromParent();
+			DragContainer_Temp = nullptr;
+		}
 	}
 }
 

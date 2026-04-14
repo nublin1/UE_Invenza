@@ -13,9 +13,9 @@ void UInvContainerDragDropOperation::Drop_Implementation(const FPointerEvent& Po
 {
 	Super::Drop_Implementation(PointerEvent);
 	
-	if (auto* TitleBar = Cast<UMovableTitleBar>(Payload))
+	if (Payload && Payload->GetClass()->ImplementsInterface(UUDraggableWidgetInterface::StaticClass()))
 	{
-		TitleBar->OnDragFinished(true, this);
+		IUDraggableWidgetInterface::Execute_OnDragFinished(Payload, true, this);
 	}
 }
 
@@ -23,8 +23,8 @@ void UInvContainerDragDropOperation::DragCancelled_Implementation(const FPointer
 {
 	Super::DragCancelled_Implementation(PointerEvent);
 
-	if (auto* TitleBar = Cast<UMovableTitleBar>(Payload))
+	if (Payload && Payload->GetClass()->ImplementsInterface(UUDraggableWidgetInterface::StaticClass()))
 	{
-		TitleBar->OnDragFinished(false, this);
+		IUDraggableWidgetInterface::Execute_OnDragFinished(Payload, false, this);
 	}
 }

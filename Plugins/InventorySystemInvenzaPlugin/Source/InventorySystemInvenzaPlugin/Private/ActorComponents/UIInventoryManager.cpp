@@ -34,12 +34,14 @@
 #include "Data/Trade/TradeTypes.h"
 #include "UI/ModalWidgets/ModalTradeWidget.h"
 #include "Utility/InventoryUtility.h"
+#include "Engine/ActorChannel.h"
+#include "Net/UnrealNetwork.h"
 
 class UEnhancedInputLocalPlayerSubsystem;
 
 UIInventoryManager::UIInventoryManager()
 {
-	
+	SetIsReplicatedByDefault(true);
 }
 
 void UIInventoryManager::BeginPlay()
@@ -50,6 +52,13 @@ void UIInventoryManager::BeginPlay()
 
 void UIInventoryManager::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
+}
+
+void UIInventoryManager::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(UIInventoryManager, Inventories);
 }
 
 void UIInventoryManager::InitializeInventoryManager()
@@ -87,19 +96,18 @@ void UIInventoryManager::InitializeInventoryManager()
 
 void UIInventoryManager::CreateInventories()
 {
+	if (!GetOwner()->HasAuthority())
+		return;
+	
 	for (FInventoryStartupData& StartupData : StartupInventories)
 	{
-		UInventoryBase* Inventory =	UInventoryBase::CreateInventory(GetOwner(), StartupData);
+		UInventoryBase* Inventory =	UInventoryBase::CreateInventoryAdvanced(GetOwner(), StartupData, GetOwner(), ItemCollectionRef);
 		if (!Inventory)
 			continue;
-
-		Inventory->InitInventory();
-		Inventory->SetInventoryOwnerActor(GetOwner());
-		Inventory->SetItemCollectionLink(ItemCollectionRef);
 		
 		StartingItems.Add(Inventory, StartupData.StartItems);
 
-		Inventories.Add(Inventory->GetInventoryContainerID(), Inventory);
+		Inventories.Add(Inventory);
 		BindInventoryEvents(Inventory);
 
 		if (StartupData.Settings.InventoryTag == UISettings.MainInvTag)
@@ -319,16 +327,7 @@ void UIInventoryManager::VendorRequest(FItemMoveData ItemMoveData )
 		return;
 	
 	FTradeResult TradeResult = VendorProviderCurrent->ProcessTradeRequest(ItemMoveData);
-
-	if (TradeResult.OperationResult == ETradeResult::TR_Success)
-	{
-		//NotifyTradeSuccess(TradeResult);
-	}
-	else
-	{
-		//NotifyTradeFailed(TradeResult.ResultMessage);
-	}
-	
+		
 }
 
 void UIInventoryManager::ItemTransferRequest(FItemMoveData ItemMoveData)
@@ -409,8 +408,8 @@ UInventoryBase* UIInventoryManager::GetInventoryByTag(const FGameplayTag& Tag)
 {
 	for (auto Element : Inventories)
 	{
-		if (Element.Value->GetInventorySettings().InventoryTag == Tag)
-			return Element.Value;
+		if (Element->GetInventorySettings().InventoryTag == Tag)
+			return Element;
 	}
 
 	return nullptr;
@@ -420,10 +419,11 @@ UInventoryBase* UIInventoryManager::GetInventoryByID(FString ContainerID)
 {
 	if (ContainerID.IsEmpty())
 		return nullptr;
-	
-	if (const TObjectPtr<UInventoryBase>* Found = Inventories.Find(ContainerID))
+
+	for (auto Element : Inventories)
 	{
-		return *Found;
+		if (Element->GetInventorySettings().InventoryID == ContainerID)
+			return Element;
 	}
 
 	return nullptr;
@@ -684,9 +684,9 @@ void UIInventoryManager::BindInputActions()
 	if (Inventories.IsEmpty())
 		return;
 	
-	for (auto& Pair : Inventories)
+	for (auto& Inv : Inventories)
 	{
-		UInventoryBase* Inventory = Pair.Value;
+		UInventoryBase* Inventory = Inv;
 		if (!Inventory)
 			continue;
 
@@ -711,5 +711,20 @@ void UIInventoryManager::BindInputActions()
 				SlotData);
 		}
 	}
+}
+
+bool UIInventoryManager::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags)
+{
+	bool WroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
+
+	for (UInventoryBase* Inv : Inventories)
+	{
+		if (Inv)
+		{
+			WroteSomething |= Channel->ReplicateSubobject(Inv, *Bunch, *RepFlags);
+		}
+	}
+
+	return WroteSomething;
 }
 

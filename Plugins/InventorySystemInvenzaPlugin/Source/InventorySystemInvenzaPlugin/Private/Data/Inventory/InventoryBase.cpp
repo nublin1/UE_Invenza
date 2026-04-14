@@ -37,6 +37,20 @@ UInventoryBase* UInventoryBase::CreateInventory(UObject* Outer, FInventoryStartu
 	return Inventory;
 }
 
+UInventoryBase* UInventoryBase::CreateInventoryAdvanced(UObject* Outer, FInventoryStartupData StartupData,
+	AActor* OwnerActor, UItemCollection* InItemCollection)
+{
+	UInventoryBase* Inventory =	CreateInventory(Outer, StartupData);
+	if (!Inventory)
+		return nullptr;
+
+	Inventory->InitInventory();
+	Inventory->SetInventoryOwnerActor(OwnerActor);
+	Inventory->SetItemCollectionLink(InItemCollection);
+
+	return Inventory;
+}
+
 UInventoryBase* UInventoryBase::DuplicateInventory(UObject* Outer)
 {
 	UInventoryBase* Inventory =

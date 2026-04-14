@@ -37,6 +37,8 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UInventoryBase : public UObject
 public:
 	UInventoryBase();
 
+	virtual bool IsSupportedForNetworking() const override { return true; }
+
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
@@ -85,6 +87,10 @@ public:
 	//====================================================================
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	static UInventoryBase* CreateInventory(UObject* Outer, FInventoryStartupData StartupData);
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	static UInventoryBase* CreateInventoryAdvanced(UObject* Outer, FInventoryStartupData StartupData,
+		AActor* OwnerActor, UItemCollection* InItemCollection);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	UInventoryBase* DuplicateInventory(UObject* Outer);
