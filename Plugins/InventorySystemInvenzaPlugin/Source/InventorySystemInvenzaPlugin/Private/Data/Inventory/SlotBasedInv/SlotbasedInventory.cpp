@@ -88,8 +88,8 @@ void USlotbasedInventory::SortItemsInContainerByName()
 	}
 	*/
 	NotifyReDrawRequest();
-	NotifyUpdateWeight();
-	NotifyUpdateMoney();
+	OnRep_InventoryTotalWeight();
+	OnRep_InventoryTotalMoney();
 }
 
 TArray<UInventorySlotData*> USlotbasedInventory::GetSlotsForItemAt(const FIntPoint& StartPos, UItemBase* ItemBase,

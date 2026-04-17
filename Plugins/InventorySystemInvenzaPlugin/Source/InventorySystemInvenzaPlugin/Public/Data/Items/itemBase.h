@@ -26,6 +26,10 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UItemBase : public UObject
 public:
 	UItemBase();
 
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	virtual bool IsSupportedForNetworking() const override { return true; }
+
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
@@ -112,14 +116,14 @@ protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Data")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated, Category = "Item|Data")
 	FName ItemID;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item|Data")
 	FItemMetaData ItemRef;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item|Data")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, Category = "Item|Data")
 	FDataTableRowHandle ItemRow;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Item|Data")
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Replicated, Category = "Item|Data")
 	int32 Quantity;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Item|Data")
 	TMap<TObjectPtr<AActor>, int32> ReservedAmounts;

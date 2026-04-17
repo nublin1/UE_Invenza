@@ -8,6 +8,8 @@
 
 UItemBase* UItemFactory::CreateItemByHandle(UObject* Outer, FDataTableRowHandle Handle, int32 Quantity)
 {
+	if (!Outer) return nullptr;
+	
 	if (!Handle.DataTable || Handle.RowName.IsNone()) return nullptr;
 
 	FItemData* Row = Handle.GetRow<FItemData>(TEXT("CreateItemByHandle"));

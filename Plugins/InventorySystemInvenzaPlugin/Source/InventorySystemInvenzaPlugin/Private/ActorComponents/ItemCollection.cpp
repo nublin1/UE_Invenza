@@ -8,8 +8,10 @@
 #include "Data/Inventory/InventoryBase.h"
 #include "Data/Inventory/InventorySlotData.h"
 #include "Data/Inventory/SlotBasedInv/SlotbasedInventory.h"
+#include "Engine/ActorChannel.h"
 #include "Factory/ItemFactory.h"
 #include "Kismet/GameplayStatics.h"
+#include "Net/UnrealNetwork.h"
 
 
 UItemCollection::UItemCollection()
@@ -17,14 +19,34 @@ UItemCollection::UItemCollection()
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
+	
+	SetIsReplicatedByDefault(true);
 }
 
 void UItemCollection::BeginPlay()
 {
 	Super::BeginPlay();
+			
 
-	if (auto Manager = UGameplayStatics::GetPlayerPawn(GetWorld(), 0)->FindComponentByClass<UIInventoryManager>())
-		InvManager = Manager;
+	if (GetOwner()->HasAuthority())
+	{
+		InventoryArray.OwningManager = Cast<UIInventoryManager>(GetOwner()->FindComponentByClass<UIInventoryManager>());
+		InvManager = InventoryArray.OwningManager;
+	}
+}
+
+void UItemCollection::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(UItemCollection, ActorInventories);
+	DOREPLIFETIME(UItemCollection, InventoryArray);
+}
+
+
+void UItemCollection::AddPawnInventory_Internal(UInventoryBase* InInventory)
+{
+	ActorInventories.Add(InInventory);
 }
 
 float UItemCollection::CalculateAvailableMoney()
@@ -246,9 +268,35 @@ UItemBase* UItemCollection::GetItemFromSlot(UInventorySlotData* TargetSlotData, 
 
 FItemMapping& UItemCollection::AddItem(UItemBase* NewItem, const FItemMapping& ItemMapping)
 {
-	FItemMappingArrayWrapper& Wrapper = ItemLocations.FindOrAdd(NewItem);
-	Wrapper.Mappings.Add(ItemMapping);
-	return Wrapper.Mappings.Last(); 
+	if (!GetOwner()->HasAuthority())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AddItem called on Client! This is not allowed."));
+		FItemMapping Dummy;
+		return Dummy; 
+	}
+	
+	FInventoryEntry* FoundEntry = InventoryArray.Items.FindByPredicate([NewItem](const FInventoryEntry& Entry) {
+		return Entry.Item == NewItem;
+	});
+
+	if (FoundEntry)
+	{
+		FoundEntry->Locations.Mappings.Add(ItemMapping);
+        
+		// КРИТИЧЕСКИ ВАЖНО: Помечаем элемент как "грязный", чтобы сервер отправил изменения клиентам
+		InventoryArray.MarkItemDirty(*FoundEntry);
+        
+		return FoundEntry->Locations.Mappings.Last();
+	}
+	
+	FInventoryEntry& NewEntry = InventoryArray.Items.AddDefaulted_GetRef();
+	NewEntry.Item = NewItem;
+	NewEntry.Locations.Mappings.Add(ItemMapping);
+
+	// Помечаем новый элемент для репликации
+	InventoryArray.MarkItemDirty(NewEntry);
+
+	return NewEntry.Locations.Mappings.Last();
 }
 
 void UItemCollection::RemoveItem(UItemBase* Item, FString ContainerID)
@@ -439,5 +487,28 @@ void UItemCollection::DeserializeFromSave(const TArray<FItemSaveEntry>& InData, 
             Wrapper.Mappings.Add(NewMapping);
         }
     }
+}
+
+bool UItemCollection::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags)
+{
+	bool WroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
+	
+	for (UInventoryBase* Inv : ActorInventories)
+	{
+		if (IsValid(Inv))
+		{
+			WroteSomething |= Channel->ReplicateSubobject(Inv, *Bunch, *RepFlags);
+		}
+	}
+	
+	for (const FInventoryEntry& Entry : InventoryArray.Items)
+	{
+		if (IsValid(Entry.Item))
+		{
+			WroteSomething |= Channel->ReplicateSubobject(Entry.Item, *Bunch, *RepFlags);
+		}
+	}
+
+	return WroteSomething;
 }
 

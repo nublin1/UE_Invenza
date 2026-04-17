@@ -6,6 +6,7 @@
 #include "ActorComponents/ItemCollection.h"
 #include "Data/Items/ItemBase.h"
 #include "Factory/ItemFactory.h"
+#include "Net/UnrealNetwork.h"
 
 UInventoryBase::UInventoryBase()
 {
@@ -14,6 +15,20 @@ UInventoryBase::UInventoryBase()
 		FString UniqueString = FGuid::NewGuid().ToString(EGuidFormats::Short);
 		InventoryContainerID = UniqueString;
 	}
+}
+
+void UInventoryBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(UInventoryBase, InventorySettings);
+	DOREPLIFETIME(UInventoryBase, InventoryContainerID);
+	DOREPLIFETIME(UInventoryBase, ItemCollectionLinked);
+	DOREPLIFETIME(UInventoryBase, InventoryTotalWeight);
+	DOREPLIFETIME(UInventoryBase, InventoryTotalMoney);
+	DOREPLIFETIME(UInventoryBase, InvSize);
+	DOREPLIFETIME(UInventoryBase, InventoryOwnerActor);
+	DOREPLIFETIME(UInventoryBase, TradeContext);
 }
 
 UInventoryBase* UInventoryBase::CreateInventory(UObject* Outer, FInventoryStartupData StartupData)
@@ -130,7 +145,7 @@ void UInventoryBase::UpdateWeightInfo()
 	auto AllItems = ItemCollectionLinked->GetAllItemsByContainer(InventoryContainerID);
 	if (AllItems.IsEmpty())
 	{
-		NotifyUpdateWeight();
+		OnRep_InventoryTotalWeight();
 	}
 	else
 	{
@@ -140,7 +155,7 @@ void UInventoryBase::UpdateWeightInfo()
 		}
 
 		InventoryTotalWeight = FMath::RoundToFloat(InventoryTotalWeight * 100.0f) / 100.0f;
-		NotifyUpdateWeight();
+		OnRep_InventoryTotalWeight();
 	}
 }
 
@@ -154,7 +169,7 @@ void UInventoryBase::UpdateMoneyInfo()
 	auto AllItems = ItemCollectionLinked->GetAllItemsByContainer(InventoryContainerID);
 	if (AllItems.IsEmpty())
 	{
-		NotifyUpdateMoney();
+		OnRep_InventoryTotalMoney();
 	}
 	else
 	{
@@ -164,14 +179,14 @@ void UInventoryBase::UpdateMoneyInfo()
 				InventoryTotalMoney += Item->GetQuantity();
 		}
 
-		NotifyUpdateMoney();
+		OnRep_InventoryTotalMoney();
 	}
 }
 
 void UInventoryBase::SetTradeContext(FTradeContext InTradeContext)
 {
 	this->TradeContext = InTradeContext;
-	OnTradeContextUpdated.Broadcast();
+	OnRep_TradeContext();
 }
 
 int32 UInventoryBase::CalculateActualAmountToAdd(int32 InAmountToAdd, float ItemSingleWeight)
@@ -309,14 +324,19 @@ void UInventoryBase::NotifyUseSlot(UInventorySlotData* UsedSlot)
 	OnUseSlotDelegate.Broadcast(UsedSlot);
 }
 
-void UInventoryBase::NotifyUpdateWeight()
+void UInventoryBase::OnRep_InventoryTotalWeight()
 {
 	OnWeightUpdatedDelegate.Broadcast(InventoryTotalWeight);
 }
 
-void UInventoryBase::NotifyUpdateMoney()
+void UInventoryBase::OnRep_InventoryTotalMoney()
 {
 	OnMoneyUpdatedDelegate.Broadcast(InventoryTotalMoney);
+}
+
+void UInventoryBase::OnRep_TradeContext()
+{
+	OnTradeContextUpdated.Broadcast();
 }
 
 void UInventoryBase::NotifyReDrawRequest()

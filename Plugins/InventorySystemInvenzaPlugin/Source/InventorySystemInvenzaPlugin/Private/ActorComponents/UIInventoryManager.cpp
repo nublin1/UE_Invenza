@@ -32,7 +32,6 @@
 #include "UI/Inventory/InventorySlot.h"
 #include "UI/Inventory/ListInventoryWidget.h"
 #include "Data/Trade/TradeTypes.h"
-#include "UI/ModalWidgets/ModalTradeWidget.h"
 #include "Utility/InventoryUtility.h"
 #include "Engine/ActorChannel.h"
 #include "Net/UnrealNetwork.h"
@@ -57,8 +56,7 @@ void UIInventoryManager::TickComponent(float DeltaTime, ELevelTick TickType, FAc
 void UIInventoryManager::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	DOREPLIFETIME(UIInventoryManager, Inventories);
+	
 }
 
 void UIInventoryManager::InitializeInventoryManager()
@@ -86,12 +84,19 @@ void UIInventoryManager::InitializeInventoryManager()
 	}
 
 	CreateInventories();
-	InitWidgets();
-	CreateWidgetsForInventories();
 
-	InitializeBindings();
-	BindEvents();
+	APawn* OwnerPawn = Cast<APawn>(GetOwner());
+	if (OwnerPawn && OwnerPawn->IsLocallyControlled())
+	{
+		InitWidgets();
+		CreateWidgetsForInventories();
+		InitializeBindings();
+		BindEvents();
+	}
+	
 	SetupStartingResources();
+
+	OnInitializationCompleteDelegate.Broadcast();
 }
 
 void UIInventoryManager::CreateInventories()
@@ -107,7 +112,7 @@ void UIInventoryManager::CreateInventories()
 		
 		StartingItems.Add(Inventory, StartupData.StartItems);
 
-		Inventories.Add(Inventory);
+		ItemCollectionRef->AddPawnInventory_Internal(Inventory);
 		BindInventoryEvents(Inventory);
 
 		if (StartupData.Settings.InventoryTag == UISettings.MainInvTag)
@@ -142,6 +147,9 @@ void UIInventoryManager::CreateWidgetsForInventories()
 
 bool UIInventoryManager::CreateWidget(UInventoryBase* InvToLink)
 {
+	APawn* OwnerPawn = Cast<APawn>(GetOwner());
+	if (!OwnerPawn || !OwnerPawn->IsLocallyControlled()) return false;
+	
 	if (!UIInvProvider)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("UIInventoryManager::InitWidgets: UIProvider is not set!"));
@@ -149,9 +157,12 @@ bool UIInventoryManager::CreateWidget(UInventoryBase* InvToLink)
 	}
 
 	auto InvSettings = InvToLink->GetInventorySettings();
+
+	APlayerController* PC = Cast<APlayerController>(OwnerPawn->GetController());
+	if (!PC) return false;
 	
 	auto InvContainer =  UInvenzaWidgetFactory::CreateInventoryWidget(
-		UGameplayStatics::GetPlayerController(GetWorld(), 0),
+		PC,
 		InvSettings.ContainerWidgetClass,
 		InvSettings.InventoryWidgetClass,
 		nullptr);
@@ -246,6 +257,9 @@ void UIInventoryManager::InitWidgets()
 
 void UIInventoryManager::SetupStartingResources()
 {
+	if (!GetOwner()->HasAuthority())
+		return;
+	
 	for (auto& [TargetInventory, InitItems] : StartingItems)
 	{
 		if (!TargetInventory 
@@ -297,28 +311,56 @@ void UIInventoryManager::OnItemRemovedFromInventory(FItemMapping ItemSlots, UIte
 	}
 }
 
-void UIInventoryManager::OnQuickTransferItem(FItemMoveData ItemMoveData)
+UInventoryBase* UIInventoryManager::ResolveTargetInventory(UInventoryBase* SourceInventory) const
+{
+	if (!SourceInventory)
+		return nullptr;
+	
+	if (VendorInventory)
+	{
+		return (SourceInventory == VendorInventory)
+			? MainPawnInventory
+			: VendorInventory;
+	}
+	
+	if (ExternalInventory)
+	{
+		return (SourceInventory == ExternalInventory)
+			? MainPawnInventory
+			: ExternalInventory;
+	}
+	
+	return MainPawnInventory;
+}
+
+void UIInventoryManager::OnQuickTransferItem_Implementation(FItemMoveData InData)
 {
 	if (!MainPawnInventory)
 		return;
+	
+	FItemMoveData ItemMoveData = InData;
 
 	if (ItemMoveData.SourceInventory == ItemMoveData.TargetInventory)
 		return;
 	
-	if (ExternalInventory)
-	{
-		if (ItemMoveData.SourceInventory == ExternalInventory)
-			ItemMoveData.TargetInventory = MainPawnInventory;
-		else
-			ItemMoveData.TargetInventory = ExternalInventory;
+	ItemMoveData.TargetInventory = ResolveTargetInventory(ItemMoveData.SourceInventory);
 
-		ItemTransferRequest(ItemMoveData);
+	if (!ItemMoveData.TargetInventory)
 		return;
-	}
 
-	
-	ItemMoveData.TargetInventory = MainPawnInventory;
 	ItemTransferRequest(ItemMoveData);
+}
+
+void UIInventoryManager::OnQuickTransferAllSameItems_Implementation(FItemMoveData ItemMoveData)
+{
+	auto InvID = ItemMoveData.SourceInventory->GetInventoryContainerID();
+	
+	auto SameItems = ItemCollectionRef->GetAllSameItemsInContainer(InvID, ItemMoveData.SourceItem);
+	for (auto Item : SameItems)
+	{
+		ItemMoveData.SourceItem = Item;
+		OnQuickTransferItem(ItemMoveData);
+	}
 }
 
 void UIInventoryManager::VendorRequest(FItemMoveData ItemMoveData )
@@ -331,7 +373,7 @@ void UIInventoryManager::VendorRequest(FItemMoveData ItemMoveData )
 }
 
 void UIInventoryManager::ItemTransferRequest(FItemMoveData ItemMoveData)
-{
+{	
 	if (VendorProviderCurrent)
 	{
 		if (ItemMoveData.TargetInventory == VendorProviderCurrent->GetVendorLootContainer()
@@ -406,7 +448,7 @@ void UIInventoryManager::ItemDropRequest(UItemBase* ItemToDrop)
 
 UInventoryBase* UIInventoryManager::GetInventoryByTag(const FGameplayTag& Tag)
 {
-	for (auto Element : Inventories)
+	for (auto Element : ItemCollectionRef->GetActorInventories())
 	{
 		if (Element->GetInventorySettings().InventoryTag == Tag)
 			return Element;
@@ -420,7 +462,7 @@ UInventoryBase* UIInventoryManager::GetInventoryByID(FString ContainerID)
 	if (ContainerID.IsEmpty())
 		return nullptr;
 
-	for (auto Element : Inventories)
+	for (auto Element : ItemCollectionRef->GetActorInventories())
 	{
 		if (Element->GetInventorySettings().InventoryID == ContainerID)
 			return Element;
@@ -431,6 +473,14 @@ UInventoryBase* UIInventoryManager::GetInventoryByID(FString ContainerID)
 
 void UIInventoryManager::HandleInteract(UInteractableComponent* TargetInteractableComponent)
 {
+	APawn* OwnerPawn = Cast<APawn>(GetOwner());
+	bool bIsPlayer = OwnerPawn && OwnerPawn->IsLocallyControlled();
+
+	if (!bIsPlayer)
+	{
+		return;
+	}
+
 	if (IPickupableass* PickupInterface = Cast<IPickupableass>(TargetInteractableComponent))
 	{
 		if (UItemBase* ItemToPick = PickupInterface->GetItemData())
@@ -681,10 +731,12 @@ void UIInventoryManager::BindInputActions()
 	UEnhancedInputComponent* Input = Cast<UEnhancedInputComponent>(PlayerController->InputComponent);
 	if (!Input) return;
 
-	if (Inventories.IsEmpty())
+	auto ActorInvs = ItemCollectionRef->GetActorInventories();
+
+	if (ActorInvs.IsEmpty())
 		return;
 	
-	for (auto& Inv : Inventories)
+	for (auto& Inv : ActorInvs)
 	{
 		UInventoryBase* Inventory = Inv;
 		if (!Inventory)
@@ -712,19 +764,3 @@ void UIInventoryManager::BindInputActions()
 		}
 	}
 }
-
-bool UIInventoryManager::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags)
-{
-	bool WroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
-
-	for (UInventoryBase* Inv : Inventories)
-	{
-		if (Inv)
-		{
-			WroteSomething |= Channel->ReplicateSubobject(Inv, *Bunch, *RepFlags);
-		}
-	}
-
-	return WroteSomething;
-}
-

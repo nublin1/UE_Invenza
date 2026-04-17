@@ -9,6 +9,7 @@
 #include "Engine/DataTable.h"
 #include "Data/Items/ItemBase.h"
 #include "Data/Inventory/InventoryTypes.h"
+#include "Net/Serialization/FastArraySerializer.h"
 #include "ItemCollection.generated.h"
 
 
@@ -23,6 +24,44 @@ class USlotbasedInventorySlot;
 class USlotbasedInventoryWidget;
 class UItemBase;
 
+USTRUCT(BlueprintType)
+struct FInventoryEntry : public FFastArraySerializerItem
+{
+	GENERATED_BODY()
+	
+	UPROPERTY()
+	TObjectPtr<UItemBase> Item = nullptr;
+	
+	UPROPERTY()
+	FItemMappingArrayWrapper Locations;
+	
+	void PostReplicatedAdd(const struct FInventoryArray& InArraySerializer);
+	void PostReplicatedChange(const struct FInventoryArray& InArraySerializer);
+	void PreReplicatedRemove(const struct FInventoryArray& InArraySerializer);
+};
+
+USTRUCT(BlueprintType)
+struct FInventoryArray : public FFastArraySerializer
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	TArray<FInventoryEntry> Items;
+	UPROPERTY()
+	TObjectPtr<UIInventoryManager> OwningManager;
+	
+	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
+	{
+		return FFastArraySerializer::FastArrayDeltaSerialize<FInventoryEntry, FInventoryArray>(Items, DeltaParms, *this);
+	}
+};
+
+template<>
+struct TStructOpsTypeTraits<FInventoryArray> : public TStructOpsTypeTraitsBase2<FInventoryArray>
+{
+	enum { WithNetDeltaSerializer = true };
+};
+
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class INVENTORYSYSTEMINVENZAPLUGIN_API UItemCollection : public UActorComponent
 {
@@ -35,6 +74,7 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
 	//====================================================================
 	// PROPERTIES AND VARIABLES
@@ -43,10 +83,17 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+
+	// Invs
+	TArray<UInventoryBase*> GetActorInventories() {return ActorInventories;}
+
+	void AddPawnInventory_Internal(UInventoryBase* InInventory);
+	
+	// Items
 	UFUNCTION(BlueprintCallable, Category = "Item Collection")
 	float CalculateAvailableMoney();
 
-	TMap<TObjectPtr<UItemBase>, FItemMappingArrayWrapper> GetItemLocations() const {return ItemLocations;}
+	FInventoryArray GetItemLocations() const {return InventoryArray;}
 	
 	int32 GetStackCountInContainer(FString InvID);
 	TArray<UItemBase*> GetAllItemsByContainer(FString InvID);
@@ -85,10 +132,19 @@ protected:
 	//====================================================================
 	UPROPERTY()
 	TObjectPtr<UIInventoryManager> InvManager = nullptr;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	TMap<TObjectPtr<UItemBase>, FItemMappingArrayWrapper> ItemLocations;
+	
+	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	//TMap<TObjectPtr<UItemBase>, FItemMappingArrayWrapper> ItemLocations;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated)
+	FInventoryArray InventoryArray;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Replicated )
+	TArray<TObjectPtr<UInventoryBase>> ActorInventories;
 	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+
+	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 };

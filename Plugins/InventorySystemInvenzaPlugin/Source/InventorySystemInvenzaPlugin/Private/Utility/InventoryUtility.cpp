@@ -6,6 +6,7 @@
 #include "Data/Inventory/InventoryTypes.h"
 #include "Data/Items/itemBase.h"
 #include "Factory/ItemFactory.h"
+#include "Interface/Inventory/InventoryInteractionHandler.h"
 #include "Subsystems/InvenzaInventorySettingsSubsystem.h"
 
 bool UInventoryUtility::AddItemQuantity(UObject* Outer, UInventoryBase* TargetInventory, UItemBase* ItemSample,
@@ -73,4 +74,24 @@ const UInvenzaInventoryUISettingsAsset* UInventoryUtility::GetInvenzaGlobalSetti
 	}
 
 	return nullptr;
+}
+
+TScriptInterface<IInventoryInteractionHandler> UInventoryUtility::FindInventoryHandler(AActor* Actor)
+{
+	TScriptInterface<IInventoryInteractionHandler> Handler;
+
+	if (!Actor)
+		return Handler;
+
+	for (UActorComponent* Comp : Actor->GetComponents())
+	{
+		if (Comp && Comp->GetClass()->ImplementsInterface(UInventoryInteractionHandler::StaticClass()))
+		{
+			Handler.SetObject(Comp);
+			Handler.SetInterface(Cast<IInventoryInteractionHandler>(Comp));
+			return Handler;
+		}
+	}
+
+	return Handler;
 }

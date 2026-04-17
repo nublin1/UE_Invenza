@@ -63,10 +63,7 @@ protected:
 	//====================================================================
 	UPROPERTY()
 	bool bIsInteract = false;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Vendor")
-	FInventoryStartupData InventoryStartupData;
-
+	
 	//
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vendor|Config")
 	FGameplayTag MainVendorContainerInvTag;
@@ -78,12 +75,12 @@ protected:
 	TObjectPtr<UInventoryBase> MainVendorLootInventory;
 
 	// Refs
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Vendor")
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category = "Vendor")
 	TObjectPtr<UItemCollection> ItemCollectionRef;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
 	TObjectPtr<UInventoryBase> TradePartnerMainInventory;
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
 	TObjectPtr<UItemCollection> TradePartnerItemCollection;
 	
 	//====================================================================
@@ -93,9 +90,7 @@ protected:
 	virtual void UpdateInteractableData() override;
 
 	UFUNCTION(BlueprintCallable)
-	void InitializeInventoryStartupData();
-	UFUNCTION(BlueprintCallable)
-	void SetupStartingResources();
+	void InitializeVendorStartupData();
 
 	UFUNCTION(BlueprintCallable)
 	bool SimulateTrade(const FItemMoveData& TradeData,

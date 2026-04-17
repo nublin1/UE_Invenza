@@ -7,6 +7,7 @@
 #include "Settings/InvenzaSettings.h"
 #include "UI/Inventory/Container/InventoryContainerWidget.h"
 #include "Data/Inventory/InventoryTypes.h"
+#include "Interface/Inventory/InventoryInteractionHandler.h"
 #include "UIInventoryManager.generated.h"
 
 class ILootContainerProvider;
@@ -27,7 +28,7 @@ class UInteractableComponent;
 class UCoreHUDWidget;
 
 UCLASS(ClassGroup=(Custom), Blueprintable, meta=(BlueprintSpawnableComponent))
-class INVENTORYSYSTEMINVENZAPLUGIN_API UIInventoryManager : public UActorComponent
+class INVENTORYSYSTEMINVENZAPLUGIN_API UIInventoryManager : public UActorComponent, public IInventoryInteractionHandler
 {
 	GENERATED_BODY()
 
@@ -73,9 +74,10 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Initialization")
 	virtual void SetupStartingResources();
-
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Transfer")
-	void OnQuickTransferItem(FItemMoveData ItemMoveData);
+	
+	virtual void OnQuickTransferItem_Implementation(FItemMoveData InData) override;
+	virtual void OnQuickTransferAllSameItems_Implementation(FItemMoveData ItemMoveData) override;
+	
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Transfer")
 	void ItemTransferRequest(FItemMoveData ItemMoveData);
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Transfer")
@@ -83,9 +85,8 @@ public:
 		
 	UFUNCTION(BlueprintPure, Category = "Inventory|Settings")
 	FUISettings GetUISettings() const { return UISettings; }
-	
-	UFUNCTION(BlueprintPure, Category = "Inventory|Settings")
-	FInventoryModifierState GetInventoryModifierStates() const { return InventoryModifierState; }
+
+	virtual FInventoryModifierState GetInventoryModifierStates_Implementation() const override { return InventoryModifierState; }
 
 	UFUNCTION(BlueprintCallable)
 	UInventoryBase* GetInventoryByTag(const FGameplayTag& Tag);
@@ -137,8 +138,6 @@ protected:
 	TObjectPtr<UInventoryContainerWidget> VendorInventoryContainerWidget;
 	
 	//
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Replicated )
-	TArray<TObjectPtr<UInventoryBase>> Inventories;
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
 	TMap<TObjectPtr<UInventoryBase>, TObjectPtr<UInventoryContainerWidget>> InventorContainerWidgetMap;
 	
@@ -159,6 +158,8 @@ protected:
 	UFUNCTION()
 	void OnItemRemovedFromInventory(FItemMapping ItemSlots, UItemBase* Item);
 
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	UInventoryBase* ResolveTargetInventory(UInventoryBase* SourceInventory) const;	
 	
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Trade")
 	virtual void VendorRequest(FItemMoveData ItemMoveData);
@@ -205,6 +206,6 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Initialization")
 	void BindInputActions();
 
-	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
+	
 	
 };

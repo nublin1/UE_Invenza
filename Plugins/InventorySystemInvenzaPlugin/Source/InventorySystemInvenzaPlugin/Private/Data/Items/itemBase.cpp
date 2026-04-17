@@ -9,10 +9,20 @@
 #include "GameFramework/Pawn.h"
 #include "Engine/Engine.h"
 #include "Kismet/GameplayStatics.h"
+#include "Net/UnrealNetwork.h"
 #include "Utility/InventoryUtility.h"
 
 UItemBase::UItemBase(): ItemRef(), Quantity(0)
 {
+}
+
+void UItemBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(UItemBase, ItemID);
+	DOREPLIFETIME(UItemBase, ItemRow);
+	DOREPLIFETIME(UItemBase, Quantity);
 }
 
 bool UItemBase::bIsSameItems(UItemBase* FirstItem, UItemBase* SecondItem)

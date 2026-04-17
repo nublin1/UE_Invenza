@@ -121,21 +121,34 @@ void UListInventorySlotWidget::NativeOnMouseLeave(const FPointerEvent& InMouseEv
 FReply UListInventorySlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
 	FReply Reply = Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
-	
-	UIInventoryManager* InventoryManager = GetOwningPlayerPawn()->FindComponentByClass<UIInventoryManager>();
-	if (!InventoryManager || !CachedEntry || !CachedEntry->Item || !CachedEntry->ParentInventoryWidget)
+		
+	if (!CachedEntry || !CachedEntry->Item || !CachedEntry->ParentInventoryWidget)
 		return FReply::Unhandled();
+
+	auto Handler = UInventoryUtility::FindInventoryHandler(GetOwningPlayerPawn());
+	if (!Handler)
+		return Reply;
+
+	FInventoryModifierState Modifiers =
+		IInventoryInteractionHandler::Execute_GetInventoryModifierStates(Handler->_getUObject());
 	
 	if (InMouseEvent.IsMouseButtonDown(CachedEntry->ParentInventoryWidget->GetUISettings().ItemSelectKey))
 	{
-		if (InventoryManager->GetInventoryModifierStates().bIsQuickGrabModifierActive)
+		FItemMoveData ItemMoveData;
+		ItemMoveData.SourceInventory = CachedEntry->ParentInventoryWidget->GetInventoryRef();
+		ItemMoveData.SourceItemPivotSlot = this;
+		ItemMoveData.SourceItem = CachedEntry->Item;
+		
+		if (Modifiers.bIsQuickGrabModifierActive)
 		{
-			FItemMoveData ItemMoveData;
-			ItemMoveData.SourceInventory = CachedEntry->ParentInventoryWidget->GetInventoryRef();
-			ItemMoveData.SourceItemPivotSlot = this;
-			ItemMoveData.SourceItem = CachedEntry->Item;
+			Handler->Execute_OnQuickTransferItem(Handler.GetObject(),ItemMoveData);
+				
+			return FReply::Handled();
+		}
 
-			InventoryManager->OnQuickTransferItem(ItemMoveData);
+		if (Modifiers.bIsGrabAllSameModifierActive)
+		{
+			Handler->Execute_OnQuickTransferAllSameItems(Handler.GetObject(), ItemMoveData);
 				
 			return FReply::Handled();
 		}

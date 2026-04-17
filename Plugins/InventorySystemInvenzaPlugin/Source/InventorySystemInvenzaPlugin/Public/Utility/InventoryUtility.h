@@ -6,6 +6,7 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "InventoryUtility.generated.h"
 
+class IInventoryInteractionHandler;
 class UInvenzaInventoryUISettingsAsset;
 enum class EItemOrientationType : uint8;
 class UInventoryBase;
@@ -27,4 +28,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
 	static const UInvenzaInventoryUISettingsAsset* GetInvenzaGlobalSettings(const UObject* WorldContext);
+
+	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
+	static TScriptInterface<IInventoryInteractionHandler> FindInventoryHandler(AActor* Actor);
 };

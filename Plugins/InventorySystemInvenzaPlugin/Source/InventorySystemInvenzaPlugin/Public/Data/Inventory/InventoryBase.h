@@ -160,8 +160,6 @@ public:
 	UFUNCTION(BlueprintCallable)
 	virtual void SetInventorySettings(FInventorySettings NewInventorySettings) {InventorySettings = NewInventorySettings;}
 	
-	UFUNCTION(BlueprintCallable)
-	virtual void SetInitialItems(TArray<FInitItemsEntry> NewInitialItems) { InitialItems = NewInitialItems; }
 
 	UFUNCTION(BlueprintCallable)
 	virtual void SetInventorySize(FIntPoint NewSize) { InvSize = NewSize; }
@@ -180,34 +178,30 @@ protected:
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	// Settings
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Config")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated, Category = "Inventory|Config")
 	FInventorySettings InventorySettings;
 
-	// Initial items with their quantities
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Config")
-	TArray<FInitItemsEntry> InitialItems;
-
 	// Data
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
 	FString InventoryContainerID; // Uniq ID
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated)
 	TObjectPtr<UItemCollection> ItemCollectionLinked = nullptr;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bWasInit = false;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing = OnRep_InventoryTotalWeight, Category="Inventory")
 	float InventoryTotalWeight = 0;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing = OnRep_InventoryTotalMoney, Category="Inventory")
 	int32 InventoryTotalMoney = 0;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated)
 	FIntPoint InvSize = FIntPoint(1, 1);
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly,Replicated, Category="Inventory")
 	TObjectPtr<AActor> InventoryOwnerActor = nullptr;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing = OnRep_TradeContext, Category="Inventory")
 	FTradeContext TradeContext;
 	
 	//====================================================================
@@ -252,8 +246,12 @@ protected:
 	virtual void NotifyReplaceItem(TArray<UInventorySlotData*> OldItemSlots, FItemMapping& NewItemSlots, UItemBase* Item);
 
 	virtual void NotifyUseSlot(UInventorySlotData* UsedSlot);
-	virtual void NotifyUpdateWeight();
-	virtual void NotifyUpdateMoney();
+	UFUNCTION()
+	virtual void OnRep_InventoryTotalWeight();
+	UFUNCTION()
+	virtual void OnRep_InventoryTotalMoney();
+	UFUNCTION()
+	virtual void OnRep_TradeContext();
 	virtual void NotifyReDrawRequest();
 	virtual void NotifyRequestToResetItemVisual(UItemBase* Item);
 };

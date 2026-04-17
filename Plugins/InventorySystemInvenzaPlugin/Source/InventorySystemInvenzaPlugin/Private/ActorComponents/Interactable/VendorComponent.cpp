@@ -3,6 +3,7 @@
 #include "ActorComponents/Interactable/VendorComponent.h"
 #include "ActorComponents/InteractionComponent.h"
 #include "ActorComponents/ItemCollection.h"
+#include "ActorComponents/UIInventoryManager.h"
 #include "Data/Inventory/InventoryBase.h"
 #include "Data/Inventory/Simulator/InventorySimulator.h"
 #include "Data/Settings/InvenzaInventoryUISettingsAsset.h"
@@ -22,7 +23,10 @@ void UVendorComponent::BeginPlay()
 	if (auto ItemCollection = GetOwner()->FindComponentByClass<UItemCollection>())
 		ItemCollectionRef = ItemCollection;
 
-	InitializeInventoryStartupData();
+	if (auto InventoryManager = GetOwner()->FindComponentByClass<UIInventoryManager>())
+	{
+		InventoryManager->OnInitializationCompleteDelegate.AddDynamic(this, &UVendorComponent::InitializeVendorStartupData);
+	}
 }
 
 void UVendorComponent::BeginFocus()
@@ -133,7 +137,7 @@ void UVendorComponent::UpdateInteractableData()
 	InteractableData.Quantity = -1;
 }
 
-void UVendorComponent::InitializeInventoryStartupData()
+void UVendorComponent::InitializeVendorStartupData()
 {
 	if (!MainVendorContainerInvTag.IsValid())
 	{
@@ -141,40 +145,19 @@ void UVendorComponent::InitializeInventoryStartupData()
 		return;
 	}
 
-	InventoryStartupData.Settings.InventoryType = EInventoryType::VendorInventory;
-	InventoryStartupData.Settings.bIsReferenceContainer = false;
+	if (!ItemCollectionRef)
+		return;
 
-	if (InventoryStartupData.Settings.InventoryTag != MainVendorContainerInvTag)
+	if (auto InventoryManager = GetOwner()->FindComponentByClass<UIInventoryManager>())
 	{
-		return;
-	}
-
-	UInventoryBase* Inventory =	UInventoryBase::CreateInventory(GetOwner(), InventoryStartupData);
-	if (!Inventory)
-		return;
-
-	MainVendorLootInventory = Inventory;
-	
-	MainVendorLootInventory->InitInventory();	
-	MainVendorLootInventory->SetItemCollectionLink(ItemCollectionRef);
-	MainVendorLootInventory->SetInventorySettings(InventoryStartupData.Settings);
-	MainVendorLootInventory->SetInventoryOwnerActor(GetOwner());
-
-	SetupStartingResources();
-}
-
-void UVendorComponent::SetupStartingResources()
-{
-	if (!MainVendorLootInventory)
-		return;
-	
-	for (const auto& InitResource : InventoryStartupData.StartItems)
-	{
-		if (InitResource.Item.RowName.IsNone()) continue;
-
-		UItemBase* NewItemSample = UItemFactory::CreateItemByHandle(this, InitResource.Item, 1);
-
-		UInventoryUtility::AddItemQuantity(this, MainVendorLootInventory, NewItemSample, InitResource.Amount);
+		if (auto FindResult = InventoryManager->GetInventoryByTag(MainVendorContainerInvTag))
+		{
+			MainVendorLootInventory = FindResult;
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("MainVendorContainerInvTag is invalid"));
+		}
 	}
 }
 
