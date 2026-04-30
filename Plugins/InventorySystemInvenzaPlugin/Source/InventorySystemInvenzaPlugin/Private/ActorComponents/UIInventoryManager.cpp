@@ -177,11 +177,9 @@ bool UIInventoryManager::CreateWidget(UInventoryBase* InvToLink)
 	auto InvWidget = InvContainer->GetInventoryWidgetFromContainerSlot();
 	InvWidget->SetInventoryBaseRef(InvToLink);
 	InvWidget->SetUISettings(UISettings);
-	InvWidget->InitializeInventoryWidgetWithSettings(InvSettings);
+	InvWidget->InitializeInventoryWidgetWithSettings();
 
 	InvContainer->InitializeInventoryBindings();
-	
-	InvWidget->BindDelegated();
 
 	InvWidget->OnItemDroppedDelegate.AddDynamic(this, &UIInventoryManager::ItemTransferRequest);
 
@@ -231,7 +229,6 @@ void UIInventoryManager::InitWidgets()
 			InvWidget->InitializeInventoryWidget();			
 			
 			SlotBased->SetUISettings(UISettings);
-			SlotBased->BindDelegated();
 		}
 		else if (UListInventoryWidget* ListBased = Cast<UListInventoryWidget>(InvWidget))
 		{
@@ -240,8 +237,6 @@ void UIInventoryManager::InitWidgets()
 			auto TarListInv = Cast<UListInventory>(TarInv);
 			if (!TarListInv)
 				continue;
-
-			//TarListInv->SetEntryClass(TarListInv->GetInventorySettings().EntryClass);
 			
 			ListBased->SetInventoryBaseRef(TarListInv);
 			ListBased->SetUISettings(UISettings);

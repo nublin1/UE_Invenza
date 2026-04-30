@@ -11,6 +11,10 @@ UUInventoryBaseWidget::UUInventoryBaseWidget()
 {
 }
 
+void UUInventoryBaseWidget::InitializeInventoryWidgetWithSettings()
+{
+}
+
 void UUInventoryBaseWidget::CreateTooltipWidget()
 {
 	if (!InventoryRef)
@@ -20,6 +24,13 @@ void UUInventoryBaseWidget::CreateTooltipWidget()
 	
 	if (!InvSettings.bShowItemTooltips || !UISettings.ItemTooltipWidgetClass)
 		return;
+
+	if (ItemTooltipWidget)
+	{
+		ItemTooltipWidget->RemoveFromParent();
+		SetToolTip(nullptr);
+		ItemTooltipWidget = nullptr;
+	}
 	
 	ItemTooltipWidget = CreateWidget<UItemTooltipWidget>(this, UISettings.ItemTooltipWidgetClass);
 	SetToolTip(ItemTooltipWidget);

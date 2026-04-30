@@ -199,9 +199,9 @@ struct FInventorySlotBasedSettings
 	bool bIgnoreItemSize = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
-	int NumberRows = 0;
+	int InitNumberRows = 0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
-	int NumColumns = 0;
+	int InitNumColumns = 0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
 	FMargin SlotSpacing;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")

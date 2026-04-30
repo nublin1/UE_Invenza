@@ -15,6 +15,10 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API USlotbasedInventory : public UInventoryBa
 {
 	GENERATED_BODY()
 
+#pragma region Delegates
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventorySlotDataUpdated);
+#pragma endregion Delegates
+
 public:
 	USlotbasedInventory();
 
@@ -30,6 +34,8 @@ public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
+	UPROPERTY(BlueprintAssignable, Category="Inventory|Events")
+	FOnInventorySlotDataUpdated OnInventorySlotDataUpdated;
 	
 	//====================================================================
 	// FUNCTIONS
@@ -76,13 +82,17 @@ public:
 	// Setters
 	UFUNCTION()
 	void SetInventorySlots (const TArray<UInventorySlotData*>& InSlots) {this->InventorySlotData = InSlots;}
+	UFUNCTION(Server, Reliable)
+	void Server_SetWidgetSlotInitData (const TArray<FInventorySlotInfo>& InSlots);
 
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Replicated)
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Replicated, ReplicatedUsing = OnRep_InventorySlotData)
 	TArray<TObjectPtr<UInventorySlotData>> InventorySlotData;
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Replicated, ReplicatedUsing = OnRep_WidgetSlotInitData)
+	TArray<FInventorySlotInfo> WidgetSlotInitData;
 	
 	//UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TMap<TObjectPtr<AActor>, TArray<FSlotReservationData>> ReservedSlotsToAdd;
@@ -133,6 +143,11 @@ protected:
 	TArray<UItemBase*> GetAllSameItems(UItemBase* ReferenceItem);
 	UFUNCTION()
 	UItemBase* GetItemFromSlot(UInventorySlotData* Slot);
+
+	UFUNCTION()
+	void OnRep_InventorySlotData();
+	UFUNCTION()
+	void OnRep_WidgetSlotInitData();
 
 	UFUNCTION()
 	void GenerateInventorySlots();

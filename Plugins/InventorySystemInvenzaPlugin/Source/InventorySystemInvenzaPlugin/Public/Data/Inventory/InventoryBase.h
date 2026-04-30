@@ -151,6 +151,9 @@ public:
 
 	UFUNCTION()
 	virtual FInventorySettings GetInventorySettings() { return InventorySettings; }
+
+	UFUNCTION()
+	virtual FIntPoint GetInventorySize() { return InvSize; }
 	
 	UFUNCTION()
 	UItemCollection* GetItemCollectionLinked() { return ItemCollectionLinked; }

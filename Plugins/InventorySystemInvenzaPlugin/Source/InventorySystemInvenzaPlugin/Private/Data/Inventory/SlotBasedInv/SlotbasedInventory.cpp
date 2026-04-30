@@ -17,16 +17,17 @@ void USlotbasedInventory::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(USlotbasedInventory, InventorySlotData);
+	DOREPLIFETIME(USlotbasedInventory, WidgetSlotInitData);
 }
 
 bool USlotbasedInventory::ReplicateSubobjects(class UActorChannel* Channel, class FOutBunch* Bunch,
 	struct FReplicationFlags* RepFlags)
 {
-	bool bWroteSomething = false;
-	
+	bool bWroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
+
 	for (UInventorySlotData* Slot : InventorySlotData)
 	{
-		if (Slot && IsValid(Slot))
+		if (IsValid(Slot))
 		{
 			bWroteSomething |= Channel->ReplicateSubobject(Slot, *Bunch, *RepFlags);
 		}
@@ -43,6 +44,8 @@ void USlotbasedInventory::InitInventory()
 	{
 		GenerateInventorySlots();
 	}
+
+	InvSize = FIntPoint(InventorySettings.InventorySlotBasedSettings.InitNumberRows, InventorySettings.InventorySlotBasedSettings.InitNumColumns);
 
 	bWasInit = true;
 }
@@ -362,6 +365,13 @@ TArray<UInventorySlotData*> USlotbasedInventory::GetAvailableSlotForItem(
 
 	OutOrientation = EItemOrientationType::Horizontal;
 	return {};
+}
+
+void USlotbasedInventory::Server_SetWidgetSlotInitData_Implementation(const TArray<FInventorySlotInfo>& InSlots)
+{
+	this->WidgetSlotInitData = InSlots;
+	GenerateInventorySlots();
+	OnRep_WidgetSlotInitData();
 }
 
 void USlotbasedInventory::HandleRemoveItemsByType(UItemBase* ItemSample, int32 RequestedAmount)
@@ -1081,31 +1091,70 @@ UItemBase* USlotbasedInventory::GetItemFromSlot(UInventorySlotData* Slot)
 	return nullptr;
 }
 
+void USlotbasedInventory::OnRep_InventorySlotData()
+{
+	OnInventorySlotDataUpdated.Broadcast();
+}
+
+void USlotbasedInventory::OnRep_WidgetSlotInitData()
+{
+	//OnInventorySlotDataUpdated.Broadcast();
+}
+
 void USlotbasedInventory::GenerateInventorySlots()
 {
+	if (!this->InventoryOwnerActor)
+		return;
+	
 	if (InvSize.X <= 0 || InvSize.Y <= 0)
 		return;
 
-	TArray<UInventorySlotData*> ResultSlots;
-	int32 TotalSlots = InvSize.X * InvSize.Y;
-	ResultSlots.Reserve(TotalSlots);
+	if (!InventoryOwnerActor->HasAuthority()) return;
 
-	for (int32 X = 0; X < InvSize.X; X++)
+	TArray<UInventorySlotData*> ResultSlots;
+	
+	if (!WidgetSlotInitData.IsEmpty())
 	{
-		for (int32 Y = 0; Y < InvSize.Y; Y++)
+		ResultSlots.Reserve(WidgetSlotInitData.Num());
+
+		for (const FInventorySlotInfo& SlotInfo : WidgetSlotInitData)
 		{
 			UInventorySlotData* NewSlot = UInventorySlotData::CreateWithData(
-				this->GetOuter(),
-				NAME_None,
-				FIntPoint(X, Y),
-				nullptr,
-				EItemCategory::All);
+				this->InventoryOwnerActor,
+				SlotInfo.SlotName,
+				SlotInfo.CellPosition,
+				SlotInfo.UseAction.Get(),
+				SlotInfo.AllowedCategory);
 
 			if (NewSlot)
 				ResultSlots.Add(NewSlot);
 		}
 	}
+	else
+	{
+		int32 TotalSlots = InvSize.X * InvSize.Y;
+		ResultSlots.Reserve(TotalSlots);
+
+		for (int32 X = 0; X < InvSize.X; X++)
+		{
+			for (int32 Y = 0; Y < InvSize.Y; Y++)
+			{
+				UInventorySlotData* NewSlot = UInventorySlotData::CreateWithData(
+					this->InventoryOwnerActor,
+					NAME_None,
+					FIntPoint(X, Y),
+					nullptr,
+					EItemCategory::All);
+
+				if (NewSlot)
+					ResultSlots.Add(NewSlot);
+			}
+		}
+	}
 
 	InventorySlotData = ResultSlots;
+	WidgetSlotInitData.Empty();
+
+	OnRep_InventorySlotData();
 }
 

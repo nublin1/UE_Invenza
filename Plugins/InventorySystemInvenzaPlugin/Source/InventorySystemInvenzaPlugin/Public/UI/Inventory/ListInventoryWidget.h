@@ -36,7 +36,7 @@ public:
 	UListInventoryWidget();
 
 	virtual void InitializeInventoryWidget() override;
-	virtual void InitializeInventoryWidgetWithSettings(FInventorySettings InventoryStartupData) override;
+	virtual void InitializeInventoryWidgetWithSettings() override;
 	virtual void BindDelegated() override;
 	virtual void ReDrawAllItems() override;
 

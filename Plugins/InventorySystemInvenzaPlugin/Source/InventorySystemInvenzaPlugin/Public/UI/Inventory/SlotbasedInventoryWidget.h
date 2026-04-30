@@ -43,8 +43,10 @@ public:
 	// FUNCTIONS
 	//====================================================================
 	virtual void InitializeInventoryWidget() override;
-	virtual void InitializeInventoryWidgetWithSettings(FInventorySettings InventoryStartupData) override;
+	virtual void InitializeInventoryWidgetWithSettings() override;
 	virtual void BindDelegated() override;
+	UFUNCTION()
+	virtual void ReDrawInvSlots();
 	virtual void ReDrawAllItems() override;
 
 	virtual FIntPoint GetNumberRowsAndColumns() {return FIntPoint(NumberRows, NumColumns);}
@@ -120,9 +122,13 @@ protected:
 	
 	//====================================================================
 	// FUNCTIONS
-	//====================================================================	
-	UFUNCTION()
-	virtual void InitSlots();
+	//====================================================================
+	UFUNCTION(BlueprintCallable)
+	virtual void ApplyInventorySettings();
+	UFUNCTION(BlueprintCallable)
+	virtual void BuildInventorySlots();
+	UFUNCTION(BlueprintCallable)
+	virtual void CollectInitSlotsDataFromWidget();
 
 	//
 	virtual void ClearFilters() override;

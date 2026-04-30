@@ -59,9 +59,9 @@ UInventoryBase* UInventoryBase::CreateInventoryAdvanced(UObject* Outer, FInvento
 	if (!Inventory)
 		return nullptr;
 
-	Inventory->InitInventory();
 	Inventory->SetInventoryOwnerActor(OwnerActor);
 	Inventory->SetItemCollectionLink(InItemCollection);
+	Inventory->InitInventory();
 
 	return Inventory;
 }
@@ -83,7 +83,7 @@ UInventoryBase* UInventoryBase::DuplicateInventory(UObject* Outer)
 
 void UInventoryBase::InitInventory()
 {
-	InvSize = FIntPoint(InventorySettings.InventorySlotBasedSettings.NumberRows, InventorySettings.InventorySlotBasedSettings.NumColumns);
+	InvSize = FIntPoint(InventorySettings.InventorySlotBasedSettings.InitNumberRows, InventorySettings.InventorySlotBasedSettings.InitNumColumns);
 }
 
 void UInventoryBase::InitInventoryWithSettings(FInventorySettings NewInventorySettings)

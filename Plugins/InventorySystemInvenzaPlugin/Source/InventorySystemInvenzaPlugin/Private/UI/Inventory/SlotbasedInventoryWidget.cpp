@@ -54,108 +54,15 @@ void USlotbasedInventoryWidget::NativeConstruct()
 
 void USlotbasedInventoryWidget::InitializeInventoryWidget()
 {
-	InitSlots();
+	CollectInitSlotsDataFromWidget();
 	CreateTooltipWidget();
 }
 
-void USlotbasedInventoryWidget::InitializeInventoryWidgetWithSettings(FInventorySettings InventoryStartupData)
+void USlotbasedInventoryWidget::InitializeInventoryWidgetWithSettings()
 {
-	if (!SlotsGridPanel || !InventoryStartupData.InventorySlotBasedSettings.SlotbasedInventorySlotClass || !SlotBasedInventoryRef)
-	{
-		if (!InventoryStartupData.InventorySlotBasedSettings.SlotbasedInventorySlotClass)
-		{
-			UE_LOG(LogTemp, Error, TEXT("USlotbasedInventoryWidget: SlotbasedInventorySlotClass is NULL"));
-		}
-		return;
-	}
-
-	const bool bCollectFromWidget = InventoryStartupData.bCollectInvDataFromWidget;
-
-	TargetInventoryTag = InventoryStartupData.InventoryTag;
-
-	NumberRows  = InventoryStartupData.InventorySlotBasedSettings.NumberRows;
-	NumColumns  = InventoryStartupData.InventorySlotBasedSettings.NumColumns;
-	SlotSpacing = InventoryStartupData.InventorySlotBasedSettings.SlotSpacing;
-	InvCellSize = InventoryStartupData.InventorySlotBasedSettings.InvCellSize;
-
-	SlotsGridPanel->ClearChildren();
-	InventorySlots.Empty();
-
-	SlotsGridPanel->SetSlotPadding(SlotSpacing);
-
-	TArray<UInventorySlotData*> ExistingSlots;
-
-	if (!bCollectFromWidget)
-	{
-		ExistingSlots = SlotBasedInventoryRef->GetInventorySlots();
-	}
-
-	for (int32 Row = 0; Row < NumberRows; ++Row)
-	{
-		for (int32 Col = 0; Col < NumColumns; ++Col)
-		{
-			USlotbasedInventorySlot* NewSlot = CreateWidget<USlotbasedInventorySlot>(
-				GetOwningPlayer(),
-				InventoryStartupData.InventorySlotBasedSettings.SlotbasedInventorySlotClass
-			);
-
-			if (!NewSlot)
-				continue;
-
-			if (!NewSlot->GetDefaultCellImage() && DefaultCellImage)
-			{
-				NewSlot->UpdateVisualWithTexture(DefaultCellImage);
-			}
-
-			FIntPoint SlotPosit(Row, Col);
-
-			UInventorySlotData* SlotData = nullptr;
-
-			if (bCollectFromWidget)
-			{
-				SlotData = UInventorySlotData::CreateWithData(
-					this,
-					NAME_None,
-					SlotPosit,
-					nullptr,
-					NewSlot->AllowedSlotCategory
-				);
-
-				SlotData->InventorySlotInfo.LinkedEquipmentSlot = NewSlot->LinkedEquipmentSlotTag;
-			}
-			else
-			{
-				for (UInventorySlotData* ExistingSlot : ExistingSlots)
-				{
-					if (ExistingSlot && ExistingSlot->InventorySlotInfo.CellPosition == SlotPosit)
-					{
-						SlotData = ExistingSlot;
-						break;
-					}
-				}
-			}
-
-			if (!SlotData)
-				continue;
-
-			NewSlot->SetSlotData(SlotData);
-			NewSlot->SetSlotPosition(SlotPosit);
-
-			UUniformGridSlot* GridSlot = SlotsGridPanel->AddChildToUniformGrid(NewSlot, Row, Col);
-
-			InventorySlots.Add(NewSlot);
-		}
-	}
-
-	if (bCollectFromWidget)
-	{
-		auto SizeInv = GetNumberRowsAndColumns();
-		SlotBasedInventoryRef->SetInventorySize(SizeInv);
-		SlotBasedInventoryRef->SetInventorySlots(GetSlotData());
-	}
-
+	ApplyInventorySettings();
+	BuildInventorySlots();
 	CreateTooltipWidget();
-	
 }
 
 void USlotbasedInventoryWidget::BindDelegated()
@@ -177,6 +84,13 @@ void USlotbasedInventoryWidget::BindDelegated()
 	SlotBasedInventoryRef->OnInventoryRedrawRequested.AddDynamic(this, &USlotbasedInventoryWidget::ReDrawAllItems);
 	SlotBasedInventoryRef->OnTradeContextUpdated.AddDynamic(this, &USlotbasedInventoryWidget::UpdateTradeContext);
 	SlotBasedInventoryRef->OnRequestToResetItemVisual.AddDynamic(this, &USlotbasedInventoryWidget::ResetItemVisual);
+
+	SlotBasedInventoryRef->OnInventorySlotDataUpdated.AddDynamic(this, &USlotbasedInventoryWidget::ReDrawInvSlots);
+}
+
+void USlotbasedInventoryWidget::ReDrawInvSlots()
+{
+	InitializeInventoryWidgetWithSettings();
 }
 
 void USlotbasedInventoryWidget::ReDrawAllItems()
@@ -224,12 +138,103 @@ void USlotbasedInventoryWidget::SetInventoryBaseRef(UInventoryBase* NewInventory
 	{
 		InventoryRef = NewInventoryRef;
 		SlotBasedInventoryRef = SlotInventory;
+		BindDelegated();
 	}
 }
 
-void USlotbasedInventoryWidget::InitSlots()
+void USlotbasedInventoryWidget::ApplyInventorySettings()
+{
+	if (!SlotBasedInventoryRef)
+		return;
+	
+	auto InvSettings = SlotBasedInventoryRef->GetInventorySettings();
+	
+	if (!SlotsGridPanel || !InvSettings.InventorySlotBasedSettings.SlotbasedInventorySlotClass || !SlotBasedInventoryRef)
+	{
+		if (!InvSettings.InventorySlotBasedSettings.SlotbasedInventorySlotClass)
+		{
+			UE_LOG(LogTemp, Error, TEXT("USlotbasedInventoryWidget: SlotbasedInventorySlotClass is NULL"));
+		}
+		return;
+	}
+
+	TargetInventoryTag = InvSettings.InventoryTag;
+
+	auto InvSize = SlotBasedInventoryRef->GetInventorySize();
+	NumberRows  = InvSize.X;
+	NumColumns  = InvSize.Y;
+	SlotSpacing = InvSettings.InventorySlotBasedSettings.SlotSpacing;
+	InvCellSize = InvSettings.InventorySlotBasedSettings.InvCellSize;
+
+	SlotsGridPanel->SetSlotPadding(SlotSpacing);
+}
+
+void USlotbasedInventoryWidget::BuildInventorySlots()
 {
 	if (!SlotsGridPanel)
+	{
+		return;
+	}
+
+	SlotsGridPanel->ClearChildren();
+	InventorySlots.Empty();
+
+	TArray<UInventorySlotData*> ExistingSlots;
+	ExistingSlots = SlotBasedInventoryRef->GetInventorySlots();
+	
+	auto InvSettings = SlotBasedInventoryRef->GetInventorySettings();
+
+	for (int32 Row = 0; Row < NumberRows; ++Row)
+	{
+		for (int32 Col = 0; Col < NumColumns; ++Col)
+		{
+			USlotbasedInventorySlot* NewSlot = CreateWidget<USlotbasedInventorySlot>(
+				GetOwningPlayer(),
+				InvSettings.InventorySlotBasedSettings.SlotbasedInventorySlotClass
+			);
+
+			if (!NewSlot)
+				continue;
+
+			if (!NewSlot->GetDefaultCellImage() && DefaultCellImage)
+			{
+				NewSlot->UpdateVisualWithTexture(DefaultCellImage);
+			}
+
+			FIntPoint SlotPosit(Row, Col);
+
+			UInventorySlotData* SlotData = nullptr;
+			
+			{
+				for (UInventorySlotData* ExistingSlot : ExistingSlots)
+				{
+					if (ExistingSlot && ExistingSlot->InventorySlotInfo.CellPosition == SlotPosit)
+					{
+						SlotData = ExistingSlot;
+						break;
+					}
+				}
+			}
+
+			if (!SlotData)
+				continue;
+
+			NewSlot->SetSlotData(SlotData);
+			NewSlot->SetSlotPosition(SlotPosit);
+
+			UUniformGridSlot* GridSlot = SlotsGridPanel->AddChildToUniformGrid(NewSlot, Row, Col);
+
+			InventorySlots.Add(NewSlot);
+		}
+	}
+}
+
+void USlotbasedInventoryWidget::CollectInitSlotsDataFromWidget()
+{
+	if (!SlotsGridPanel)
+		return;
+
+	if (!SlotBasedInventoryRef)
 		return;
 	
 	TArray<TObjectPtr<USlotbasedInventorySlot>> NewInvSlots;
@@ -257,6 +262,8 @@ void USlotbasedInventoryWidget::InitSlots()
 		}
 	}
 
+	TArray<FInventorySlotInfo> InitialSlotLayout_temp;
+
 	for (int32 i = 0; i < NewInvSlots.Num(); ++i)
 	{
 		if (const UWidget* ChildWidget = SlotsGridPanel->GetChildAt(i))
@@ -268,10 +275,18 @@ void USlotbasedInventoryWidget::InitSlots()
 				NumColumns = UniSlot->GetColumn() + 1;
 
 			auto SlotPosit = FIntPoint(UniSlot->GetRow(),  UniSlot->GetColumn());
+
+			FInventorySlotInfo SlotInfo;
+			SlotInfo.SlotName = NAME_None,
+			SlotInfo.CellPosition = SlotPosit;
+			SlotInfo.UseAction = nullptr;
+			SlotInfo.AllowedCategory = NewInvSlots[i]->AllowedSlotCategory;
 			
-			UInventorySlotData* NewInventorySlotData = UInventorySlotData::CreateWithData(this, NAME_None, SlotPosit, nullptr, NewInvSlots[i]->AllowedSlotCategory);
-			NewInventorySlotData->InventorySlotInfo.LinkedEquipmentSlot = NewInvSlots[i]->LinkedEquipmentSlotTag;
-			NewInvSlots[i]->SetSlotData(NewInventorySlotData);
+			InitialSlotLayout_temp.Add(SlotInfo);
+			
+			//UInventorySlotData* NewInventorySlotData = UInventorySlotData::CreateWithData(SlotBasedInventoryRef->GetInventoryOwnerActor(), NAME_None, SlotPosit, nullptr, NewInvSlots[i]->AllowedSlotCategory);
+			//NewInventorySlotData->InventorySlotInfo.LinkedEquipmentSlot = NewInvSlots[i]->LinkedEquipmentSlotTag;
+			//NewInvSlots[i]->SetSlotData(NewInventorySlotData);
 		}
 	}
 
@@ -287,13 +302,11 @@ void USlotbasedInventoryWidget::InitSlots()
 	}
 	InventorySlots = ConvertedSlots;
 
-	if (SlotBasedInventoryRef)
-	{
-		auto SizeInv = GetNumberRowsAndColumns();
+	auto SizeInv = GetNumberRowsAndColumns();
 		
-		SlotBasedInventoryRef->SetInventorySize(SizeInv);
-		SlotBasedInventoryRef->SetInventorySlots(GetSlotData());
-	}
+	SlotBasedInventoryRef->SetInventorySize(SizeInv);
+	SlotBasedInventoryRef->SetInventorySlots(GetSlotData());
+	SlotBasedInventoryRef->Server_SetWidgetSlotInitData(InitialSlotLayout_temp);
 }
 
 void USlotbasedInventoryWidget::ClearFilters()

@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Settings/InvenzaSettings.h"
-#include "UI/Inventory/Container/InventoryContainerWidget.h"
 #include "Data/Inventory/InventoryTypes.h"
 #include "Interface/Inventory/InventoryInteractionHandler.h"
 #include "UIInventoryManager.generated.h"

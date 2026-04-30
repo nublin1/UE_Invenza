@@ -58,7 +58,7 @@ void UListInventoryWidget::InitializeInventoryWidget()
 	CreateTooltipWidget();
 }
 
-void UListInventoryWidget::InitializeInventoryWidgetWithSettings(FInventorySettings InventoryStartupData)
+void UListInventoryWidget::InitializeInventoryWidgetWithSettings()
 {
 	InitializeInventoryWidget();
 }
