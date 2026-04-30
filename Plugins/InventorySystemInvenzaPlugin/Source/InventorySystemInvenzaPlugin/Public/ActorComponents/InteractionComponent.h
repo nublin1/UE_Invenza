@@ -33,6 +33,9 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UInteractionComponent : public UActorComp
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEndInteract, UInteractableComponent*, TargetInteractableComponent);
 
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInteractionProgress, float, Progress);
+
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInteractableBusy);
+	
 #pragma endregion
 
 public:
@@ -60,6 +63,8 @@ public:
 	FOnEndInteract OnEndInteract;
 	UPROPERTY(BlueprintAssignable, Category="Interaction|Events")
 	FOnInteractionProgress OnInteractionProgress;
+	UPROPERTY(BlueprintAssignable, Category="Interaction|Events")
+	FOnInteractableBusy OnInteractableBusy;
 
 	//====================================================================
 	// FUNCTIONS
@@ -156,4 +161,7 @@ protected:
 	void InteractNotify();
 	UFUNCTION()
 	void EndInteractNotify();
+
+	UFUNCTION()
+	void BusyNotify();
 };

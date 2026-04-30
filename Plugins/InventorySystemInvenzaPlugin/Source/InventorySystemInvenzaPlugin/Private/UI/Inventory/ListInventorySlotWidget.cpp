@@ -136,7 +136,8 @@ FReply UListInventorySlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeom
 	{
 		FItemMoveData ItemMoveData;
 		ItemMoveData.SourceInventory = CachedEntry->ParentInventoryWidget->GetInventoryRef();
-		ItemMoveData.SourceItemPivotSlot = this;
+		if (this->GetSlotData())
+			ItemMoveData.SourceItemPivotSlotCoordinate = this->GetSlotData()->InventorySlotInfo.CellPosition;
 		ItemMoveData.SourceItem = CachedEntry->Item;
 		
 		if (Modifiers.bIsQuickGrabModifierActive)
@@ -182,7 +183,7 @@ FReply UListInventorySlotWidget::NativeOnMouseButtonDoubleClick(const FGeometry&
 
 	if (InMouseEvent.GetEffectingButton() == UISettings.ItemSelectKey)
 	{
-		Inv->TrySplitItem(CachedEntry->Item, CachedEntry->Item->GetQuantity() / 2);
+		Inv->RequestSplitStack(CachedEntry->Item, CachedEntry->Item->GetQuantity() / 2);
 	}
 
 	return FReply::Unhandled();
@@ -219,7 +220,7 @@ void UListInventorySlotWidget::NativeOnDragDetected(const FGeometry& InGeometry,
 	DragItemDragDropOperation->Pivot = EDragPivot::CenterCenter;
 	DragItemDragDropOperation->ItemMoveData.SourceItem = CachedEntry->Item;
 	DragItemDragDropOperation->ItemMoveData.SourceInventory = CachedEntry->ParentInventoryWidget->GetInventoryRef();
-	DragItemDragDropOperation->ItemMoveData.SourceItemPivotSlot = this;
+	DragItemDragDropOperation->ItemMoveData.SourceItemPivotSlotCoordinate = this->GetSlotData()->InventorySlotInfo.CellPosition;;
 	DragItemDragDropOperation->ItemMoveData.SavedOrientation = InitialItemOrientation;
 	DragItemDragDropOperation->ItemMoveData.TargetOrientation = InitialItemOrientation;
 

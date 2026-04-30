@@ -17,7 +17,11 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UInventoryListEntry : public UObject
 	GENERATED_BODY()
 	
 public:
-	UPROPERTY(BlueprintReadWrite, Category="Inventory")
+	virtual bool IsSupportedForNetworking() const override { return true; }
+	
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	
+	UPROPERTY(BlueprintReadWrite, Replicated, Category="Inventory")
 	TObjectPtr<UItemBase> Item = nullptr;
 
 	UPROPERTY(BlueprintReadWrite, Category="Inventory")

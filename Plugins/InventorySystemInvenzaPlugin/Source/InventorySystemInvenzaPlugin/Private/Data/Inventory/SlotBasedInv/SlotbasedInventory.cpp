@@ -3,11 +3,36 @@
 #include "Data/Inventory/SlotBasedInv/SlotbasedInventory.h"
 
 #include "ActorComponents/ItemCollection.h"
+#include "Engine/ActorChannel.h"
 #include "Factory/ItemFactory.h"
+#include "Net/UnrealNetwork.h"
 #include "UI/Inventory/InventorySlot.h"
 
 USlotbasedInventory::USlotbasedInventory()
 {
+}
+
+void USlotbasedInventory::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(USlotbasedInventory, InventorySlotData);
+}
+
+bool USlotbasedInventory::ReplicateSubobjects(class UActorChannel* Channel, class FOutBunch* Bunch,
+	struct FReplicationFlags* RepFlags)
+{
+	bool bWroteSomething = false;
+	
+	for (UInventorySlotData* Slot : InventorySlotData)
+	{
+		if (Slot && IsValid(Slot))
+		{
+			bWroteSomething |= Channel->ReplicateSubobject(Slot, *Bunch, *RepFlags);
+		}
+	}
+
+	return bWroteSomething;
 }
 
 void USlotbasedInventory::InitInventory()
@@ -205,28 +230,28 @@ bool USlotbasedInventory::CanPlaceItemAt(const FIntPoint& StartPos, UItemBase* I
 	return true;
 }
 
-bool USlotbasedInventory::TrySplitItem(UItemBase* ItemToSplit, int32 SplitAmount)
+void USlotbasedInventory::RequestSplitStack(UItemBase* ItemToSplit, int32 SplitAmount)
 {
 	if (!ItemToSplit || SplitAmount <= 0)
-		return false;
+		return;
 
 	if (ItemToSplit->GetQuantity() == 1 || ItemToSplit->GetQuantity() <= SplitAmount)
-		return false;
+		return;
 
 	EItemOrientationType FinalOrientation;
 	auto EmptySlots = GetAvailableSlotForItem(ItemToSplit, FinalOrientation);
 	if (EmptySlots.IsEmpty())
-		return false;
+		return;
 
 	if (InventorySettings.MaxStackCount > 0)
 	{
 		auto ResultMaxStack = ItemCollectionLinked->GetStackCountInContainer(InventoryContainerID);
 		if (ResultMaxStack + 1 >InventorySettings.MaxStackCount)
-			return false;
+			return;
 	}
 	
 	auto NewItem = ItemToSplit->DuplicateItem();
-	if (!NewItem) return false;
+	if (!NewItem) return;
 
 	NewItem->SetQuantity(SplitAmount);
 	
@@ -237,13 +262,10 @@ bool USlotbasedInventory::TrySplitItem(UItemBase* ItemToSplit, int32 SplitAmount
 	ItemMove.SavedOrientation = FinalOrientation;
 	ItemMove.TargetOrientation = FinalOrientation;
 
-	HandleRemoveItem(ItemToSplit, SplitAmount);
-	HandleAddItem(ItemMove, false);
-
-	UpdateMoneyInfo();
-	UpdateWeightInfo();
+	//InventoryOwnerActor->find
 	
-	return true;
+	OnSplitDelegate.Broadcast(this,ItemToSplit, SplitAmount);
+	
 }
 
 TArray<UItemBase*> USlotbasedInventory::GetAllItems()
@@ -642,8 +664,7 @@ int32 USlotbasedInventory::HandleStackableItems(FItemMoveData& ItemMoveData, int
 			auto Sameitems = GetAllSameItems(ItemMoveData.SourceItem);
 			if (Sameitems.Num() > 0)
 			{
-				TotalAddedAmount += DistributeToExistingStacks(Sameitems, AmountToDistribute, ItemMoveData.SourceItem,
-				                                               bOnlyCheck, AffectedPivotSlots);
+				TotalAddedAmount += DistributeToExistingStacks(Sameitems, AmountToDistribute, bOnlyCheck, AffectedPivotSlots);
 			}
 
 			if (AmountToDistribute <= 0) return RequestedAddAmount;
@@ -781,7 +802,6 @@ FItemAddResult USlotbasedInventory::TryReplaceItems(FItemMoveData& ItemMoveData,
 }
 
 int32 USlotbasedInventory::DistributeToExistingStacks(TArray<UItemBase*>& SameItems, int32& AmountToDistribute,
-                                                      UItemBase* ResourceToDeductFrom,
                                                       bool bOnlyCheck,
                                                       TMap<UInventorySlotData*, FItemPlacementData>& AffectedSlots)
 {
@@ -792,13 +812,18 @@ int32 USlotbasedInventory::DistributeToExistingStacks(TArray<UItemBase*>& SameIt
 		if (AmountToDistribute <= 0)
 			break;
 
+		// Пытаемся вставить в существующий стек.
+		// ВАЖНО: Внутри TryInsertToStackItem (или там, где меняется Quantity предмета) 
+		// должен вызываться InventoryArray.MarkItemDirty(Entry), иначе клиент не увидит новое число.
 		int32 ActualAmountToAdd = TryInsertToStackItem(Item, AmountToDistribute, bOnlyCheck);
 		if (ActualAmountToAdd > 0)
 		{
-			FItemMappingArrayWrapper Wrapper = ItemCollectionLinked->GetItemLocations().FindRef(
-				TObjectPtr<UItemBase>(Item));
-			auto Mapping = ItemCollectionLinked->FindItemMappingByContainerName(Item, InventoryContainerID);
-			AffectedSlots.Add(Mapping->OccupiedSlots[0], {ActualAmountToAdd, EItemOrientationType::Horizontal});
+			FItemMapping* Mapping = ItemCollectionLinked->FindItemMappingByContainerName(Item, InventoryContainerID);
+          
+			if (Mapping && Mapping->OccupiedSlots.Num() > 0)
+			{
+				AffectedSlots.Add(Mapping->OccupiedSlots[0], {ActualAmountToAdd, Mapping->ItemOrientation});
+			}
 
 			AmountToDistribute -= ActualAmountToAdd;
 			TotalAdded += ActualAmountToAdd;
@@ -825,9 +850,9 @@ UItemBase* USlotbasedInventory::AddNewItem(FItemMoveData& ItemMoveData, FItemMap
 	// Add item
 	OccupiedSlots.InventoryID = InventoryContainerID;
 	OccupiedSlots.bIsReferenceContainer = InventorySettings.bIsReferenceContainer;
-	FItemMapping& StoredMapping = ItemCollectionLinked->AddItem(FinalItem, OccupiedSlots);
+	FItemMapping StoredMappingCopy = ItemCollectionLinked->AddItem(FinalItem, OccupiedSlots);
 
-	NotifyAddNewItem(StoredMapping, FinalItem, ItemMoveData.SourceItem->GetQuantity());
+	NotifyAddNewItem(StoredMappingCopy, FinalItem, AddAmount);
 	UpdateWeightInfo();
 	UpdateMoneyInfo();
 
@@ -837,28 +862,22 @@ UItemBase* USlotbasedInventory::AddNewItem(FItemMoveData& ItemMoveData, FItemMap
 void USlotbasedInventory::ReplaceItem(UItemBase* Item, const TArray<UInventorySlotData*>& NewSlotDatas,
                                       EItemOrientationType NewItemOrientation)
 {
-	if (!ItemCollectionLinked)
+	if (!ItemCollectionLinked || !Item || NewSlotDatas.IsEmpty()) return;
+
+	FItemMapping OldMapping;
+	if (FItemMapping* FoundPtr = ItemCollectionLinked->FindItemMappingByContainerName(Item, InventoryContainerID))
 	{
-		return;
+		OldMapping = *FoundPtr;
 	}
-
-	if (!Item || NewSlotDatas.IsEmpty())
+	else return;
+	
+	ItemCollectionLinked->UpdateItemMapping(Item, InventoryContainerID, NewSlotDatas, NewItemOrientation);
+	
+	FItemMapping* NewMappingPtr = ItemCollectionLinked->FindItemMappingByContainerName(Item, InventoryContainerID);
+	if (NewMappingPtr)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("USlotbasedInventory::ReplaceItem: Invalid parameters."));
-		return;
+		NotifyReplaceItem(OldMapping.OccupiedSlots, *NewMappingPtr, Item);
 	}
-
-	FItemMapping* Mapping =
-		ItemCollectionLinked->FindItemMappingByContainerName(Item, InventoryContainerID);
-	if (!Mapping)
-		return;
-
-	TArray<TObjectPtr<UInventorySlotData>> OldSlots = Mapping->OccupiedSlots;
-
-	Mapping->OccupiedSlots = NewSlotDatas;
-	Mapping->ItemOrientation = NewItemOrientation;
-
-	NotifyReplaceItem(OldSlots, *Mapping, Item);
 }
 
 int32 USlotbasedInventory::TryInsertToStackItem(UItemBase* ItemToInsertInto,
@@ -877,7 +896,8 @@ int32 USlotbasedInventory::TryInsertToStackItem(UItemBase* ItemToInsertInto,
 	if (!bOnlyCheck)
 	{
 		ItemToInsertInto->SetQuantity(OldAmount + ActualAmountToAdd);
-		NotifyAddItemToStack(ItemToInsertInto, ActualAmountToAdd);
+		ItemCollectionLinked->MarkItemAsDirty(ItemToInsertInto);
+		NotifyAddItemToStack(ItemToInsertInto);
 		
 	}
 	//ActualAmountToAdd = OldAmount + ActualAmountToAdd;
@@ -971,8 +991,10 @@ TArray<UInventorySlotData*> USlotbasedInventory::CollectOccupiedSlots()
 	TArray<TObjectPtr<UInventorySlotData>> OccupiedSlots;
 	if (!ItemCollectionLinked)
 		return OccupiedSlots;
+
+	const FInventoryArray& InventoryData = ItemCollectionLinked->GetItemLocations();
 	
-	if (ItemCollectionLinked->GetItemLocations().IsEmpty())
+	if (InventoryData.Items.IsEmpty())
 		return OccupiedSlots;
 
 	for (const auto Mapping : ItemCollectionLinked->GetAllMappingsByContainer(InventoryContainerID))
@@ -1018,7 +1040,10 @@ TArray<UItemBase*> USlotbasedInventory::GetAllSameItems(UItemBase* ReferenceItem
 		UE_LOG(LogTemp, Warning, TEXT("GetAllSameItemsInContainer: %s"), TEXT("ReferenceItem is null."));
 		return SameItems;
 	}
-	if (ItemCollectionLinked->GetItemLocations().IsEmpty())
+	
+	const FInventoryArray& InventoryData = ItemCollectionLinked->GetItemLocations();
+	
+	if (InventoryData.Items.IsEmpty())
 		return SameItems;
 
 	SameItems = ItemCollectionLinked->GetAllSameItemsInContainer(InventoryContainerID, ReferenceItem);
@@ -1028,17 +1053,27 @@ TArray<UItemBase*> USlotbasedInventory::GetAllSameItems(UItemBase* ReferenceItem
 
 UItemBase* USlotbasedInventory::GetItemFromSlot(UInventorySlotData* Slot)
 {
-	if (ItemCollectionLinked->GetItemLocations().IsEmpty())
+	if (!Slot || !ItemCollectionLinked)
 		return nullptr;
 
-	for (const auto& Pair : ItemCollectionLinked->GetItemLocations())
+	const FInventoryArray& InventoryData = ItemCollectionLinked->GetItemLocations();
+	
+	if (InventoryData.Items.IsEmpty())
+		return nullptr;
+
+	for (const FInventoryEntry& Entry : InventoryData.Items)
 	{
-		for (auto Mapping : Pair.Value.Mappings)
+		for (const FItemMapping& Mapping : Entry.Locations.Mappings)
 		{
-			for (auto MapSlot : Mapping.OccupiedSlots)
+			if (Mapping.InventoryID != InventoryContainerID)
+				continue;
+
+			for (UInventorySlotData* MapSlot : Mapping.OccupiedSlots)
 			{
 				if (MapSlot && MapSlot->InventorySlotInfo.CellPosition == Slot->InventorySlotInfo.CellPosition)
-					return Pair.Key.Get();
+				{
+					return Entry.Item;
+				}
 			}
 		}
 	}
@@ -1073,3 +1108,4 @@ void USlotbasedInventory::GenerateInventorySlots()
 
 	InventorySlotData = ResultSlots;
 }
+

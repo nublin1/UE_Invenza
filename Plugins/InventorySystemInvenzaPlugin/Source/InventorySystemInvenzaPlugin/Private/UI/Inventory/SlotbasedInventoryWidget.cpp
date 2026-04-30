@@ -489,7 +489,6 @@ FVector2D USlotbasedInventoryWidget::CalculateItemVisualPosition(FIntPoint SlotP
 }
 
 
-
 void USlotbasedInventoryWidget::AddItemToPanel(FItemMapping& ItemSlots, UItemBase* Item)
 {
 	if (!Item)
@@ -515,7 +514,8 @@ void USlotbasedInventoryWidget::AddItemToPanel(FItemMapping& ItemSlots, UItemBas
 		GetAsContainerWidget(), UISettings.InventoryItemVisualClass);
 	ItemsVisualsPanel->AddChildToCanvas(ItemVisual);
 	ItemVisual->CoreCellWidget->Content_Image->SetBaseMaterial(UISettings.SlotBasedInventoryItemMaterial);
-	ItemSlots.ItemVisualLinked = ItemVisual;
+
+	SlotBasedInventoryRef->GetItemCollectionLinked()->UpdateItemVisualLinks(Item, SlotBasedInventoryRef->GetInventoryContainerID(), ItemVisual, nullptr);
 
 	for (auto ItemSlotData : ItemSlots.OccupiedSlots)
 	{
@@ -548,11 +548,18 @@ void USlotbasedInventoryWidget::ReplaceItemInPanel(TArray<UInventorySlotData*> O
 {
 	if (!Item) return;
 
-	for (auto ItemSlotData : OldItemSlots)
+	if (OldItemSlots.IsEmpty() && NewItemSlots.ItemVisualLinked)
 	{
-		if (auto ItemSlot = GetSlotByPosition(ItemSlotData->InventorySlotInfo.CellPosition))
+		for (auto& SlotToReset : InventorySlots) SlotToReset->ResetVisual();
+	}
+	else
+	{
+		for (auto ItemSlotData : OldItemSlots)
 		{
-			ItemSlot->ResetVisual();
+			if (auto ItemSlot = GetSlotByPosition(ItemSlotData->InventorySlotInfo.CellPosition))
+			{
+				ItemSlot->ResetVisual();
+			}
 		}
 	}
 
@@ -576,20 +583,23 @@ void USlotbasedInventoryWidget::ReplaceItemInPanel(TArray<UInventorySlotData*> O
 	FVector2D NewVisualPosition = CalculateItemVisualPosition(NewItemSlots.OccupiedSlots[0]->InventorySlotInfo.CellPosition);
 	//UE_LOG(LogTemp, Log, TEXT("Row: %f, Column: %f"),  NewVisualPosition.X,  NewVisualPosition.Y);
 	bool IgnoreSize = SlotBasedInventoryRef->GetInventorySettings().InventorySlotBasedSettings.bIgnoreItemSize;
-	auto TotalSize =UInventoryUtility::CalculateItemVisualSize(Item, NewItemSlots.ItemOrientation, InvCellSize, SlotSpacing, IgnoreSize);
+	auto TotalSize = UInventoryUtility::CalculateItemVisualSize(Item, NewItemSlots.ItemOrientation, InvCellSize, SlotSpacing, IgnoreSize);
 	NewItemSlots.ItemVisualLinked->UpdateItemVisual(Item, NewItemSlots.ItemOrientation, TotalSize, NewVisualPosition, IgnoreSize);
 }
 
-void USlotbasedInventoryWidget::UpdateItem(UItemBase* Item, int32 ChangedAmount)
+void USlotbasedInventoryWidget::UpdateItem(UItemBase* Item)
 {
 	if (!Item) return;
 
 	auto Mapping = SlotBasedInventoryRef->GetItemCollectionLinked()->FindItemMappingByContainerName(Item, SlotBasedInventoryRef->GetInventoryContainerID());
-	if (!Mapping)
+	if (!Mapping || !Mapping->ItemVisualLinked)
 	{
 		return;
 	}
-
+	FVector2D NewVisualPosition = CalculateItemVisualPosition(Mapping->OccupiedSlots[0]->InventorySlotInfo.CellPosition);
+	bool IgnoreSize = SlotBasedInventoryRef->GetInventorySettings().InventorySlotBasedSettings.bIgnoreItemSize;
+	auto TotalSize = UInventoryUtility::CalculateItemVisualSize(Item, Mapping->ItemOrientation, InvCellSize, SlotSpacing, IgnoreSize);
+	Mapping->ItemVisualLinked->UpdateItemVisual(Item, Mapping->ItemOrientation, TotalSize, NewVisualPosition, IgnoreSize);
 	Mapping->ItemVisualLinked->UpdateQuantityText(Item->GetQuantity());
 }
 
@@ -738,7 +748,7 @@ FReply USlotbasedInventoryWidget::NativeOnMouseButtonDown(const FGeometry& InGeo
 		{
 			FItemMoveData ItemMoveData;
 			ItemMoveData.SourceInventory = SlotBasedInventoryRef;
-			ItemMoveData.SourceItemPivotSlot = SlotUnderMouse;
+			ItemMoveData.SourceItemPivotSlotCoordinate = SlotUnderMouse->GetSlotData()->InventorySlotInfo.CellPosition;
 			ItemMoveData.SourceItem = ItemInSlot;
 			if (!ItemMoveData.SourceItem)
 				return FReply::Unhandled();
@@ -809,7 +819,7 @@ FReply USlotbasedInventoryWidget::NativeOnMouseButtonDoubleClick(const FGeometry
 		auto ItemInSlot = ItemCollection->GetItemFromSlot(SlotUnderMouse->GetSlotData(), InvID);
 		if (!ItemInSlot) return FReply::Unhandled();
 
-		SlotBasedInventoryRef->TrySplitItem(ItemInSlot, ItemInSlot->GetQuantity() / 2);
+		SlotBasedInventoryRef->RequestSplitStack(ItemInSlot, ItemInSlot->GetQuantity() / 2);
 	}
 
 	return Reply;
@@ -874,7 +884,7 @@ void USlotbasedInventoryWidget::NativeOnDragDetected(const FGeometry& InGeometry
     DragOp->Pivot = EDragPivot::TopLeft;
     DragOp->ItemMoveData.SourceItem = Item;
     DragOp->ItemMoveData.SourceInventory = SlotBasedInventoryRef;
-    DragOp->ItemMoveData.SourceItemPivotSlot = SlotUnderMouse;
+    DragOp->ItemMoveData.SourceItemPivotSlotCoordinate = SlotUnderMouse->GetSlotData()->InventorySlotInfo.CellPosition;
     DragOp->ItemMoveData.SavedOrientation = ItemMap->ItemOrientation;
     DragOp->ItemMoveData.TargetOrientation = ItemMap->ItemOrientation;
 
@@ -996,7 +1006,10 @@ bool USlotbasedInventoryWidget::NativeOnDrop(const FGeometry& InGeometry, const 
 		auto TargetSlot = GetSlotByPosition(GridPosition);
 
 		if (auto ItemMap = ItemCollection->FindItemMappingByContainerName(DragOp->ItemMoveData.SourceItem, InvID))
-			ItemMap->ItemVisualLinked->ChangeOpacity(1.0f);
+		{
+			if (ItemMap->ItemVisualLinked)
+				ItemMap->ItemVisualLinked->ChangeOpacity(1.0f);
+		}
 		
 		DragOp->ItemMoveData.TargetInventory = SlotBasedInventoryRef;
 		DragOp->ItemMoveData.TargetSlotCoordinate = TargetSlot->GetSlotPosition();

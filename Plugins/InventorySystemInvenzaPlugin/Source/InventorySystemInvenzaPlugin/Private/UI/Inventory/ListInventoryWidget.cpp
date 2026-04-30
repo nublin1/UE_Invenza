@@ -77,25 +77,26 @@ void UListInventoryWidget::BindDelegated()
 
 void UListInventoryWidget::ReDrawAllItems()
 {
+	if (!ListInventoryRef || !ItemsList) return;
+	
 	ItemsList->ClearListItems();
 	ListInventoryRef->FilteredInvSlotsArray.Reset();
-
-	for (auto InvSlot : ListInventoryRef->InvSlotsArray)
+	
+	for (UInventoryListEntry* InvSlot : ListInventoryRef->InvSlotsArray)
 	{
-		if (!InvSlot || !InvSlot->Item)
+		if (!IsValid(InvSlot) || !IsValid(InvSlot->Item))
 			continue;
-
+		
 		InvSlot->ParentInventoryWidget = this;
+		bool bPassesFilter = (ActiveFilters.Num() == 0) || 
+							 ActiveFilters.Contains(InvSlot->Item->GetItemRef().ItemCategory);
 
-		if (ActiveFilters.Num() == 0 ||
-			ActiveFilters.Contains(InvSlot->Item->GetItemRef().ItemCategory))
+		if (bPassesFilter)
 		{
 			ListInventoryRef->FilteredInvSlotsArray.Add(InvSlot);
 		}
 	}
-
-	RefreshFilteredItemsList();
-
+	
 	if (ItemFiltersPanel)
 	{
 		if (auto SearchBox = ItemFiltersPanel->GetSearchText())
@@ -104,10 +105,11 @@ void UListInventoryWidget::ReDrawAllItems()
 			if (!SearchText.IsEmpty())
 			{
 				SearchTextChanged(SearchText);
+				return; 
 			}
 		}
 	}
-
+	
 	ItemsList->SetListItems(ListInventoryRef->FilteredInvSlotsArray);
 }
 
@@ -225,38 +227,32 @@ void UListInventoryWidget::AddItemToPanel(FItemMapping& ItemSlots, UItemBase* It
 	if (!Item || !ListInventoryRef) return;
 
 	UInventoryListEntry* TargetEntry = nullptr;
-	
-	for (auto& InvSlot : ListInventoryRef->InvSlotsArray)
+	for (UInventoryListEntry* InvSlot : ListInventoryRef->InvSlotsArray)
 	{
-		if (InvSlot->Item == Item)
+		if (InvSlot && InvSlot->Item == Item)
 		{
 			TargetEntry = InvSlot;
 			break;
 		}
 	}
-	
 	if (!TargetEntry)
 	{
-		TargetEntry = NewObject<UInventoryListEntry>(ListInventoryRef, ListInventoryRef->GetEntryClass());
-		TargetEntry->Item = Item;
-		ListInventoryRef->InvSlotsArray.Add(TargetEntry);
+		GetWorld()->GetTimerManager().SetTimerForNextTick(this, &UListInventoryWidget::ReDrawAllItems);
+		return;
 	}
 
 	TargetEntry->ParentInventoryWidget = this;
-	
-	if (ActiveFilters.Num() == 0 || ActiveFilters.Contains(Item->GetItemRef().ItemCategory))
+	bool bPassesFilter = (ActiveFilters.Num() == 0) || 
+						 ActiveFilters.Contains(Item->GetItemRef().ItemCategory);
+    
+	if (bPassesFilter)
 	{
 		ListInventoryRef->FilteredInvSlotsArray.AddUnique(TargetEntry);
-	}
-	
-	RefreshFilteredItemsList();
-	
-	if (ItemFiltersPanel && ItemFiltersPanel->GetSearchText())
-	{
-		auto SearchText = ItemFiltersPanel->GetSearchText()->GetText();
-		if (!SearchText.IsEmpty())
+		ItemsList->AddItem(TargetEntry);
+		
+		if (ItemFiltersPanel && ItemFiltersPanel->GetSearchText())
 		{
-			SearchTextChanged(SearchText);
+			SearchTextChanged(ItemFiltersPanel->GetSearchText()->GetText());
 		}
 	}
 }
@@ -282,7 +278,7 @@ void UListInventoryWidget::RemoveItemFromPanel(FItemMapping FromSlots, UItemBase
 	}
 }
 
-void UListInventoryWidget::UpdateItem(UItemBase* Item, int32 ChangedAmount)
+void UListInventoryWidget::UpdateItem(UItemBase* Item)
 {
 	if (!Item) return;
 

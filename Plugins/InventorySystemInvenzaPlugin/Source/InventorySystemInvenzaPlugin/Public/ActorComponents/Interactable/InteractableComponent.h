@@ -16,44 +16,54 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UInteractableComponent : public UActorCom
 public:
 	UInteractableComponent();
 	
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Interactable|Data")
+	FInteractableData InteractableData;
+	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable, Category="Interactable|Focus")
 	virtual void BeginFocus();
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable, Category="Interactable|Focus")
 	virtual void EndFocus();
-	UFUNCTION()
+	
+	UFUNCTION(BlueprintCallable, Category="Interactable|Interaction")
 	virtual void BeginInteract(UInteractionComponent* InteractionComponent);
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable, Category="Interactable|Interaction")
 	virtual void EndInteract(UInteractionComponent* InteractionComponent);
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable, Category="Interactable|Interaction")
 	virtual void Interact(UInteractionComponent* InteractionComponent);
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable, Category="Interactable|Interaction")
 	virtual void StopInteract(UInteractionComponent* InteractionComponent);
 
-	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category="Interactable")
-	FInteractableData InteractableData;
+	UFUNCTION(BlueprintPure, Category="Interactable|State")
+	bool IsInteracting() const {return bIsInteracting;}
+
+	UFUNCTION(BlueprintCallable, Category="Interactable|State")
+	virtual void SetInteracting(bool NewState);
+	UFUNCTION(Server, Reliable, Category="Interactable|Network")
+	virtual void ServerSetInteracting(bool NewState);
 
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY()
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Replicated, Category="Interactable")
 	bool bIsInteracting = false;
 
-	UPROPERTY()
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category="Interactable|State")
 	TObjectPtr<UInteractionComponent> CurrentInteractionComponent = nullptr;
 
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable, Category="Interactable|Internal")
 	virtual void InitializeInteractionComponent();
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable, Category="Interactable|Internal")
 	virtual void UpdateInteractableData();
 };

@@ -3,9 +3,17 @@
 #include "Data/Inventory/InventorySlotData.h"
 
 #include "InputAction.h"
+#include "Net/UnrealNetwork.h"
 
 UInventorySlotData::UInventorySlotData(): InventorySlotInfo()
 {
+}
+
+void UInventorySlotData::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(UInventorySlotData, InventorySlotInfo);
 }
 
 UInventorySlotData* UInventorySlotData::Create(UObject* Outer)

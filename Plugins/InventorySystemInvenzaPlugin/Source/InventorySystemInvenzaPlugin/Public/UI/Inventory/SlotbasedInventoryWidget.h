@@ -114,6 +114,9 @@ protected:
 
 	UPROPERTY()
 	TArray<TObjectPtr<UInventorySlot>> InventorySlots;
+
+	UPROPERTY()
+	bool bIsNeedToReDrawItems = false;
 	
 	//====================================================================
 	// FUNCTIONS
@@ -137,14 +140,15 @@ protected:
 
 	UFUNCTION()
 	FVector2D CalculateItemVisualPosition(FIntPoint SlotPosition) const;
-	
+
+public:
 	virtual void AddItemToPanel(FItemMapping& ItemSlots, UItemBase* Item) override;
-	UFUNCTION()
-	virtual void ReplaceItemInPanel(TArray<UInventorySlotData*> OldItemSlots, FItemMapping& NewItemSlots, UItemBase* Item);
-	virtual void UpdateItem(UItemBase* Item, int32 ChangedAmount) override;
+	virtual void ReplaceItemInPanel(TArray<UInventorySlotData*> OldItemSlots, FItemMapping& NewItemSlots, UItemBase* Item) override;
+	virtual void UpdateItem(UItemBase* Item) override;
 	virtual void UpdateSlotInPanel(FItemMapping FromSlots, UItemBase* Item);
 	virtual void RemoveItemFromPanel(FItemMapping FromSlots, UItemBase* Item) override;
 	
+protected:
 	UFUNCTION()
 	virtual void UsedItemInPanel(UInventorySlotData* UsedSlot);
 	

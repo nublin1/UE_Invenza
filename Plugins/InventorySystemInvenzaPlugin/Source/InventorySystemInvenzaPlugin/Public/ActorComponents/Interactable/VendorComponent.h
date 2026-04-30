@@ -29,9 +29,12 @@ public:
 	UVendorComponent();
 
 protected:
+	virtual void OnRegister() override;
 	virtual void BeginPlay() override;
 
 public:
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
@@ -48,6 +51,10 @@ public:
 	virtual void StopInteract(UInteractionComponent* InteractionComponent) override;
 
 	virtual FTradeResult ProcessTradeRequest(const FItemMoveData& TradeData) override;
+	UFUNCTION(BlueprintCallable, Server, Reliable)
+	virtual void Server_ProcessTradeRequest(const FItemMoveData& TradeData);
+	UFUNCTION(BlueprintCallable)
+	virtual FTradeResult HandleProcessTrade(const FItemMoveData& TradeData);
 
 	UFUNCTION()
 	virtual FTradeSettings GetTradeSettings() const override {return TradeSettings;}
@@ -60,14 +67,10 @@ public:
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
-	//====================================================================
-	UPROPERTY()
-	bool bIsInteract = false;
-	
-	//
+	//====================================================================	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vendor|Config")
 	FGameplayTag MainVendorContainerInvTag;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Vendor|Config")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated, Category = "Vendor|Config")
 	FTradeSettings TradeSettings;
 
 	// Data

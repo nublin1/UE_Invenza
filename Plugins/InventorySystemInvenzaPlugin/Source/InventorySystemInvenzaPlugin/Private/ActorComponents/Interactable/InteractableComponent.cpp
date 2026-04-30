@@ -2,8 +2,18 @@
 
 #include "ActorComponents/Interactable/InteractableComponent.h"
 
+#include "Net/UnrealNetwork.h"
+
 UInteractableComponent::UInteractableComponent()
 {
+	SetIsReplicatedByDefault(true);
+}
+
+void UInteractableComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	
+	DOREPLIFETIME(UInteractableComponent, bIsInteracting);
 }
 
 // Add default functionality here for any IInteractionInterface functions that are not pure virtual.
@@ -29,6 +39,23 @@ void UInteractableComponent::Interact(UInteractionComponent* InteractionComponen
 
 void UInteractableComponent::StopInteract(UInteractionComponent* InteractionComponent)
 {
+}
+
+void UInteractableComponent::SetInteracting(bool NewState)
+{
+	if (GetOwner()->HasAuthority())
+	{
+		bIsInteracting = NewState;
+	}
+	else
+	{
+		ServerSetInteracting(NewState);
+	}
+}
+
+void UInteractableComponent::ServerSetInteracting_Implementation(bool NewState)
+{
+	bIsInteracting = NewState;
 }
 
 void UInteractableComponent::InitializeInteractionComponent()

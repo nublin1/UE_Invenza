@@ -5,13 +5,13 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Containers/Map.h"
+#include "Data/Inventory/InventoryReplicationTypes.h"
 #include "UObject/ObjectPtr.h"
 #include "Engine/DataTable.h"
 #include "Data/Items/ItemBase.h"
 #include "Data/Inventory/InventoryTypes.h"
-#include "Net/Serialization/FastArraySerializer.h"
+#include "Data/Inventory/InventoryReplicationTypes.h"
 #include "ItemCollection.generated.h"
-
 
 struct FItemSaveEntry;
 class UIInventoryManager;
@@ -24,48 +24,15 @@ class USlotbasedInventorySlot;
 class USlotbasedInventoryWidget;
 class UItemBase;
 
-USTRUCT(BlueprintType)
-struct FInventoryEntry : public FFastArraySerializerItem
-{
-	GENERATED_BODY()
-	
-	UPROPERTY()
-	TObjectPtr<UItemBase> Item = nullptr;
-	
-	UPROPERTY()
-	FItemMappingArrayWrapper Locations;
-	
-	void PostReplicatedAdd(const struct FInventoryArray& InArraySerializer);
-	void PostReplicatedChange(const struct FInventoryArray& InArraySerializer);
-	void PreReplicatedRemove(const struct FInventoryArray& InArraySerializer);
-};
-
-USTRUCT(BlueprintType)
-struct FInventoryArray : public FFastArraySerializer
-{
-	GENERATED_BODY()
-
-	UPROPERTY()
-	TArray<FInventoryEntry> Items;
-	UPROPERTY()
-	TObjectPtr<UIInventoryManager> OwningManager;
-	
-	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
-	{
-		return FFastArraySerializer::FastArrayDeltaSerialize<FInventoryEntry, FInventoryArray>(Items, DeltaParms, *this);
-	}
-};
-
-template<>
-struct TStructOpsTypeTraits<FInventoryArray> : public TStructOpsTypeTraitsBase2<FInventoryArray>
-{
-	enum { WithNetDeltaSerializer = true };
-};
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class INVENTORYSYSTEMINVENZAPLUGIN_API UItemCollection : public UActorComponent
 {
 	GENERATED_BODY()
+
+#pragma region Delegates
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInventoryItemsChanged, const FString&, InventoryID);
+#pragma endregion Delegates
 
 public:
 	UItemCollection();
@@ -73,25 +40,66 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+	virtual void ReadyForReplication() override;
+
 public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
+	UPROPERTY(BlueprintAssignable, Category = "Item Collection")
+	FOnInventoryItemsChanged OnInventoryItemsChanged;
 	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+	UFUNCTION(BlueprintCallable)
+	void InitItemCollection();
 
 	// Invs
 	TArray<UInventoryBase*> GetActorInventories() {return ActorInventories;}
+	
+	FLinkedInventories GetLinkedInventories() {return LinkedInventories;}
+	
+	void SetVendorInventory(UInventoryBase* InVendorInv) {LinkedInventories.SetVendor(InVendorInv);}
+	void SetExternalInventory(UInventoryBase* InExternalInventory) {LinkedInventories.SetExternal(InExternalInventory);}	
+
+	UFUNCTION(BlueprintCallable)
+	UInventoryBase* GetInventoryByTag(const FGameplayTag& Tag);
+
+	UFUNCTION(BlueprintCallable)
+	UInventoryBase* GetInventoryByID(FString ContainerID);
 
 	void AddPawnInventory_Internal(UInventoryBase* InInventory);
+
+	// Widgets
+	void RegisterContainerWidget(UInventoryBase* Inventory,	UInventoryContainerWidget* Widget);
+
+	void UnregisterContainerWidget(UInventoryBase* Inventory);
+
+	UInventoryContainerWidget* GetContainerWidget(UInventoryBase* Inventory) const;
+
+	bool HasContainerWidget(UInventoryBase* Inventory) const { return InventoryContainerWidgetMap.Contains(Inventory);}
+
+	const TMap<TObjectPtr<UInventoryBase>, TObjectPtr<UInventoryContainerWidget>>& GetContainerWidgetMap() const
+	{
+		return InventoryContainerWidgetMap;
+	}
 	
 	// Items
+	UFUNCTION(BlueprintCallable)
+	void MarkItemAsDirty(UItemBase* Item);
+	
 	UFUNCTION(BlueprintCallable, Category = "Item Collection")
 	float CalculateAvailableMoney();
+
+	UFUNCTION(BlueprintCallable, Category = "Item Collection")
+	void UpdateItemMapping(UItemBase* Item, const FString& InventoryID, const TArray<UInventorySlotData*>& NewSlots, EItemOrientationType NewOrientation);
+	UFUNCTION(BlueprintCallable, Category = "Item Collection")
+	void UpdateItemVisualLinks(UItemBase* Item, const FString& InventoryID, 
+											UInventoryItemWidget* InWidget = nullptr, 
+											AStorageVisualRepresentation* InActor = nullptr);
 
 	FInventoryArray GetItemLocations() const {return InventoryArray;}
 	
@@ -104,20 +112,22 @@ public:
 	UItemBase* GetItemFromSlot(UInventorySlotData* TargetSlotData, const FString& InventoryID);
 	
 	UFUNCTION(BlueprintCallable, Category = "Item Collection|Item Management")
-	FItemMapping& AddItem(UItemBase* NewItem, const FItemMapping& ItemMapping);
+	FItemMapping AddItem(UItemBase* NewItem, const FItemMapping& ItemMapping);
 	UFUNCTION(BlueprintCallable, Category="Item Collection|Item Management")
 	void RemoveItem(UItemBase* Item, FString ContainerID);
 	UFUNCTION(BlueprintCallable, Category = "Item Collection|Item Management")
 	void RemoveItemFromAllContainers(UItemBase* Item);
 	
 	FItemMapping* FindItemMappingByContainerName(UItemBase* Item, FString InventoryID);
+	TArray<FItemMapping> FindAllMappingsForItem(UItemBase* Item);
+	
 
 	UFUNCTION(BlueprintCallable)
 	bool ItemHasInventory(UItemBase* Item, FString InventoryID);
 
 	//
 	UFUNCTION()
-	void SetInvManager(UIInventoryManager* NewManager) {InvManager = NewManager;}
+	void SetInvManager(UIInventoryManager* NewManager) {InventoryArray.OwningManager = NewManager;}
 
 	UFUNCTION(BlueprintCallable)
 	void SerializeForSave(TArray<FItemSaveEntry>& OutData, const TArray<FString>& InventoryFilter);
@@ -126,25 +136,45 @@ public:
 		UInventoryBase* OverrideInventory, // Used to simulate a specific inventory
 		const TMap<FString, FString>& IDMapping); // Key: Old ID, Value: New ID
 
+	UFUNCTION()
+	void NotifyUI_ItemChanged(UItemBase* Item, const FString& ContainerID, EInventoryActionType Action);
+
+	UFUNCTION()
+	void NotifyUI_ReDraw(const FString& ContainerID);
+
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY()
-	TObjectPtr<UIInventoryManager> InvManager = nullptr;
-	
-	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	//TMap<TObjectPtr<UItemBase>, FItemMappingArrayWrapper> ItemLocations;
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated)
 	FInventoryArray InventoryArray;
 
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Replicated )
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Replicated, ReplicatedUsing = OnRep_ActorInventories)
 	TArray<TObjectPtr<UInventoryBase>> ActorInventories;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Replicated, ReplicatedUsing=OnRep_LinkedInventories)
+	FLinkedInventories LinkedInventories;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
+	TMap<TObjectPtr<UInventoryBase>, TObjectPtr<UInventoryContainerWidget>> InventoryContainerWidgetMap;
+
+	//
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
+	bool bWasInit = false;
 	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+	UFUNCTION()
+	void OnRep_LinkedInventories();
+		
+	UFUNCTION()
+	void OnRep_ActorInventories();
 
+	UFUNCTION()
+	void OnItemDataReplicated(UItemBase* Item);
+
+	virtual FItemMapping* GetMappingMutable(UItemBase* Item, const FString& InventoryID, FInventoryEntry*& OutEntry);
+	
 	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 };

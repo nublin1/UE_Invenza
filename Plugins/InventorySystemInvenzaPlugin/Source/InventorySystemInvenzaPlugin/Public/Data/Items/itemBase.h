@@ -19,8 +19,8 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UItemBase : public UObject
 
 #pragma region Delegates
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUseItemDelegate, UItemBase*, Item);
-
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAmountChangedDelegate, int32, AmountChanged, UItemBase*, ItemBase);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnItemDataReplicated, UItemBase*, Item);
 #pragma endregion Delegates
 
 public:
@@ -37,6 +37,8 @@ public:
 	FOnUseItemDelegate OnUseItemDelegate;
 	UPROPERTY(BlueprintAssignable, Category = "Item|Events")
 	FOnAmountChangedDelegate OnAmountChangedDelegate;
+	UPROPERTY(BlueprintAssignable, Category = "Item|Events")
+	FOnItemDataReplicated OnItemDataReplicated;
 
 	//====================================================================
 	// STATIC METHODS
@@ -120,11 +122,17 @@ protected:
 	FName ItemID;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item|Data")
 	FItemMetaData ItemRef;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, Category = "Item|Data")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, ReplicatedUsing=OnRep_ItemRow, Category = "Item|Data")
 	FDataTableRowHandle ItemRow;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Replicated, Category = "Item|Data")
 	int32 Quantity;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Item|Data")
 	TMap<TObjectPtr<AActor>, int32> ReservedAmounts;
+
+	//====================================================================
+	// FUNCTIONS
+	//====================================================================
+	UFUNCTION()
+	void OnRep_ItemRow();
 };

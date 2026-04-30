@@ -17,9 +17,11 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UInventoryBase : public UObject
 	GENERATED_BODY()
 
 #pragma region Delegates
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnSplitDelegate, UInventoryBase*, TargetInventory, UItemBase*, ItemToSplit, int32, SplitAmount);
+	
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAddItemDelegate, FItemMapping&, ItemSlots, UItemBase*, Item);
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnStackedItemDelegate, UItemBase*, Item, int32, AddedAmount);
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnstackedItemDelegate, UItemBase*, Item, int32, RemovedAmount);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnStackedItemDelegate, UItemBase*, Item);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnstackedItemDelegate, UItemBase*, Item);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnItemRemovedDelegate, FItemMapping, ItemSlots, UItemBase*, Item);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnItemReplaceDelegate, TArray<UInventorySlotData*>, OldItemSlots,
 	                                               FItemMapping&, NewItemSlots, UItemBase*, Item);
@@ -39,10 +41,15 @@ public:
 
 	virtual bool IsSupportedForNetworking() const override { return true; }
 
+	virtual bool ReplicateSubobjects(class UActorChannel* Channel, class FOutBunch* Bunch, struct FReplicationFlags* RepFlags) { return false; }
+
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	// Delegates
+	UPROPERTY(BlueprintAssignable, Category="Inventory|Events")
+	FOnSplitDelegate OnSplitDelegate;
+	
 	UPROPERTY(BlueprintAssignable, Category="Inventory|Events")
 	FOnAddItemDelegate OnAddItemDelegate;
 
@@ -85,6 +92,7 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+	
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	static UInventoryBase* CreateInventory(UObject* Outer, FInventoryStartupData StartupData);
 
@@ -107,8 +115,8 @@ public:
 	UFUNCTION(BlueprintCallable)
 	virtual void SortItemsInContainerByName() {};
 
-	virtual bool TrySplitItem(UItemBase* ItemToSplit, int32 SplitAmount)
-	PURE_VIRTUAL(UInventoryBase::TrySplitItem, return false;);
+	virtual void RequestSplitStack(UItemBase* ItemToSplit, int32 SplitAmount)
+	PURE_VIRTUAL(UInventoryBase::TrySplitItem, );
 
 	UFUNCTION(BlueprintCallable)
 	virtual void HandleRemoveItemsByType(UItemBase* ItemSample, int32 RequestedAmount)
@@ -151,7 +159,10 @@ public:
 	virtual AActor* GetInventoryOwnerActor() {return InventoryOwnerActor;	}
 
 	UFUNCTION()
-	virtual FTradeContext GetTradeContext() {return TradeContext;} 
+	virtual FTradeContext GetTradeContext() {return TradeContext;}
+
+	UFUNCTION(BlueprintCallable)
+	virtual TArray<UInventorySlotData*> GetAvailableSlotForItem(UItemBase* Item, EItemOrientationType& OutOrientation);
 
 	// Setters
 	UFUNCTION()
@@ -240,8 +251,8 @@ protected:
 	// Event Notifiers
 	//====================================================================
 	void NotifyAddNewItem(FItemMapping& FromSlots, UItemBase* NewItem, int32 ChangeQuantity);
-	void NotifyAddItemToStack(UItemBase* Item, int32 ChangeQuantity);
-	void NotifyRemoveItemFromStack(UItemBase* Item, int32 ChangeQuantity);
+	void NotifyAddItemToStack(UItemBase* Item);
+	void NotifyRemoveItemFromStack(UItemBase* Item);
 	void NotifyFullyRemoveItem(FItemMapping FromSlots, UItemBase* Item);
 	virtual void NotifyReplaceItem(TArray<UInventorySlotData*> OldItemSlots, FItemMapping& NewItemSlots, UItemBase* Item);
 
@@ -254,4 +265,7 @@ protected:
 	virtual void OnRep_TradeContext();
 	virtual void NotifyReDrawRequest();
 	virtual void NotifyRequestToResetItemVisual(UItemBase* Item);
+
+	//
+	
 };

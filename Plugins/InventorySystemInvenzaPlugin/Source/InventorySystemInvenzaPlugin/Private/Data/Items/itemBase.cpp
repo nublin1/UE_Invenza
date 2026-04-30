@@ -14,6 +14,7 @@
 
 UItemBase::UItemBase(): ItemRef(), Quantity(0)
 {
+	
 }
 
 void UItemBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -210,7 +211,7 @@ UItemBase* UItemBase::ConsumeReserved(AActor* Requestor, int32 RequestedAmount)
 	NewRes->SetQuantity(ToConsume);
 
 	auto OldAmount = Quantity;    
-	// Списываем
+
 	Quantity -= ToConsume;
 	    
 	ReservedAmounts.Remove(Requestor);
@@ -220,4 +221,16 @@ UItemBase* UItemBase::ConsumeReserved(AActor* Requestor, int32 RequestedAmount)
 		OnAmountChangedDelegate.Broadcast(-ToConsume , this);
     
 	return NewRes;
+}
+
+void UItemBase::OnRep_ItemRow()
+{
+	if (!ItemRow.DataTable)
+		return;
+	
+	if (FItemData* Row = ItemRow.GetRow<FItemData>(TEXT("OnRep_ItemRow")))
+	{
+		ItemRef = Row->ItemMetaData;
+		OnItemDataReplicated.Broadcast(this);
+	}
 }

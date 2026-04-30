@@ -98,13 +98,17 @@ protected:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+public:
 	UFUNCTION()
 	virtual void AddItemToPanel(FItemMapping& ItemSlots, UItemBase* Item) PURE_VIRTUAL(UUInventoryWidgetBase::AddItemToPanel,);
 	UFUNCTION()
-	virtual void RemoveItemFromPanel(FItemMapping FromSlots, UItemBase* Item)PURE_VIRTUAL(UUInventoryWidgetBase::RemoveItemFromPanel,);
+	virtual void RemoveItemFromPanel(FItemMapping FromSlots, UItemBase* Item) PURE_VIRTUAL(UUInventoryWidgetBase::RemoveItemFromPanel,);
 	UFUNCTION()
-	virtual void UpdateItem(UItemBase* Item, int32 ChangedAmount) PURE_VIRTUAL(UUInventoryWidgetBase::RemoveItemFromPanel,);
+	virtual void ReplaceItemInPanel(TArray<UInventorySlotData*> OldItemSlots, FItemMapping& NewItemSlots, UItemBase* Item) {};
+	UFUNCTION()
+	virtual void UpdateItem(UItemBase* Item) PURE_VIRTUAL(UUInventoryWidgetBase::RemoveItemFromPanel,);
 
+protected:
 	// Filters
 	UFUNCTION()
 	virtual void ClearFilters() PURE_VIRTUAL(UUInventoryWidgetBase::ClearFilters,);

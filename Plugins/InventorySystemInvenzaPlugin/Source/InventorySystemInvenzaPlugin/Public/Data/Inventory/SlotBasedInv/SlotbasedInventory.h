@@ -10,13 +10,19 @@
 #include "SlotbasedInventory.generated.h"
 
 
-UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
+UCLASS(ClassGroup=(Custom))
 class INVENTORYSYSTEMINVENZAPLUGIN_API USlotbasedInventory : public UInventoryBase
 {
 	GENERATED_BODY()
 
 public:
 	USlotbasedInventory();
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	virtual bool IsSupportedForNetworking() const override { return true; }
+
+	virtual bool ReplicateSubobjects(class UActorChannel* Channel, class FOutBunch* Bunch, struct FReplicationFlags* RepFlags) override;
 
 protected:
 
@@ -47,7 +53,7 @@ public:
 	bool CanPlaceItemAt(const FIntPoint& StartPos, UItemBase* ItemBase, EItemOrientationType Orientation, TArray<UInventorySlotData*> IgnoreSlots);
 
 	UFUNCTION(BlueprintCallable)
-	virtual bool TrySplitItem(UItemBase* ItemToSplit, int32 SplitAmount) override;
+	virtual void RequestSplitStack(UItemBase* ItemToSplit, int32 SplitAmount) override;
 
 	virtual void HandleRemoveItemsByType(UItemBase* ItemSample, int32 RequestedAmount) override;
 	virtual void HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity) override;
@@ -64,8 +70,8 @@ public:
 	TArray<UInventorySlotData*> GetSlotsForItemAt(const FIntPoint& StartPos, UItemBase* ItemBase, EItemOrientationType Orientation);
 	UFUNCTION()
 	TArray<FIntPoint> GetItemGridPositions(const FIntPoint& StartPos, FIntPoint Size);
-	UFUNCTION(BlueprintCallable)
-	TArray<UInventorySlotData*> GetAvailableSlotForItem(UItemBase* Item, EItemOrientationType& OutOrientation);
+	
+	virtual TArray<UInventorySlotData*> GetAvailableSlotForItem(UItemBase* Item, EItemOrientationType& OutOrientation) override;
 
 	// Setters
 	UFUNCTION()
@@ -75,7 +81,7 @@ protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Replicated)
 	TArray<TObjectPtr<UInventorySlotData>> InventorySlotData;
 	
 	//UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
@@ -93,7 +99,6 @@ protected:
 	
 	UFUNCTION()
 	int32 DistributeToExistingStacks(TArray<UItemBase*>& SameItems, int32& AmountToDistribute,
-		UItemBase* ResourceToDeductFrom,
 		bool bOnlyCheck,TMap<UInventorySlotData*, FItemPlacementData>& AffectedSlots);
 	
 	virtual UItemBase* AddNewItem(FItemMoveData& ItemMoveData, FItemMapping OccupiedSlots, int32 AddAmount) override;
@@ -131,5 +136,5 @@ protected:
 
 	UFUNCTION()
 	void GenerateInventorySlots();
-	
+
 };

@@ -29,7 +29,7 @@ void UInteractionComponent::BeginPlay()
 	GetWorld()->GetTimerManager().SetTimer(InitTimerHandle, [this]
 	{
 		InitInteractionComponent();
-	}, 0.3f, false);
+	}, 0.5f, false);
 }
 
 void UInteractionComponent::TickComponent(float DeltaTime, ELevelTick TickType,
@@ -58,17 +58,27 @@ void UInteractionComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 
 void UInteractionComponent::InitInteractionComponent()
 {
-	auto PlayerCharacter = Cast<ACharacter>(GetOwner());
-	if (!PlayerCharacter)
+	APawn* OwnerPawn = Cast<APawn>(GetOwner());
+	if (!OwnerPawn || !OwnerPawn->IsLocallyControlled())
+	{
+		UE_LOG(LogTemp, Log, TEXT("InitInteractionComponent: Skipping input binding — not locally controlled"));
 		return;
-
-	if (auto CameraComp = PlayerCharacter->FindComponentByClass<UCameraComponent>())
+	}
+	
+	if (auto CameraComp = OwnerPawn->FindComponentByClass<UCameraComponent>())
 		CameraComponent = CameraComp;
 	
 	UEnhancedInputComponent* Input = Cast<UEnhancedInputComponent>(GetOwner()->InputComponent);
 	if (!Input)
+	{
+		UE_LOG(LogTemp, Error, TEXT("InitInteractionComponent: InputComponent is NULL or not EnhancedInput. InputComponent=%s"),
+		   GetOwner()->InputComponent ? *GetOwner()->InputComponent->GetClass()->GetName() : TEXT("NULL"));
 		return;
+	}
 
+	UE_LOG(LogTemp, Log, TEXT("InitInteractionComponent: Binding actions, InteractAction=%s"),
+	   InteractAction ? *InteractAction->GetName() : TEXT("NULL"));
+	
 	Input->BindAction(InteractAction, ETriggerEvent::Started, this, &UInteractionComponent::BeginInteract);
 	Input->BindAction(InteractAction, ETriggerEvent::Completed, this, &UInteractionComponent::EndInteract);
 }
@@ -168,41 +178,43 @@ void UInteractionComponent::BeginInteract()
 	PerformInteractionCheck();
 
 	if (!InteractionData.CurrentInteractable)
+		return;
+
+	if (!IsValid(TargetInteractableComponent))
+		return;
+	
+	if (CurrentInteractableComponent &&
+		CurrentInteractableComponent == TargetInteractableComponent)
 	{
+		StopInteract();
 		return;
 	}
-
-	if (IsValid(TargetInteractableComponent))
+	
+	if (TargetInteractableComponent->IsInteracting())
 	{
-		if (GetWorld()->GetTimerManager().IsTimerActive(TimerHandle_Interaction))
-		{
-			GetWorld()->GetTimerManager().ClearTimer(TimerHandle_Interaction);
-			return;
-		}
-		
-		if (CurrentInteractableComponent && CurrentInteractableComponent == TargetInteractableComponent)
-		{
-			StopInteract();
-			return;
-		}
-		else
-		{
-			StopInteract();
-			TargetInteractableComponent->BeginInteract(this);
-		}
-		
-		if (FMath::IsNearlyZero(TargetInteractableComponent->InteractableData.InteractableDuration, 0.1f))
-		{
-			Interact();
-		}
-		else
-		{
-			InteractionStartTime = GetWorld()->GetTimeSeconds();
-			GetWorld()->GetTimerManager().SetTimer(TimerHandle_Interaction,
-											this, &UInteractionComponent::Interact,
-											TargetInteractableComponent->InteractableData.InteractableDuration,
-											false);
-		}
+		BusyNotify();
+		return;
+	}
+	
+	StopInteract();
+
+	TargetInteractableComponent->BeginInteract(this);
+
+	if (FMath::IsNearlyZero(
+		TargetInteractableComponent->InteractableData.InteractableDuration, 0.1f))
+	{
+		Interact();
+	}
+	else
+	{
+		InteractionStartTime = GetWorld()->GetTimeSeconds();
+
+		GetWorld()->GetTimerManager().SetTimer(
+			TimerHandle_Interaction,
+			this,
+			&UInteractionComponent::Interact,
+			TargetInteractableComponent->InteractableData.InteractableDuration,
+			false);
 	}
 }
 
@@ -240,8 +252,7 @@ void UInteractionComponent::StopInteract()
 	if (!CurrentInteractableComponent)
 		return;
 	
-	if (OnStopInteract.IsBound())
-		OnStopInteract.Broadcast(CurrentInteractableComponent);
+	OnStopInteract.Broadcast(CurrentInteractableComponent);
 
 	CurrentInteractableComponent->StopInteract(this);
 	CurrentInteractableComponent = nullptr;
@@ -249,12 +260,15 @@ void UInteractionComponent::StopInteract()
 
 void UInteractionComponent::InteractNotify()
 {
-	if (OnInteract.IsBound())
-		OnInteract.Broadcast(TargetInteractableComponent);
+	OnInteract.Broadcast(TargetInteractableComponent);
 }
 
 void UInteractionComponent::EndInteractNotify()
 {
-	if (OnEndInteract.IsBound())
-		OnEndInteract.Broadcast(TargetInteractableComponent);
+	OnEndInteract.Broadcast(TargetInteractableComponent);
+}
+
+void UInteractionComponent::BusyNotify()
+{
+	OnInteractableBusy.Broadcast();
 }

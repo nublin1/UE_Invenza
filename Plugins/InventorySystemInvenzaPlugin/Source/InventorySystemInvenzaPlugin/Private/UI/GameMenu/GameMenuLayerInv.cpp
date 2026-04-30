@@ -67,7 +67,17 @@ UPanelSlot* UGameMenuLayerInv::AddPawnInvContainerWidget(UInventoryContainerWidg
 		{
 			CanvasSlot->SetAutoSize(true);
 			CanvasSlot->SetSize(FVector2D(0,0));
-			CanvasSlot->SetPosition(InventoryDefaultPositions[Type]);
+			FVector2D NormalizedPos = InventoryDefaultPositions[Type];
+
+			FVector2D ViewportSize;
+			GEngine->GameViewport->GetViewportSize(ViewportSize);
+
+			FVector2D RealPos = FVector2D(
+				NormalizedPos.X * ViewportSize.X,
+				NormalizedPos.Y * ViewportSize.Y
+			);
+
+			CanvasSlot->SetPosition(RealPos);
 		}
 	}
 

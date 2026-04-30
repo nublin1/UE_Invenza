@@ -151,34 +151,36 @@ struct FItemMoveData
 {
 	GENERATED_BODY()
 
-	UPROPERTY()
-	UItemBase* SourceItem;
-	UPROPERTY()
+	UPROPERTY(BlueprintReadWrite)
+	TObjectPtr<UItemBase> SourceItem;
+	UPROPERTY(BlueprintReadWrite)
 	TObjectPtr<UInventoryBase> SourceInventory;
-	UPROPERTY()
-	TObjectPtr<UInventorySlot> SourceItemPivotSlot;
-	UPROPERTY()
+	UPROPERTY(BlueprintReadWrite)
+	FIntPoint SourceItemPivotSlotCoordinate = FIntPoint(-1);
+	UPROPERTY(BlueprintReadWrite)
 	TObjectPtr<UInventoryBase> TargetInventory;
-	UPROPERTY()
+	UPROPERTY(BlueprintReadWrite)
 	FIntPoint TargetSlotCoordinate = FIntPoint(-1); // For SlotBased
-	UPROPERTY()
+	UPROPERTY(BlueprintReadWrite)
 	EItemOrientationType SavedOrientation = EItemOrientationType::Horizontal;
-	UPROPERTY()
+	UPROPERTY(BlueprintReadWrite)
 	EItemOrientationType TargetOrientation = EItemOrientationType::Horizontal;
 
 	FItemMoveData (): SourceItem(nullptr),
-					   SourceInventory(nullptr),
-					   SourceItemPivotSlot(nullptr), TargetInventory(nullptr)
+	                  SourceInventory(nullptr),
+	                  TargetInventory(nullptr)
 	{
 	}
 
 	FItemMoveData (UItemBase* _SourceItem,
-		UInventoryBase* _SourceInventory,
-		UInventoryBase* _TargetInventory,
-		FIntPoint _TargetSlot = FIntPoint(-1))
+	               UInventoryBase* _SourceInventory,
+	               FIntPoint _SourceItemPivotSlotCoordinate,
+	               UInventoryBase* _TargetInventory,
+	               FIntPoint _TargetSlot = FIntPoint(-1))
 	{
 		SourceItem = _SourceItem;
 		SourceInventory = _SourceInventory;
+		SourceItemPivotSlotCoordinate = _SourceItemPivotSlotCoordinate;
 		TargetInventory = _TargetInventory;
 		TargetSlotCoordinate = _TargetSlot;
 	}
@@ -294,6 +296,56 @@ struct FInventoryStartupData
 };
 
 USTRUCT(BlueprintType)
+struct FLinkedInventories
+{
+	GENERATED_BODY()
+	
+	// ===== CURRENT =====
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TObjectPtr<UInventoryBase> ExternalInventory = nullptr;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TObjectPtr<UInventoryBase> VendorInventory = nullptr;
+
+	// ===== PREVIOUS =====
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TObjectPtr<UInventoryBase> PrevExternalInventory = nullptr;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TObjectPtr<UInventoryBase> PrevVendorInventory = nullptr;
+
+
+	void SetExternal(UInventoryBase* NewInventory)
+	{
+		PrevExternalInventory = ExternalInventory;
+		ExternalInventory = NewInventory;
+	}
+
+	void SetVendor(UInventoryBase* NewInventory)
+	{
+		PrevVendorInventory = VendorInventory;
+		VendorInventory = NewInventory;
+	}
+
+	void SetBoth(UInventoryBase* NewExternal, UInventoryBase* NewVendor)
+	{
+		PrevExternalInventory = ExternalInventory;
+		PrevVendorInventory   = VendorInventory;
+
+		ExternalInventory = NewExternal;
+		VendorInventory   = NewVendor;
+	}
+};
+
+UENUM(BlueprintType)
+enum class EInventoryActionType : uint8
+{
+	Added,
+	Updated,
+	Removed
+};
+
+USTRUCT(BlueprintType)
 struct FInventorySimulationOperation
 {
 	GENERATED_BODY()
@@ -340,7 +392,7 @@ struct FItemMapping
 	TArray<TObjectPtr<UInventorySlotData>> OccupiedSlots;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
 	EItemOrientationType ItemOrientation = EItemOrientationType::Horizontal;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory", NotReplicated)
 	TObjectPtr<UInventoryItemWidget> ItemVisualLinked;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
 	TObjectPtr<AStorageVisualRepresentation> ItemVisualRepresentation;
@@ -368,6 +420,6 @@ struct FItemMappingArrayWrapper
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
 	TArray<FItemMapping> Mappings;
 };

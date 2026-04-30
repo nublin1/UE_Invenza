@@ -8,10 +8,23 @@
 #include "Data/Inventory/Simulator/InventorySimulator.h"
 #include "Data/Settings/InvenzaInventoryUISettingsAsset.h"
 #include "Factory/ItemFactory.h"
+#include "Net/UnrealNetwork.h"
 #include "Utility/InventoryUtility.h"
 
 UVendorComponent::UVendorComponent()
 {
+	SetIsReplicatedByDefault(true);
+}
+
+void UVendorComponent::OnRegister()
+{
+	Super::OnRegister();
+
+	if (AActor* Owner = GetOwner())
+	{
+		Owner->SetReplicates(true);
+		Owner->SetReplicateMovement(true);
+	}
 }
 
 void UVendorComponent::BeginPlay()
@@ -27,6 +40,13 @@ void UVendorComponent::BeginPlay()
 	{
 		InventoryManager->OnInitializationCompleteDelegate.AddDynamic(this, &UVendorComponent::InitializeVendorStartupData);
 	}
+}
+
+void UVendorComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(UVendorComponent, TradeSettings);
 }
 
 void UVendorComponent::BeginFocus()
@@ -46,23 +66,44 @@ void UVendorComponent::Interact(UInteractionComponent* InteractionComponent)
 	if (!ItemCollectionRef)
 		return;
 	
-	if (!bIsInteract)
+	if (!bIsInteracting)
 	{
-		bIsInteract = true;
+		SetInteracting(true);
 		return;
 	}
 	
-	bIsInteract = false;
+	SetInteracting(false);
 }
 
 void UVendorComponent::StopInteract(UInteractionComponent* InteractionComponent)
 {
 	Super::StopInteract(InteractionComponent);
 	
-	bIsInteract = false;
+	SetInteracting(false);
 }
 
 FTradeResult UVendorComponent::ProcessTradeRequest(const FItemMoveData& TradeData)
+{
+	FTradeResult Result;
+	
+	if (!GetOwner()->HasAuthority())
+	{
+		Server_ProcessTradeRequest(TradeData);
+	}
+	else
+	{
+		Result = HandleProcessTrade(TradeData);
+	}
+	
+	return Result;
+}
+
+void UVendorComponent::Server_ProcessTradeRequest_Implementation(const FItemMoveData& TradeData)
+{
+	HandleProcessTrade(TradeData);
+}
+
+FTradeResult UVendorComponent::HandleProcessTrade(const FItemMoveData& TradeData)
 {
 	FTradeResult Result;
 	
@@ -150,7 +191,7 @@ void UVendorComponent::InitializeVendorStartupData()
 
 	if (auto InventoryManager = GetOwner()->FindComponentByClass<UIInventoryManager>())
 	{
-		if (auto FindResult = InventoryManager->GetInventoryByTag(MainVendorContainerInvTag))
+		if (auto FindResult = ItemCollectionRef->GetInventoryByTag(MainVendorContainerInvTag))
 		{
 			MainVendorLootInventory = FindResult;
 		}

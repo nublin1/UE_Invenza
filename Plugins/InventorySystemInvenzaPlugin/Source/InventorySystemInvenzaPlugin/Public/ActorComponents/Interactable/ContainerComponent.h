@@ -42,7 +42,7 @@ public:
 	virtual void StopInteract(UInteractionComponent* InteractionComponent) override;
 
 	virtual const TObjectPtr<UInventoryBase>& GetMainLootContainer() const override {return MainLootInventory;}
-	virtual const TMap<FString, TObjectPtr<UInventoryBase>>& GetInventoriesToDisplay() const override;
+	
 
 protected:
 	//====================================================================
@@ -60,10 +60,10 @@ protected:
 	// Data
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TObjectPtr<UInventoryBase> MainLootInventory;
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
-	TMap<FString, TObjectPtr<UInventoryBase>> Inventories;
 	UPROPERTY()
 	TObjectPtr<UStaticMeshComponent> CachedMesh;
+	
+	TMap<UInventoryBase*, TArray<FInitItemsEntry>> StartingItems;
 
 	//Refs
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Inventory|Container")

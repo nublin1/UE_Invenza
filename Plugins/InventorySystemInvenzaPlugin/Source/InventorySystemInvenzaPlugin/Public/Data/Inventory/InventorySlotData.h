@@ -22,11 +22,15 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UInventorySlotData : public UObject
 
 public:
 	UInventorySlotData();
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	virtual bool IsSupportedForNetworking() const override { return true; }
 	
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Replicated, Category="Inventory")
 	FInventorySlotInfo InventorySlotInfo;
 
 	//====================================================================

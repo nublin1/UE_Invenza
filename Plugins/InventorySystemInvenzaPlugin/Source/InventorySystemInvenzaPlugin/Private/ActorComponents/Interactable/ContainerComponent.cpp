@@ -12,20 +12,25 @@
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Data/Inventory/InventoryBase.h"
 #include "Factory/ItemFactory.h"
-#include "Kismet/GameplayStatics.h"
-#include "UI/Inventory/SlotbasedInventoryWidget.h"
-#include "UI/Inventory/UInventoryBaseWidget.h"
+#include "Utility/InventoryUtility.h"
 
 
 class UIInventoryManager;
 
 UContainerComponent::UContainerComponent()
 {
+	SetIsReplicatedByDefault(true);
 }
 
 void UContainerComponent::OnRegister()
 {
 	Super::OnRegister();
+
+	if (AActor* Owner = GetOwner())
+	{
+		Owner->SetReplicates(true);
+		Owner->SetReplicateMovement(true);
+	}
 }
 
 void UContainerComponent::BeginPlay()
@@ -63,11 +68,11 @@ void UContainerComponent::Interact(UInteractionComponent* InteractionComponent)
 	CurrentInteractionComponent = InteractionComponent;	
 	if (bIsInteracting == false)
 	{
-		bIsInteracting = true;
+		SetInteracting(true);
 	}
 	else
 	{
-		bIsInteracting = false;
+		SetInteracting(false);
 	}
 }
 
@@ -75,13 +80,8 @@ void UContainerComponent::StopInteract(UInteractionComponent* InteractionCompone
 {
 	Super::StopInteract(InteractionComponent);
 	
-	bIsInteracting = false;
+	SetInteracting(false);
 	CurrentInteractionComponent = nullptr;
-}
-
-const TMap<FString, TObjectPtr<UInventoryBase>>& UContainerComponent::GetInventoriesToDisplay() const
-{
-	return Inventories;
 }
 
 void UContainerComponent::InitializeInteractionComponent()
@@ -94,6 +94,7 @@ void UContainerComponent::InitializeInteractionComponent()
 	UpdateInteractableData();
 
 	InitializeInventoryStartupData();
+	SetupStartingResources();
 }
 
 void UContainerComponent::UpdateInteractableData()
@@ -107,69 +108,69 @@ void UContainerComponent::UpdateInteractableData()
 
 void UContainerComponent::InitializeInventoryStartupData()
 {
+	if (!GetOwner()->HasAuthority())
+		return;
+	
 	if (!MainLootContainerInvTag.IsValid())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("MainLootContainerInvTag is not set!"));
 		return;
 	}
 
-	UInventoryBase* Inventory =	UInventoryBase::CreateInventory(GetOwner(), InventoryStartupData);
+	UInventoryBase* Inventory =	UInventoryBase::CreateInventoryAdvanced(GetOwner(), InventoryStartupData, GetOwner(), ItemCollectionRef);
 	if (!Inventory)
 		return;
-	
-	Inventory->InitInventory();
-	
-	Inventory->SetItemCollectionLink(ItemCollectionRef);
-	Inventory->SetInventorySettings(InventoryStartupData.Settings);
-	Inventory->SetInventoryOwnerActor(GetOwner());
 
-	Inventories.Add(Inventory->GetInventoryContainerID(), Inventory);
+	StartingItems.Add(Inventory, InventoryStartupData.StartItems);
+	
+	Inventory->SetInventorySettings(InventoryStartupData.Settings);
+	
+	ItemCollectionRef->AddPawnInventory_Internal(Inventory);
 
 	if (InventoryStartupData.Settings.InventoryTag == MainLootContainerInvTag)
 	{
 		MainLootInventory = Inventory;
 	}
-
-	SetupStartingResources();
-
+	
 	Inventory->OnItemRemovedDelegate.AddDynamic(this, &UContainerComponent::DestroyWhenEmpty);
 }
 
 void UContainerComponent::SetupStartingResources()
 {
-	if (Inventories.IsEmpty())
+	if (!GetOwner()->HasAuthority())
+		return;
+
+	if (StartingItems.IsEmpty())
 		return;
 	
-	for (const auto& InitResource : InventoryStartupData.StartItems)
+	for (auto& [TargetInventory, InitItems] : StartingItems)
 	{
-		if (InitResource.Item.RowName.IsNone()) continue;
-
-		int32 RemainingAmount = InitResource.Amount;
-		while (RemainingAmount > 0)
+		if (!TargetInventory 
+			|| TargetInventory->GetInventoryContainerID().IsEmpty() 
+			|| InitItems.IsEmpty() 
+			|| !TargetInventory->GetItemCollectionLinked())
 		{
-			UItemBase* NewItem = UItemFactory::CreateItemByHandle(this, InitResource.Item, RemainingAmount);
-			if (!NewItem) break;
+			continue;
+		}
 
-			RemainingAmount -= NewItem->GetQuantity();
+		for (const auto& InitResource : InitItems)
+		{
+			if (InitResource.Item.RowName.IsNone()) continue;
 
-			const EItemOrientationType InitOrientation = NewItem->GetInitialItemOrientation();
-                
-			FItemMoveData Data;
-			Data.TargetInventory  = MainLootInventory;
-			Data.SourceItem       = NewItem;
-			Data.SavedOrientation = InitOrientation;
-			Data.TargetOrientation = InitOrientation;
+			UItemBase* NewItemSample = UItemFactory::CreateItemByHandle(this, InitResource.Item, 1);
 
-			MainLootInventory->HandleAddItem(Data);
+			UInventoryUtility::AddItemQuantity(this, TargetInventory, NewItemSample, InitResource.Amount);
 		}
 	}
+
+	StartingItems.Empty();
 }
 
 void UContainerComponent::DestroyWhenEmpty(FItemMapping ItemSlots, UItemBase* Item)
 {
 	GetWorld()->GetTimerManager().SetTimerForNextTick([this]()
 	{
-		if (ItemCollectionRef->GetItemLocations().IsEmpty()
+		if (ItemCollectionRef->GetItemLocations().Items.IsEmpty()
 		   && this->bDestroyWhenEmpty)
 		{
 		   CurrentInteractionComponent->StopInteract();

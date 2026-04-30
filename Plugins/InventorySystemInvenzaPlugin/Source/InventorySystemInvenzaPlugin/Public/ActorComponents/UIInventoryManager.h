@@ -71,29 +71,49 @@ protected:
 	void InitWidgets();
 	
 public:
-
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Initialization")
 	virtual void SetupStartingResources();
-	
+
+	// Quick Transfer
 	virtual void OnQuickTransferItem_Implementation(FItemMoveData InData) override;
-	virtual void OnQuickTransferAllSameItems_Implementation(FItemMoveData ItemMoveData) override;
+	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Inventory|Transfer")
+	void Server_OnQuickTransferItem(FItemMoveData InData);
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Transfer")
+	void Handle_QuickTransfer_Internal(FItemMoveData InData);
 	
+	virtual void OnQuickTransferAllSameItems_Implementation(FItemMoveData ItemMoveData) override;
+	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Inventory|Transfer")
+	void Server_OnQuickTransferAllSameItems(FItemMoveData ItemMoveData);
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Transfer")
-	void ItemTransferRequest(FItemMoveData ItemMoveData);
+	void Handle_QuickTransferAllSameItems_Internal(FItemMoveData InData);
+
+	// Transfer
+	virtual void ItemTransferRequest_Implementation(FItemMoveData ItemMoveData) override;
+	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Inventory|Transfer")
+	void Server_ItemTransferRequest(FItemMoveData ItemMoveData);
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Transfer")
-	void ItemDropRequest(UItemBase* ItemToDrop);
+	void Handle_ItemTransferRequest(FItemMoveData ItemMoveData);
+
+	// Split
+	virtual void ItemSplitRequest_Implementation(UInventoryBase* TargetInventory, UItemBase* ItemToSplit, int32 SplitAmount) override;
+	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Inventory|Transfer")
+	void Server_ItemSplitRequest(UInventoryBase* TargetInventory, UItemBase* ItemToSplit, int32 SplitAmount);
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Transfer")
+	void Handle_SplitItem(UInventoryBase* TargetInventory, UItemBase* ItemToSplit, int32 SplitAmount);
+
+	// Drop
+	virtual void ItemDropRequest_Implementation(UItemBase* ItemToDrop) override;
+	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Inventory|Transfer")
+	void Server_OnItemDrop(UItemBase* ItemToDrop);
+	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Inventory|Transfer")
+	void HandleItemDrop(UItemBase* ItemToDrop);
 		
 	UFUNCTION(BlueprintPure, Category = "Inventory|Settings")
 	FUISettings GetUISettings() const { return UISettings; }
 
 	virtual FInventoryModifierState GetInventoryModifierStates_Implementation() const override { return InventoryModifierState; }
 
-	UFUNCTION(BlueprintCallable)
-	UInventoryBase* GetInventoryByTag(const FGameplayTag& Tag);
-
-	UFUNCTION(BlueprintCallable)
-	UInventoryBase* GetInventoryByID(FString ContainerID);
-
+	
 	UFUNCTION(Category = "Inventory|UI")
 	void SetUIProvider(const TScriptInterface<IInvUIProvider>& NewUIProvider) { UIInvProvider = NewUIProvider; }
 	UFUNCTION(Category = "Inventory|UI")
@@ -109,6 +129,7 @@ protected:
 	
 	TMap<UInventoryBase*, TArray<FInitItemsEntry>> StartingItems;
 
+	UPROPERTY(BlueprintReadOnly, Replicated, Category="Inventory")
 	TArray<UInventoryBase*> InventoryWidgetInitMap;
 
 	//
@@ -122,24 +143,10 @@ protected:
 	TScriptInterface<IInvUIProvider> UIInvProvider;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TScriptInterface<IInteractionUIProvider> InteractionUIProvider;
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Replicated)
 	TScriptInterface<ILootContainerProvider> LootContainerProvider;
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	TObjectPtr<UVendorComponent> VendorProviderCurrent;
-
-	//
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
-	TObjectPtr<UInventoryBase> ExternalInventory;
-
-	//
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
-	TObjectPtr<UInventoryBase> VendorInventory;
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
-	TObjectPtr<UInventoryContainerWidget> VendorInventoryContainerWidget;
-	
-	//
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
-	TMap<TObjectPtr<UInventoryBase>, TObjectPtr<UInventoryContainerWidget>> InventorContainerWidgetMap;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Replicated)
+	TScriptInterface<IVendorProvider> VendorProviderCurrent;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TObjectPtr<UInventoryBase> MainPawnInventory;
@@ -159,16 +166,26 @@ protected:
 	void OnItemRemovedFromInventory(FItemMapping ItemSlots, UItemBase* Item);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	UInventoryBase* ResolveTargetInventory(UInventoryBase* SourceInventory) const;	
+	UInventoryBase* ResolveTargetInventory(UInventoryBase* SourceInventory);	
 	
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Trade")
 	virtual void VendorRequest(FItemMoveData ItemMoveData);
-	
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
+	void InteractRequest(UInteractableComponent* TargetInteractableComponent);
+	UFUNCTION(Server, Reliable, Category = "Inventory|Interaction")
+	void Server_HandleInteract(UInteractableComponent* Target);
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
 	void HandleInteract(UInteractableComponent* TargetInteractableComponent);
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
+	void InteractClearRequest(UInteractableComponent* TargetInteractableComponent);
+	UFUNCTION(Server, Reliable, Category = "Inventory|Interaction")
+	void Server_HandleClearInteract(UInteractableComponent* Target);
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
 	void HandleClearInteraction(UInteractableComponent* TargetInteractableComponent = nullptr);
 
+public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void OpenVendorInventory(UInventoryBase* Inv);
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
@@ -178,15 +195,18 @@ protected:
 	void OpenExternalInventory(UInventoryBase* Inv);
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void CloseExternalInventory(UInventoryBase* Inv);
-	
+
+protected:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
 	void BindInteractionWidget();
+
+public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
 	void BindEvents();
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
 	void BindInventoryEvents(UInventoryBase* Inventory);
-		
 	
+protected:
 	UFUNCTION()
 	void OnQuickGrabPressed(const FInputActionInstance& Instance);
 	UFUNCTION()
@@ -206,6 +226,5 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Initialization")
 	void BindInputActions();
 
-	
 	
 };

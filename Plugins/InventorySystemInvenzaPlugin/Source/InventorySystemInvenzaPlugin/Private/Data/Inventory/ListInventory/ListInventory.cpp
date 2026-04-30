@@ -5,11 +5,41 @@
 
 #include "ActorComponents/ItemCollection.h"
 #include "Data/Items/ItemBase.h"
+#include "Engine/ActorChannel.h"
+#include "Net/UnrealNetwork.h"
 #include "UI/Inventory/ListInventorySlotWidget.h"
 
 
 UListInventory::UListInventory()
 {
+}
+
+void UListInventory::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(UListInventory, InvSlotsArray);
+	DOREPLIFETIME(UListInventory, EntryClass);
+}
+
+bool UListInventory::ReplicateSubobjects(class UActorChannel* Channel, class FOutBunch* Bunch,
+	struct FReplicationFlags* RepFlags)
+{
+	bool bWroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
+	
+	for (int32 i = 0; i < InvSlotsArray.Num(); ++i)
+	{
+		UInventoryListEntry* Entry = InvSlotsArray[i].Get();
+		if (IsValid(Entry))
+		{
+			if (Entry->IsSupportedForNetworking())
+			{
+				bWroteSomething |= Channel->ReplicateSubobject(Entry, *Bunch, *RepFlags);
+			}
+		}
+	}
+    
+	return bWroteSomething;
 }
 
 void UListInventory::InitInventory()
@@ -49,27 +79,27 @@ void UListInventory::SortItemsInContainerByName()
 	}
 	
 	NotifyReDrawRequest();
-	NotifyUpdateWeight();
-	NotifyUpdateMoney();
+	OnRep_InventoryTotalWeight();
+	OnRep_InventoryTotalMoney();
 }
 
-bool UListInventory::TrySplitItem(UItemBase* ItemToSplit, int32 SplitAmount)
+void UListInventory::RequestSplitStack(UItemBase* ItemToSplit, int32 SplitAmount)
 {
 	if (!ItemToSplit || SplitAmount <= 0)
-		return false;
+		return;
 
 	if (ItemToSplit->GetQuantity() == 1 || ItemToSplit->GetQuantity() <= SplitAmount)
-		return false;
+		return;
 
 	if (InventorySettings.MaxStackCount > 0)
 	{
 		auto ResultMaxStack = ItemCollectionLinked->GetStackCountInContainer(InventoryContainerID);
 		if (ResultMaxStack + 1 >InventorySettings.MaxStackCount)
-			return false;
+			return ;
 	}
 
 	auto NewItem = ItemToSplit->DuplicateItem();
-	if (!NewItem) return false;
+	if (!NewItem) return ;
 
 	NewItem->SetQuantity(SplitAmount);
 	
@@ -79,13 +109,7 @@ bool UListInventory::TrySplitItem(UItemBase* ItemToSplit, int32 SplitAmount)
 	ItemMove.SavedOrientation = ItemMove.SourceItem->GetInitialItemOrientation();
 	ItemMove.TargetOrientation = ItemMove.SourceItem->GetInitialItemOrientation();
 
-	HandleRemoveItem(ItemToSplit, SplitAmount);
-	HandleAddItem(ItemMove, false);
-
-	UpdateMoneyInfo();
-	UpdateWeightInfo();
-	
-	return true;
+	OnSplitDelegate.Broadcast(this, ItemToSplit, SplitAmount);
 }
 
 void UListInventory::HandleRemoveItemsByType(UItemBase* ItemSample, int32 RequestedAmount)
@@ -174,6 +198,11 @@ FItemAddResult UListInventory::HandleAddItem(FItemMoveData ItemMoveData, bool bO
 
 	return FItemAddResult::AddedNone(FText::Format(FText::FromString("Couldn't add {0} to inventory."),
 	                                               ItemMoveData.SourceItem->GetItemRef().ItemTextData.DisplayName));
+}
+
+void UListInventory::OnRep_InvSlotsArray()
+{
+	NotifyReDrawRequest();
 }
 
 FItemAddResult UListInventory::HandleAddReferenceItem(FItemMoveData& ItemMoveData, bool bOnlyCheck)
@@ -317,9 +346,9 @@ UItemBase* UListInventory::AddNewItem(FItemMoveData& ItemMoveData, FItemMapping 
 	// Add item
 	OccupiedSlots.InventoryID = InventoryContainerID;
 	OccupiedSlots.bIsReferenceContainer = InventorySettings.bIsReferenceContainer;
-	FItemMapping& StoredMapping = ItemCollectionLinked->AddItem(FinalItem, OccupiedSlots);
+	FItemMapping StoredMappingCopy = ItemCollectionLinked->AddItem(FinalItem, OccupiedSlots);
 
-	NotifyAddNewItem(StoredMapping, FinalItem, ItemMoveData.SourceItem->GetQuantity());
+	NotifyAddNewItem(StoredMappingCopy, FinalItem, ItemMoveData.SourceItem->GetQuantity());
 
 	UpdateInvSlotsArray();
 
@@ -331,16 +360,14 @@ UItemBase* UListInventory::AddNewItem(FItemMoveData& ItemMoveData, FItemMapping 
 
 void UListInventory::UpdateInvSlotsArray()
 {
-	if (!ItemCollectionLinked)
-		return;
+	if (!InventoryOwnerActor || !InventoryOwnerActor->HasAuthority()) return; 
+
+	if (!ItemCollectionLinked) return;
 
 	InvSlotsArray.Reset();
 
 	auto AllItems = ItemCollectionLinked->GetAllItemsByContainer(InventoryContainerID);
-	if (AllItems.IsEmpty())
-		return;
-
-	InvSlotsArray.Reserve(AllItems.Num());
+	if (AllItems.IsEmpty()) return;
 
 	for (auto Item : AllItems)
 	{
@@ -348,6 +375,6 @@ void UListInventory::UpdateInvSlotsArray()
 		EntryObject->Item = Item;
 		InvSlotsArray.Add(EntryObject);
 	}
-
-	NotifyReDrawRequest();
+	
+	OnRep_InvSlotsArray();
 }

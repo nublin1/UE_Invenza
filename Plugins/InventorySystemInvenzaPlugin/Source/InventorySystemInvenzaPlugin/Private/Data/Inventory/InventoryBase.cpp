@@ -183,6 +183,13 @@ void UInventoryBase::UpdateMoneyInfo()
 	}
 }
 
+TArray<UInventorySlotData*> UInventoryBase::GetAvailableSlotForItem(UItemBase* Item,
+	EItemOrientationType& OutOrientation)
+{
+	TArray<UInventorySlotData*> ReturnSlots;
+	return ReturnSlots;
+}
+
 void UInventoryBase::SetTradeContext(FTradeContext InTradeContext)
 {
 	this->TradeContext = InTradeContext;
@@ -228,7 +235,7 @@ int32 UInventoryBase::TryInsertToStackItem(UItemBase* ResourceToInsertInto,	int3
 		int32 OldAmount = ResourceToInsertInto->GetQuantity();
 		//DeductResourceOnAddToInventory(ResourceToDeductFrom, ActualAmountToAdd);
 		ResourceToInsertInto->SetQuantity(OldAmount + ActualAmountToAdd);
-		NotifyAddItemToStack(ResourceToInsertInto, ActualAmountToAdd);
+		NotifyAddItemToStack(ResourceToInsertInto);
 		UpdateMoneyInfo();
 		UpdateWeightInfo();
 	}
@@ -257,7 +264,7 @@ int32 UInventoryBase::TryRemoveFromStackItem(UItemBase* Item, int32 RequestedRem
 		Item->SetQuantity(Item->GetQuantity() - AmountToRemove);
 	}
 	
-	NotifyRemoveItemFromStack(Item, AmountToRemove);
+	NotifyRemoveItemFromStack(Item);
 	UpdateMoneyInfo();
 	UpdateWeightInfo();
 
@@ -298,14 +305,14 @@ void UInventoryBase::NotifyAddNewItem(FItemMapping& FromSlots, UItemBase* NewIte
 	OnAddItemDelegate.Broadcast(FromSlots, NewItem);
 }
 
-void UInventoryBase::NotifyAddItemToStack(UItemBase* Item, int32 ChangeQuantity)
+void UInventoryBase::NotifyAddItemToStack(UItemBase* Item)
 {
-	OnStackedItemDelegate.Broadcast(Item, ChangeQuantity);
+	OnStackedItemDelegate.Broadcast(Item);
 }
 
-void UInventoryBase::NotifyRemoveItemFromStack(UItemBase* Item, int32 ChangeQuantity)
+void UInventoryBase::NotifyRemoveItemFromStack(UItemBase* Item)
 {
-	OnUnstackedItemDelegate.Broadcast(Item, ChangeQuantity);
+	OnUnstackedItemDelegate.Broadcast(Item);
 }
 
 void UInventoryBase::NotifyFullyRemoveItem(FItemMapping FromSlots, UItemBase* Item)
@@ -348,3 +355,4 @@ void UInventoryBase::NotifyRequestToResetItemVisual(UItemBase* Item)
 {
 	OnRequestToResetItemVisual.Broadcast(Item);
 }
+

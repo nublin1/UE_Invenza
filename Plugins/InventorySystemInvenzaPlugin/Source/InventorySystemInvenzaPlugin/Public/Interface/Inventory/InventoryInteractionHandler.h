@@ -32,6 +32,15 @@ public:
 	void OnQuickTransferAllSameItems(FItemMoveData ItemMoveData);
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Inventory")
+	void ItemTransferRequest(FItemMoveData ItemMoveData);
+
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Inventory")
+	void ItemSplitRequest(UInventoryBase* TargetInventory, UItemBase* ItemToSplit, int32 SplitAmount);
+
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Inventory")
+	void ItemDropRequest(UItemBase* ItemToDrop);
+
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Inventory")
 	FInventoryModifierState GetInventoryModifierStates() const;
 };
  

@@ -18,10 +18,16 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UListInventory : public UInventoryBase
 public:
 	UListInventory();
 
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	virtual bool IsSupportedForNetworking() const override { return true; }
+
+	virtual bool ReplicateSubobjects(class UActorChannel* Channel, class FOutBunch* Bunch, struct FReplicationFlags* RepFlags) override;
+
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Data")
+	UPROPERTY(BlueprintReadOnly, Replicated, ReplicatedUsing = OnRep_InvSlotsArray, Category = "Inventory|Data")
 	TArray<TObjectPtr<UInventoryListEntry>> InvSlotsArray;
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Data")
 	TArray<TObjectPtr<UInventoryListEntry>> FilteredInvSlotsArray;
@@ -34,7 +40,7 @@ public:
 	virtual void SortItemsInContainerByName() override;
 
 	UFUNCTION(BlueprintCallable)
-	virtual bool TrySplitItem(UItemBase* ItemToSplit, int32 SplitAmount) override;
+	virtual void RequestSplitStack(UItemBase* ItemToSplit, int32 SplitAmount) override;
 	virtual void HandleRemoveItemsByType(UItemBase* ItemSample, int32 RequestedAmount) override;
 	virtual void HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity) override;
 	virtual FItemAddResult HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck = false) override;
@@ -47,12 +53,14 @@ protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(EditDefaultsOnly, Category = "Inventory")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Replicated, Category = "Inventory")
 	TSubclassOf<UInventoryListEntry> EntryClass = UInventoryListEntry::StaticClass();
 
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+	UFUNCTION()
+	void OnRep_InvSlotsArray();
 
 	virtual FItemAddResult HandleAddReferenceItem(FItemMoveData& ItemMoveData, bool bOnlyCheck = false) override;
 	

@@ -14,6 +14,8 @@
 UPickupComponent::UPickupComponent(): InitialItem()
 {
 	PrimaryComponentTick.bCanEverTick = true;
+
+	SetIsReplicatedByDefault(true);
 }
 
 void UPickupComponent::OnRegister()
