@@ -123,8 +123,6 @@ void UContainerComponent::InitializeInventoryStartupData()
 
 	StartingItems.Add(Inventory, InventoryStartupData.StartItems);
 	
-	Inventory->SetInventorySettings(InventoryStartupData.Settings);
-	
 	ItemCollectionRef->AddPawnInventory_Internal(Inventory);
 
 	if (InventoryStartupData.Settings.InventoryTag == MainLootContainerInvTag)

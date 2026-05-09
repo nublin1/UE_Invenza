@@ -84,7 +84,7 @@ struct FItemAssetData
 	UPROPERTY(EditAnywhere, Category = "Item|Assets")
 	TObjectPtr<UStaticMesh> Mesh;
 	UPROPERTY(EditAnywhere, Category = "Item|Assets")
-	TObjectPtr<UStaticMesh> MeshAsStorage;
+	TObjectPtr<UStaticMesh> AlternativeMesh;
 };
 
 USTRUCT(BlueprintType)

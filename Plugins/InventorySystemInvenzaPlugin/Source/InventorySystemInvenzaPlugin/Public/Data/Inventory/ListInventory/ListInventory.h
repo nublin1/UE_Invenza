@@ -39,6 +39,8 @@ public:
 	
 	virtual void SortItemsInContainerByName() override;
 
+	virtual float GetInventoryOccupancyPercent() override;
+
 	UFUNCTION(BlueprintCallable)
 	virtual void RequestSplitStack(UItemBase* ItemToSplit, int32 SplitAmount) override;
 	virtual void HandleRemoveItemsByType(UItemBase* ItemSample, int32 RequestedAmount) override;

@@ -108,6 +108,9 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	virtual void InitInventoryWithSettings(FInventorySettings NewInventorySettings);
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	virtual void RebuildInventory() {};
 	
 	UFUNCTION(BlueprintCallable)
 	virtual void RequestToResetItemVisual(UItemBase* Item);
@@ -164,6 +167,9 @@ public:
 	UFUNCTION()
 	virtual FTradeContext GetTradeContext() {return TradeContext;}
 
+	UFUNCTION()
+	virtual float GetInventoryOccupancyPercent() {return 0;}
+
 	UFUNCTION(BlueprintCallable)
 	virtual TArray<UInventorySlotData*> GetAvailableSlotForItem(UItemBase* Item, EItemOrientationType& OutOrientation);
 
@@ -174,7 +180,6 @@ public:
 	UFUNCTION(BlueprintCallable)
 	virtual void SetInventorySettings(FInventorySettings NewInventorySettings) {InventorySettings = NewInventorySettings;}
 	
-
 	UFUNCTION(BlueprintCallable)
 	virtual void SetInventorySize(FIntPoint NewSize) { InvSize = NewSize; }
 	
@@ -201,7 +206,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated)
 	TObjectPtr<UItemCollection> ItemCollectionLinked = nullptr;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
 	bool bWasInit = false;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing = OnRep_InventoryTotalWeight, Category="Inventory")
@@ -212,10 +217,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated)
 	FIntPoint InvSize = FIntPoint(1, 1);
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly,Replicated, Category="Inventory")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, Category="Inventory")
 	TObjectPtr<AActor> InventoryOwnerActor = nullptr;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing = OnRep_TradeContext, Category="Inventory")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, ReplicatedUsing = OnRep_TradeContext, Category="Inventory")
 	FTradeContext TradeContext;
 	
 	//====================================================================
@@ -269,6 +274,4 @@ protected:
 	virtual void NotifyReDrawRequest();
 	virtual void NotifyRequestToResetItemVisual(UItemBase* Item);
 
-	//
-	
 };

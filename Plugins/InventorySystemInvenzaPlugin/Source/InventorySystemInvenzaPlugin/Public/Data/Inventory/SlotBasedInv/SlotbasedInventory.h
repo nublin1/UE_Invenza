@@ -42,6 +42,8 @@ public:
 	//====================================================================
 
 	virtual void InitInventory() override;
+
+	virtual void RebuildInventory() override;
 	
 	//
 	virtual void SortItemsInContainerByName() override;
@@ -55,6 +57,8 @@ public:
 	bool ConsumeReserved(AActor* Requestor);
 
 	//
+	virtual float GetInventoryOccupancyPercent() override;
+	
 	UFUNCTION(BlueprintCallable)
 	bool CanPlaceItemAt(const FIntPoint& StartPos, UItemBase* ItemBase, EItemOrientationType Orientation, TArray<UInventorySlotData*> IgnoreSlots);
 
@@ -66,10 +70,11 @@ public:
 	virtual FItemAddResult HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck = false) override;
 
 	// Getters
-	UFUNCTION()
+	FMargin GetSlotSpacing() const {return SlotSpacing;}
+	FVector2D GetInvCellSize() const {return InvCellSize;}
+
 	TArray<UInventorySlotData*> GetInventorySlots() const {return InventorySlotData;}
-	UFUNCTION(BlueprintCallable)
-	TArray<UItemBase*> GetAllItems();
+	
 	UFUNCTION(BlueprintCallable, meta = (ToolTip = "Returns a list of resources stored in this container, aggregating identical resources and summing their total amount."))
 	TArray<FItemIDEntry> CollectItemsAggregated() const;
 	UFUNCTION(BlueprintCallable)
@@ -80,10 +85,8 @@ public:
 	virtual TArray<UInventorySlotData*> GetAvailableSlotForItem(UItemBase* Item, EItemOrientationType& OutOrientation) override;
 
 	// Setters
-	UFUNCTION()
-	void SetInventorySlots (const TArray<UInventorySlotData*>& InSlots) {this->InventorySlotData = InSlots;}
-	UFUNCTION(Server, Reliable)
-	void Server_SetWidgetSlotInitData (const TArray<FInventorySlotInfo>& InSlots);
+	UFUNCTION(BlueprintCallable)
+	void SetWidgetInitData(FSlotBasedInventoryWidgetInitData WidgetInitData);
 
 protected:
 	//====================================================================
@@ -91,8 +94,12 @@ protected:
 	//====================================================================
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Replicated, ReplicatedUsing = OnRep_InventorySlotData)
 	TArray<TObjectPtr<UInventorySlotData>> InventorySlotData;
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Replicated, ReplicatedUsing = OnRep_WidgetSlotInitData)
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Replicated)
 	TArray<FInventorySlotInfo> WidgetSlotInitData;
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Replicated)
+	FMargin SlotSpacing;
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Replicated)
+	FVector2D InvCellSize = FVector2D(64.0f, 64.0f);
 	
 	//UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TMap<TObjectPtr<AActor>, TArray<FSlotReservationData>> ReservedSlotsToAdd;
@@ -130,8 +137,6 @@ public:
 	UFUNCTION()
 	static bool DoSlotsMatch(const TArray<UInventorySlotData*>& FirstSlots, const TArray<UInventorySlotData*>& SecondSlots);
 	UFUNCTION()
-	float GetInventoryOccupancyPercent();
-	UFUNCTION()
 	TArray<UInventorySlotData*> CollectOccupiedSlots();
 	UFUNCTION()
 	TArray<UInventorySlotData*> GetIgnoreSlotsForItem(UItemBase* Item);
@@ -146,8 +151,6 @@ protected:
 
 	UFUNCTION()
 	void OnRep_InventorySlotData();
-	UFUNCTION()
-	void OnRep_WidgetSlotInitData();
 
 	UFUNCTION()
 	void GenerateInventorySlots();

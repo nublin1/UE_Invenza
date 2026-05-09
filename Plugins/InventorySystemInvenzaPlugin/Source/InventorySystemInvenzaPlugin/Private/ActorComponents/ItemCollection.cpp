@@ -56,6 +56,22 @@ void UItemCollection::InitItemCollection()
 	bWasInit = true;
 }
 
+void UItemCollection::Server_SetSlotBasedInventoryWidgetInitData_Implementation(const FString& ContainerID,
+	FSlotBasedInventoryWidgetInitData InitData)
+{
+	if (ContainerID.IsEmpty())
+		return;
+
+	auto FindResult = GetInventoryByID(ContainerID);
+	if (!FindResult)
+		return;
+
+	if (USlotbasedInventory* SlotBased = Cast<USlotbasedInventory>(FindResult))
+	{
+		SlotBased->SetWidgetInitData(InitData);
+	}
+}
+
 UInventoryBase* UItemCollection::GetInventoryByTag(const FGameplayTag& Tag)
 {
 	for (auto Element : ActorInventories)

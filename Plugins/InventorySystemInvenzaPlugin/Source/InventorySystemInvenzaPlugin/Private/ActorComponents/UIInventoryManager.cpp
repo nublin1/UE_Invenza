@@ -226,9 +226,13 @@ void UIInventoryManager::InitWidgets()
 		if (USlotbasedInventoryWidget* SlotBased = Cast<USlotbasedInventoryWidget>(InvWidget))
 		{
 			SlotBased->SetInventoryBaseRef(TarInv);			
-			InvWidget->InitializeInventoryWidget();			
-			
 			SlotBased->SetUISettings(UISettings);
+			InvWidget->InitializeInventoryWidget();
+
+			ItemCollectionRef->Server_SetSlotBasedInventoryWidgetInitData(TarInv->GetInventoryContainerID(), SlotBased->CollectInitSlotsDataFromWidget());
+			
+			Execute_RebuildInventoryRequest(this, TarInv->GetInventoryContainerID());
+			
 		}
 		else if (UListInventoryWidget* ListBased = Cast<UListInventoryWidget>(InvWidget))
 		{
@@ -602,6 +606,31 @@ void UIInventoryManager::HandleItemDrop_Implementation(UItemBase* ItemToDrop)
 	}
 }
 
+void UIInventoryManager::RebuildInventoryRequest_Implementation(const FString& InvID)
+{
+	if (!GetOwner()->HasAuthority())
+		Server_RebuildInventory(InvID);
+	else
+		HandleRebuildInventory(InvID);
+}
+
+void UIInventoryManager::Server_RebuildInventory_Implementation(const FString& InvID)
+{
+	HandleRebuildInventory(InvID);
+}
+
+void UIInventoryManager::HandleRebuildInventory(const FString& InvID)
+{
+	if (!ItemCollectionRef)
+		return;
+	
+	auto FindResult = ItemCollectionRef->GetInventoryByID(InvID);
+	if (!FindResult)
+		return;
+
+	FindResult->RebuildInventory();
+}
+
 void UIInventoryManager::InteractRequest(UInteractableComponent* TargetInteractableComponent)
 {
 	if (!TargetInteractableComponent) return;
@@ -653,6 +682,19 @@ void UIInventoryManager::Server_HandleInteract_Implementation(UInteractableCompo
 		if (auto InventoryToDisplay = VendorProvider->GetVendorLootContainer())
 		{
 			ItemCollectionRef->SetVendorInventory(InventoryToDisplay);
+
+			VendorProviderCurrent.SetObject(Target);
+			VendorProviderCurrent.SetInterface(VendorProvider);
+			
+			FTradeContext TradeContext;
+			TradeContext.TradeSettings = VendorProviderCurrent->GetTradeSettings();
+			TradeContext.Vendor = Cast<AActor>(VendorProviderCurrent.GetObject());
+			TradeContext.Buyer = this->GetOwner();
+
+			ItemCollectionRef->GetLinkedInventories().VendorInventory->SetTradeContext(TradeContext);
+			
+			VendorProviderCurrent->SetTradePartnerInventory(MainPawnInventory);
+			VendorProviderCurrent->SetTradePartnerItemCollection(ItemCollectionRef);
 		}
 		if (GetOwner()->HasAuthority())
 		{
@@ -704,19 +746,6 @@ void UIInventoryManager::HandleInteract(UInteractableComponent* TargetInteractab
 	{
 		if (auto InventoryToDisplay = VendorProviderCurrent->GetVendorLootContainer())
 		{
-			VendorProviderCurrent.SetObject(TargetInteractableComponent);
-			VendorProviderCurrent.SetInterface(VendorProvider);
-			
-			FTradeContext TradeContext;
-			TradeContext.TradeSettings = VendorProviderCurrent->GetTradeSettings();
-			TradeContext.Vendor = Cast<AActor>(VendorProviderCurrent.GetObject());
-			TradeContext.Buyer = this->GetOwner();
-
-			ItemCollectionRef->GetLinkedInventories().VendorInventory->SetTradeContext(TradeContext);
-			
-			VendorProviderCurrent->SetTradePartnerInventory(MainPawnInventory);
-			VendorProviderCurrent->SetTradePartnerItemCollection(ItemCollectionRef);
-
 			OpenVendorInventory(InventoryToDisplay);
 		}
 	}

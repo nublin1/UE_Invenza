@@ -24,7 +24,7 @@ void AStorageVisualRepresentation::UpdateVisual()
 	
 	FTransform InstanceTransform(FRotator::ZeroRotator, FVector(0.0f), FVector(1.f, 1.f, 1.f));
 
-	StaticMeshVisual->SetStaticMesh(ItemBase->GetItemRef().ItemAssetData.MeshAsStorage);
+	//StaticMeshVisual->SetStaticMesh(ItemBase->GetItemRef().ItemAssetData.MeshAsStorage);
 
 	switch (ItemBase->GetItemRef().StorageMethod)
 	{

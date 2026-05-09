@@ -18,6 +18,8 @@ void USlotbasedInventory::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 
 	DOREPLIFETIME(USlotbasedInventory, InventorySlotData);
 	DOREPLIFETIME(USlotbasedInventory, WidgetSlotInitData);
+	DOREPLIFETIME(USlotbasedInventory, SlotSpacing);
+	DOREPLIFETIME(USlotbasedInventory, InvCellSize);
 }
 
 bool USlotbasedInventory::ReplicateSubobjects(class UActorChannel* Channel, class FOutBunch* Bunch,
@@ -46,8 +48,27 @@ void USlotbasedInventory::InitInventory()
 	}
 
 	InvSize = FIntPoint(InventorySettings.InventorySlotBasedSettings.InitNumberRows, InventorySettings.InventorySlotBasedSettings.InitNumColumns);
+	InvCellSize = InventorySettings.InventorySlotBasedSettings.InvCellSize;
+
+	if (!InventoryOwnerActor)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("SlotbasedInventory [%s]: InventoryOwnerActor is NULL!"), *GetName());
+	}
+
+	if (InvSize.X <= 0 || InvSize.Y <= 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("SlotbasedInventory [%s] on Actor [%s]: Invalid InvSize (%d x %d) — check InventorySettings"),
+		*GetName(),
+		InventoryOwnerActor ? *InventoryOwnerActor->GetName() : TEXT("NULL"),
+		InvSize.X, InvSize.Y);
+	}
 
 	bWasInit = true;
+}
+
+void USlotbasedInventory::RebuildInventory()
+{
+	GenerateInventorySlots();
 }
 
 void USlotbasedInventory::SortItemsInContainerByName()
@@ -201,6 +222,14 @@ bool USlotbasedInventory::ConsumeReserved(AActor* Requestor)
 	return true;
 }
 
+float USlotbasedInventory::GetInventoryOccupancyPercent()
+{
+	if (CollectOccupiedSlots().IsEmpty())
+		return 0.0f;
+
+	return (InvSize.X * InvSize.Y) / CollectOccupiedSlots().Num() * 100.0f;
+}
+
 bool USlotbasedInventory::CanPlaceItemAt(const FIntPoint& StartPos, UItemBase* ItemBase,
                                          EItemOrientationType Orientation, TArray<UInventorySlotData*> IgnoreSlots)
 {
@@ -269,16 +298,6 @@ void USlotbasedInventory::RequestSplitStack(UItemBase* ItemToSplit, int32 SplitA
 	
 	OnSplitDelegate.Broadcast(this,ItemToSplit, SplitAmount);
 	
-}
-
-TArray<UItemBase*> USlotbasedInventory::GetAllItems()
-{
-	TArray<UItemBase*> Instances;
-
-	if (!ItemCollectionLinked)
-		return Instances;
-
-	return ItemCollectionLinked->GetAllItemsByContainer(InventoryContainerID);
 }
 
 TArray<FItemIDEntry> USlotbasedInventory::CollectItemsAggregated() const
@@ -367,11 +386,12 @@ TArray<UInventorySlotData*> USlotbasedInventory::GetAvailableSlotForItem(
 	return {};
 }
 
-void USlotbasedInventory::Server_SetWidgetSlotInitData_Implementation(const TArray<FInventorySlotInfo>& InSlots)
+void USlotbasedInventory::SetWidgetInitData(FSlotBasedInventoryWidgetInitData WidgetInitData)
 {
-	this->WidgetSlotInitData = InSlots;
-	GenerateInventorySlots();
-	OnRep_WidgetSlotInitData();
+	SetInventorySize(WidgetInitData.InventorySize);
+	WidgetSlotInitData = WidgetInitData.SlotLayout;
+	SlotSpacing = WidgetInitData.SlotSpacing;
+	InvCellSize = WidgetInitData.InvCellSize;
 }
 
 void USlotbasedInventory::HandleRemoveItemsByType(UItemBase* ItemSample, int32 RequestedAmount)
@@ -547,8 +567,12 @@ FItemAddResult USlotbasedInventory::HandleAddReferenceItem(FItemMoveData& ItemMo
 		IgnoreSlots.Add(InTarSlot);
 	}
 	
-	auto ItemsHaveSameFootprint = UItemBase::DoItemsHaveSameFootprint(ItemMoveData.SourceItem, ItemInTarSlot,
+	bool ItemsHaveSameFootprint = true;
+	if (!InventorySettings.InventorySlotBasedSettings.bIgnoreItemSize)
+	{
+		ItemsHaveSameFootprint = UItemBase::DoItemsHaveSameFootprint(ItemMoveData.SourceItem, ItemInTarSlot,
 		ItemMoveData.SavedOrientation, ItemInTarMapping->ItemOrientation, InventorySettings.InventorySlotBasedSettings.bIgnoreItemSize);
+	}
 	bool IsCanPlace = CanPlaceItemAt(ItemMoveData.TargetSlotCoordinate, ItemMoveData.SourceItem,
 	                                 ItemMoveData.TargetOrientation, IgnoreSlots);
 
@@ -793,8 +817,13 @@ FItemAddResult USlotbasedInventory::TryReplaceItems(FItemMoveData& ItemMoveData,
 		IgnoreSlots.Add(InTarSlot);
 	}
 	
-	auto ItemsHaveSameFootprint = UItemBase::DoItemsHaveSameFootprint(ItemMoveData.SourceItem, ItemInTarSlot,
+	bool ItemsHaveSameFootprint = true;
+	if (!InventorySettings.InventorySlotBasedSettings.bIgnoreItemSize)
+	{
+		ItemsHaveSameFootprint = UItemBase::DoItemsHaveSameFootprint(ItemMoveData.SourceItem, ItemInTarSlot,
 		ItemMoveData.SavedOrientation, ItemInTarMapping->ItemOrientation, InventorySettings.InventorySlotBasedSettings.bIgnoreItemSize);
+	}
+	
 	bool IsCanPlace = CanPlaceItemAt(ItemMoveData.TargetSlotCoordinate, ItemMoveData.SourceItem,
 	                                 ItemMoveData.TargetOrientation, IgnoreSlots);
 
@@ -986,16 +1015,6 @@ bool USlotbasedInventory::DoSlotsMatch(const TArray<UInventorySlotData*>& FirstS
 	return true;
 }
 
-float USlotbasedInventory::GetInventoryOccupancyPercent()
-{
-	float Percent = 0.0f;
-
-	if (CollectOccupiedSlots().IsEmpty())
-		return 0.0f;
-
-	return (InvSize.X * InvSize.Y) / CollectOccupiedSlots().Num() * 100.0f;
-}
-
 TArray<UInventorySlotData*> USlotbasedInventory::CollectOccupiedSlots()
 {
 	TArray<TObjectPtr<UInventorySlotData>> OccupiedSlots;
@@ -1094,11 +1113,6 @@ UItemBase* USlotbasedInventory::GetItemFromSlot(UInventorySlotData* Slot)
 void USlotbasedInventory::OnRep_InventorySlotData()
 {
 	OnInventorySlotDataUpdated.Broadcast();
-}
-
-void USlotbasedInventory::OnRep_WidgetSlotInitData()
-{
-	//OnInventorySlotDataUpdated.Broadcast();
 }
 
 void USlotbasedInventory::GenerateInventorySlots()

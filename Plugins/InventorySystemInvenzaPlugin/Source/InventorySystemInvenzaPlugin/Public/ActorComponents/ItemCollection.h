@@ -63,11 +63,13 @@ public:
 	FLinkedInventories GetLinkedInventories() {return LinkedInventories;}
 	
 	void SetVendorInventory(UInventoryBase* InVendorInv) {LinkedInventories.SetVendor(InVendorInv);}
-	void SetExternalInventory(UInventoryBase* InExternalInventory) {LinkedInventories.SetExternal(InExternalInventory);}	
+	void SetExternalInventory(UInventoryBase* InExternalInventory) {LinkedInventories.SetExternal(InExternalInventory);}
+
+	UFUNCTION(Server, Reliable)
+	void Server_SetSlotBasedInventoryWidgetInitData(const FString& ContainerID, FSlotBasedInventoryWidgetInitData InitData);
 
 	UFUNCTION(BlueprintCallable)
 	UInventoryBase* GetInventoryByTag(const FGameplayTag& Tag);
-
 	UFUNCTION(BlueprintCallable)
 	UInventoryBase* GetInventoryByID(FString ContainerID);
 

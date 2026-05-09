@@ -83,6 +83,24 @@ void UListInventory::SortItemsInContainerByName()
 	OnRep_InventoryTotalMoney();
 }
 
+float UListInventory::GetInventoryOccupancyPercent()
+{
+	if (InventorySettings.MaxStackCount <= 0)
+	{
+		if (ItemCollectionLinked->GetAllItemsByContainer(InventoryContainerID).IsEmpty())
+			return 0.0f;
+		else
+		{
+			return 100.0f;
+		}
+	}
+
+	int32 CurrentCount = ItemCollectionLinked->GetStackCountInContainer(InventoryContainerID);
+	if (CurrentCount <= 0) return 0.0f;
+
+	return static_cast<float>(CurrentCount) / InventorySettings.MaxStackCount * 100.0f;
+}
+
 void UListInventory::RequestSplitStack(UItemBase* ItemToSplit, int32 SplitAmount)
 {
 	if (!ItemToSplit || SplitAmount <= 0)

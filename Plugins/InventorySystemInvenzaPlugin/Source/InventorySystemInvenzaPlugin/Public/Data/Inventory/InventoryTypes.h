@@ -187,6 +187,44 @@ struct FItemMoveData
 };
 
 USTRUCT(BlueprintType)
+struct FInventorySlotInfo
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FName SlotName = NAME_None;
+
+	UPROPERTY()
+	FIntPoint CellPosition;
+	
+	UPROPERTY()
+	TSoftObjectPtr<UInputAction> UseAction;
+
+	UPROPERTY()
+	EItemCategory AllowedCategory = EItemCategory::All;
+
+	UPROPERTY()
+	FGameplayTag LinkedEquipmentSlot;
+};
+
+USTRUCT(BlueprintType)
+struct FSlotBasedInventoryWidgetInitData
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	TArray<FInventorySlotInfo> SlotLayout;
+
+	UPROPERTY()
+	FVector2D InvCellSize;
+	UPROPERTY()
+	FMargin SlotSpacing;
+
+	UPROPERTY()
+	FIntPoint InventorySize;
+};
+
+USTRUCT(BlueprintType)
 struct FInventorySlotBasedSettings
 {
 	GENERATED_BODY()
@@ -354,27 +392,6 @@ struct FInventorySimulationOperation
 	FItemMoveData MoveData;
 	UPROPERTY(BlueprintReadOnly, Category="Inventory|Simulation")
 	FItemAddResult Result;
-};
-
-USTRUCT(BlueprintType)
-struct FInventorySlotInfo
-{
-	GENERATED_BODY()
-
-	UPROPERTY()
-	FName SlotName = NAME_None;
-
-	UPROPERTY()
-	FIntPoint CellPosition;
-	
-	UPROPERTY()
-	TSoftObjectPtr<UInputAction> UseAction;
-
-	UPROPERTY()
-	EItemCategory AllowedCategory = EItemCategory::All;
-
-	UPROPERTY()
-	FGameplayTag LinkedEquipmentSlot;
 };
 
 USTRUCT(Blueprintable)

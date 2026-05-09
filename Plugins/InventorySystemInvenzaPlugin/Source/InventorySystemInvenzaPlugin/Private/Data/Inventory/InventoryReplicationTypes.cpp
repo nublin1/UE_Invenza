@@ -19,10 +19,8 @@ void FInventoryEntry::PostReplicatedAdd(const FInventoryArray& InArraySerializer
 	}
 }
 
-// Реализация для изменений внутри существующего предмета (например, изменилось Quantity)
 void FInventoryEntry::PostReplicatedChange(const FInventoryArray& InArraySerializer)
 {
-	// Здесь можно обновить конкретный виджет предмета
 	if (InArraySerializer.OwningCollection)
 	{
 		for (const FItemMapping& Mapping : Locations.Mappings)
@@ -33,7 +31,6 @@ void FInventoryEntry::PostReplicatedChange(const FInventoryArray& InArraySeriali
 	}
 }
 
-// Реализация перед тем, как предмет будет удален (удаление из массива)
 void FInventoryEntry::PreReplicatedRemove(const FInventoryArray& InArraySerializer)
 {
 	if (InArraySerializer.OwningCollection)

@@ -106,13 +106,21 @@ public:
 	void Server_OnItemDrop(UItemBase* ItemToDrop);
 	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Inventory|Transfer")
 	void HandleItemDrop(UItemBase* ItemToDrop);
-		
+
+	//
+	virtual void RebuildInventoryRequest_Implementation(const FString& InvID) override;
+	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Inventory")
+	void Server_RebuildInventory(const FString& InvID);
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	void HandleRebuildInventory(const FString& InvID);
+	
+	//	
 	UFUNCTION(BlueprintPure, Category = "Inventory|Settings")
 	FUISettings GetUISettings() const { return UISettings; }
 
 	virtual FInventoryModifierState GetInventoryModifierStates_Implementation() const override { return InventoryModifierState; }
 
-	
+	//
 	UFUNCTION(Category = "Inventory|UI")
 	void SetUIProvider(const TScriptInterface<IInvUIProvider>& NewUIProvider) { UIInvProvider = NewUIProvider; }
 	UFUNCTION(Category = "Inventory|UI")

@@ -41,6 +41,9 @@ public:
 	void ItemDropRequest(UItemBase* ItemToDrop);
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Inventory")
+	void RebuildInventoryRequest(const FString& InvID);
+
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Inventory")
 	FInventoryModifierState GetInventoryModifierStates() const;
 };
  

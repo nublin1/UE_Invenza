@@ -54,7 +54,6 @@ void USlotbasedInventoryWidget::NativeConstruct()
 
 void USlotbasedInventoryWidget::InitializeInventoryWidget()
 {
-	CollectInitSlotsDataFromWidget();
 	CreateTooltipWidget();
 }
 
@@ -117,6 +116,69 @@ void USlotbasedInventoryWidget::ReDrawAllItems()
 	}
 }
 
+FSlotBasedInventoryWidgetInitData USlotbasedInventoryWidget::CollectInitSlotsDataFromWidget()
+{
+	FSlotBasedInventoryWidgetInitData Result;
+	
+	if (!SlotsGridPanel)
+		return Result;
+
+	if (!SlotBasedInventoryRef)
+		return Result;
+	
+	TArray<TObjectPtr<USlotbasedInventorySlot>> NewInvSlots;
+	const int32 NumChildren = SlotsGridPanel->GetChildrenCount();
+
+	for (int32 i = 0; i < NumChildren; ++i)
+	{
+		if (UWidget* ChildWidget = SlotsGridPanel->GetChildAt(i))
+		{
+			auto WClass = ChildWidget->GetClass();
+			if (WClass->IsChildOf(USlotbasedInventorySlot::StaticClass()))
+			{
+				if (auto InventorySlot = Cast<USlotbasedInventorySlot>(ChildWidget))
+				{
+					if (NewInvSlots.Num() == 0)
+					{
+						Result.InvCellSize = InventorySlot->GetSlotSize();
+					}
+					
+					if (!InventorySlot->GetDefaultCellImage() && DefaultCellImage)
+						InventorySlot->UpdateVisualWithTexture(DefaultCellImage);
+					NewInvSlots.Add(InventorySlot);
+				}
+			}
+		}
+	}
+
+	for (int32 i = 0; i < NewInvSlots.Num(); ++i)
+	{
+		if (const UWidget* ChildWidget = SlotsGridPanel->GetChildAt(i))
+		{
+			const UUniformGridSlot* UniSlot = Cast<UUniformGridSlot>(ChildWidget->Slot);
+			if (UniSlot->GetRow() >= NumberRows)
+				NumberRows = UniSlot->GetRow() + 1;
+			if (UniSlot->GetColumn() >= NumColumns)
+				NumColumns = UniSlot->GetColumn() + 1;
+
+			auto SlotPosit = FIntPoint(UniSlot->GetRow(),  UniSlot->GetColumn());
+
+			FInventorySlotInfo SlotInfo;
+			SlotInfo.SlotName = NAME_None,
+			SlotInfo.CellPosition = SlotPosit;
+			SlotInfo.UseAction = nullptr;
+			SlotInfo.AllowedCategory = NewInvSlots[i]->AllowedSlotCategory;
+			
+			Result.SlotLayout.Add(SlotInfo);
+		}
+	}
+
+	Result.SlotSpacing = SlotsGridPanel->GetSlotPadding();
+	Result.InventorySize = GetNumberRowsAndColumns();
+	
+	return Result;
+}
+
 TArray<UInventorySlotData*> USlotbasedInventoryWidget::GetSlotData()
 {
 	TArray<UInventorySlotData*> Array;
@@ -163,8 +225,8 @@ void USlotbasedInventoryWidget::ApplyInventorySettings()
 	auto InvSize = SlotBasedInventoryRef->GetInventorySize();
 	NumberRows  = InvSize.X;
 	NumColumns  = InvSize.Y;
-	SlotSpacing = InvSettings.InventorySlotBasedSettings.SlotSpacing;
-	InvCellSize = InvSettings.InventorySlotBasedSettings.InvCellSize;
+	SlotSpacing = SlotBasedInventoryRef->GetSlotSpacing();
+	InvCellSize = SlotBasedInventoryRef->GetInvCellSize();
 
 	SlotsGridPanel->SetSlotPadding(SlotSpacing);
 }
@@ -204,18 +266,15 @@ void USlotbasedInventoryWidget::BuildInventorySlots()
 			FIntPoint SlotPosit(Row, Col);
 
 			UInventorySlotData* SlotData = nullptr;
-			
+			for (UInventorySlotData* ExistingSlot : ExistingSlots)
 			{
-				for (UInventorySlotData* ExistingSlot : ExistingSlots)
+				if (ExistingSlot && ExistingSlot->InventorySlotInfo.CellPosition == SlotPosit)
 				{
-					if (ExistingSlot && ExistingSlot->InventorySlotInfo.CellPosition == SlotPosit)
-					{
-						SlotData = ExistingSlot;
-						break;
-					}
+					SlotData = ExistingSlot;
+					break;
 				}
 			}
-
+			
 			if (!SlotData)
 				continue;
 
@@ -227,86 +286,6 @@ void USlotbasedInventoryWidget::BuildInventorySlots()
 			InventorySlots.Add(NewSlot);
 		}
 	}
-}
-
-void USlotbasedInventoryWidget::CollectInitSlotsDataFromWidget()
-{
-	if (!SlotsGridPanel)
-		return;
-
-	if (!SlotBasedInventoryRef)
-		return;
-	
-	TArray<TObjectPtr<USlotbasedInventorySlot>> NewInvSlots;
-	const int32 NumChildren = SlotsGridPanel->GetChildrenCount();
-
-	for (int32 i = 0; i < NumChildren; ++i)
-	{
-		if (UWidget* ChildWidget = SlotsGridPanel->GetChildAt(i))
-		{
-			auto WClass = ChildWidget->GetClass();
-			if (WClass->IsChildOf(USlotbasedInventorySlot::StaticClass()))
-			{
-				if (auto InventorySlot = Cast<USlotbasedInventorySlot>(ChildWidget))
-				{
-					if (NewInvSlots.Num() == 0)
-					{
-						InvCellSize = InventorySlot->GetSlotSize();
-					}
-					
-					if (!InventorySlot->GetDefaultCellImage() && DefaultCellImage)
-						InventorySlot->UpdateVisualWithTexture(DefaultCellImage);
-					NewInvSlots.Add(InventorySlot);
-				}
-			}
-		}
-	}
-
-	TArray<FInventorySlotInfo> InitialSlotLayout_temp;
-
-	for (int32 i = 0; i < NewInvSlots.Num(); ++i)
-	{
-		if (const UWidget* ChildWidget = SlotsGridPanel->GetChildAt(i))
-		{
-			const UUniformGridSlot* UniSlot = Cast<UUniformGridSlot>(ChildWidget->Slot);
-			if (UniSlot->GetRow() >= NumberRows)
-				NumberRows = UniSlot->GetRow() + 1;
-			if (UniSlot->GetColumn() >= NumColumns)
-				NumColumns = UniSlot->GetColumn() + 1;
-
-			auto SlotPosit = FIntPoint(UniSlot->GetRow(),  UniSlot->GetColumn());
-
-			FInventorySlotInfo SlotInfo;
-			SlotInfo.SlotName = NAME_None,
-			SlotInfo.CellPosition = SlotPosit;
-			SlotInfo.UseAction = nullptr;
-			SlotInfo.AllowedCategory = NewInvSlots[i]->AllowedSlotCategory;
-			
-			InitialSlotLayout_temp.Add(SlotInfo);
-			
-			//UInventorySlotData* NewInventorySlotData = UInventorySlotData::CreateWithData(SlotBasedInventoryRef->GetInventoryOwnerActor(), NAME_None, SlotPosit, nullptr, NewInvSlots[i]->AllowedSlotCategory);
-			//NewInventorySlotData->InventorySlotInfo.LinkedEquipmentSlot = NewInvSlots[i]->LinkedEquipmentSlotTag;
-			//NewInvSlots[i]->SetSlotData(NewInventorySlotData);
-		}
-	}
-
-	SlotSpacing = SlotsGridPanel->GetSlotPadding();
-	
-	TArray<UInventorySlot*> ConvertedSlots;
-	for (auto InvSlot : NewInvSlots)
-	{
-		if (InvSlot)
-		{
-			ConvertedSlots.Add(InvSlot);
-		}
-	}
-	InventorySlots = ConvertedSlots;
-
-	auto SizeInv = GetNumberRowsAndColumns();
-		
-	SlotBasedInventoryRef->SetInventorySize(SizeInv);
-	SlotBasedInventoryRef->SetInventorySlots(GetSlotData());
-	SlotBasedInventoryRef->Server_SetWidgetSlotInitData(InitialSlotLayout_temp);
 }
 
 void USlotbasedInventoryWidget::ClearFilters()
@@ -961,6 +940,8 @@ bool USlotbasedInventoryWidget::NativeOnDragOver(const FGeometry& InGeometry, co
 			return Super::NativeOnDragOver(InGeometry, InDragDropEvent, InOperation);
 		
 		auto TargetSlot = GetSlotByPosition(GridPosition);
+		if (!TargetSlot)
+			return false;
 		DragOp->ItemMoveData.TargetInventory = SlotBasedInventoryRef;
 		DragOp->ItemMoveData.TargetSlotCoordinate = TargetSlot->GetSlotPosition();
 

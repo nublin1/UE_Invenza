@@ -77,6 +77,7 @@ UInventoryBase* UInventoryBase::DuplicateInventory(UObject* Outer)
 	Inventory->SetInventorySettings(InventorySettings);
 	Inventory->SetItemCollectionLink(ItemCollectionLinked);
 	Inventory->SetInventorySize(InvSize);
+	Inventory->SetInventoryOwnerActor(InventoryOwnerActor);
 
 	return Inventory;
 }

@@ -49,6 +49,9 @@ public:
 	virtual void ReDrawInvSlots();
 	virtual void ReDrawAllItems() override;
 
+	UFUNCTION(BlueprintCallable)
+	virtual FSlotBasedInventoryWidgetInitData CollectInitSlotsDataFromWidget();
+	
 	virtual FIntPoint GetNumberRowsAndColumns() {return FIntPoint(NumberRows, NumColumns);}
 	virtual TArray<UInventorySlotData*> GetSlotData();
 
@@ -127,8 +130,7 @@ protected:
 	virtual void ApplyInventorySettings();
 	UFUNCTION(BlueprintCallable)
 	virtual void BuildInventorySlots();
-	UFUNCTION(BlueprintCallable)
-	virtual void CollectInitSlotsDataFromWidget();
+	
 
 	//
 	virtual void ClearFilters() override;
