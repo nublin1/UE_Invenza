@@ -2,12 +2,53 @@
 
 #include "Utility/InventoryUtility.h"
 
+#include "ActorComponents/Interactable/PickupComponent.h"
 #include "Data/Inventory/InventoryBase.h"
 #include "Data/Inventory/InventoryTypes.h"
 #include "Data/Items/itemBase.h"
+#include "Data/Settings/InvenzaInventoryUISettingsAsset.h"
 #include "Factory/ItemFactory.h"
 #include "Interface/Inventory/InventoryInteractionHandler.h"
 #include "Subsystems/InvenzaInventorySettingsSubsystem.h"
+
+void UInventoryUtility::DropItem(UWorld* World, AActor* OwnerActor, const FDataTableRowHandle& ItemRow, int32 AmountToDrop,
+	const FVector& SpawnLocation, const FRotator& SpawnRotation)
+{
+	if (!World) return;
+
+	auto Settings = GetInvenzaGlobalSettings(World);
+	if (!Settings || !Settings->PickupClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("PickupClass is not set."));
+		return;
+	}
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = OwnerActor;
+	SpawnParams.SpawnCollisionHandlingOverride =
+		ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+	AActor* Pickup = World->SpawnActor<AActor>(
+		Settings->PickupClass,
+		SpawnLocation,
+		SpawnRotation,
+		SpawnParams);
+
+	if (!Pickup)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Failed to spawn Pickup."));
+		return;
+	}
+
+	if (UPickupComponent* PickupComponent = Pickup->FindComponentByClass<UPickupComponent>())
+	{
+		FInitItemsEntry ItemDrop;
+		ItemDrop.Item = ItemRow;
+		ItemDrop.Amount = AmountToDrop;	
+		
+		PickupComponent->InitializeDrop(ItemDrop);
+	}
+}
 
 bool UInventoryUtility::AddItemQuantity(UObject* Outer, UInventoryBase* TargetInventory, UItemBase* ItemSample,
                                         int32 TotalQuantity)

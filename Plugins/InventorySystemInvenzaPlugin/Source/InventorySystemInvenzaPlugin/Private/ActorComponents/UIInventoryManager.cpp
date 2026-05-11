@@ -34,6 +34,7 @@
 #include "Data/Trade/TradeTypes.h"
 #include "Utility/InventoryUtility.h"
 #include "Net/UnrealNetwork.h"
+#include "UI/Core/Zones/WorldDropZoneWidget.h"
 
 class UEnhancedInputLocalPlayerSubsystem;
 
@@ -89,7 +90,8 @@ void UIInventoryManager::InitializeInventoryManager()
 	APawn* OwnerPawn = Cast<APawn>(GetOwner());
 	if (OwnerPawn && OwnerPawn->IsLocallyControlled())
 	{
-		InitWidgets();
+		InitInvWidgets();
+		BindWorldDropZoneEvents();
 		CreateWidgetsForInventories();
 		InitializeBindings();
 		BindEvents();
@@ -156,7 +158,7 @@ bool UIInventoryManager::CreateWidget(UInventoryBase* InvToLink)
 	
 	if (!UIInvProvider)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("UIInventoryManager::InitWidgets: UIProvider is not set!"));
+		UE_LOG(LogTemp, Warning, TEXT("UIInventoryManager::InitInvWidgets: UIProvider is not set!"));
 		return false;
 	}
 
@@ -190,18 +192,18 @@ bool UIInventoryManager::CreateWidget(UInventoryBase* InvToLink)
 	return true;
 }
 
-void UIInventoryManager::InitWidgets()
+void UIInventoryManager::InitInvWidgets()
 {
 	if (!UIInvProvider)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("UIInventoryManager::InitWidgets: UIProvider is not set!"));
+		UE_LOG(LogTemp, Warning, TEXT("UIInventoryManager::InitInvWidgets: UIProvider is not set!"));
 		return;
 	}
 
 	auto AllPawnContInvs = UIInvProvider->GetAllPawnInvContainers();
 	if (AllPawnContInvs.IsEmpty())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("UIInventoryManager::InitWidgets: PawnInvs is empty!"));
+		UE_LOG(LogTemp, Warning, TEXT("UIInventoryManager::InitInvWidgets: PawnInvs is empty!"));
 		return;
 	}
 	
@@ -214,7 +216,7 @@ void UIInventoryManager::InitWidgets()
 
 		if (!InvWidget->TargetInventoryTag.IsValid())
 		{
-			UE_LOG(LogTemp, Warning, TEXT("UIInventoryManager::InitWidgets: TargetInventoryTag is not set!"));
+			UE_LOG(LogTemp, Warning, TEXT("UIInventoryManager::InitInvWidgets: TargetInventoryTag is not set!"));
 			continue;
 		};
 		
@@ -258,6 +260,20 @@ void UIInventoryManager::InitWidgets()
 	}
 }
 
+void UIInventoryManager::BindWorldDropZoneEvents()
+{
+	if (!UIInvProvider)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UIInventoryManager::InitInvWidgets: UIProvider is not set!"));
+		return;
+	}
+
+	if (auto DropwWidget = UIInvProvider->GetWorldDropWidget())
+	{
+		DropwWidget->OnItemDroppedToWorld.AddDynamic(this, &UIInventoryManager::ItemDropRequest);
+	}
+}
+
 void UIInventoryManager::SetupStartingResources()
 {
 	if (!GetOwner()->HasAuthority())
@@ -298,7 +314,7 @@ void UIInventoryManager::OnItemAddedToInventory(FItemMapping& ItemSlots, UItemBa
 		if (!SlotData) continue;
 		if (!SlotData->InventorySlotInfo.LinkedEquipmentSlot.IsValid()) continue;
 		
-		EquipmentComponentRef->EquipItemToSlot(SlotData->InventorySlotInfo.LinkedEquipmentSlot, Item);
+		EquipmentComponentRef->Server_EquipItemToSlot(SlotData->InventorySlotInfo.LinkedEquipmentSlot, Item);
 		return;
 	}
 }
@@ -312,7 +328,7 @@ void UIInventoryManager::OnItemRemovedFromInventory(FItemMapping ItemSlots, UIte
 		if (!SlotData) continue;
 		if (!SlotData->InventorySlotInfo.LinkedEquipmentSlot.IsValid()) continue;
 
-		EquipmentComponentRef->UnequipItemFromSlot(SlotData->InventorySlotInfo.LinkedEquipmentSlot);
+		EquipmentComponentRef->Server_UnequipItemFromSlot(SlotData->InventorySlotInfo.LinkedEquipmentSlot);
 		return;
 	}
 }
@@ -461,9 +477,11 @@ void UIInventoryManager::Handle_ItemTransferRequest(FItemMoveData ItemMoveData)
 		if (ItemMoveData.SourceInventory && ItemMoveData.SourceInventory->GetItemCollectionLinked())
 		{
 			if (!ItemMoveData.TargetInventory->GetInventorySettings().bIsReferenceContainer)
+			{
 				ItemMoveData.SourceInventory->HandleRemoveItem(ItemMoveData.SourceItem, ActualAmountAdded);
+			}
 		}
-		if (bNeedUIUpdate)
+		/*if (bNeedUIUpdate)
 		{
 			ItemCollectionRef->NotifyUI_ItemChanged(
 				ItemMoveData.SourceItem,
@@ -477,11 +495,11 @@ void UIInventoryManager::Handle_ItemTransferRequest(FItemMoveData ItemMoveData)
 				ItemMoveData.SourceInventory->GetInventoryContainerID(),
 				EInventoryActionType::Removed);
 			}
-		}
+		}*/
 		break;
 	case EItemAddResult::IAR_NoItemAdded:
 		if (ItemMoveData.SourceInventory == nullptr)
-			ItemDropRequest(ItemMoveData.SourceItem);
+			ItemDropRequest(ItemMoveData);
 		break;
 	case EItemAddResult::IAR_PartialAmountItemAdded:
 		if (Result.bIsUsedReferences)
@@ -578,31 +596,36 @@ void UIInventoryManager::Handle_SplitItem(UInventoryBase* TargetInventory, UItem
 	TargetInventory->UpdateWeightInfo();
 }
 
-void UIInventoryManager::ItemDropRequest_Implementation(UItemBase* ItemToDrop)
+void UIInventoryManager::ItemDropRequest_Implementation(FItemMoveData ItemToDrop)
 {
 	if (GetOwnerRole() < ROLE_Authority)
 	{
-		Server_OnItemDrop_Implementation(ItemToDrop);
+		Server_OnItemDrop(ItemToDrop, ItemToDrop.SourceItem->GetQuantity());
 	}
 	else
 	{
-		HandleItemDrop_Implementation(ItemToDrop);
+		HandleItemDrop(ItemToDrop, ItemToDrop.SourceItem->GetQuantity());
 	}
 }
 
-void UIInventoryManager::Server_OnItemDrop_Implementation(UItemBase* ItemToDrop)
+void UIInventoryManager::Server_OnItemDrop_Implementation(FItemMoveData ItemToDrop, int32 DropAmount)
 {
-	HandleItemDrop_Implementation(ItemToDrop);
+	HandleItemDrop(ItemToDrop, DropAmount);
 }
 
-void UIInventoryManager::HandleItemDrop_Implementation(UItemBase* ItemToDrop)
+void UIInventoryManager::HandleItemDrop(FItemMoveData ItemToDrop, int32 DropAmount)
 {
+	if (DropAmount <= 0)
+		return;
+	
 	if (auto Pawn = UGameplayStatics::GetPlayerController(GetWorld(), 0)->GetPawn())
 	{
-		/*auto Interaction = Pawn->FindComponentByClass<UInteractionComponent>();
-		if (!Interaction) break;*/
+		FVector SpawnLocation = Pawn->GetActorLocation() + Pawn->GetActorForwardVector() * 50.f;
+		FRotator SpawnRotation = Pawn->GetActorRotation();
 
-		ItemToDrop->DropItem(GetWorld());
+		UInventoryUtility::DropItem(GetWorld(), Pawn, ItemToDrop.SourceItem->GetItemRow(),DropAmount, SpawnLocation, SpawnRotation);
+
+		ItemToDrop.SourceInventory->HandleRemoveItem(ItemToDrop.SourceItem, DropAmount);
 	}
 }
 
@@ -925,20 +948,7 @@ void UIInventoryManager::HandleToggleInventory()
 	if (!UIInvProvider)
 		return;
 	
-	//if (InteractionComponent && ExternalInventory)
-	{
-		/*APlayerController* PC = GetWorld()->GetFirstPlayerController();
-		if (!PC)
-			return;
-
-		if (PC->bShowMouseCursor)
-			InteractionComponent->StopInteract();
-
-		return;*/
-	}
-	
 	UIInvProvider->ToggleInventoryLayout();
-	
 }
 
 void UIInventoryManager::InitializeBindings()

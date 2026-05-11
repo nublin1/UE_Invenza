@@ -8,7 +8,9 @@
 #include "Engine/StaticMesh.h"
 #include "TimerManager.h"
 #include "Components/StaticMeshComponent.h"
+#include "Engine/ActorChannel.h"
 #include "Factory/ItemFactory.h"
+#include "Net/UnrealNetwork.h"
 
 
 UPickupComponent::UPickupComponent(): InitialItem()
@@ -16,6 +18,23 @@ UPickupComponent::UPickupComponent(): InitialItem()
 	PrimaryComponentTick.bCanEverTick = true;
 
 	SetIsReplicatedByDefault(true);
+}
+
+void UPickupComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(UPickupComponent, ItemBase);
+}
+
+bool UPickupComponent::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags)
+{
+	bool bWroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
+
+	if (ItemBase)
+		bWroteSomething |= Channel->ReplicateSubobject(ItemBase, *Bunch, *RepFlags);
+
+	return bWroteSomething;
 }
 
 void UPickupComponent::OnRegister()
@@ -32,7 +51,8 @@ void UPickupComponent::BeginPlay()
 
 	GetWorld()->GetTimerManager().SetTimerForNextTick([this]()
 	{
-	   InitializePickupComponent();
+		InitializePickupComponent();
+		UpdateInteractableData();
 	});
 }
 
@@ -57,18 +77,11 @@ void UPickupComponent::Interact(UInteractionComponent* InteractionComponent)
 	Super::Interact(InteractionComponent);
 }
 
-void UPickupComponent::InitializeDrop(UItemBase* ItemToDrop)
+void UPickupComponent::InitializeDrop(FInitItemsEntry ItemToDrop)
 {
-	ItemBase = ItemToDrop;
-    
-	InteractableData.Quantity = ItemBase->GetQuantity();
-	if (InteractableData.Name.IsEmpty())
-		InteractableData.Name = ItemBase->GetItemRef().ItemTextData.DisplayName;
-	
-	if (CachedMesh && ItemBase->GetItemRef().ItemAssetData.Mesh)
-	{
-		CachedMesh->SetStaticMesh(ItemBase->GetItemRef().ItemAssetData.Mesh);
-	}
+	InitialItem = ItemToDrop;
+
+	InitializePickupComponent();
 
 	UpdateInteractableData();
 }
@@ -90,6 +103,8 @@ void UPickupComponent::OnPickedUp()
 
 void UPickupComponent::InitializePickupComponent()
 {
+	if (!GetOwner()->HasAuthority()) return;
+	
 	if (InitialItem.Item.RowName.IsNone())
 		return;
     
@@ -102,14 +117,15 @@ void UPickupComponent::InitializePickupComponent()
     
 	ItemBase = NewItem;
 
-	InteractableData.Quantity = ItemBase->GetQuantity();
-	if (InteractableData.Name.IsEmpty())
-		InteractableData.Name = ItemBase->GetItemRef().ItemTextData.DisplayName;
-
 	if (CachedMesh && ItemBase->GetItemRef().ItemAssetData.Mesh)
 	{
 		CachedMesh->SetStaticMesh(ItemBase->GetItemRef().ItemAssetData.Mesh);
 	}
+}
+
+void UPickupComponent::OnRep_ItemBase()
+{
+	UpdateInteractableData();
 }
 
 void UPickupComponent::UpdateInteractableData()
@@ -117,4 +133,11 @@ void UPickupComponent::UpdateInteractableData()
 	Super::UpdateInteractableData();
 	InteractableData.DefaultInteractableType = EInteractableType::Pickup;
 	InteractableData.Action = FText::FromString(TEXT("Pickup"));
+
+	if (ItemBase)
+	{
+		InteractableData.Quantity = ItemBase->GetQuantity();
+		if (InteractableData.Name.IsEmpty())
+			InteractableData.Name = ItemBase->GetItemRef().ItemTextData.DisplayName;
+	}
 }

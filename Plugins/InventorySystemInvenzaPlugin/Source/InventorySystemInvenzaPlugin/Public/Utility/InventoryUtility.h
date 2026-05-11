@@ -21,6 +21,10 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UInventoryUtility : public UBlueprintFunc
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
+	static void DropItem(UWorld* World, AActor* OwnerActor,
+		const FDataTableRowHandle& ItemRow, int32 AmountToDrop,	const FVector& SpawnLocation, const FRotator& SpawnRotation);
+	
+	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
 	static bool AddItemQuantity(UObject* Outer, UInventoryBase* TargetInventory, UItemBase* ItemSample, int32 TotalQuantity);
 
 	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")

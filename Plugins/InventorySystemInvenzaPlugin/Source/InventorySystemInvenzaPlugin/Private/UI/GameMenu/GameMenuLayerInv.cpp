@@ -102,6 +102,9 @@ void UGameMenuLayerInv::RemovePawnInvContainer(UInventoryContainerWidget* InvCon
 
 void UGameMenuLayerInv::ToggleInventoryLayout()
 {
+	if (!GetWorld())
+		return;
+	
 	bInventoryOpen = !bInventoryOpen;
 	
 	const auto Containers = GetAllPawnInvContainers();
@@ -110,6 +113,11 @@ void UGameMenuLayerInv::ToggleInventoryLayout()
 	
 	const ESlateVisibility NewVisibility =
 		bInventoryOpen ? ESlateVisibility::Visible : ESlateVisibility::Collapsed;
+
+	if (WorldDropZone)
+	{
+		WorldDropZone->SetVisibility(NewVisibility);
+	}
 	
 	for (auto* Container : Containers)
 	{
@@ -118,10 +126,7 @@ void UGameMenuLayerInv::ToggleInventoryLayout()
 			Container->SetVisibility(NewVisibility);
 		}
 	}
-
-	if (!GetWorld())
-		return;
-
+	
 	APlayerController* PC = GetWorld()->GetFirstPlayerController();
 	if (!PC)
 		return;

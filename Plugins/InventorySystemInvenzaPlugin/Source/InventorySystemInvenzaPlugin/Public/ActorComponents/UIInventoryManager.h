@@ -67,7 +67,9 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	bool CreateWidget(UInventoryBase* InvToLink);
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	void InitWidgets();
+	void InitInvWidgets();
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	void BindWorldDropZoneEvents();
 	
 public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Initialization")
@@ -101,11 +103,11 @@ public:
 	void Handle_SplitItem(UInventoryBase* TargetInventory, UItemBase* ItemToSplit, int32 SplitAmount);
 
 	// Drop
-	virtual void ItemDropRequest_Implementation(UItemBase* ItemToDrop) override;
+	virtual void ItemDropRequest_Implementation(FItemMoveData ItemToDrop) override;
 	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Inventory|Transfer")
-	void Server_OnItemDrop(UItemBase* ItemToDrop);
-	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Inventory|Transfer")
-	void HandleItemDrop(UItemBase* ItemToDrop);
+	void Server_OnItemDrop(FItemMoveData ItemToDrop, int32 DropAmount);
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Transfer")
+	void HandleItemDrop(FItemMoveData ItemToDrop, int32 DropAmount = 0 );
 
 	//
 	virtual void RebuildInventoryRequest_Implementation(const FString& InvID) override;

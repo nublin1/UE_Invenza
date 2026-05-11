@@ -15,7 +15,10 @@ UCLASS()
 class INVENTORYSYSTEMINVENZAPLUGIN_API UTrashDropZoneWidget : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
+	
 public:
+	UTrashDropZoneWidget();
+	
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
@@ -23,7 +26,6 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UTrashDropZoneWidget();
 
 protected:
 	//====================================================================

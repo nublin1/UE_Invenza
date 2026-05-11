@@ -38,7 +38,7 @@ public:
 	void ItemSplitRequest(UInventoryBase* TargetInventory, UItemBase* ItemToSplit, int32 SplitAmount);
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Inventory")
-	void ItemDropRequest(UItemBase* ItemToDrop);
+	void ItemDropRequest(FItemMoveData ItemToDrop);
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Inventory")
 	void RebuildInventoryRequest(const FString& InvID);

@@ -7,6 +7,7 @@
 #include "UObject/Interface.h"
 #include "InvUIProvider.generated.h"
 
+class UWorldDropZoneWidget;
 // This class does not need to be modified.
 UINTERFACE(BlueprintType)
 class UInvUIProvider : public UInterface
@@ -22,6 +23,9 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API IInvUIProvider
 	GENERATED_BODY()
 
 public:
+	virtual UWorldDropZoneWidget* GetWorldDropWidget()
+	PURE_VIRTUAL(IInvUIProvider::GetWorldDropWidget, return nullptr;);
+	
 	virtual TArray<UUInventoryBaseWidget*> GetAllPawnInventories() const
 	PURE_VIRTUAL(IInvUIProvider::GetAllPawnInventories, return TArray<UUInventoryBaseWidget*>(););
 

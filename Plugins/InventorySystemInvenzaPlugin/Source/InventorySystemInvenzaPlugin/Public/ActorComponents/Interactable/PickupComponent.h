@@ -22,6 +22,9 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UPickupComponent : public UInteractableCo
 public:
 	UPickupComponent();
 
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
+
 protected:
 	virtual void OnRegister() override;
 	virtual void BeginPlay() override;
@@ -39,7 +42,7 @@ public:
 	virtual void Interact(UInteractionComponent* InteractionComponent) override;
 	
 	UFUNCTION(BlueprintCallable, Category = "Pickup | Initialization")
-	virtual void InitializeDrop(UItemBase* ItemToDrop);
+	virtual void InitializeDrop(FInitItemsEntry ItemToDrop);
 
 	//Getters
 	UFUNCTION(BlueprintCallable, Category = "Pickup | Getters")
@@ -59,7 +62,7 @@ protected:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Pickup | Item Initialization")
 	FInitItemsEntry InitialItem;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Pickup | Item Reference")
+	UPROPERTY(Replicated, ReplicatedUsing=OnRep_ItemBase, VisibleAnywhere, BlueprintReadOnly, Category = "Pickup | Item Reference")
 	TObjectPtr<UItemBase> ItemBase;
 
 	bool bIsPendingDestruction = false;
@@ -67,9 +70,11 @@ protected:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-		
 	UFUNCTION()
 	void InitializePickupComponent();
+
+	UFUNCTION()
+	void OnRep_ItemBase();
 
 	virtual void UpdateInteractableData() override;
 };

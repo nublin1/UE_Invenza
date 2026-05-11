@@ -691,7 +691,7 @@ FIntPoint USlotbasedInventoryWidget::CalculateGridPosition(const FGeometry& Geom
 			{
 				auto InvSlot = Cast<UInventorySlot>(Child);
 				const FGeometry& SlotGeometry = Child->GetCachedGeometry();
-				if (SlotGeometry.IsUnderLocation(ScreenCursorPos) && InvSlot)
+				if (InvSlot && InvSlot->GetSlotData() && SlotGeometry.IsUnderLocation(ScreenCursorPos))
 				{
 					int32 Row = InvSlot->GetSlotPosition().X;
 					int32 Column = InvSlot->GetSlotPosition().Y;

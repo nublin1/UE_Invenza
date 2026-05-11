@@ -87,36 +87,6 @@ UItemBase* UItemBase::DuplicateItem()
 	return NewItem;
 }
 
-void UItemBase::DropItem(UWorld* World)
-{
-	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(World, 0);
-	if (!PlayerController || !this) return;
-	auto Pawn = PlayerController->GetPawn();
-	APawn* PawnRaw = Pawn.Get();
-	UIInventoryManager* InventoryManager = Pawn->FindComponentByClass<UIInventoryManager>();
-
-	if (!InventoryManager)
-		return;
-
-	FActorSpawnParameters SpawnParameters;
-	SpawnParameters.Owner = Pawn;
-	SpawnParameters.bNoFail = true;
-	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-
-	const FVector SpawnLocation{PawnRaw->GetActorLocation() + (PawnRaw->GetActorForwardVector() * 50.0f)};
-	const FTransform SpawnTransform(PawnRaw->GetActorRotation(), SpawnLocation);
-
-	
-	auto Pickup = World->SpawnActor<AActor>(UInventoryUtility::GetInvenzaGlobalSettings(GetWorld())->PickupClass, SpawnTransform, SpawnParameters);
-	if (!Pickup)
-		return;
-	
-	if (auto PickupComponent = Pickup->FindComponentByClass<UPickupComponent>())
-	{
-		PickupComponent->InitializeDrop(this);
-	}
-}
-
 EItemOrientationType UItemBase::GetInitialItemOrientation()
 {
 	if (ItemRef.ItemNumeraticData.InventoryVerticalSlots > ItemRef.ItemNumeraticData.InventoryHorizontalSlots)

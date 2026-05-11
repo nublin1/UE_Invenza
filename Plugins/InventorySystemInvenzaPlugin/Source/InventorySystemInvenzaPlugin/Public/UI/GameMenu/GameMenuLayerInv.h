@@ -4,9 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "Interface/Inventory/InvUIProvider.h"
+#include "UI/Core/Zones/WorldDropZoneWidget.h"
 #include "UI/Layout/UILayer.h"
 #include "GameMenuLayerInv.generated.h"
 
+class UWorldDropZoneWidget;
 /**
  * 
  */
@@ -29,10 +31,16 @@ public:
 	// Widgets
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta=(BindWidget))
 	TObjectPtr<UPanelWidget> PawnInventories;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta=(BindWidgetOptional))
+	TObjectPtr<UWorldDropZoneWidget> WorldDropZone;
 	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+	UFUNCTION(BlueprintCallable, Category = "Inventory|UI")
+	virtual UWorldDropZoneWidget* GetWorldDropWidget() override {return WorldDropZone.Get();}
+	
 	UFUNCTION(BlueprintCallable, Category = "Inventory|UI")
 	virtual TArray<UUInventoryBaseWidget*> GetAllPawnInventories() const override;
 

@@ -6,6 +6,7 @@
 #include "Engine/DataAsset.h"
 #include "InvenzaInventoryUISettingsAsset.generated.h"
 
+class UInvenzaBaseWidget;
 class UDragContainerWidget;
 /**
  * 

@@ -54,15 +54,7 @@ void USlotbasedInventory::InitInventory()
 	{
 		UE_LOG(LogTemp, Warning, TEXT("SlotbasedInventory [%s]: InventoryOwnerActor is NULL!"), *GetName());
 	}
-
-	if (InvSize.X <= 0 || InvSize.Y <= 0)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("SlotbasedInventory [%s] on Actor [%s]: Invalid InvSize (%d x %d) — check InventorySettings"),
-		*GetName(),
-		InventoryOwnerActor ? *InventoryOwnerActor->GetName() : TEXT("NULL"),
-		InvSize.X, InvSize.Y);
-	}
-
+	
 	bWasInit = true;
 }
 
@@ -111,31 +103,7 @@ void USlotbasedInventory::SortItemsInContainerByName()
 		HandleAddItem(ItemMoveData);
 	}
 
-	/*auto AllItems = ItemCollectionLinked->GetItemsWithMappingsByContainer(InventoryContainerID);
-
-	TArray<TPair<UItemBase*, FItemMapping*>> SortedItems;
-
-	for (const auto& Pair : AllItems)
-	{
-		SortedItems.Add(Pair);
-	}
-
-	for (auto& Pair : SortedItems)
-	{
-		Pair.Value->OccupiedSlots.Empty();
-	}
-
-	for (auto i = 0; i < SortedItems.Num(); i++)
-	{
-		auto& Pair = SortedItems[i];
-		EItemOrientationType FoundOrientation;
-		auto AvSlot = GetAvailableSlotForItem(Pair.Key, FoundOrientation);
-		if (!AvSlot.IsEmpty())
-		{
-			Pair.Value->OccupiedSlots = AvSlot;
-		}
-	}
-	*/
+	
 	NotifyReDrawRequest();
 	OnRep_InventoryTotalWeight();
 	OnRep_InventoryTotalMoney();
@@ -293,9 +261,7 @@ void USlotbasedInventory::RequestSplitStack(UItemBase* ItemToSplit, int32 SplitA
 	ItemMove.TargetSlotCoordinate = EmptySlots[0]->InventorySlotInfo.CellPosition;
 	ItemMove.SavedOrientation = FinalOrientation;
 	ItemMove.TargetOrientation = FinalOrientation;
-
-	//InventoryOwnerActor->find
-	
+		
 	OnSplitDelegate.Broadcast(this,ItemToSplit, SplitAmount);
 	
 }
@@ -461,19 +427,24 @@ FItemAddResult USlotbasedInventory::HandleAddItem(FItemMoveData ItemMoveData, bo
 				FText::FromString("Item {0} cannot be added because the source inventory does not allow referencing."),
 				FText::FromName(ItemMoveData.SourceItem->GetItemID())));
 	}
-	
-	
-	if (ItemMoveData.SourceInventory == this && ItemCollectionLinked->ItemHasInventory(
-		ItemMoveData.SourceItem, InventoryContainerID))
+
+	if (bool bIsItemExist = ItemCollectionLinked->ItemHasInventory(ItemMoveData.SourceItem, InventoryContainerID))
 	{
-		TArray<UInventorySlotData*> SlotsToIgnore;
-		
-		if (ItemMoveData.SourceItem->IsStackable() && !bIsSlotEmpty(GetSlotByPosition(ItemMoveData.TargetSlotCoordinate), SlotsToIgnore))
+		if (ItemMoveData.SourceInventory == this)
 		{
-			return TryAddStackableItem(ItemMoveData, bOnlyCheck);
-		}
+			TArray<UInventorySlotData*> SlotsToIgnore;
 		
-		return TryReplaceItems(ItemMoveData, bOnlyCheck);
+			if (ItemMoveData.SourceItem->IsStackable() && !bIsSlotEmpty(GetSlotByPosition(ItemMoveData.TargetSlotCoordinate), SlotsToIgnore))
+			{
+				return TryAddStackableItem(ItemMoveData, bOnlyCheck);
+			}
+		
+			return TryReplaceItems(ItemMoveData, bOnlyCheck);
+		}
+		else
+		{
+			return TryReplaceItems(ItemMoveData, bOnlyCheck);
+		}
 	}
 
 	if (InventorySettings.bIsReferenceContainer)
@@ -1119,11 +1090,18 @@ void USlotbasedInventory::GenerateInventorySlots()
 {
 	if (!this->InventoryOwnerActor)
 		return;
-	
-	if (InvSize.X <= 0 || InvSize.Y <= 0)
-		return;
 
 	if (!InventoryOwnerActor->HasAuthority()) return;
+	
+	if (InvSize.X <= 0 || InvSize.Y <= 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("SlotbasedInventory [%s] on Actor [%s]: Invalid InvSize (%d x %d) — check InventorySettings"),
+		*GetName(),
+		InventoryOwnerActor ? *InventoryOwnerActor->GetName() : TEXT("NULL"),
+		InvSize.X, InvSize.Y);
+
+		return;
+	}
 
 	TArray<UInventorySlotData*> ResultSlots;
 	

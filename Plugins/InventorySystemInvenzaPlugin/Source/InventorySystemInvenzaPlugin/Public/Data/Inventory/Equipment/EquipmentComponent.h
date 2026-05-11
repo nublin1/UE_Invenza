@@ -29,6 +29,10 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UEquipmentComponent : public UActorCompon
 public:
 	UEquipmentComponent();
 
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	
+	virtual bool ReplicateSubobjects(class UActorChannel* Channel, class FOutBunch* Bunch, struct FReplicationFlags* RepFlags) override;
+
 protected:
 	virtual void BeginPlay() override;
 	
@@ -48,12 +52,12 @@ public:
 	UFUNCTION(Category = "Equipment|Initialization")
 	virtual void InitializeSlotsFromTable();
 	
-	UFUNCTION(BlueprintCallable, Category = "Equipment|Management")
-	bool EquipItem(UItemBase* Item);
-	UFUNCTION(BlueprintCallable, Category = "Equipment|Management")
-	bool EquipItemToSlot(FGameplayTag SlotTag, UItemBase* Item);	
-	UFUNCTION(BlueprintCallable, Category = "Equipment|Management")
-	void UnequipItemFromSlot(FGameplayTag SlotTag);
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Equipment|Management")
+	void Server_EquipItem(UItemBase* Item);
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Equipment|Management")
+	void Server_EquipItemToSlot(FGameplayTag SlotTag, UItemBase* Item);
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Equipment|Management")
+	void Server_UnequipItemFromSlot(FGameplayTag SlotTag);
 
 protected:
 	//====================================================================
@@ -61,13 +65,18 @@ protected:
 	//====================================================================
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Equipment|Config")
 	TArray<FDataTableRowHandle> SlotRows;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Equipment|Slots")
-	TMap<FGameplayTag, FEquipmentSlotRuntime> EquipmentSlots;
+	
+	UPROPERTY(Replicated, ReplicatedUsing = OnRep_EquipmentSlots, VisibleAnywhere, BlueprintReadOnly, Category = "Equipment|Slots")
+	TArray<FEquipmentSlotRuntime> EquipmentSlotsArray;
 	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+	UFUNCTION()
+	void OnRep_EquipmentSlots();
+	
 	UFUNCTION(Category = "Equipment|Management")
 	void ResourceAmountChanged(int32 AmountChanged, UItemBase* Item);
-	
+
+	FEquipmentSlotRuntime* FindSlot(FGameplayTag SlotTag);
 };
