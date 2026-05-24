@@ -1,25 +1,29 @@
-// Nublin Studio 2025 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "UI/InvenzaBaseWidget.h"
-#include "ItemFiltersPanel.generated.h"
+#include "FiltersPanel.generated.h"
 
 class UEditableText;
 class UUIButton;
-class UItemCategoryButton;
+class UFilterTagButton;
 class UVerticalBox;
 class UHorizontalBox;
 /**
  * 
  */
 UCLASS()
-class INVENTORYSYSTEMINVENZAPLUGIN_API UItemFiltersPanel : public UInvenzaBaseWidget
+class INVENTORYSYSTEMINVENZAPLUGIN_API UFiltersPanel : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
 
 public:
+	virtual void NativePreConstruct() override;
+	virtual void NativeConstruct() override;
+	
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
@@ -33,10 +37,15 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UUIButton* GetClearFiltersButton() const {return ClearFiltersButton; }
-	TArray<TObjectPtr<UItemCategoryButton>> GetFilteredCategores() const {return CategoryButtonList;}
-	UEditableText* GetSearchText() const {return SearchText; }
 	bool IsSearchInFilteredSlots() const {return bSearchInFilteredSlots; }
+	
+	UUIButton* GetClearFiltersButton() const {return ClearFiltersButton; }
+	UUIButton* GetClearSearchTextButton() const {return ClearSearchTextButton; }
+	TArray<TObjectPtr<UFilterTagButton>> GetFilteredCategores() const {return CategoryButtonList;}
+	UEditableText* GetSearchText() const {return SearchText; }
+
+	UFUNCTION(BlueprintCallable, Category = "Filters")
+	FGameplayTagContainer GetActiveFilterTags() const;
 
 	UFUNCTION()
 	virtual void DisableAllFilters();
@@ -47,7 +56,7 @@ protected:
 	//====================================================================
 	// Widgets
 	UPROPERTY(BlueprintReadWrite, Category = "Filters|UI Elements", meta = (BindWidgetOptional))
-	TObjectPtr<UHorizontalBox> HorizontalContentBox;
+	TObjectPtr<UHorizontalBox> FilterButtons;
 	UPROPERTY(BlueprintReadWrite, Category = "Filters|UI Elements", meta = (BindWidgetOptional))
 	TObjectPtr<UVerticalBox> VerticalContentBox;
 	UPROPERTY(BlueprintReadWrite, Category = "Filters|UI Elements", meta = (BindWidgetOptional))
@@ -56,11 +65,16 @@ protected:
 	UPROPERTY(BlueprintReadWrite, Category = "Filters|UI Elements", meta = (BindWidgetOptional))
 	TObjectPtr<UUIButton> ClearFiltersButton;
 
+	UPROPERTY(BlueprintReadWrite, Category = "Filters|UI Elements", meta = (BindWidgetOptional))
+	TObjectPtr<UUIButton> ClearSearchTextButton;
+
 	//
-	UPROPERTY(Category = "Filters",EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(Category = "Filters|Settings",EditAnywhere, BlueprintReadWrite)
+	bool bIsShowFiltersButtons = true;
+	UPROPERTY(Category = "Filters|Settings",EditAnywhere, BlueprintReadWrite)
 	bool bIsShowSearchField = true;
-	UPROPERTY(Category = "Filters", VisibleAnywhere, BlueprintReadOnly)
-	TArray<TObjectPtr<UItemCategoryButton>> CategoryButtonList;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Filters")
+	TArray<TObjectPtr<UFilterTagButton>> CategoryButtonList;
 	
 	/** Whether to search in filtered inventory slots instead of the full inventory slots array */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Filters", meta=(ToolTip="If true, search will be performed in the filtered inventory slots"))
@@ -69,8 +83,10 @@ protected:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	virtual void NativeConstruct() override;
 
 	UFUNCTION()
 	virtual void OnClearFiltersButtonPressed();
+
+	UFUNCTION()
+	virtual void OnClearSearchTextButtonPressed();
 };

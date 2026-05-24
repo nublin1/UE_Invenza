@@ -127,7 +127,7 @@ public:
 	UFUNCTION()
 	bool bIsSlotPositionValid(FIntPoint GridPosition);
 	UFUNCTION()
-	bool bIsItemCategoryCompatible(EItemCategory ItemCategory, EItemCategory SlotCategory);
+	bool BIsItemCategoryCompatible(FGameplayTag ItemCategory, FGameplayTag SlotCategory, bool bExactMatch = false);
 	UFUNCTION()
 	bool bIsSlotEmptyByPos(FIntPoint SlotPosition, const TArray<UInventorySlotData*>& SlotsToIgnore);
 	UFUNCTION()

@@ -75,7 +75,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Defaults")
 	TObjectPtr<UTexture2D> DefaultImage;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Defaults")
-	FLinearColor DefaultButtonBackgroundImage;
+	FLinearColor DefaultButtonBackgroundColor;
 
 	//====================================================================
 	// FUNCTIONS

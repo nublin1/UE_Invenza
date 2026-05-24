@@ -5,8 +5,10 @@
 
 #include "ActorComponents/ItemCollection.h"
 #include "Data/Items/ItemBase.h"
+#include "Data/Settings/InvenzaInventoryUISettingsAsset.h"
 #include "Factory/ItemFactory.h"
 #include "Net/UnrealNetwork.h"
+#include "Subsystems/InvenzaInventorySettingsSubsystem.h"
 
 UInventoryBase::UInventoryBase()
 {
@@ -165,6 +167,10 @@ void UInventoryBase::UpdateMoneyInfo()
 	if (!ItemCollectionLinked)
 		return;
 
+	const auto* MySettings = UInvenzaInventorySettingsSubsystem::GetSettingsStatic(this);
+	if (!MySettings)
+		return;
+
 	InventoryTotalMoney = 0;
 	
 	auto AllItems = ItemCollectionLinked->GetAllItemsByContainer(InventoryContainerID);
@@ -176,7 +182,7 @@ void UInventoryBase::UpdateMoneyInfo()
 	{
 		for (auto Item : AllItems)
 		{
-			if (Item->GetItemRef().ItemCategory == EItemCategory::Money)
+			if (Item->GetItemRef().ItemCategory == MySettings->CurrencyGameplayTag)
 				InventoryTotalMoney += Item->GetQuantity();
 		}
 

@@ -89,6 +89,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Item|Properties")
 	FString CategoryToString();
+	UFUNCTION(BlueprintCallable, Category = "Item|Properties")
+	FString CategoryToShortString();
 
 	// Reservation
 	UFUNCTION(BlueprintCallable, Category = "Resources|Reservation")

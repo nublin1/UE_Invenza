@@ -12,7 +12,6 @@
 
 struct FTradeData;
 class UUIButton;
-enum class EItemCategory : uint8;
 class UItemCollection;
 class UInventoryBase;
 
@@ -87,7 +86,7 @@ protected:
 
 	// Data
 	UPROPERTY(BlueprintReadWrite)
-	TSet<EItemCategory> ActiveFilters;
+	TSet<FGameplayTag> ActiveFilters;
 	UPROPERTY(BlueprintReadOnly)
 	TObjectPtr<UInventorySlot> SlotUnderMouse = nullptr;
 	UPROPERTY(BlueprintReadWrite)

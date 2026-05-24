@@ -15,7 +15,7 @@ struct FEquipmentSlotRuntime
 	FGameplayTag SlotTag;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly)
-	EItemCategory AllowedCategory;
+	FGameplayTag AllowedCategory;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly)
 	TObjectPtr<UItemBase> EquippedItem = nullptr;
@@ -33,7 +33,7 @@ struct FEquipmentSlotDefinition : public FTableRowBase
 	FGameplayTag SlotTag;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	EItemCategory AllowedCategory = EItemCategory::All;
+	FGameplayTag AllowedCategory;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FName AttachSocket;

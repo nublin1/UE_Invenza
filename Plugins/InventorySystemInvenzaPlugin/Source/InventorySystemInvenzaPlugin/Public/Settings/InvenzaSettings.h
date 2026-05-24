@@ -11,6 +11,8 @@
 #include "UI/Drag/DragContainerWidget.h"
 #include "InvenzaSettings.generated.h"
 
+class UCraftMenuChoose;
+class UCraftDashboard;
 class USlotbasedInventorySlot;
 class UModalTradeWidget;
 class UItemTooltipWidget;
@@ -34,6 +36,8 @@ struct FUISettings
     UInputMappingContext* InventoryMappingContext;
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Input")
     UInputAction* ToggleInventoryAction;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Input")
+	UInputAction* ToggleCraftAction;
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Input")
     UInputAction* ToggleEquipmentAction;
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Input")
@@ -61,7 +65,8 @@ struct FUISettings
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|SlotBasedInv")
 	TObjectPtr<UMaterialInterface> SlotBasedInventoryItemMaterial;
-	
+
+	// Widgets
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
     TSubclassOf<UInventoryItemWidget> InventoryItemVisualClass;
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
@@ -72,6 +77,11 @@ struct FUISettings
     TSubclassOf<UItemTooltipWidget> ItemTooltipWidgetClass;
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
     TSubclassOf<UModalTradeWidget> ModalTradeWidgetClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
+	TSubclassOf<UCraftDashboard> CraftDashboardClass;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
+	TSubclassOf<UCraftMenuChoose> CraftMenuChooseClass;
 	
 	
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Layout")

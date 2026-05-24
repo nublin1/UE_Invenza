@@ -16,3 +16,37 @@ void UInvenzaInventorySettingsSubsystem::Initialize(FSubsystemCollectionBase& Co
 		Settings = DevSettings->InventorySettingsAsset.LoadSynchronous();
 	}
 }
+
+const UInvenzaInventoryUISettingsAsset* UInvenzaInventorySettingsSubsystem::GetSettingsStatic(
+	const UObject* WorldContextObject)
+{
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
+	if (!World)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GetSettingsStatic: Failed to get World from ContextObject."));
+		return nullptr;
+	}
+	
+	UGameInstance* GI = World->GetGameInstance();
+	if (!GI)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GetSettingsStatic: GameInstance is null."));
+		return nullptr;
+	}
+	
+	auto* Subsystem = GI->GetSubsystem<UInvenzaInventorySettingsSubsystem>();
+	if (!Subsystem)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GetSettingsStatic: Could not find UInvenzaInventorySettingsSubsystem."));
+		return nullptr;
+	}
+	
+	const UInvenzaInventoryUISettingsAsset* Settings = Subsystem->GetSettings();
+	if (!Settings)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GetSettingsStatic: Settings asset is null inside the subsystem."));
+		return nullptr;
+	}
+
+	return Settings;
+}

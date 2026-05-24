@@ -9,6 +9,8 @@
 #include "Components/PanelWidget.h"
 #include "Data/Inventory/InventoryBase.h"
 #include "DragDrop/InvContainerDragDropOperation.h"
+#include "UI/Craft/CraftDashboard.h"
+#include "UI/Craft/CraftMenuChoose.h"
 
 UGameMenuLayerInv::UGameMenuLayerInv()
 {
@@ -127,11 +129,93 @@ void UGameMenuLayerInv::ToggleInventoryLayout()
 		}
 	}
 	
+	UpdateInputMode();
+}
+
+UInvenzaBaseWidget* UGameMenuLayerInv::GetCraftMenuDashboard()
+{
+	if (!PawnCraftWidgetsPanel)
+		return nullptr;
+
+	for (int32 i = 0; i < PawnCraftWidgetsPanel->GetChildrenCount(); i++)
+	{
+		if (auto Dashboard = Cast<UCraftDashboard>(PawnCraftWidgetsPanel->GetChildAt(i)))
+		{
+			return Dashboard;
+		}
+	}
+
+	return nullptr;
+}
+
+UInvenzaBaseWidget* UGameMenuLayerInv::GetCraftChoose()
+{
+	if (!PawnCraftWidgetsPanel)
+		return nullptr;
+
+	for (int32 i = 0; i < PawnCraftWidgetsPanel->GetChildrenCount(); i++)
+	{
+		if (auto Dashboard = Cast<UCraftMenuChoose>(PawnCraftWidgetsPanel->GetChildAt(i)))
+		{
+			return Dashboard;
+		}
+	}
+
+	return nullptr;
+}
+
+UPanelSlot* UGameMenuLayerInv::AddPawnCraftDashboardWidget(UInvenzaBaseWidget* WidgetToAdd)
+{
+	if (!WidgetToAdd || !PawnCraftWidgetsPanel) return nullptr;
+
+	UPanelSlot* CrafSlot = PawnCraftWidgetsPanel->AddChild(WidgetToAdd);
+	WidgetToAdd->SetVisibility(ESlateVisibility::Collapsed);
+
+	if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(CrafSlot))
+	{
+		CanvasSlot->SetAutoSize(true);
+		CanvasSlot->SetSize(FVector2D(0,0));
+	}
+
+	return CrafSlot;
+}
+
+UPanelSlot* UGameMenuLayerInv::AddPawnCraftChooseWidget(UInvenzaBaseWidget* WidgetToAdd)
+{
+	return AddPawnCraftDashboardWidget(WidgetToAdd);
+}
+
+void UGameMenuLayerInv::ToggleCraftMenuLayout()
+{
+	if (!GetWorld())
+		return;
+
+	bCraftMenuOpen = !bCraftMenuOpen;
+	
+	const ESlateVisibility NewVisibility =
+		bCraftMenuOpen ? ESlateVisibility::Visible : ESlateVisibility::Collapsed;
+
+	if (WorldDropZone)
+	{
+		WorldDropZone->SetVisibility(NewVisibility);
+	}
+
+	auto CraftMenu = GetCraftMenuDashboard();
+	if (CraftMenu)
+	{
+		CraftMenu->SetVisibility(NewVisibility);
+	}
+	
+	UpdateInputMode();
+}
+
+void UGameMenuLayerInv::UpdateInputMode()
+{
 	APlayerController* PC = GetWorld()->GetFirstPlayerController();
 	if (!PC)
 		return;
 
-	if (bInventoryOpen)
+	if (bInventoryOpen || bCraftMenuOpen)
 	{
 		FInputModeGameAndUI InputMode;
 		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
@@ -149,7 +233,7 @@ void UGameMenuLayerInv::ToggleInventoryLayout()
 }
 
 bool UGameMenuLayerInv::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent,
-	UDragDropOperation* InOperation)
+                                     UDragDropOperation* InOperation)
 {
 	if (UInvContainerDragDropOperation* DragOp = Cast<UInvContainerDragDropOperation>(InOperation))
 	{

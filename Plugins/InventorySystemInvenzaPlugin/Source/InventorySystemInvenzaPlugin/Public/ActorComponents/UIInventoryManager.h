@@ -9,6 +9,7 @@
 #include "Interface/Inventory/InventoryInteractionHandler.h"
 #include "UIInventoryManager.generated.h"
 
+class UCraftingComponent;
 class ILootContainerProvider;
 class UVendorComponent;
 class IVendorProvider;
@@ -68,6 +69,10 @@ protected:
 	bool CreateWidget(UInventoryBase* InvToLink);
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void InitInvWidgets();
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	void InitCraftWidgets();
+	
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void BindWorldDropZoneEvents();
 	
@@ -162,6 +167,8 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TObjectPtr<UEquipmentComponent> EquipmentComponentRef;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	TObjectPtr<UCraftingComponent> CraftingComponentRef;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TObjectPtr<UItemCollection> ItemCollectionRef;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TObjectPtr<UInteractionComponent> InteractionComponent;
@@ -228,7 +235,9 @@ protected:
 	void RotateDraggedItem();
 
 	UFUNCTION()
-	void HandleToggleInventory();
+	void HandleToggleInventory() ;
+	UFUNCTION()
+	void HandleToggleCraftMenu() ;
 	
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Initialization")
 	void InitializeBindings();

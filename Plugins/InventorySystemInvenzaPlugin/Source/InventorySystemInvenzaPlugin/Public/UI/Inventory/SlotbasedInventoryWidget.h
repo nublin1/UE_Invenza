@@ -10,8 +10,7 @@
 #include "UI/InvenzaBaseWidget.h"
 #include "SlotbasedInventoryWidget.generated.h"
 
-class UItemFiltersPanel;
-enum class EItemCategory : uint8;
+class UFiltersPanel;
 class UUIButton;
 class UButton;
 class UItemCollection;
@@ -63,7 +62,7 @@ protected:
 	//====================================================================
 	// Widgets
 	UPROPERTY(meta=(BindWidgetOptional))
-	TObjectPtr<UItemFiltersPanel> ItemFiltersPanel;
+	TObjectPtr<UFiltersPanel> ItemFiltersPanel;
 	UPROPERTY(meta=(BindWidgetOptional))
 	TObjectPtr<UScrollBox> ScrollBox;
 	UPROPERTY(meta=(BindWidget))

@@ -34,6 +34,10 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta=(BindWidgetOptional))
 	TObjectPtr<UWorldDropZoneWidget> WorldDropZone;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta=(BindWidgetOptional))
+	TObjectPtr<UPanelWidget> PawnCraftWidgetsPanel;
+
 	
 	//====================================================================
 	// FUNCTIONS
@@ -55,6 +59,19 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|UI")
 	virtual void ToggleInventoryLayout() override;
 
+	//
+
+	virtual UInvenzaBaseWidget* GetCraftMenuDashboard() override;
+	virtual UInvenzaBaseWidget* GetCraftChoose() override;
+	
+	UFUNCTION(BlueprintCallable, Category = "Inventory|UI")
+	virtual UPanelSlot* AddPawnCraftDashboardWidget(UInvenzaBaseWidget* WidgetToAdd) override;
+	UFUNCTION(BlueprintCallable, Category = "Inventory|UI")
+	virtual UPanelSlot* AddPawnCraftChooseWidget(UInvenzaBaseWidget* WidgetToAdd) override;
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory|UI")
+	virtual void ToggleCraftMenuLayout() override;
+
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
@@ -64,10 +81,16 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory UI")
 	bool bInventoryOpen = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory UI")
+	bool bCraftMenuOpen = false;
 	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+
+	UFUNCTION()
+	void UpdateInputMode();
 
 	virtual bool NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 };

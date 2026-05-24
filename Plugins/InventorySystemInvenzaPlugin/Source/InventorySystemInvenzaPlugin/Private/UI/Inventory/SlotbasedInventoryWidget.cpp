@@ -16,10 +16,10 @@
 #include "Data/Inventory/SlotBasedInv/SlotbasedInventory.h"
 #include "DragDrop/ItemDragDropOperation.h"
 #include "UI/Core/CoreCellWidget.h"
-#include "UI/Core/Buttons/ItemCategoryButton.h"
+#include "UI/Core/Buttons/FilterTagButton.h"
 #include "UI/Core/Buttons/UIButton.h"
 #include "UI/Core/Image/ImageBaseWidget.h"
-#include "UI/Core/ItemFiltersPanel/ItemFiltersPanel.h"
+#include "UI/Core/ItemFiltersPanel/FiltersPanel.h"
 #include "UI/Drag/HighlightSlotWidget.h"
 #include "UI/HelpersWidgets/ItemTooltipWidget.h"
 #include "UI/Inventory/ListInventoryWidget.h"
@@ -311,11 +311,11 @@ void USlotbasedInventoryWidget::ClearFilters()
 
 void USlotbasedInventoryWidget::OnFilterStatusChanged(UUIButton* ItemCategoryButton)
 {
-	auto CastedCategoryButton = Cast<UItemCategoryButton>(ItemCategoryButton);
+	auto CastedCategoryButton = Cast<UFilterTagButton>(ItemCategoryButton);
 	if (!CastedCategoryButton)
 		return;
 
-	const EItemCategory Category = CastedCategoryButton->GetItemCategory();
+	const FGameplayTag Category = CastedCategoryButton->GetFilterTag();
 	if (CastedCategoryButton->GetToggleStatus())
 	{
 		ActiveFilters.Add(Category);

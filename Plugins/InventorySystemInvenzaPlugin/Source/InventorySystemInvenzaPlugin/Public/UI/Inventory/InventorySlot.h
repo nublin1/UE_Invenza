@@ -27,7 +27,7 @@ public:
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Config")
-	EItemCategory AllowedSlotCategory = EItemCategory::All;
+	FGameplayTag AllowedSlotCategory;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Config")
 	FGameplayTag LinkedEquipmentSlotTag;
 	

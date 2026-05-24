@@ -8,10 +8,9 @@
 #include "ListInventoryWidget.generated.h"
 
 class UListInventory;
-enum class EItemCategory : uint8;
-class UItemCategoryButton;
+class UFilterTagButton;
 class UUIButton;
-class UItemFiltersPanel;
+class UFiltersPanel;
 class UEditableText;
 class UInventoryListEntry;
 class UListView;
@@ -48,7 +47,7 @@ protected:
 	//====================================================================
 	// Widgets
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory|UI", meta=(BindWidgetOptional))
-	TObjectPtr<UItemFiltersPanel> ItemFiltersPanel;
+	TObjectPtr<UFiltersPanel> ItemFiltersPanel;
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory|UI", meta=(BindWidgetOptional))
 	TObjectPtr<UScrollBox> ScrollBox;
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory|UI", meta=(BindWidget))

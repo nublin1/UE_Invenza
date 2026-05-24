@@ -9,6 +9,7 @@
 #include "Data/Settings/InvenzaInventoryUISettingsAsset.h"
 #include "Factory/ItemFactory.h"
 #include "Net/UnrealNetwork.h"
+#include "Subsystems/InvenzaInventorySettingsSubsystem.h"
 #include "Utility/InventoryUtility.h"
 
 UVendorComponent::UVendorComponent()
@@ -106,8 +107,9 @@ void UVendorComponent::Server_ProcessTradeRequest_Implementation(const FItemMove
 FTradeResult UVendorComponent::HandleProcessTrade(const FItemMoveData& TradeData)
 {
 	FTradeResult Result;
-	
-	if (TradeData.SourceItem->GetItemRef().ItemCategory == EItemCategory::Money)
+
+	const auto* MySettings = UInvenzaInventorySettingsSubsystem::GetSettingsStatic(this);
+	if (MySettings && TradeData.SourceItem->GetItemRef().ItemCategory == MySettings->CurrencyGameplayTag)
 	{
 		return FTradeResult::Failed(FText::FromString("Try transfer money"));
 	}

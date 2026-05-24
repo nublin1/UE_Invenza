@@ -3,9 +3,11 @@
 #include "Data/Inventory/SlotBasedInv/SlotbasedInventory.h"
 
 #include "ActorComponents/ItemCollection.h"
+#include "Data/Settings/InvenzaInventoryUISettingsAsset.h"
 #include "Engine/ActorChannel.h"
 #include "Factory/ItemFactory.h"
 #include "Net/UnrealNetwork.h"
+#include "Subsystems/InvenzaInventorySettingsSubsystem.h"
 #include "UI/Inventory/InventorySlot.h"
 
 USlotbasedInventory::USlotbasedInventory()
@@ -210,7 +212,7 @@ bool USlotbasedInventory::CanPlaceItemAt(const FIntPoint& StartPos, UItemBase* I
 
 		return bIsSlotPositionValid(StartPos)
 			&& bIsSlotEmptyByPos(StartPos, IgnoreSlots)
-			&& bIsItemCategoryCompatible(ItemBase->GetItemRef().ItemCategory,
+			&& BIsItemCategoryCompatible(ItemBase->GetItemRef().ItemCategory,
 				CheckSlot->InventorySlotInfo.AllowedCategory);
 	}
 
@@ -223,7 +225,7 @@ bool USlotbasedInventory::CanPlaceItemAt(const FIntPoint& StartPos, UItemBase* I
 		if (!CheckSlot) return false;
 
 		if (!bIsSlotEmptyByPos(CheckPos, IgnoreSlots)) return false;
-		if (!bIsItemCategoryCompatible(ItemBase->GetItemRef().ItemCategory,
+		if (!BIsItemCategoryCompatible(ItemBase->GetItemRef().ItemCategory,
 			CheckSlot->InventorySlotInfo.AllowedCategory)) return false;
 	}
 
@@ -921,13 +923,14 @@ bool USlotbasedInventory::bIsSlotPositionValid(FIntPoint GridPosition)
 	return GridPosition.X >= 0 && GridPosition.Y >= 0 && GridPosition.X < InvSize.X && GridPosition.Y < InvSize.Y;
 }
 
-bool USlotbasedInventory::bIsItemCategoryCompatible(EItemCategory ItemCategory, EItemCategory SlotCategory)
+bool USlotbasedInventory::BIsItemCategoryCompatible(const FGameplayTag ItemCategory, FGameplayTag SlotCategory, bool bExactMatch)
 {
-	if (SlotCategory == EItemCategory::All)
+	if (bExactMatch)
 	{
-		return true;
+		return ItemCategory.MatchesTagExact(SlotCategory);
 	}
-	return ItemCategory == SlotCategory;
+	
+	return ItemCategory.MatchesTag(SlotCategory);
 }
 
 bool USlotbasedInventory::bIsSlotEmptyByPos(FIntPoint SlotPosition, const TArray<UInventorySlotData*>& SlotsToIgnore)
@@ -1092,6 +1095,10 @@ void USlotbasedInventory::GenerateInventorySlots()
 		return;
 
 	if (!InventoryOwnerActor->HasAuthority()) return;
+
+	const auto* MySettings = UInvenzaInventorySettingsSubsystem::GetSettingsStatic(this);
+	if (!MySettings)
+		return;
 	
 	if (InvSize.X <= 0 || InvSize.Y <= 0)
 	{
@@ -1136,7 +1143,7 @@ void USlotbasedInventory::GenerateInventorySlots()
 					NAME_None,
 					FIntPoint(X, Y),
 					nullptr,
-					EItemCategory::All);
+					MySettings->AnyCategoryGameplayTag);
 
 				if (NewSlot)
 					ResultSlots.Add(NewSlot);

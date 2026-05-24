@@ -10,6 +10,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "ActorComponents/InteractionComponent.h"
 #include "ActorComponents/ItemCollection.h"
+#include "ActorComponents/Crafting/CraftingComponent.h"
 #include "UI/Inventory/SlotbasedInventoryWidget.h"
 #include "ActorComponents/Interactable/PickupComponent.h"
 #include "ActorComponents/Interactable/VendorComponent.h"
@@ -35,6 +36,9 @@
 #include "Utility/InventoryUtility.h"
 #include "Net/UnrealNetwork.h"
 #include "UI/Core/Zones/WorldDropZoneWidget.h"
+#include "Blueprint/UserWidget.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
+#include "UI/Craft/CraftDashboard.h"
 
 class UEnhancedInputLocalPlayerSubsystem;
 
@@ -74,8 +78,12 @@ void UIInventoryManager::InitializeInventoryManager()
 		EquipmentComponentRef = EquipmentComponent;
 	}
 
-	UInteractionComponent* InteractionComp = GetOwner()->FindComponentByClass<UInteractionComponent>();
-	if (InteractionComp)
+	if (auto CraftingComponent = GetOwner()->FindComponentByClass<UCraftingComponent>())
+	{
+		CraftingComponentRef = CraftingComponent;
+	}
+
+	if (UInteractionComponent* InteractionComp = GetOwner()->FindComponentByClass<UInteractionComponent>())
 	{
 		InteractionComponent = InteractionComp;
 	}
@@ -91,6 +99,7 @@ void UIInventoryManager::InitializeInventoryManager()
 	if (OwnerPawn && OwnerPawn->IsLocallyControlled())
 	{
 		InitInvWidgets();
+		InitCraftWidgets();
 		BindWorldDropZoneEvents();
 		CreateWidgetsForInventories();
 		InitializeBindings();
@@ -258,6 +267,21 @@ void UIInventoryManager::InitInvWidgets()
 	{
 		ContainerBase->InitializeInventoryBindings();
 	}
+}
+
+void UIInventoryManager::InitCraftWidgets()
+{
+	if (!CraftingComponentRef || !UIInvProvider)
+		return;
+
+	APawn* OwnerPawn = Cast<APawn>(GetOwner());
+	APlayerController* PC = Cast<APlayerController>(OwnerPawn->GetController());
+	if (!PC) return;
+
+	auto DashboardWidget = UInvenzaWidgetFactory::CreateCraftDashboard(PC,UISettings.CraftDashboardClass );
+	if (!DashboardWidget) return;
+
+	UIInvProvider->AddPawnCraftDashboardWidget(DashboardWidget);
 }
 
 void UIInventoryManager::BindWorldDropZoneEvents()
@@ -951,6 +975,14 @@ void UIInventoryManager::HandleToggleInventory()
 	UIInvProvider->ToggleInventoryLayout();
 }
 
+void UIInventoryManager::HandleToggleCraftMenu()
+{
+	if (!UIInvProvider)
+		return;
+
+	UIInvProvider->ToggleCraftMenuLayout();
+}
+
 void UIInventoryManager::InitializeBindings()
 {
 	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
@@ -973,6 +1005,10 @@ void UIInventoryManager::InitializeBindings()
 	if (UISettings.ToggleInventoryAction)
 	{
 		Input->BindAction(UISettings.ToggleInventoryAction, ETriggerEvent::Started, this, &UIInventoryManager::HandleToggleInventory);
+	}
+	if (UISettings.ToggleCraftAction)
+	{
+		Input->BindAction(UISettings.ToggleCraftAction, ETriggerEvent::Started, this, &UIInventoryManager::HandleToggleCraftMenu);
 	}
 	
 

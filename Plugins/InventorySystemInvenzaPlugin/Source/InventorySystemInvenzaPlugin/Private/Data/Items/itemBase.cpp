@@ -8,7 +8,7 @@
 #include "Data/Settings/InvenzaInventoryUISettingsAsset.h"
 #include "GameFramework/Pawn.h"
 #include "Engine/Engine.h"
-#include "Kismet/GameplayStatics.h"
+#include "GameplayTagContainer.h"
 #include "Net/UnrealNetwork.h"
 #include "Utility/InventoryUtility.h"
 
@@ -119,7 +119,12 @@ FIntPoint UItemBase::GetItemSize(EItemOrientationType Orientation)
 
 FString UItemBase::CategoryToString()
 {
-	return StaticEnum<EItemCategory>()->GetNameStringByValue(static_cast<int32>(ItemRef.ItemCategory));
+	return ItemRef.ItemCategory.ToString();
+}
+
+FString UItemBase::CategoryToShortString()
+{
+	return ItemRef.ItemCategory.GetTagName().GetPlainNameString();
 }
 
 int32 UItemBase::GetFreeAmount() const

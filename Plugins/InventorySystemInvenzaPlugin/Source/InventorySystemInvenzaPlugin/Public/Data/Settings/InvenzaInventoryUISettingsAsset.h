@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "GameplayTagContainer.h"
 #include "InvenzaInventoryUISettingsAsset.generated.h"
 
 class UInvenzaBaseWidget;
@@ -23,6 +24,12 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
 	FDataTableRowHandle CurrencyItemClass;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
+	FGameplayTag CurrencyGameplayTag;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
+	FGameplayTag AnyCategoryGameplayTag;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
 	TSubclassOf<UDragContainerWidget> DragContainerWidgetClass;
 };

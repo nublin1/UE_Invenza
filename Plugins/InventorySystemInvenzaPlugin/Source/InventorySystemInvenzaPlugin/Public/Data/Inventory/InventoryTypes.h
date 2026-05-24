@@ -201,7 +201,7 @@ struct FInventorySlotInfo
 	TSoftObjectPtr<UInputAction> UseAction;
 
 	UPROPERTY()
-	EItemCategory AllowedCategory = EItemCategory::All;
+	FGameplayTag AllowedCategory;
 
 	UPROPERTY()
 	FGameplayTag LinkedEquipmentSlot;

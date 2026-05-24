@@ -6,6 +6,7 @@
 #include "UObject/ObjectPtr.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/Texture2D.h"
+#include "GameplayTagContainer.h"
 #include "ItemDataStructures.generated.h"
 
 UENUM(BlueprintType)
@@ -13,18 +14,6 @@ enum class EItemOrientationType : uint8
 {
 	Vertical UMETA(DisplayName = "Vertical"),
 	Horizontal UMETA(DisplayName = "Hotizontal"),
-};
-
-UENUM(BlueprintType)
-enum class EItemCategory : uint8
-{
-	All        UMETA(DisplayName = "All"), 
-	Consumable  UMETA(DisplayName = "Consumable"),
-	Resource	UMETA(DisplayName = "Resource"), // Carry
-	Money       UMETA(DisplayName = "Money"),
-	Weapon      UMETA(DisplayName = "Weapon"),
-	Armor       UMETA(DisplayName = "Armor"),
-	Food		UMETA(DisplayName = "Food"),
 };
 
 UENUM(BlueprintType)
@@ -158,7 +147,7 @@ struct FItemMetaData
 	FItemTradeData ItemTradeData;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Metadata")
-	EItemCategory ItemCategory = EItemCategory::Armor;
+	FGameplayTag ItemCategory;
 
 	//==============================
 	// CATEGORY

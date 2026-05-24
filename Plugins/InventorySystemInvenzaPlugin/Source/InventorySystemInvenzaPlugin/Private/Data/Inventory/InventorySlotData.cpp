@@ -22,7 +22,7 @@ UInventorySlotData* UInventorySlotData::Create(UObject* Outer)
 }
 
 UInventorySlotData* UInventorySlotData::CreateWithData(UObject* Outer, FName Name, FIntPoint Position,
-	UInputAction* Action, EItemCategory Category)
+	UInputAction* Action, FGameplayTag Category)
 {
 	UInventorySlotData* Slot = NewObject<UInventorySlotData>(Outer);
 	if (!Slot) return nullptr;

@@ -23,6 +23,8 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API IInvUIProvider
 	GENERATED_BODY()
 
 public:
+	// Inventory
+	
 	virtual UWorldDropZoneWidget* GetWorldDropWidget()
 	PURE_VIRTUAL(IInvUIProvider::GetWorldDropWidget, return nullptr;);
 	
@@ -39,4 +41,15 @@ public:
 	PURE_VIRTUAL(IInvUIProvider::RemovePawnInvContainer,;);
 	
 	virtual void ToggleInventoryLayout(){};
+
+	// Craft
+
+	virtual UInvenzaBaseWidget* GetCraftMenuDashboard() {return nullptr;}
+	virtual UInvenzaBaseWidget* GetCraftChoose() {return nullptr;}
+	
+	virtual UPanelSlot* AddPawnCraftDashboardWidget(UInvenzaBaseWidget* WidgetToAdd){return nullptr;}
+	virtual UPanelSlot* AddPawnCraftChooseWidget(UInvenzaBaseWidget* WidgetToAdd){return nullptr;}
+	
+	virtual void ToggleCraftMenuLayout(){};
+	
 };

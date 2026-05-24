@@ -231,7 +231,7 @@ void UCraftingComponent::ProcessCraftTick()
 
 	CurrentCraftingRecipe.CurrentProgress += EffectiveSpeed ;
 
-	CurrentRecipiteProgressChanged();
+	CurrentRecipeProgressChanged();
 
 	if (CurrentCraftingRecipe.CurrentProgress >= CurrentCraftingRecipe.ItemRecipeRow.CraftTime)
 	{
@@ -295,7 +295,7 @@ void UCraftingComponent::FinishCurrentRecipe()
 	{
 		CurrentCraftingRecipe.Count--;
 		CurrentCraftingRecipe.CurrentProgress = 0.f;
-		CurrentRecipiteProgressChanged();
+		CurrentRecipeProgressChanged();
 		
 		GetWorld()->GetTimerManager().SetTimer(
 			CraftTimerHandle,
@@ -342,7 +342,7 @@ void UCraftingComponent::OnRep_CurrentRecipe()
 	//OnCurrentRecipeChanged.Broadcast(CurrentCraftingRecipe);
 }
 
-void UCraftingComponent::CurrentRecipiteProgressChanged()
+void UCraftingComponent::CurrentRecipeProgressChanged()
 {
 	if (OnCraftProgressChanged.IsBound())
 	{

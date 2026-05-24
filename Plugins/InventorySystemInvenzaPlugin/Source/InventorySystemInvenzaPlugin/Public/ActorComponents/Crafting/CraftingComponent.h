@@ -93,7 +93,7 @@ protected:
 	ECraftingResourceConsumePolicy ConsumePolicy =
 		ECraftingResourceConsumePolicy::OnCraftStart;
 
-	// data
+	// Data
 	UPROPERTY()
 	FTimerHandle CraftTimerHandle;
 
@@ -137,5 +137,5 @@ protected:
 	void Multicast_OnCraftCanceled(FName RecipeID);
 
 	UFUNCTION()
-	void CurrentRecipiteProgressChanged();
+	void CurrentRecipeProgressChanged();
 };

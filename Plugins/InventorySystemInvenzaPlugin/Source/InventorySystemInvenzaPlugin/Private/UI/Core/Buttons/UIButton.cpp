@@ -11,7 +11,7 @@
 #include "Engine/Texture2D.h"
 
 
-UUIButton::UUIButton(): bIsToggleButton(false), bIsToggleOn(false), DefaultButtonBackgroundImage()
+UUIButton::UUIButton(): bIsToggleButton(false), bIsToggleOn(false), DefaultButtonBackgroundColor()
 {
 }
 
@@ -24,6 +24,9 @@ void UUIButton::NativePreConstruct()
 		MainBox->SetWidthOverride(DefaultSize.X);
 		MainBox->SetHeightOverride(DefaultSize.Y);
 	}
+
+	if (MainButton)
+		DefaultButtonBackgroundColor = MainButton->GetBackgroundColor();
 	
 	if (MainLabel)
 	{
@@ -41,8 +44,7 @@ void UUIButton::NativePreConstruct()
 		}
 	}
 
-	if (MainButton)
-		DefaultButtonBackgroundImage = MainButton->GetBackgroundColor();
+	
 }
 
 void UUIButton::NativeConstruct()
@@ -71,7 +73,7 @@ void UUIButton::SetToggleStatus(const bool bNewStatus)
 	if (bIsToggleOn)
 		MainButton->SetBackgroundColor(ToggleColor);
 	else
-		MainButton->SetBackgroundColor(DefaultButtonBackgroundImage);
+		MainButton->SetBackgroundColor(DefaultButtonBackgroundColor);
 }
 
 void UUIButton::OnMainButtonClicked()
@@ -82,7 +84,7 @@ void UUIButton::OnMainButtonClicked()
 		if (bIsToggleOn)
 			MainButton->SetBackgroundColor(ToggleColor);
 		else
-			MainButton->SetBackgroundColor(DefaultButtonBackgroundImage);
+			MainButton->SetBackgroundColor(DefaultButtonBackgroundColor);
 	}
 
 	if (OnButtonClicked.IsBound())

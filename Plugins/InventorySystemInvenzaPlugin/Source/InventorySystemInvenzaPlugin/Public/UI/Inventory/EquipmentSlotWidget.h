@@ -20,7 +20,7 @@ public:
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment")
-	EItemCategory AllowedCategory;
+	FGameplayTag AllowedCategory;
 
 	//====================================================================
 	// FUNCTIONS

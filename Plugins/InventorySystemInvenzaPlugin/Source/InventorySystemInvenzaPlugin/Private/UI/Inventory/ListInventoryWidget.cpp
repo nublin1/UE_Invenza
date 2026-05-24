@@ -12,8 +12,8 @@
 #include "Data/Inventory/InventoryBase.h"
 #include "Data/Inventory/ListInventory/ListInventory.h"
 #include "DragDrop/ItemDragDropOperation.h"
-#include "UI/Core/Buttons/ItemCategoryButton.h"
-#include "UI/Core/ItemFiltersPanel/ItemFiltersPanel.h"
+#include "UI/Core/Buttons/FilterTagButton.h"
+#include "UI/Core/ItemFiltersPanel/FiltersPanel.h"
 #include "UI/HelpersWidgets/ItemTooltipWidget.h"
 #include "UI/Inventory/ListInventorySlotWidget.h"
 #include "UI/Item/InventoryItemWidget.h"
@@ -129,11 +129,11 @@ void UListInventoryWidget::ClearFilters()
 
 void UListInventoryWidget::OnFilterStatusChanged(UUIButton* ItemCategoryButton)
 {
-	auto CastedCategoryButton = Cast<UItemCategoryButton>(ItemCategoryButton);
+	auto CastedCategoryButton = Cast<UFilterTagButton>(ItemCategoryButton);
 	if (!CastedCategoryButton)
 		return;
 
-	const EItemCategory Category = CastedCategoryButton->GetItemCategory();
+	const FGameplayTag Category = CastedCategoryButton->GetFilterTag();
 
 	if (CastedCategoryButton->GetToggleStatus())
 	{

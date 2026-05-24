@@ -3,15 +3,15 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "UI/Core/Buttons/UIButton.h"
-#include "ItemCategoryButton.generated.h"
+#include "FilterTagButton.generated.h"
 
-enum class EItemCategory : uint8;
 /**
  * 
  */
 UCLASS()
-class INVENTORYSYSTEMINVENZAPLUGIN_API UItemCategoryButton : public UUIButton
+class INVENTORYSYSTEMINVENZAPLUGIN_API UFilterTagButton : public UUIButton
 {
 	GENERATED_BODY()
 
@@ -23,15 +23,16 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UItemCategoryButton(); 
+	UFilterTagButton(); 
 
-	EItemCategory GetItemCategory() const {return Category;}
+	FGameplayTag GetFilterTag() const { return FilterTag; }
+	
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Settings")
-	EItemCategory Category;
+	FGameplayTag FilterTag;
 	
 	//====================================================================
 	// FUNCTIONS

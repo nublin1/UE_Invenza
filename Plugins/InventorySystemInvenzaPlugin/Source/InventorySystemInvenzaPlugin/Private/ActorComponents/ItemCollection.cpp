@@ -8,9 +8,11 @@
 #include "Data/Inventory/InventoryBase.h"
 #include "Data/Inventory/InventorySlotData.h"
 #include "Data/Inventory/SlotBasedInv/SlotbasedInventory.h"
+#include "Data/Settings/InvenzaInventoryUISettingsAsset.h"
 #include "Engine/ActorChannel.h"
 #include "Factory/ItemFactory.h"
 #include "Net/UnrealNetwork.h"
+#include "Subsystems/InvenzaInventorySettingsSubsystem.h"
 #include "UI/Inventory/UInventoryBaseWidget.h"
 
 
@@ -195,7 +197,8 @@ float UItemCollection::CalculateAvailableMoney()
 	for (const FInventoryEntry& Entry : InventoryArray.Items)
 	{
 		UItemBase* Item = Entry.Item;
-		if (!Item || Item->GetItemRef().ItemCategory != EItemCategory::Money)
+		const auto* MySettings = UInvenzaInventorySettingsSubsystem::GetSettingsStatic(this);
+		if (!Item || !MySettings || Item->GetItemRef().ItemCategory != MySettings->CurrencyGameplayTag)
 			continue;
        
 		for (const FItemMapping& Mapping : Entry.Locations.Mappings)
@@ -353,7 +356,7 @@ TMap<UItemBase*, FItemMapping*> UItemCollection::GetItemsWithMappingsByContainer
 	return Result;
 }
 
-TArray<UItemBase*> UItemCollection::GetAllItemsByCategory(EItemCategory ItemCategory)
+TArray<UItemBase*> UItemCollection::GetAllItemsByCategory(FGameplayTag ItemCategory)
 {
 	TArray<UItemBase*> Result;
 

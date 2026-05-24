@@ -5,6 +5,7 @@
 
 #include "Components/NamedSlot.h"
 #include "UI/Core/OperationsPanel/OperationPanelWidget.h"
+#include "UI/Craft/CraftDashboard.h"
 #include "UI/Inventory/UInventoryBaseWidget.h"
 #include "UI/Inventory/Container/InventoryContainerWidget.h"
 
@@ -35,4 +36,17 @@ UInventoryContainerWidget* UInvenzaWidgetFactory::CreateInventoryWidget(APlayerC
 	InvContWidget->OperationsSlot->AddChild(PanelWidget);
 
 	return InvContWidget;
+}
+
+UCraftDashboard* UInvenzaWidgetFactory::CreateCraftDashboard(APlayerController* OwningPlayer,
+	TSubclassOf<UCraftDashboard> CraftDashboardClass)
+{
+	if (!OwningPlayer || !CraftDashboardClass )
+		return nullptr;
+
+	auto CraftDashboard = CreateWidget<UCraftDashboard>(OwningPlayer, CraftDashboardClass);
+	if (!CraftDashboard)
+		return nullptr;
+
+	return CraftDashboard;
 }

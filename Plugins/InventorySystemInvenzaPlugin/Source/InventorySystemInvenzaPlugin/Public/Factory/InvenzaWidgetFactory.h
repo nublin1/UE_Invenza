@@ -6,6 +6,8 @@
 #include "UObject/Object.h"
 #include "InvenzaWidgetFactory.generated.h"
 
+class UCraftDashboard;
+class UInvenzaBaseWidget;
 class UOperationPanelWidget;
 class UUInventoryBaseWidget;
 class UInventoryContainerWidget;
@@ -30,4 +32,8 @@ public:
 		TSubclassOf<UInventoryContainerWidget> ContainerWidgetClass,
 		TSubclassOf<UUInventoryBaseWidget> InventoryWidgetClass,
 		TSubclassOf<UOperationPanelWidget> OperationPanelClass);
+
+	UFUNCTION(blueprintCallable, Category = "InvenzaWidgetFactory")
+	static UCraftDashboard* CreateCraftDashboard(APlayerController* OwningPlayer,
+		TSubclassOf<UCraftDashboard> CraftDashboardClass);
 };

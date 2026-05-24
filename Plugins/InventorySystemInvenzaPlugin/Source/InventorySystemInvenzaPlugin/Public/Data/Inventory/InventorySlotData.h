@@ -9,7 +9,7 @@
 #include "UObject/Object.h"
 #include "InventorySlotData.generated.h"
 
-enum class EItemCategory : uint8;
+
 class UItemBase;
 class UInputAction;
 /**
@@ -45,7 +45,7 @@ public:
 		FName Name,
 		FIntPoint Position,
 		UInputAction* Action,
-		EItemCategory Category = EItemCategory::All
+		FGameplayTag Category
 	);
 
 	UFUNCTION(BlueprintCallable)

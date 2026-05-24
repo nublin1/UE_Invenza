@@ -21,6 +21,8 @@ public:
 
 	const UInvenzaInventoryUISettingsAsset* GetSettings() const { return Settings; }
 
+	static const UInvenzaInventoryUISettingsAsset* GetSettingsStatic(const UObject* WorldContextObject);
+
 private:
 
 	UPROPERTY()

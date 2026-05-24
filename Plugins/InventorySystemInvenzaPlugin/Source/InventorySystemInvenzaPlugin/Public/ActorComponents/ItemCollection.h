@@ -10,7 +10,7 @@
 #include "Engine/DataTable.h"
 #include "Data/Items/ItemBase.h"
 #include "Data/Inventory/InventoryTypes.h"
-#include "Data/Inventory/InventoryReplicationTypes.h"
+#include "GameplayTagContainer.h"
 #include "ItemCollection.generated.h"
 
 struct FItemSaveEntry;
@@ -110,7 +110,7 @@ public:
 	TArray<UItemBase*> GetAllSameItemsInContainer(FString InvID, UItemBase* ReferenceItem) const;
 	TArray<FItemMapping> GetAllMappingsByContainer(const FString& InvID);
 	TMap<UItemBase*, FItemMapping*> GetItemsWithMappingsByContainer(const FString& InvID);
-	TArray<UItemBase*> GetAllItemsByCategory(EItemCategory ItemCategory);
+	TArray<UItemBase*> GetAllItemsByCategory(FGameplayTag ItemCategory);
 	UItemBase* GetItemFromSlot(UInventorySlotData* TargetSlotData, const FString& InventoryID);
 	
 	UFUNCTION(BlueprintCallable, Category = "Item Collection|Item Management")
