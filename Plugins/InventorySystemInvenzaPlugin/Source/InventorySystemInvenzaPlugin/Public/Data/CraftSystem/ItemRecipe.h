@@ -62,7 +62,7 @@ struct FItemRecipeRow : public FTableRowBase
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FName ID = FName("NAME_None");
+	FName ID;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FText DisplayName;
@@ -86,4 +86,5 @@ struct FItemRecipeRow : public FTableRowBase
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FRecipeOutputItem> OutputItems;
+	
 };

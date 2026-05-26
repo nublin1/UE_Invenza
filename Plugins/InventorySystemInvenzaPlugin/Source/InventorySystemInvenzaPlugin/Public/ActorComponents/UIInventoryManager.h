@@ -79,6 +79,8 @@ protected:
 public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Initialization")
 	virtual void SetupStartingResources();
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Initialization")
+	virtual void SetupAdditionalComponents();
 
 	// Quick Transfer
 	virtual void OnQuickTransferItem_Implementation(FItemMoveData InData) override;

@@ -15,9 +15,33 @@ void URecipeListEntryWidget::NativeOnListItemObjectSet(UObject* ListItemObject)
 {
 	IUserObjectListEntry::NativeOnListItemObjectSet(ListItemObject);
 
-	if (auto RecipeObj = Cast<URecipeListEntryObject>(ListItemObject))
-	{
-		Recipe_Text->UpdateText(RecipeObj->Text);
-		Recipe_Image->UpdateBrush(RecipeObj->BrushStyle.Brush);
-	}
+	const auto RecipeObj = Cast<URecipeListEntryObject>(ListItemObject);
+	if (!RecipeObj)
+		return;
+
+	UpdateRecipeImage(RecipeObj->RecipeRow.RecipeIcon);
+	UpdateRecipeText(RecipeObj->Text);
+}
+
+void URecipeListEntryWidget::UpdateRecipeImage(const TSoftObjectPtr<UTexture2D>& RecipeIcon)
+{
+	if (!Recipe_Image || RecipeIcon.IsNull())
+		return;
+
+	UTexture2D* LoadedTexture = RecipeIcon.LoadSynchronous();
+	if (!LoadedTexture)
+		return;
+
+	FSlateBrush NewBrush;
+	NewBrush.SetResourceObject(LoadedTexture);
+	NewBrush.ImageSize = FVector2D(LoadedTexture->GetSizeX(), LoadedTexture->GetSizeY());
+	Recipe_Image->UpdateBrush(NewBrush);
+}
+
+void URecipeListEntryWidget::UpdateRecipeText(const FText& Text)
+{
+	if (!Recipe_Text)
+		return;
+
+	Recipe_Text->UpdateText(Text);
 }

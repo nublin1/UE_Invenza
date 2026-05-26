@@ -30,7 +30,15 @@ void UCraftMenuDetail::NativeConstruct()
 void UCraftMenuDetail::SetCraftDetail(FItemRecipeRow RecipeRow, FRecipeCheckResult CheckResult)
 {
 	if (RecipeImage)
-		RecipeImage->UpdateImage(RecipeRow.RecipeIcon.Get());
+	{
+		if (!RecipeRow.RecipeIcon.IsNull())
+		{
+			if (UTexture2D* LoadedTexture = RecipeRow.RecipeIcon.LoadSynchronous())
+			{
+				RecipeImage->UpdateImage(LoadedTexture);
+			}
+		}
+	}
 
 	if (!RecipeRequiredListEntryObjectClass)
 	{

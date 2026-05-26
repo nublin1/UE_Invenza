@@ -6,6 +6,7 @@
 #include "UI/InvenzaBaseWidget.h"
 #include "CraftDashboard.generated.h"
 
+struct FQueuedRecipe;
 class UQueueCraftList;
 class UGenericProgress;
 class UCraftMenuChoose;
@@ -48,6 +49,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void InitializeCraftComponentBindings();
+
+	UFUNCTION(BlueprintCallable)
+	void SetCraftComponentPtr(UCraftingComponent* NewCraftingComponent);
 
 protected:
 	//====================================================================

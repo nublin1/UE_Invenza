@@ -12,9 +12,7 @@ class UButton;
 class UImage;
 class UTextBlock;
 
-#pragma region Delegates
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnButtonClicked, UUIButton*, UIButton);
-#pragma endregion Delegates
+
 
 /**
  * UI Button Widget - A customizable button with optional toggle functionality.
@@ -23,6 +21,10 @@ UCLASS()
 class INVENTORYSYSTEMINVENZAPLUGIN_API UUIButton : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
+
+#pragma region Delegates
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnButtonClicked, UUIButton*, UIButton);
+#pragma endregion Delegates
 
 public:
 	//====================================================================

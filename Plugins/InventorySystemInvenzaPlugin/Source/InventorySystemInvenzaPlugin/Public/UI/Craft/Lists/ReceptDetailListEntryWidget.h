@@ -50,4 +50,7 @@ protected:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+
+	UFUNCTION()
+	void UpdateIngredientImage(const TSoftObjectPtr<UTexture2D>& NewIngredientIcon);
 };

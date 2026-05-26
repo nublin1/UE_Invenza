@@ -255,6 +255,39 @@ void UItemCollection::UpdateItemVisualLinks(UItemBase* Item, const FString& Inve
 	}
 }
 
+TArray<FItemIDEntry> UItemCollection::CollectItemsAggregated(FString InvID)
+{
+	TArray<FItemIDEntry> Result;
+
+	TArray<UItemBase*> Instances =
+		GetAllItemsByContainer(InvID);
+
+	TMap<UItemBase*, int32> AggregatedMap;
+
+	for (auto Instance : Instances)
+	{
+		if (!Instance)
+			continue;
+
+		FName ItemID = Instance->GetItemID();
+		int32 Count = Instance->GetQuantity();
+
+		int32& StoredCount = AggregatedMap.FindOrAdd(Instance);
+		StoredCount += Count;
+	}
+
+	for (const auto& Pair : AggregatedMap)
+	{
+		FItemIDEntry Entry;
+		Entry.ItemID = Pair.Key->GetItemID();
+		Entry.Amount = Pair.Value;
+
+		Result.Add(Entry);
+	}
+
+	return Result;
+}
+
 int32 UItemCollection::GetStackCountInContainer(FString InvID)
 {
 	int32 TotalItemCount = 0;

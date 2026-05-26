@@ -4,6 +4,7 @@
 
 #include "Data/CraftSystem/Entries/RecipeRequiredIListEntryObject.h"
 #include "UI/Core/LabelBaseText.h"
+
 #include "UI/Core/Image/ImageBaseWidget.h"
 #include "UI/Core/Progress/CurrentMaxDisplay.h"
 
@@ -22,27 +23,27 @@ void UReceptDetailListEntryWidget::NativeOnListItemObjectSet(UObject* DetailItem
 
 	if (auto RecipeDetail = Cast<URecipeRequiredIListEntryObject>(DetailItemObject))
 	{
-		const FRecipeItemRequirement& Requirement =
-			RecipeDetail->RecipeRow.RequiredItems[RecipeDetail->Index];
+		UpdateIngredientImage(RecipeDetail->RecipeCheckResult.ItemMetaData.ItemAssetData.Icon);
 		
-		if (Requirement.Item.DataTable && !Requirement.Item.RowName.IsNone())
-		{
-			const FItemRecipeRow* ItemRow =
-				Requirement.Item.GetRow<FItemRecipeRow>(TEXT("Recipe Requirement"));
-
-			if (ItemRow)
-			{
-				IngredientIcon->UpdateImage(ItemRow->RecipeIcon.Get());
-			}
-		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Requirement item is invalid!"));
-		}
-		
-		RequiredItemName->UpdateText(RecipeDetail->RecipeCheckResult.DisplayName);
-		RemainingCounter->CurrentValue->UpdateText(FText::AsNumber(RecipeDetail->RecipeCheckResult.AmountNeed));
+		RequiredItemName->UpdateText(RecipeDetail->RecipeCheckResult.ItemMetaData.ItemTextData.DisplayName);
+		if (RemainingCounter->CurrentValue)
+			RemainingCounter->CurrentValue->UpdateText(FText::AsNumber(RecipeDetail->RecipeCheckResult.AmountNeed));
 		RemainingCounter->MaxValue->UpdateText(FText::AsNumber(RecipeDetail->RecipeCheckResult.AmountHave));
 	}
+}
+
+void UReceptDetailListEntryWidget::UpdateIngredientImage(const TSoftObjectPtr<UTexture2D>& NewIngredientIcon)
+{
+	if (!IngredientIcon || NewIngredientIcon.IsNull())
+		return;
+
+	UTexture2D* LoadedTexture = NewIngredientIcon.LoadSynchronous();
+	if (!LoadedTexture)
+		return;
+
+	FSlateBrush NewBrush;
+	NewBrush.SetResourceObject(LoadedTexture);
+	//NewBrush.ImageSize = FVector2D(LoadedTexture->GetSizeX(), LoadedTexture->GetSizeY());
+	IngredientIcon->UpdateBrush(NewBrush);
 }
 

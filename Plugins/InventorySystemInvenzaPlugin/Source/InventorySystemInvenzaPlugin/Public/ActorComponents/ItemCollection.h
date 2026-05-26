@@ -104,7 +104,9 @@ public:
 											AStorageVisualRepresentation* InActor = nullptr);
 
 	FInventoryArray GetItemLocations() const {return InventoryArray;}
-	
+
+	UFUNCTION(BlueprintCallable, meta = (ToolTip = "Returns a list of resources stored in this container, aggregating identical resources and summing their total amount."))
+	TArray<FItemIDEntry> CollectItemsAggregated(FString InvID);
 	int32 GetStackCountInContainer(FString InvID);
 	TArray<UItemBase*> GetAllItemsByContainer(FString InvID);
 	TArray<UItemBase*> GetAllSameItemsInContainer(FString InvID, UItemBase* ReferenceItem) const;

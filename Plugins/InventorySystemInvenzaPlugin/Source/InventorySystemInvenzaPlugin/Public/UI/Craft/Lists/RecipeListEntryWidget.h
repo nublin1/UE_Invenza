@@ -43,4 +43,8 @@ protected:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+	UFUNCTION()
+	void UpdateRecipeImage(const TSoftObjectPtr<UTexture2D>& RecipeIcon);
+	UFUNCTION()
+	void UpdateRecipeText(const FText& Text);
 };

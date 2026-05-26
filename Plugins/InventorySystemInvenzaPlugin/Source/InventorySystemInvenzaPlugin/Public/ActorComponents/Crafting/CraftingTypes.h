@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Data/CraftSystem/ItemRecipe.h"
+#include "Data/ItemDataStructures.h"
 #include "CraftingTypes.generated.h"
 
 UENUM(BlueprintType)
@@ -37,6 +38,8 @@ struct FAlternativeItemRequirementCheck
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FName RequiredItemID;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	FItemMetaData ItemMetaData;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bIsSatisfied = false;
@@ -58,7 +61,7 @@ struct FRecipeItemRequirementCheck
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FName RequiredItemID;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	FText DisplayName;
+	FItemMetaData ItemMetaData;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bIsSatisfied = false;
@@ -80,13 +83,27 @@ USTRUCT(BlueprintType)
 struct FRecipeCheckResult
 {
 	GENERATED_BODY()
-
-	// Список результатов по каждой строке рецепта
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FRecipeItemRequirementCheck> Requirements;
-
-	// Можно ли запустить крафт
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bCanCraft = false;
+};
+
+USTRUCT(BlueprintType)
+struct FCachedRecipeResult
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Crafting")
+	FName RecipeID;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Crafting")
+	FRecipeCheckResult CheckResult;
+
+	FCachedRecipeResult() : RecipeID(NAME_None) {}
+	FCachedRecipeResult(FName InRecipeID, const FRecipeCheckResult& InResult) 
+		: RecipeID(InRecipeID), CheckResult(InResult) {}
 };
 	

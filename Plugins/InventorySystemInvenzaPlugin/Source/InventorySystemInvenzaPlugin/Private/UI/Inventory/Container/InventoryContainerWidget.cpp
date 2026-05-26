@@ -30,7 +30,7 @@ void UInventoryContainerWidget::NativePreConstruct()
 	{
 		TitleBar->TitleName->UpdateText(Title);
 		
-		if (!bIsShowCloseButton)
+		if (!bIsShowCloseButton && TitleBar->Button_Close)
 			TitleBar->Button_Close->SetVisibility(ESlateVisibility::Collapsed);
 	}
 
@@ -63,7 +63,7 @@ void UInventoryContainerWidget::NativeConstruct()
 		TitleBar->SetParentWidget(this);
 		
 		if (!bIsShowCloseButton)
-			TitleBar->Button_Close->OnClicked.AddDynamic(this, &UInventoryContainerWidget::CloseButtonClicked);
+			TitleBar->Button_Close->OnButtonClicked.AddDynamic(this, &UInventoryContainerWidget::CloseButtonClicked);
 	}
 }
 
@@ -124,10 +124,9 @@ void UInventoryContainerWidget::ChangeInventoryInContainerSlot(TSubclassOf<UInve
 	ContainerSlot->AddChild(NewInvWidget);
 }
 
-void UInventoryContainerWidget::CloseButtonClicked()
+void UInventoryContainerWidget::CloseButtonClicked(UUIButton* Btn)
 {
-	if (OnClose.IsBound())
-		OnClose.Broadcast(this);
+	OnClose.Broadcast(this);
 }
 
 UUInventoryBaseWidget* UInventoryContainerWidget::GetInventoryWidgetFromContainerSlot()

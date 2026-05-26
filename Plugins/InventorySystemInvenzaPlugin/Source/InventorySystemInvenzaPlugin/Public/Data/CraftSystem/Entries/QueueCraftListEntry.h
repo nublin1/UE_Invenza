@@ -7,6 +7,7 @@
 #include "UI/InvenzaBaseWidget.h"
 #include "QueueCraftListEntry.generated.h"
 
+class UCurrentMaxDisplay;
 class UProductionQueueListEntryObject;
 class UCraftingQuantitySelector;
 class UUIButton;
@@ -58,9 +59,7 @@ public:
 	TObjectPtr<UCraftingQuantitySelector> CraftingQuantitySelectorMini;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Componets", meta = (BindWidgetOptional))
-	TObjectPtr<ULabelBaseText> CurrentProgressAmount;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Componets", meta = (BindWidgetOptional))
-	TObjectPtr<ULabelBaseText> MaxProgressAmount;
+	TObjectPtr<UCurrentMaxDisplay> CurrentMaxDisplay;
 	
 	//====================================================================
 	// FUNCTIONS
@@ -78,6 +77,10 @@ protected:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+
+	UFUNCTION()
+	void UpdateQueueImage(const TSoftObjectPtr<UTexture2D>& NewQueueIcon);
+	
 	UFUNCTION()
 	void OnBtnUpClicked(UUIButton* Btn);
 

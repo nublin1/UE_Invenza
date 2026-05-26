@@ -39,6 +39,7 @@
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "UI/Craft/CraftDashboard.h"
+#include "UI/Craft/CraftMenuChoose.h"
 
 class UEnhancedInputLocalPlayerSubsystem;
 
@@ -81,6 +82,7 @@ void UIInventoryManager::InitializeInventoryManager()
 	if (auto CraftingComponent = GetOwner()->FindComponentByClass<UCraftingComponent>())
 	{
 		CraftingComponentRef = CraftingComponent;
+		
 	}
 
 	if (UInteractionComponent* InteractionComp = GetOwner()->FindComponentByClass<UInteractionComponent>())
@@ -107,6 +109,8 @@ void UIInventoryManager::InitializeInventoryManager()
 	}
 	
 	SetupStartingResources();
+
+	SetupAdditionalComponents();
 
 	OnInitializationCompleteDelegate.Broadcast();
 }
@@ -278,10 +282,20 @@ void UIInventoryManager::InitCraftWidgets()
 	APlayerController* PC = Cast<APlayerController>(OwnerPawn->GetController());
 	if (!PC) return;
 
-	auto DashboardWidget = UInvenzaWidgetFactory::CreateCraftDashboard(PC,UISettings.CraftDashboardClass );
-	if (!DashboardWidget) return;
+	if (UISettings.bCreateCraftWidgetsDynamically)
+	{
+		auto DashboardWidget = UInvenzaWidgetFactory::CreateInvenzaWidget(PC, UISettings.CraftDashboardClass );
+		if (!DashboardWidget) return;
 
-	UIInvProvider->AddPawnCraftDashboardWidget(DashboardWidget);
+		UIInvProvider->AddPawnCraftDashboardWidget(DashboardWidget);
+
+		auto CraftChooseWidget = UInvenzaWidgetFactory::CreateInvenzaWidget(PC, UISettings.CraftMenuChooseClass);
+		if (!CraftChooseWidget) return;
+
+		UIInvProvider->AddPawnCraftDashboardWidget(CraftChooseWidget);
+	}
+
+	UIInvProvider->BindCraftWidgets();
 }
 
 void UIInventoryManager::BindWorldDropZoneEvents()
@@ -327,6 +341,25 @@ void UIInventoryManager::SetupStartingResources()
 	}
 
 	StartingItems.Empty();
+}
+
+void UIInventoryManager::SetupAdditionalComponents()
+{
+	if (!CraftingComponentRef || !UIInvProvider)
+		return;
+	
+	CraftingComponentRef->InitCraftingComponent();
+	CraftingComponentRef->SetInputInventory(MainPawnInventory);
+	
+	if (auto CraftMenuDashboard = Cast<UCraftDashboard>(UIInvProvider->GetCraftMenuDashboard()))
+	{
+		CraftMenuDashboard->SetCraftComponentPtr(CraftingComponentRef);
+	}
+
+	if (auto CraftMenuChoose = Cast<UCraftMenuChoose>(UIInvProvider->GetCraftChoose()))
+	{
+		CraftMenuChoose->SetCraftComponentPtr(CraftingComponentRef);
+	}
 }
 
 void UIInventoryManager::OnItemAddedToInventory(FItemMapping& ItemSlots, UItemBase* Item)

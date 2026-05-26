@@ -5,14 +5,9 @@
 #include "ActorComponents/ItemCollection.h"
 #include "Data/Settings/InvenzaInventoryUISettingsAsset.h"
 #include "Engine/ActorChannel.h"
-#include "Factory/ItemFactory.h"
 #include "Net/UnrealNetwork.h"
 #include "Subsystems/InvenzaInventorySettingsSubsystem.h"
 #include "UI/Inventory/InventorySlot.h"
-
-USlotbasedInventory::USlotbasedInventory()
-{
-}
 
 void USlotbasedInventory::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {

@@ -8,6 +8,7 @@
 #include "UI/Core/Buttons/UIButton.h"
 #include "CraftMenuChoose.generated.h"
 
+class UMovableTitleBar;
 class UCraftRecipesList;
 class UCraftMenuDetail;
 class ULabelBaseText;
@@ -41,6 +42,8 @@ public:
 	FOnCraftRequested OnCraftRequested;
 	
 	// Widgets
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
+	TObjectPtr<UMovableTitleBar> MovableTitleBar;
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidget))
 	TObjectPtr<UCraftRecipesList> CraftRecipesList;
 	UPROPERTY(BlueprintReadWrite, Category = "UI|Components", meta = (BindWidget))
@@ -50,8 +53,6 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = "UI|Components", meta = (BindWidget))
 	TObjectPtr<ULabelBaseText> EmptySelectionText;
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
-	TObjectPtr<UUIButton> Btn_Close;
 	
 	//====================================================================
 	// FUNCTIONS
@@ -64,7 +65,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void SetAvailableRecipes(const TArray<FItemRecipeRow>& Recipes);
 	UFUNCTION(BlueprintCallable)
-	void SetCraftComponentPtr(UCraftingComponent* NewCraftingComponent) {CraftComponentPtr = NewCraftingComponent;}
+	void SetCraftComponentPtr(UCraftingComponent* NewCraftingComponent);
 	
 protected:
 	//====================================================================
@@ -83,6 +84,13 @@ protected:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+
+	UFUNCTION()
+	void HandleAvailableRecipesChanged(const TArray<FCachedRecipeResult>& NewResults);
+
+	UFUNCTION()
+	void RefreshCurrentSelectionDetails();
+	
 	UFUNCTION()
 	void HandleItemSelectionChanged(UObject* Item);
 	UFUNCTION()

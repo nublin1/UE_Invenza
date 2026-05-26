@@ -24,7 +24,4 @@ public:
 	
 	UPROPERTY()
 	FText Text;
-
-	UPROPERTY()
-	FUIBrushStyle BrushStyle;
 };

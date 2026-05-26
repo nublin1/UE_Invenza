@@ -7,6 +7,7 @@
 #include "Data/Inventory/InventoryTypes.h"
 #include "InventoryContainerWidget.generated.h"
 
+class UUIButton;
 class ULabelBaseText;
 enum class EInventoryType : uint8;
 class UMovableTitleBar;
@@ -90,7 +91,7 @@ protected:
 	//====================================================================
 
 	UFUNCTION()
-	virtual void CloseButtonClicked();
+	virtual void CloseButtonClicked(UUIButton* Btn);
 	
 	UFUNCTION()
 	virtual void UpdateWeightInfo(float InventoryTotalWeight);

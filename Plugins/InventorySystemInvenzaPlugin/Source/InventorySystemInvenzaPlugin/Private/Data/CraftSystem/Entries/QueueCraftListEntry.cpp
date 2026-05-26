@@ -6,6 +6,7 @@
 #include "UI/Core/LabelBaseText.h"
 #include "UI/Core/Buttons/UIButton.h"
 #include "UI/Core/Image/ImageBaseWidget.h"
+#include "UI/Core/Progress/CurrentMaxDisplay.h"
 #include "UI/Craft/CraftingQuantitySelector.h"
 
 
@@ -36,11 +37,8 @@ void UQueueCraftListEntry::NativeOnListItemObjectSet(UObject* DetailItemObject)
 	if (auto ProductionDetail = Cast<UProductionQueueListEntryObject>(DetailItemObject))
 	{
 		QueueListEntryRef = ProductionDetail;
-		
-		if (UTexture2D* Icon = ProductionDetail->RecipeRow.RecipeIcon.Get())
-		{
-			QueueIcon->UpdateImage(Icon);
-		}
+
+		UpdateQueueImage(ProductionDetail->RecipeRow.RecipeIcon);
 
 		QueueItemName->UpdateText(ProductionDetail->RecipeRow.DisplayName);
 
@@ -49,15 +47,27 @@ void UQueueCraftListEntry::NativeOnListItemObjectSet(UObject* DetailItemObject)
 			CraftingQuantitySelectorMini->SetQuantity(ProductionDetail->AmountInQueue);
 		}
 
-		if (CurrentProgressAmount)
+		if (CurrentMaxDisplay)
 		{
-			CurrentProgressAmount->UpdateText(FText::AsNumber(ProductionDetail->CurrentProgress));
-		}
-		if (MaxProgressAmount)
-		{
-			MaxProgressAmount->UpdateText(FText::AsNumber(ProductionDetail->RecipeRow.CraftTime));
+			CurrentMaxDisplay->CurrentValue->UpdateText(FText::AsNumber(ProductionDetail->CurrentProgress));
+			CurrentMaxDisplay->MaxValue->UpdateText(FText::AsNumber(ProductionDetail->RecipeRow.CraftTime));
 		}
 	}
+}
+
+void UQueueCraftListEntry::UpdateQueueImage(const TSoftObjectPtr<UTexture2D>& NewQueueIcon)
+{
+	if (!QueueIcon || NewQueueIcon.IsNull())
+		return;
+
+	UTexture2D* LoadedTexture = NewQueueIcon.LoadSynchronous();
+	if (!LoadedTexture)
+		return;
+
+	FSlateBrush NewBrush;
+	NewBrush.SetResourceObject(LoadedTexture);
+	NewBrush.ImageSize = FVector2D(LoadedTexture->GetSizeX(), LoadedTexture->GetSizeY());
+	QueueIcon->UpdateBrush(NewBrush);
 }
 
 void UQueueCraftListEntry::OnBtnUpClicked(UUIButton* Btn)

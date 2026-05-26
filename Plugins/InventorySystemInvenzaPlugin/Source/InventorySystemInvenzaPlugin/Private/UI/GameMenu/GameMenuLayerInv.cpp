@@ -9,6 +9,7 @@
 #include "Components/PanelWidget.h"
 #include "Data/Inventory/InventoryBase.h"
 #include "DragDrop/InvContainerDragDropOperation.h"
+#include "UI/Core/MovableTitleBar/MovableTitleBar.h"
 #include "UI/Craft/CraftDashboard.h"
 #include "UI/Craft/CraftMenuChoose.h"
 
@@ -207,6 +208,62 @@ void UGameMenuLayerInv::ToggleCraftMenuLayout()
 	}
 	
 	UpdateInputMode();
+}
+
+void UGameMenuLayerInv::BindCraftWidgets()
+{
+	auto Dashboard = Cast<UCraftDashboard>(GetCraftMenuDashboard());
+	if (Dashboard && Dashboard->Btn_AddTask)
+	{
+		Dashboard->Btn_AddTask->OnButtonClicked.AddDynamic(
+			this,
+			&UGameMenuLayerInv::HandleCraftMenuSwap
+		);
+	}
+
+	auto Choose = Cast<UCraftMenuChoose>(GetCraftChoose());
+	if (Choose)
+	{
+		Choose->MovableTitleBar->Button_Close->OnButtonClicked.AddDynamic(
+			this,
+			&UGameMenuLayerInv::HandleCraftMenuSwap  );
+	}
+}
+
+void UGameMenuLayerInv::HandleCraftMenuSwap(UUIButton* UIButton)
+{
+	const ECraftMenuState NewState =
+		CraftMenuState == ECraftMenuState::Dashboard
+		? ECraftMenuState::Choose
+		: ECraftMenuState::Dashboard;
+
+	SetCraftMenuState(NewState);
+}
+
+void UGameMenuLayerInv::SetCraftMenuState(ECraftMenuState NewState)
+{
+	CraftMenuState = NewState;
+
+	auto Dashboard = GetCraftMenuDashboard();
+	auto Choose = GetCraftChoose();
+
+	if (Dashboard)
+	{
+		Dashboard->SetVisibility(
+			NewState == ECraftMenuState::Dashboard
+			? ESlateVisibility::Visible
+			: ESlateVisibility::Collapsed
+		);
+	}
+
+	if (Choose)
+	{
+		Choose->SetVisibility(
+			NewState == ECraftMenuState::Choose
+			? ESlateVisibility::Visible
+			: ESlateVisibility::Collapsed
+		);
+	}
 }
 
 void UGameMenuLayerInv::UpdateInputMode()

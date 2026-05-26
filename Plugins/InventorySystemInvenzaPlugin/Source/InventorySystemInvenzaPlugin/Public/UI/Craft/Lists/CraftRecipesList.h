@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ListView.h"
+#include "Data/CraftSystem/Entries/RecipeListEntryObject.h"
 #include "UI/InvenzaBaseWidget.h"
 #include "CraftRecipesList.generated.h"
 
@@ -31,7 +32,7 @@ public:
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	// Widgets
-	UPROPERTY(BlueprintReadOnly, Category = "UI|Components", meta=(BindWidgetOptional))
+	UPROPERTY(EditAnywhere, Category = "UI|Components", meta=(BindWidgetOptional))
 	TObjectPtr<UFiltersPanel> ItemFiltersPanel;
 	UPROPERTY(BlueprintReadWrite, Category = "UI|Components", meta = (BindWidget))
 	TObjectPtr<UListView> AvailableRecipesList;

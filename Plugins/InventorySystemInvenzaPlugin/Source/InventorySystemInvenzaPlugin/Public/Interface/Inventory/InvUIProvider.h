@@ -7,6 +7,13 @@
 #include "UObject/Interface.h"
 #include "InvUIProvider.generated.h"
 
+UENUM(BlueprintType)
+enum class ECraftMenuState : uint8
+{
+	Dashboard,
+	Choose
+};
+
 class UWorldDropZoneWidget;
 // This class does not need to be modified.
 UINTERFACE(BlueprintType)
@@ -51,5 +58,7 @@ public:
 	virtual UPanelSlot* AddPawnCraftChooseWidget(UInvenzaBaseWidget* WidgetToAdd){return nullptr;}
 	
 	virtual void ToggleCraftMenuLayout(){};
+
+	virtual void BindCraftWidgets(){};
 	
 };

@@ -20,7 +20,7 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API USlotbasedInventory : public UInventoryBa
 #pragma endregion Delegates
 
 public:
-	USlotbasedInventory();
+	USlotbasedInventory(){};
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 

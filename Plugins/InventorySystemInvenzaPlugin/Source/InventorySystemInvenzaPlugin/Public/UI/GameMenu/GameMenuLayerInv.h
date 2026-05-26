@@ -72,6 +72,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|UI")
 	virtual void ToggleCraftMenuLayout() override;
 
+	//
+	virtual void BindCraftWidgets() override;
+
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
@@ -84,10 +87,19 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory UI")
 	bool bCraftMenuOpen = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Craft UI")
+	ECraftMenuState CraftMenuState = ECraftMenuState::Dashboard;
 	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+
+	UFUNCTION()
+	void HandleCraftMenuSwap(UUIButton* UIButton);
+
+	UFUNCTION()
+	void SetCraftMenuState(ECraftMenuState NewState);
 
 	UFUNCTION()
 	void UpdateInputMode();

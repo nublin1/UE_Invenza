@@ -7,6 +7,7 @@
 #include "UI/Inrefaces/UDraggableWidgetInterface.h"
 #include "MovableTitleBar.generated.h"
 
+class UUIButton;
 class UInvContainerDragDropOperation;
 class UDragContainerWidget;
 class ULabelBaseText;
@@ -36,7 +37,7 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = "TitleBar", meta = (BindWidget))
 	TObjectPtr<ULabelBaseText> TitleName;
 	UPROPERTY(BlueprintReadWrite, Category = "TitleBar", meta = (BindWidgetOptional))
-	TObjectPtr<UButton> Button_Close;
+	TObjectPtr<UUIButton> Button_Close;
 
 	//====================================================================
 	// FUNCTIONS

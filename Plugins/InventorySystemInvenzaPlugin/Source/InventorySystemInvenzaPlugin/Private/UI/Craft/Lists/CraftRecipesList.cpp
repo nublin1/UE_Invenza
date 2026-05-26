@@ -10,6 +10,7 @@
 
 UCraftRecipesList::UCraftRecipesList()
 {
+	RecipeEntryObjectClass = URecipeListEntryObject::StaticClass();
 }
 
 void UCraftRecipesList::NativePreConstruct()
@@ -39,25 +40,24 @@ void UCraftRecipesList::RefreshList()
 
 	if (!RecipeEntryObjectClass)
 	{
-		UE_LOG(LogTemp, Error, TEXT("EquipItem: RecipeEntryObjectClass is NULL! Cannot create recipe entry objects."));
+		UE_LOG(LogTemp, Error, TEXT("СraftRecipesList: RecipeEntryObjectClass is NULL!"));
+		return;
 	}
 
 	AvailableRecipesList->ClearListItems();
-	
-	for (FItemRecipeRow RecipeRow : RecipesData)
+	ItemsArray.Empty(); 
+	FilteredItemsArray.Empty();
+    
+	for (const FItemRecipeRow& RecipeRow : RecipesData)
 	{
 		auto ItemObj = NewObject<URecipeListEntryObject>(this, RecipeEntryObjectClass);
 		ItemObj->RecipeRow = RecipeRow;
-		
 		ItemObj->Text = RecipeRow.DisplayName;
 
-		FSlateBrush Brush;
-		Brush.SetResourceObject(RecipeRow.RecipeIcon.Get());
-		Brush.ImageSize = FVector2D(RecipeRow.RecipeIcon->GetSizeX(), RecipeRow.RecipeIcon->GetSizeY());
-		ItemObj->BrushStyle.Brush = Brush;
+		
 
 		AvailableRecipesList->AddItem(ItemObj);
-		ItemsArray.AddUnique(ItemObj);
+		ItemsArray.Add(ItemObj);
 	}
 }
 

@@ -79,6 +79,8 @@ struct FUISettings
     TSubclassOf<UModalTradeWidget> ModalTradeWidgetClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
+	bool bCreateCraftWidgetsDynamically = false;	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
 	TSubclassOf<UCraftDashboard> CraftDashboardClass;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
 	TSubclassOf<UCraftMenuChoose> CraftMenuChooseClass;

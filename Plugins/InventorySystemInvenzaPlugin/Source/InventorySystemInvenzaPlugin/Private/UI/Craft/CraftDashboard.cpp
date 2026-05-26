@@ -47,6 +47,21 @@ void UCraftDashboard::InitializeCraftComponentBindings()
 	CraftComponentPtr->OnCraftQueueChanged.AddDynamic(this, &UCraftDashboard::UpdateQueueCraftList);
 }
 
+void UCraftDashboard::SetCraftComponentPtr(UCraftingComponent* NewCraftingComponent)
+{
+	if (!NewCraftingComponent)
+		return;
+	
+	if (CraftComponentPtr)
+	{
+		CraftComponentPtr->OnAvailableRecipesChanged.RemoveAll(this);
+	}
+
+	CraftComponentPtr = NewCraftingComponent;
+
+	InitializeCraftComponentBindings();
+}
+
 void UCraftDashboard::AddTaskBtnPressed(UUIButton* Btn)
 {
 	if (!CraftMenuRef)
@@ -73,10 +88,13 @@ void UCraftDashboard::UpdateCurrentCraftProgress(float NewValue)
 
 void UCraftDashboard::UpdateQueueCraftList(TArray<FQueuedRecipe>& NewRecipeQueue)
 {
-	if (!QueueCraftList || NewRecipeQueue.IsEmpty())
+	if (!QueueCraftList)
 		return;
 
 	QueueCraftList->QueueList->ClearListItems();
+
+	if (NewRecipeQueue.IsEmpty())
+		return;
 
 	TArray<UProductionQueueListEntryObject*> NewProductionQueueList;
 
