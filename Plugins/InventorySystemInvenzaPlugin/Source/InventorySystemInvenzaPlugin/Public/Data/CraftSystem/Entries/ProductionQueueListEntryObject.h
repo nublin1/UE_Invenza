@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ActorComponents/Crafting/CraftingTypes.h"
 #include "Data/CraftSystem/ItemRecipe.h"
 #include "UObject/Object.h"
 #include "ProductionQueueListEntryObject.generated.h"
@@ -14,16 +15,25 @@ UCLASS()
 class INVENTORYSYSTEMINVENZAPLUGIN_API UProductionQueueListEntryObject : public UObject
 {
 	GENERATED_BODY()
+
+#pragma region Delegates
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDataChanged);
+#pragma endregion
 	
 public:
 	UProductionQueueListEntryObject() {};
+
+	UPROPERTY(BlueprintAssignable, Category = "Crafting")
+	FOnDataChanged OnDataChanged;
 	
-	UPROPERTY(BlueprintReadOnly)
-	FItemRecipeRow RecipeRow;
+	FQueuedRecipe GetQueuedRecipeData() {return QueuedRecipeData;}
 
-	UPROPERTY(BlueprintReadOnly)
-	int32 AmountInQueue = 0;
+	void SetQueuedRecipe(const FQueuedRecipe& NewQueuedRecipe) {QueuedRecipeData = NewQueuedRecipe;}
 
+	UFUNCTION(BlueprintCallable)
+	void UpdateData(int32 NewCount, float NewProgress);
+
+protected:
 	UPROPERTY(BlueprintReadOnly)
-	float CurrentProgress = 0.f;
+	FQueuedRecipe QueuedRecipeData;
 };

@@ -7,6 +7,7 @@
 #include "UI/InvenzaBaseWidget.h"
 #include "QueueCraftListEntryWidget.generated.h"
 
+class UCurrentMaxDisplay;
 class UProductionQueueListEntryObject;
 class UCraftingQuantitySelector;
 class ULabelBaseText;
@@ -20,12 +21,10 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UQueueCraftListEntryWidget : public UInve
 {
 	GENERATED_BODY()
 
-	
 #pragma region Delegates
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnQueueEntryMoveRequested, UObject*, Item, bool, bMoveUp);
 #pragma endregion
 
-		
 public:
 	UQueueCraftListEntryWidget();
 	
@@ -58,9 +57,7 @@ public:
 	TObjectPtr<UCraftingQuantitySelector> CraftingQuantitySelectorMini;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Componets", meta = (BindWidgetOptional))
-	TObjectPtr<ULabelBaseText> CurrentProgressAmount;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Componets", meta = (BindWidgetOptional))
-	TObjectPtr<ULabelBaseText> MaxProgressAmount;
+	TObjectPtr<UCurrentMaxDisplay> CurrentMaxDisplay;
 	
 	//====================================================================
 	// FUNCTIONS
@@ -73,11 +70,15 @@ protected:
 
 	// Data
 	UPROPERTY()
-	UProductionQueueListEntryObject* QueueListEntryRef;
+	TObjectPtr<UProductionQueueListEntryObject> QueueListEntryRef;
 
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+
+	UFUNCTION()
+	void HandleDataChanged();
+	
 	UFUNCTION()
 	void OnBtnUpClicked(UUIButton* Btn);
 

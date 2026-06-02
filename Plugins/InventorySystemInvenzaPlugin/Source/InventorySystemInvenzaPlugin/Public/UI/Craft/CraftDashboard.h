@@ -32,13 +32,11 @@ public:
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	// Widgets
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidget))
-	TObjectPtr<UGenericProgress> CraftProgressSimple;
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidget))
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
 	TObjectPtr<UQueueCraftList> QueueCraftList;
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidget))
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
 	TObjectPtr<UUIButton> Btn_AddTask;
 	
 	//====================================================================
@@ -73,8 +71,11 @@ protected:
 	UFUNCTION()
 	void SetNewCurrentCraftRecipe(FQueuedRecipe NewQueuedRecipe);
 	UFUNCTION()
-	void UpdateCurrentCraftProgress(float NewValue);
+	void UpdateCurrentCraftProgress(FQueuedRecipe& Recipe);
 
 	UFUNCTION()
 	void UpdateQueueCraftList(TArray<FQueuedRecipe>& NewRecipeQueue);
+
+	UFUNCTION()
+	void HandleQueueOrderChangeRequested(FName RecipeID, bool bMoveUp);
 };

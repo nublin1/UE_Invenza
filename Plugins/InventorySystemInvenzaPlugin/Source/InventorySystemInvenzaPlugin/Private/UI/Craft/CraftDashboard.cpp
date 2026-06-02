@@ -24,6 +24,11 @@ void UCraftDashboard::NativeConstruct()
 	Super::NativeConstruct();
 
 	Btn_AddTask->OnButtonClicked.AddDynamic(this, &UCraftDashboard::AddTaskBtnPressed);
+
+	if (QueueCraftList)
+	{
+		QueueCraftList->OnQueueOrderChangeRequested.AddDynamic(this, &UCraftDashboard::HandleQueueOrderChangeRequested);
+	}
 }
 
 void UCraftDashboard::BindCraftMenu(UCraftMenuChoose* NewCraftMenuChooseRef)
@@ -43,7 +48,7 @@ void UCraftDashboard::InitializeCraftComponentBindings()
 		return;
 
 	CraftComponentPtr->OnNewCraftStarted.AddDynamic(this, &UCraftDashboard::SetNewCurrentCraftRecipe);
-	CraftComponentPtr->OnCraftProgressChanged.AddDynamic(this, &UCraftDashboard::UpdateCurrentCraftProgress);
+	CraftComponentPtr->OnCraftDataChanged.AddDynamic(this, &UCraftDashboard::UpdateCurrentCraftProgress);
 	CraftComponentPtr->OnCraftQueueChanged.AddDynamic(this, &UCraftDashboard::UpdateQueueCraftList);
 }
 
@@ -72,17 +77,13 @@ void UCraftDashboard::AddTaskBtnPressed(UUIButton* Btn)
 
 void UCraftDashboard::SetNewCurrentCraftRecipe(FQueuedRecipe NewQueuedRecipe)
 {
-	if (CraftProgressSimple)
-	{
-		CraftProgressSimple->SetNewCraft(NewQueuedRecipe);
-	}
 }
 
-void UCraftDashboard::UpdateCurrentCraftProgress(float NewValue)
+void UCraftDashboard::UpdateCurrentCraftProgress(FQueuedRecipe& Recipe)
 {
-	if (CraftProgressSimple)
+	if (QueueCraftList)
 	{
-		CraftProgressSimple->UpdateProgress(NewValue);
+		QueueCraftList->UpdateDataInRecipe(Recipe);
 	}
 }
 
@@ -90,27 +91,14 @@ void UCraftDashboard::UpdateQueueCraftList(TArray<FQueuedRecipe>& NewRecipeQueue
 {
 	if (!QueueCraftList)
 		return;
+	
+	QueueCraftList->SetNewProductionQueueList(NewRecipeQueue);
+}
 
-	QueueCraftList->QueueList->ClearListItems();
-
-	if (NewRecipeQueue.IsEmpty())
-		return;
-
-	TArray<UProductionQueueListEntryObject*> NewProductionQueueList;
-
-	for (int i = 0; i < NewRecipeQueue.Num(); i++)
+void UCraftDashboard::HandleQueueOrderChangeRequested(FName RecipeID, bool bMoveUp)
+{
+	if (CraftComponentPtr)
 	{
-		UProductionQueueListEntryObject* ProductionQueueList = NewObject<UProductionQueueListEntryObject>();
-
-		ProductionQueueList->RecipeRow = NewRecipeQueue[i].ItemRecipeRow;
-		ProductionQueueList->AmountInQueue = NewRecipeQueue[i].Count;
-		ProductionQueueList->CurrentProgress = NewRecipeQueue[i].CurrentProgress;
-
-		NewProductionQueueList.Add(ProductionQueueList);
-	}
-
-	if (!NewProductionQueueList.IsEmpty())
-	{
-		QueueCraftList->SetNewProductionQueueList(NewProductionQueueList);
+		CraftComponentPtr->RequestMoveQueueItem(RecipeID, bMoveUp);
 	}
 }

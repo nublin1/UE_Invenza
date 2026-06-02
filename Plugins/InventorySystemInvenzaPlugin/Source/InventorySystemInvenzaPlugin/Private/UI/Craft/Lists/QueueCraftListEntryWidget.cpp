@@ -7,6 +7,7 @@
 #include "UI/Core/LabelBaseText.h"
 #include "UI/Core/Buttons/UIButton.h"
 #include "UI/Core/Image/ImageBaseWidget.h"
+#include "UI/Core/Progress/CurrentMaxDisplay.h"
 #include "UI/Craft/CraftingQuantitySelector.h"
 
 
@@ -37,27 +38,41 @@ void UQueueCraftListEntryWidget::NativeOnListItemObjectSet(UObject* DetailItemOb
 	if (auto ProductionDetail = Cast<UProductionQueueListEntryObject>(DetailItemObject))
 	{
 		QueueListEntryRef = ProductionDetail;
+
+		QueueListEntryRef->OnDataChanged.AddDynamic(this, &UQueueCraftListEntryWidget::HandleDataChanged);
 		
-		if (UTexture2D* Icon = ProductionDetail->RecipeRow.RecipeIcon.Get())
+		if (UTexture2D* Icon = ProductionDetail->GetQueuedRecipeData().ItemRecipeRow.RecipeIcon.Get())
 		{
-			QueueIcon->UpdateImage(Icon);
+			if (QueueIcon)
+				QueueIcon->UpdateImage(Icon);
 		}
 
-		QueueItemName->UpdateText(ProductionDetail->RecipeRow.DisplayName);
+		QueueItemName->UpdateText(ProductionDetail->GetQueuedRecipeData().ItemRecipeRow.DisplayName);
 
 		if (CraftingQuantitySelectorMini)
 		{
-			CraftingQuantitySelectorMini->SetQuantity(ProductionDetail->AmountInQueue);
+			CraftingQuantitySelectorMini->SetQuantity(ProductionDetail->GetQueuedRecipeData().Count);
 		}
 
-		if (CurrentProgressAmount)
+		if (CurrentMaxDisplay)
 		{
-			CurrentProgressAmount->UpdateText(FText::AsNumber(ProductionDetail->CurrentProgress));
+			CurrentMaxDisplay->CurrentValue->UpdateText(FText::AsNumber(ProductionDetail->GetQueuedRecipeData().CurrentProgress));
+			CurrentMaxDisplay->MaxValue->UpdateText(FText::AsNumber(ProductionDetail->GetQueuedRecipeData().ItemRecipeRow.CraftTime));
 		}
-		if (MaxProgressAmount)
-		{
-			MaxProgressAmount->UpdateText(FText::AsNumber(ProductionDetail->RecipeRow.CraftTime));
-		}
+	}
+}
+
+void UQueueCraftListEntryWidget::HandleDataChanged()
+{
+	if (CraftingQuantitySelectorMini)
+	{
+		CraftingQuantitySelectorMini->SetQuantity(QueueListEntryRef->GetQueuedRecipeData().Count);
+	}
+	
+	if (CurrentMaxDisplay)
+	{
+		CurrentMaxDisplay->CurrentValue->UpdateText(FText::AsNumber(QueueListEntryRef->GetQueuedRecipeData().CurrentProgress));
+		CurrentMaxDisplay->MaxValue->UpdateText(FText::AsNumber(QueueListEntryRef->GetQueuedRecipeData().ItemRecipeRow.CraftTime));
 	}
 }
 

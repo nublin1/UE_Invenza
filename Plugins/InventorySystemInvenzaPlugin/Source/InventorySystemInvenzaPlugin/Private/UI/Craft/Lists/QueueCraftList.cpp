@@ -5,7 +5,7 @@
 
 #include "Components/ListView.h"
 #include "Data/CraftSystem/Entries/ProductionQueueListEntryObject.h"
-#include "Data/CraftSystem/Entries/QueueCraftListEntry.h"
+#include "UI/Craft/Lists/QueueCraftListEntryWidget.h"
 
 
 UQueueCraftList::UQueueCraftList()
@@ -20,11 +20,41 @@ void UQueueCraftList::NativeConstruct()
 	this, &UQueueCraftList::OnEntryGenerated);
 }
 
-void UQueueCraftList::SetNewProductionQueueList(TArray<UProductionQueueListEntryObject*> InArray)
+void UQueueCraftList::SetNewProductionQueueList(const TArray<FQueuedRecipe>& InRecipeQueue)
 {
-	ProductionQueueList = InArray;
+	ProductionQueueList.Empty();
+	QueueList->ClearListItems();
 
+	if (InRecipeQueue.IsEmpty())
+	{
+		return;
+	}
+	
+	for (const FQueuedRecipe& Recipe : InRecipeQueue)
+	{
+		UProductionQueueListEntryObject* NewEntry = NewObject<UProductionQueueListEntryObject>(this);
+
+		NewEntry->SetQueuedRecipe(Recipe);
+
+		ProductionQueueList.Add(NewEntry);
+	}
+	
 	UpdateProductionQueueList();
+}
+
+void UQueueCraftList::UpdateDataInRecipe(FQueuedRecipe& UpdatedRecipe)
+{
+	TObjectPtr<UProductionQueueListEntryObject>* FoundEntryPtr = ProductionQueueList.FindByPredicate(
+		[&UpdatedRecipe](const TObjectPtr<UProductionQueueListEntryObject>& Entry)
+		{
+			return Entry && Entry->GetQueuedRecipeData().ItemRecipeRow.ID == UpdatedRecipe.ItemRecipeRow.ID;
+		}
+	);
+
+	if (FoundEntryPtr && *FoundEntryPtr)
+	{
+		(*FoundEntryPtr)->UpdateData(UpdatedRecipe.Count, UpdatedRecipe.CurrentProgress);
+	}
 }
 
 void UQueueCraftList::UpdateProductionQueueList()
@@ -37,34 +67,21 @@ void UQueueCraftList::UpdateProductionQueueList()
 	}
 }
 
-void UQueueCraftList::MoveItem(UObject* Item, bool bMoveUp)
+void UQueueCraftList::HandleMoveItemRequest(UObject* Item, bool bMoveUp)
 {
-	int32 Index = ProductionQueueList.IndexOfByKey(Item);
-
-	if (bMoveUp)
-	{
-		if (Index != INDEX_NONE && Index > 0)
-		{
-			ProductionQueueList.Swap(Index, Index - 1);
-			QueueList->RequestRefresh();
-		}
-	}
-	else
-	{
-		if (Index != INDEX_NONE && Index < ProductionQueueList.Num() - 1)
-		{
-			ProductionQueueList.Swap(Index, Index + 1);
-			QueueList->RequestRefresh();
-		}
-	}
+	UProductionQueueListEntryObject* EntryObj = Cast<UProductionQueueListEntryObject>(Item);
+	if (!EntryObj || EntryObj->GetQueuedRecipeData().ItemRecipeRow.ID.IsNone()) return;
+	
+	OnQueueOrderChangeRequested.Broadcast(EntryObj->GetQueuedRecipeData().ItemRecipeRow.ID, bMoveUp);
+	
 }
 
 void UQueueCraftList::OnEntryGenerated(UUserWidget& UserWidget)
 {
-	if (UQueueCraftListEntry* Entry =
-			Cast<UQueueCraftListEntry>(&UserWidget))
+	if (UQueueCraftListEntryWidget* Entry =
+			Cast<UQueueCraftListEntryWidget>(&UserWidget))
 	{
 		Entry->OnMoveRequested.AddUniqueDynamic(
-			this, &UQueueCraftList::MoveItem);
+			this, &UQueueCraftList::HandleMoveItemRequest);
 	}
 }

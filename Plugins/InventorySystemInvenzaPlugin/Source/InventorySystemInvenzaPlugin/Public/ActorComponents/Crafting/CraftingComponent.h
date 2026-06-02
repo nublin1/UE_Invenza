@@ -21,7 +21,7 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UCraftingComponent : public UActorCompone
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAvailableRecipesChanged, const TArray<FCachedRecipeResult>&, NewResults);
 	
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNewCraftStarted, FQueuedRecipe, QueuedRecipe);
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCraftProgressChanged, float, ProgressRatio);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCraftDataChanged, FQueuedRecipe&, Recipe);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCraftQueueChanged,TArray<FQueuedRecipe>&,NewQueue);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCraftFinished, FName, RecipeID);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCraftCanceled, FName, RecipeID);
@@ -45,7 +45,7 @@ public:
 	UPROPERTY(BlueprintAssignable, Category="Crafting|Events")
 	FOnNewCraftStarted OnNewCraftStarted;
 	UPROPERTY(BlueprintAssignable, Category="Crafting|Events")
-	FOnCraftProgressChanged OnCraftProgressChanged;
+	FOnCraftDataChanged OnCraftDataChanged;
 	UPROPERTY(BlueprintAssignable, Category="Crafting|Events")
 	FOnCraftQueueChanged OnCraftQueueChanged;
 	UPROPERTY(BlueprintAssignable, Category="Crafting|Events")
@@ -85,6 +85,9 @@ public:
 	void EnqueueRecipeRequest(FItemRecipeRow ItemRecipeRow, int32 Count = 1);
 	UFUNCTION(BlueprintCallable, Category="Crafting")
 	void CancelCurrentCraft();
+
+	UFUNCTION(BlueprintCallable, Category = "Crafting")
+	void RequestMoveQueueItem(FName RecipeID, bool bMoveUp);
 
 protected:
 

@@ -222,27 +222,28 @@ void UCraftingComponent::CancelCurrentCraft()
 		Server_CancelCurrentCraft();
 		return;
 	}
-	
-	/*if (CurrentRecipeID != NAME_None)
+}
+
+void UCraftingComponent::RequestMoveQueueItem(FName RecipeID, bool bMoveUp)
+{
+	int32 Index = RecipeQueue.IndexOfByPredicate([RecipeID](const FQueuedRecipe& Item) {
+		return Item.ItemRecipeRow.ID == RecipeID;
+	});
+
+	if (Index == INDEX_NONE) return;
+
+	if (bMoveUp && Index > 0)
 	{
-		// вернуть ресурсы (если нужно)
-		RefundResourcesForRecipe(CurrentRecipeID, 1);
+		RecipeQueue.Swap(Index, Index - 1);
+		OnRep_Queue();
+	}
+	else if (!bMoveUp && Index < RecipeQueue.Num() - 1)
+	{
+		RecipeQueue.Swap(Index, Index + 1);
+		OnRep_Queue();
+	}
 
-		// уведомления
-		Multicast_OnCraftCanceled(CurrentRecipeID);
-		OnCraftCanceled.Broadcast(CurrentRecipeID);
-
-		// сброс текущего
-		CurrentRecipeID = NAME_None;
-		CurrentProgress = 0.f;
-		CurrentWorkAmount = 1.f;
-
-		OnRep_CurrentRecipe();
-		OnRep_Progress();
-
-		// пробуем следующий
-		TryStartNext();
-	}*/
+	CurrentCraftingRecipe = RecipeQueue[0];
 }
 
 void UCraftingComponent::OnRep_InputInventory()
@@ -392,7 +393,7 @@ void UCraftingComponent::OnRep_CurrentRecipe()
 
 void UCraftingComponent::CurrentRecipeProgressChanged()
 {
-	OnCraftProgressChanged.Broadcast(CurrentCraftingRecipe.CurrentProgress);
+	OnCraftDataChanged.Broadcast(CurrentCraftingRecipe);
 }
 
 void UCraftingComponent::Server_EnqueueRecipe_Implementation(FItemRecipeRow ItemRecipeRow, int32 Count)
