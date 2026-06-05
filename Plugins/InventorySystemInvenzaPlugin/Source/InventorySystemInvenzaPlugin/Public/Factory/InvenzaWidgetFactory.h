@@ -34,6 +34,6 @@ public:
 		TSubclassOf<UOperationPanelWidget> OperationPanelClass);
 
 	UFUNCTION(blueprintCallable, Category = "InvenzaWidgetFactory")
-	static UInvenzaBaseWidget* CreateInvenzaWidget(APlayerController* OwningPlayer,
+	static UInvenzaBaseWidget* CreateInvenzaWidget(APlayerController* Owner,
 		TSubclassOf<UInvenzaBaseWidget> InvenzaBaseWidgetClass);
 };

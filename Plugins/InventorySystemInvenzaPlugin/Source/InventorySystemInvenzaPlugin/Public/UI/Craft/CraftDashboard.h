@@ -77,5 +77,8 @@ protected:
 	void UpdateQueueCraftList(TArray<FQueuedRecipe>& NewRecipeQueue);
 
 	UFUNCTION()
-	void HandleQueueOrderChangeRequested(FName RecipeID, bool bMoveUp);
+	void HandleQueueOrderChangeRequested(FName RecipeID, const int32 QueueIndex, bool bMoveUp);
+
+	UFUNCTION()
+	void HandleQueueItemDeleteRequested(int32 QueueIndex);
 };

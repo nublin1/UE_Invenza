@@ -50,41 +50,23 @@ void UInventoryUtility::DropItem(UWorld* World, AActor* OwnerActor, const FDataT
 	}
 }
 
-bool UInventoryUtility::AddItemQuantity(UObject* Outer, UInventoryBase* TargetInventory, UItemBase* ItemSample,
-                                        int32 TotalQuantity)
+bool UInventoryUtility::AddItemQuantity(UObject* Outer, UInventoryBase* TargetInventory, const FInitItemsEntry InitItemsEntry)
 {
-	if (!TargetInventory || !ItemSample ||TotalQuantity <= 0)
+	if (!TargetInventory || InitItemsEntry.Item.IsNull() || InitItemsEntry.Amount <= 0)
 		return false;
 
-	int32 Remaining = TotalQuantity;
+	UItemBase* ItemForDuplicate = UItemFactory::CreateItemByHandle(Outer, InitItemsEntry.Item, InitItemsEntry.Amount);
+	return AddItemQuantityInternal(TargetInventory, ItemForDuplicate, InitItemsEntry.Amount);
+}
 
-	auto ItemClass = ItemSample->GetItemRow();
-	UItemBase* ItemForDuplicate = UItemFactory::CreateItemByHandle(Outer, ItemClass, Remaining);
-	if (!ItemForDuplicate)
+bool UInventoryUtility::AddItemQuantityBySample(UObject* Outer, UInventoryBase* TargetInventory, UItemBase* ItemSample,
+                                                int32 TotalQuantity)
+{
+	if (!TargetInventory || !ItemSample || TotalQuantity <= 0)
 		return false;
-	
-	while (Remaining > 0)
-	{
-		auto Item = ItemForDuplicate->DuplicateItem();
 
-		int32 MaxStack = Item->GetItemRef().ItemNumeraticData.MaxStackSizeInCharacter;
-		int32 AddAmount = FMath::Min(Remaining, MaxStack);
-
-		Item->SetQuantity(AddAmount);
-
-		FItemMoveData MoveData;
-		MoveData.SourceItem = Item;
-		MoveData.TargetInventory = TargetInventory;
-
-		FItemAddResult Result = TargetInventory->HandleAddItem(MoveData);
-
-		if (Result.OperationResult == EItemAddResult::IAR_NoItemAdded)
-			return false;
-
-		Remaining -= AddAmount;
-	}
-
-	return true;
+	UItemBase* ItemForDuplicate = UItemFactory::CreateItemByHandle(Outer, ItemSample->GetItemRow(), TotalQuantity);
+	return AddItemQuantityInternal(TargetInventory, ItemForDuplicate, TotalQuantity);
 }
 
 FVector2D UInventoryUtility::CalculateItemVisualSize(UItemBase* Item, EItemOrientationType Orientation,
@@ -135,4 +117,29 @@ TScriptInterface<IInventoryInteractionHandler> UInventoryUtility::FindInventoryH
 	}
 
 	return Handler;
+}
+
+bool UInventoryUtility::AddItemQuantityInternal(UInventoryBase* TargetInventory, UItemBase* ItemForDuplicate,
+	int32 Remaining)
+{
+	if (!ItemForDuplicate) return false;
+
+	while (Remaining > 0)
+	{
+		auto Item = ItemForDuplicate->DuplicateItem();
+
+		int32 AddAmount = FMath::Min(Remaining, Item->GetItemRef().ItemNumeraticData.MaxStackSizeInCharacter);
+		Item->SetQuantity(AddAmount);
+
+		FItemMoveData MoveData;
+		MoveData.SourceItem = Item;
+		MoveData.TargetInventory = TargetInventory;
+
+		if (TargetInventory->HandleAddItem(MoveData).OperationResult == EItemAddResult::IAR_NoItemAdded)
+			return false;
+
+		Remaining -= AddAmount;
+	}
+
+	return true;
 }

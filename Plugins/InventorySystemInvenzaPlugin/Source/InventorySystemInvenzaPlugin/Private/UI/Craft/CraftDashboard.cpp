@@ -28,6 +28,7 @@ void UCraftDashboard::NativeConstruct()
 	if (QueueCraftList)
 	{
 		QueueCraftList->OnQueueOrderChangeRequested.AddDynamic(this, &UCraftDashboard::HandleQueueOrderChangeRequested);
+		QueueCraftList->OnQueueItemDeleteRequested.AddDynamic(this, &UCraftDashboard::HandleQueueItemDeleteRequested);
 	}
 }
 
@@ -95,10 +96,18 @@ void UCraftDashboard::UpdateQueueCraftList(TArray<FQueuedRecipe>& NewRecipeQueue
 	QueueCraftList->SetNewProductionQueueList(NewRecipeQueue);
 }
 
-void UCraftDashboard::HandleQueueOrderChangeRequested(FName RecipeID, bool bMoveUp)
+void UCraftDashboard::HandleQueueOrderChangeRequested(const FName RecipeID, const int32 QueueIndex, const bool bMoveUp)
 {
 	if (CraftComponentPtr)
 	{
-		CraftComponentPtr->RequestMoveQueueItem(RecipeID, bMoveUp);
+		CraftComponentPtr->RequestMoveQueueItem(RecipeID, QueueIndex, bMoveUp);
+	}
+}
+
+void UCraftDashboard::HandleQueueItemDeleteRequested(int32 QueueIndex)
+{
+	if (CraftComponentPtr)
+	{
+		CraftComponentPtr->CancelRecipeRequest(QueueIndex);
 	}
 }

@@ -115,7 +115,7 @@ void UInventoryBase::MergeStackableItems()
 			continue;
 		}
 
-		auto SameItems = ItemCollectionLinked->GetAllSameItemsInContainer(InventoryContainerID, Items[i]);
+		auto SameItems = ItemCollectionLinked->GetAllSameItemsInContainerByItemSample(InventoryContainerID, Items[i]);
 		if (SameItems.IsEmpty()) continue;
 
 		for (const auto& SameItem : SameItems)

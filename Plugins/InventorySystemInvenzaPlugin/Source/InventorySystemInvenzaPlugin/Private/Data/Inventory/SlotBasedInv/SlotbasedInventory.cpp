@@ -263,6 +263,8 @@ void USlotbasedInventory::RequestSplitStack(UItemBase* ItemToSplit, int32 SplitA
 	
 }
 
+
+
 TArray<FItemIDEntry> USlotbasedInventory::CollectItemsAggregated() const
 {
 	TArray<FItemIDEntry> Result;
@@ -357,13 +359,35 @@ void USlotbasedInventory::SetWidgetInitData(FSlotBasedInventoryWidgetInitData Wi
 	InvCellSize = WidgetInitData.InvCellSize;
 }
 
-void USlotbasedInventory::HandleRemoveItemsByType(UItemBase* ItemSample, int32 RequestedAmount)
+void USlotbasedInventory::HandleRemoveItemsByID(FName ItemID, int32 RequestedAmount)
+{
+	if (ItemID.IsNone() || RequestedAmount <= 0) return;
+
+	int32 RemainingToRemove = RequestedAmount;
+	int32 RemovedTotal = 0;
+	TArray<UItemBase*> FoundItems =	ItemCollectionLinked->GetAllSameItemsInContainerByID(InventoryContainerID, ItemID);
+	if (FoundItems.IsEmpty())
+		return;
+
+	for (UItemBase* Item : FoundItems)
+	{
+		if (!Item || RemainingToRemove <= 0)
+			break;
+
+		int32 Removed = TryRemoveFromStackItem(Item, RemainingToRemove);
+
+		RemainingToRemove -= Removed;
+		RemovedTotal += Removed;
+	}
+}
+
+void USlotbasedInventory::HandleRemoveItemsBySample(UItemBase* ItemSample, int32 RequestedAmount)
 {
 	if (!ItemSample || RequestedAmount <= 0) return;
 	
 	int32 RemainingToRemove = RequestedAmount;
 	int32 RemovedTotal = 0;
-	TArray<UItemBase*> FoundItems =	ItemCollectionLinked->GetAllSameItemsInContainer(InventoryContainerID, ItemSample);
+	TArray<UItemBase*> FoundItems =	ItemCollectionLinked->GetAllSameItemsInContainerByItemSample(InventoryContainerID, ItemSample);
 	if (FoundItems.IsEmpty())
 		return;
 
@@ -1035,7 +1059,7 @@ TArray<UItemBase*> USlotbasedInventory::GetAllSameItems(UItemBase* ReferenceItem
 	TArray<UItemBase*> SameItems;
 	if (!ReferenceItem)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GetAllSameItemsInContainer: %s"), TEXT("ReferenceItem is null."));
+		UE_LOG(LogTemp, Warning, TEXT("GetAllSameItemsInContainerByItemSample: %s"), TEXT("ReferenceItem is null."));
 		return SameItems;
 	}
 	
@@ -1044,7 +1068,7 @@ TArray<UItemBase*> USlotbasedInventory::GetAllSameItems(UItemBase* ReferenceItem
 	if (InventoryData.Items.IsEmpty())
 		return SameItems;
 
-	SameItems = ItemCollectionLinked->GetAllSameItemsInContainer(InventoryContainerID, ReferenceItem);
+	SameItems = ItemCollectionLinked->GetAllSameItemsInContainerByItemSample(InventoryContainerID, ReferenceItem);
 
 	return SameItems;
 }

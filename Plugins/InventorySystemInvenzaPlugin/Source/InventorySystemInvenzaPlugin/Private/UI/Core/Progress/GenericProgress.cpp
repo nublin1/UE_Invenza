@@ -27,7 +27,7 @@ void UGenericProgress::SetNewCraft(const FQueuedRecipe& NewQueuedRecipe)
 
 	if (ProgressPercentTimerWidget->Percent)
 	{
-		auto MaxValue = CurrentItemRecipeRow.CraftTime;
+		auto MaxValue = CurrentItemRecipeRow.CraftVolume;
 		auto CurrentWorkAmount = NewQueuedRecipe.CurrentProgress;
 		auto Percent = (CurrentWorkAmount / MaxValue) * 100.f;
 		FString PercentString = FString::Printf(TEXT("%f%%"), Percent);
@@ -47,7 +47,7 @@ void UGenericProgress::SetNewCraft(const FQueuedRecipe& NewQueuedRecipe)
 
 void UGenericProgress::UpdateProgress(float NewValue)
 {
-	auto MaxValue = CurrentItemRecipeRow.CraftTime;
+	auto MaxValue = CurrentItemRecipeRow.CraftVolume;
 	auto CurrentWorkAmount   =NewValue;
 	auto Percent = (CurrentWorkAmount / MaxValue) * 100.f;
 	FString PercentString = FString::Printf(TEXT("%f%%"), Percent);

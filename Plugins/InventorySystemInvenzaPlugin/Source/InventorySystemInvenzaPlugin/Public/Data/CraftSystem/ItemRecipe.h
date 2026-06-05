@@ -6,6 +6,7 @@
 #include "ItemRecipe.generated.h"
 
 #pragma region enums
+struct FInitItemsEntry;
 class UResourcesDT;
 
 UENUM(BlueprintType)
@@ -43,17 +44,6 @@ struct FRecipeItemRequirement
 	TArray<FAlternativeItem> Alternatives;
 };
 
-USTRUCT(BlueprintType)
-struct FRecipeOutputItem
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	FDataTableRowHandle ResourceInstance;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	int32 Quantity = 1;
-};
 #pragma endregion
 
 USTRUCT(BlueprintType)
@@ -74,17 +64,13 @@ struct FItemRecipeRow : public FTableRowBase
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FRecipeItemRequirement> RequiredItems;
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	//TArray<FRecipeSkillRequirement> SkillRequirements;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	ERecipeOperatorType OperatorType = ERecipeOperatorType::SelfProduce;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float CraftTime = 1.f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float CraftSpeed = 1.f;
+	float CraftVolume = 1.f;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<FRecipeOutputItem> OutputItems;
-	
+	TArray<FInitItemsEntry> OutputItems;
 };

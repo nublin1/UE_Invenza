@@ -18,7 +18,8 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UQueueCraftList : public UInvenzaBaseWidg
 	GENERATED_BODY()
 
 #pragma region Delegates
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnQueueOrderChangeRequested, FName, RecipeID, bool, bMoveUp);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnQueueOrderChangeRequested, FName, RecipeID, int32, QueueIndex, bool, bMoveUp);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnQueueItemDeleteRequested, int32, QueueIndex);
 #pragma endregion
 	
 public:
@@ -35,6 +36,8 @@ public:
 	// Delegates
 	UPROPERTY(BlueprintAssignable, Category = "Crafting|UI")
 	FOnQueueOrderChangeRequested OnQueueOrderChangeRequested;
+	UPROPERTY(BlueprintAssignable, Category = "Crafting|UI")
+	FOnQueueItemDeleteRequested OnQueueItemDeleteRequested;
 	
 	// Widgets
 	UPROPERTY(BlueprintReadWrite, Category = "UI|Components", meta = (BindWidget))
@@ -44,7 +47,7 @@ public:
 	// FUNCTIONS
 	//====================================================================
 	UFUNCTION(BlueprintCallable, Category = "Crafting|UI")
-	void SetNewProductionQueueList(const TArray<FQueuedRecipe>& InRecipeQueue);
+	void SetNewProductionQueueList(TArray<FQueuedRecipe>& InRecipeQueue);
 
 	UFUNCTION(BlueprintCallable, Category = "Crafting|UI")
 	void UpdateDataInRecipe(FQueuedRecipe& UpdatedRecipe);
@@ -63,6 +66,8 @@ protected:
 	void UpdateProductionQueueList();
 	UFUNCTION()
 	void HandleMoveItemRequest(UObject* Item, bool bMoveUp);
+	UFUNCTION()
+	void HandleDeleteWithIndexRequest(UObject* Item);
 	
 	void OnEntryGenerated(UUserWidget& UserWidget);
 };

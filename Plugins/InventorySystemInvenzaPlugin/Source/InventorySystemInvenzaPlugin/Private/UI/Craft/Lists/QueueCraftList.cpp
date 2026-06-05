@@ -20,7 +20,7 @@ void UQueueCraftList::NativeConstruct()
 	this, &UQueueCraftList::OnEntryGenerated);
 }
 
-void UQueueCraftList::SetNewProductionQueueList(const TArray<FQueuedRecipe>& InRecipeQueue)
+void UQueueCraftList::SetNewProductionQueueList(TArray<FQueuedRecipe>& InRecipeQueue)
 {
 	ProductionQueueList.Empty();
 	QueueList->ClearListItems();
@@ -71,9 +71,23 @@ void UQueueCraftList::HandleMoveItemRequest(UObject* Item, bool bMoveUp)
 {
 	UProductionQueueListEntryObject* EntryObj = Cast<UProductionQueueListEntryObject>(Item);
 	if (!EntryObj || EntryObj->GetQueuedRecipeData().ItemRecipeRow.ID.IsNone()) return;
+
+	int32 FoundIndex = ProductionQueueList.IndexOfByKey(EntryObj);
 	
-	OnQueueOrderChangeRequested.Broadcast(EntryObj->GetQueuedRecipeData().ItemRecipeRow.ID, bMoveUp);
+	OnQueueOrderChangeRequested.Broadcast(EntryObj->GetQueuedRecipeData().ItemRecipeRow.ID, FoundIndex, bMoveUp);
 	
+}
+
+void UQueueCraftList::HandleDeleteWithIndexRequest(UObject* Item)
+{
+	UProductionQueueListEntryObject* EntryObj = Cast<UProductionQueueListEntryObject>(Item);
+	if (!EntryObj) return;
+	int32 FoundIndex = ProductionQueueList.IndexOfByKey(EntryObj);
+
+	if (FoundIndex != INDEX_NONE)
+	{
+		OnQueueItemDeleteRequested.Broadcast(FoundIndex);
+	}
 }
 
 void UQueueCraftList::OnEntryGenerated(UUserWidget& UserWidget)
@@ -83,5 +97,7 @@ void UQueueCraftList::OnEntryGenerated(UUserWidget& UserWidget)
 	{
 		Entry->OnMoveRequested.AddUniqueDynamic(
 			this, &UQueueCraftList::HandleMoveItemRequest);
+
+		Entry->OnDeleteRequested.AddUniqueDynamic(this, &UQueueCraftList::HandleDeleteWithIndexRequest);
 	}
 }

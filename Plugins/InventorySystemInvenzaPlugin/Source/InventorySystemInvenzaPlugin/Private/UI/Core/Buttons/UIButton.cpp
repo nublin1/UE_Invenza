@@ -17,13 +17,12 @@ UUIButton::UUIButton(): bIsToggleButton(false), bIsToggleOn(false), DefaultButto
 
 void UUIButton::NativePreConstruct()
 {
-	Super::NativeConstruct();
-
-	if (MainBox)
+	if (!MainButton)
 	{
-		MainBox->SetWidthOverride(DefaultSize.X);
-		MainBox->SetHeightOverride(DefaultSize.Y);
+		MainButton = Cast<UButton>(GetWidgetFromName(TEXT("MainButton")));
 	}
+	
+	Super::NativeConstruct();
 
 	if (MainButton)
 		DefaultButtonBackgroundColor = MainButton->GetBackgroundColor();
@@ -43,15 +42,19 @@ void UUIButton::NativePreConstruct()
 			MainImage->SetBrush(Brush);
 		}
 	}
-
-	
 }
 
 void UUIButton::NativeConstruct()
 {
-	Super::NativeConstruct();
+	if (!MainButton)
+	{
+		MainButton = Cast<UButton>(GetWidgetFromName(TEXT("MainButton")));
+	}
 	
-	MainButton->OnPressed.AddDynamic(this, &UUIButton::OnMainButtonClicked);
+	Super::NativeConstruct();
+
+	if (MainButton)
+		MainButton->OnPressed.AddDynamic(this, &UUIButton::OnMainButtonClicked);
 
 	if (ClickAction)
 	{

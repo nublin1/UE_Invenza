@@ -267,7 +267,7 @@ FTradeTransaction UVendorComponent::ExecuteTrade(const FItemMoveData& TradeData,
     if (bIsBuyingFromVendor)
     {
         // PLAYER PAYS
-        PlayerInventory->HandleRemoveItemsByType(CurrencyItem, Price);
+        PlayerInventory->HandleRemoveItemsBySample(CurrencyItem, Price);
 
         Transaction.Entries.Add({
             PlayerInventory,
@@ -277,7 +277,7 @@ FTradeTransaction UVendorComponent::ExecuteTrade(const FItemMoveData& TradeData,
         });
 
         // VENDOR RECEIVES
-        UInventoryUtility::AddItemQuantity(this, MainVendorLootInventory, CurrencyItem, Price);
+        UInventoryUtility::AddItemQuantityBySample(this, MainVendorLootInventory, CurrencyItem, Price);
 
         Transaction.Entries.Add({
             MainVendorLootInventory,
@@ -322,7 +322,7 @@ FTradeTransaction UVendorComponent::ExecuteTrade(const FItemMoveData& TradeData,
         });
 
         // PLAYER RECEIVES MONEY
-        UInventoryUtility::AddItemQuantity(this, PlayerInventory, CurrencyItem, Price);
+        UInventoryUtility::AddItemQuantityBySample(this, PlayerInventory, CurrencyItem, Price);
 
         Transaction.Entries.Add({
             PlayerInventory,
@@ -334,7 +334,7 @@ FTradeTransaction UVendorComponent::ExecuteTrade(const FItemMoveData& TradeData,
     	// VENDOR RECEIVES ITEM
     	if (TradeSettings.bAddPurchasedItemsToVendorDisplay)
     	{
-    		UInventoryUtility::AddItemQuantity(this, MainVendorLootInventory, TradeData.SourceItem, Quantity);
+    		UInventoryUtility::AddItemQuantityBySample(this, MainVendorLootInventory, TradeData.SourceItem, Quantity);
 
     		Transaction.Entries.Add({
 				MainVendorLootInventory,

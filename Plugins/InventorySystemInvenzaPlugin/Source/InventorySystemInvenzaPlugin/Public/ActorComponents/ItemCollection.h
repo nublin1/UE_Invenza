@@ -109,7 +109,8 @@ public:
 	TArray<FItemIDEntry> CollectItemsAggregated(FString InvID);
 	int32 GetStackCountInContainer(FString InvID);
 	TArray<UItemBase*> GetAllItemsByContainer(FString InvID);
-	TArray<UItemBase*> GetAllSameItemsInContainer(FString InvID, UItemBase* ReferenceItem) const;
+	TArray<UItemBase*> GetAllSameItemsInContainerByItemSample(const FString& InvID, const UItemBase* ReferenceItem) const;
+	TArray<UItemBase*> GetAllSameItemsInContainerByID(const FString& InvID, FName ReferenceID) const;
 	TArray<FItemMapping> GetAllMappingsByContainer(const FString& InvID);
 	TMap<UItemBase*, FItemMapping*> GetItemsWithMappingsByContainer(const FString& InvID);
 	TArray<UItemBase*> GetAllItemsByCategory(FGameplayTag ItemCategory);

@@ -65,7 +65,8 @@ public:
 	UFUNCTION(BlueprintCallable)
 	virtual void RequestSplitStack(UItemBase* ItemToSplit, int32 SplitAmount) override;
 
-	virtual void HandleRemoveItemsByType(UItemBase* ItemSample, int32 RequestedAmount) override;
+	virtual void HandleRemoveItemsByID(FName ItemID, int32 RequestedAmount) override;
+	virtual void HandleRemoveItemsBySample(UItemBase* ItemSample, int32 RequestedAmount) override;
 	virtual void HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity) override;
 	virtual FItemAddResult HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck = false) override;
 

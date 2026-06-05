@@ -326,16 +326,24 @@ TArray<UItemBase*> UItemCollection::GetAllItemsByContainer(FString InvID)
 	return Result;
 }
 
-TArray<UItemBase*> UItemCollection::GetAllSameItemsInContainer(FString InvID, UItemBase* ReferenceItem) const
+TArray<UItemBase*> UItemCollection::GetAllSameItemsInContainerByItemSample(const FString& InvID, const UItemBase* ReferenceItem) const
 {
 	TArray<UItemBase*> SameItems;
 	if (InvID.IsEmpty() || !ReferenceItem) return SameItems;
 
 	FName RefItemID = ReferenceItem->GetItemID();
+    
+	return GetAllSameItemsInContainerByID(InvID, RefItemID);
+}
 
+TArray<UItemBase*> UItemCollection::GetAllSameItemsInContainerByID(const FString& InvID, const FName ReferenceID) const
+{
+	TArray<UItemBase*> SameItems;
+	if (InvID.IsEmpty() || ReferenceID.IsNone()) return SameItems;
+	
 	for (const FInventoryEntry& Entry : InventoryArray.Items)
 	{
-		if (Entry.Item && Entry.Item->GetItemID() == RefItemID)
+		if (Entry.Item && Entry.Item->GetItemID() == ReferenceID)
 		{
 			for (const FItemMapping& Mapping : Entry.Locations.Mappings)
 			{

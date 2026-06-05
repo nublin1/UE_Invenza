@@ -38,15 +38,15 @@ UInventoryContainerWidget* UInvenzaWidgetFactory::CreateInventoryWidget(APlayerC
 	return InvContWidget;
 }
 
-UInvenzaBaseWidget* UInvenzaWidgetFactory::CreateInvenzaWidget(APlayerController* OwningPlayer,
+UInvenzaBaseWidget* UInvenzaWidgetFactory::CreateInvenzaWidget(APlayerController* Owner,
 	TSubclassOf<UInvenzaBaseWidget> InvenzaBaseWidgetClass)
 {
-	if (!OwningPlayer || !InvenzaBaseWidgetClass )
+	if (!Owner || !InvenzaBaseWidgetClass )
 		return nullptr;
 
-	auto CraftDashboard = CreateWidget<UInvenzaBaseWidget>(OwningPlayer, InvenzaBaseWidgetClass);
-	if (!CraftDashboard)
+	auto ResultWidget = CreateWidget<UInvenzaBaseWidget>(Owner, InvenzaBaseWidgetClass);
+	if (!ResultWidget)
 		return nullptr;
 
-	return CraftDashboard;
+	return ResultWidget;
 }

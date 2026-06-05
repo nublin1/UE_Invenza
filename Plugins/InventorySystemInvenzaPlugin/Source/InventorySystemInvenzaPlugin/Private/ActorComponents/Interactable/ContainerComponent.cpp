@@ -157,7 +157,7 @@ void UContainerComponent::SetupStartingResources()
 
 			UItemBase* NewItemSample = UItemFactory::CreateItemByHandle(this, InitResource.Item, 1);
 
-			UInventoryUtility::AddItemQuantity(this, TargetInventory, NewItemSample, InitResource.Amount);
+			UInventoryUtility::AddItemQuantityBySample(this, TargetInventory, NewItemSample, InitResource.Amount);
 		}
 	}
 

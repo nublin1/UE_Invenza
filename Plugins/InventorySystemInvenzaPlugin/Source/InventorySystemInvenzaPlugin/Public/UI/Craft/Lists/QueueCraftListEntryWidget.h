@@ -23,6 +23,7 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UQueueCraftListEntryWidget : public UInve
 
 #pragma region Delegates
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnQueueEntryMoveRequested, UObject*, Item, bool, bMoveUp);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnQueueEntryDeleteRequested, UObject*, Item);
 #pragma endregion
 
 public:
@@ -39,6 +40,8 @@ public:
 	//
 	UPROPERTY(BlueprintAssignable, Category = "Queue")
 	FOnQueueEntryMoveRequested OnMoveRequested;
+	UPROPERTY(BlueprintAssignable, Category = "Queue")
+	FOnQueueEntryDeleteRequested OnDeleteRequested;
 	
 	// Widgets
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Componets", meta = (BindWidgetOptional))
@@ -81,7 +84,9 @@ protected:
 	
 	UFUNCTION()
 	void OnBtnUpClicked(UUIButton* Btn);
-
 	UFUNCTION()
 	void OnBtnDownClicked(UUIButton* Btn);
+
+	UFUNCTION()
+	void OnBtnDeleteClicked(UUIButton* Btn);
 };

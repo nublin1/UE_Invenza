@@ -29,6 +29,11 @@ void UQueueCraftListEntryWidget::NativeConstruct()
 		Btn_QueueDown->OnButtonClicked.AddDynamic(this,
 			&UQueueCraftListEntryWidget::OnBtnDownClicked);
 	}
+
+	if (Btn_QueueDelete)
+	{
+		Btn_QueueDelete->OnButtonClicked.AddDynamic(this, &UQueueCraftListEntryWidget::OnBtnDeleteClicked);
+	}
 }
 
 void UQueueCraftListEntryWidget::NativeOnListItemObjectSet(UObject* DetailItemObject)
@@ -57,7 +62,7 @@ void UQueueCraftListEntryWidget::NativeOnListItemObjectSet(UObject* DetailItemOb
 		if (CurrentMaxDisplay)
 		{
 			CurrentMaxDisplay->CurrentValue->UpdateText(FText::AsNumber(ProductionDetail->GetQueuedRecipeData().CurrentProgress));
-			CurrentMaxDisplay->MaxValue->UpdateText(FText::AsNumber(ProductionDetail->GetQueuedRecipeData().ItemRecipeRow.CraftTime));
+			CurrentMaxDisplay->MaxValue->UpdateText(FText::AsNumber(ProductionDetail->GetQueuedRecipeData().ItemRecipeRow.CraftVolume));
 		}
 	}
 }
@@ -72,7 +77,7 @@ void UQueueCraftListEntryWidget::HandleDataChanged()
 	if (CurrentMaxDisplay)
 	{
 		CurrentMaxDisplay->CurrentValue->UpdateText(FText::AsNumber(QueueListEntryRef->GetQueuedRecipeData().CurrentProgress));
-		CurrentMaxDisplay->MaxValue->UpdateText(FText::AsNumber(QueueListEntryRef->GetQueuedRecipeData().ItemRecipeRow.CraftTime));
+		CurrentMaxDisplay->MaxValue->UpdateText(FText::AsNumber(QueueListEntryRef->GetQueuedRecipeData().ItemRecipeRow.CraftVolume));
 	}
 }
 
@@ -90,4 +95,10 @@ void UQueueCraftListEntryWidget::OnBtnDownClicked(UUIButton* Btn)
 	{
 		OnMoveRequested.Broadcast(QueueListEntryRef, false);
 	}
+}
+
+void UQueueCraftListEntryWidget::OnBtnDeleteClicked(UUIButton* Btn)
+{
+	if (QueueListEntryRef)
+		OnDeleteRequested.Broadcast(QueueListEntryRef);
 }

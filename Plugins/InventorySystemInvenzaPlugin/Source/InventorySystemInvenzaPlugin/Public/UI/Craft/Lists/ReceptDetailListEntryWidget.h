@@ -7,6 +7,10 @@
 #include "UI/InvenzaBaseWidget.h"
 #include "ReceptDetailListEntryWidget.generated.h"
 
+class UVerticalBox;
+struct FRecipeRequirementResult;
+struct FRecipeItemRequirementCheck;
+class URequirementOptionEntry;
 class UCurrentMaxDisplay;
 class ULabelBaseText;
 class UImageBaseWidget;
@@ -32,11 +36,7 @@ public:
 	//====================================================================
 	// Widgets
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Componets", meta = (BindWidgetOptional))
-	TObjectPtr<UImageBaseWidget> IngredientIcon;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Componets", meta = (BindWidget))
-	TObjectPtr<ULabelBaseText> RequiredItemName;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Componets", meta = (BindWidget))
-	TObjectPtr<UCurrentMaxDisplay> RemainingCounter;
+	TObjectPtr<UVerticalBox> RequirementsContainer;
 	
 	//====================================================================
 	// FUNCTIONS
@@ -46,11 +46,24 @@ protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
+	// Config
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Config")
+	TSubclassOf<URequirementOptionEntry> RequirementOptionClass;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Config")
+	TSubclassOf<URequirementOptionEntry> RequirementOptionClassAlt;
 
+	// Data
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "UI|Data")
+	int SelectedOption = 0;
+	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-
+	
 	UFUNCTION()
-	void UpdateIngredientImage(const TSoftObjectPtr<UTexture2D>& NewIngredientIcon);
+	URequirementOptionEntry* CreateRequirementOptionEntry(const FRecipeRequirementResult& RequirementResult, TSubclassOf<URequirementOptionEntry> OptionClass);
+	
+	UFUNCTION()
+	TArray<URequirementOptionEntry*> CreateRequirementOptionEntries(const FRecipeItemRequirementCheck& ItemRequirementCheck);	
+	
 };

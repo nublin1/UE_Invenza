@@ -6,6 +6,7 @@
 #include "UI/InvenzaBaseWidget.h"
 #include "UIButton.generated.h"
 
+class UBorder;
 class UInputAction;
 class USizeBox;
 class UButton;
@@ -35,8 +36,6 @@ public:
 	FOnButtonClicked OnButtonClicked;
 	
 	// Widgets
-	UPROPERTY(BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
-	TObjectPtr<USizeBox> MainBox;
 	UPROPERTY(BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> MainLabel;
 	UPROPERTY(BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))

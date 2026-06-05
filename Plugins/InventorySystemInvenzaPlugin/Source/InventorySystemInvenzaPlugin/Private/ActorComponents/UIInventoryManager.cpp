@@ -333,10 +333,9 @@ void UIInventoryManager::SetupStartingResources()
 		for (const auto& InitResource : InitItems)
 		{
 			if (InitResource.Item.RowName.IsNone()) continue;
+			//UItemBase* NewItemSample = UItemFactory::CreateItemByHandle(this, InitResource.Item, 1);
 
-			UItemBase* NewItemSample = UItemFactory::CreateItemByHandle(this, InitResource.Item, 1);
-
-			UInventoryUtility::AddItemQuantity(this, TargetInventory, NewItemSample, InitResource.Amount);
+			UInventoryUtility::AddItemQuantity(this, TargetInventory,InitResource);
 		}
 	}
 
@@ -470,7 +469,7 @@ void UIInventoryManager::Handle_QuickTransferAllSameItems_Internal(FItemMoveData
 {
 	auto InvID = InData.SourceInventory->GetInventoryContainerID();
 	
-	auto SameItems = InData.SourceInventory->GetItemCollectionLinked()->GetAllSameItemsInContainer(InvID, InData.SourceItem);
+	auto SameItems = InData.SourceInventory->GetItemCollectionLinked()->GetAllSameItemsInContainerByItemSample(InvID, InData.SourceItem);
 	for (auto Item : SameItems)
 	{
 		InData.SourceItem = Item;

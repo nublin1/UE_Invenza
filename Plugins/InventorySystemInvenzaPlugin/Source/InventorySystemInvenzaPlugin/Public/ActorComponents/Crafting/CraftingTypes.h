@@ -16,6 +16,23 @@ enum class ECraftingResourceConsumePolicy : uint8
 };
 
 USTRUCT(BlueprintType)
+struct FBlockReasonData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	FGameplayTag Tag;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	FText Message;
+
+	bool operator==(const FBlockReasonData& Other) const
+	{
+		return Tag == Other.Tag;
+	}
+};
+
+USTRUCT(BlueprintType)
 struct FQueuedRecipe
 {
 	GENERATED_BODY()
@@ -26,18 +43,24 @@ struct FQueuedRecipe
 	int32 Count = 0;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	float CurrentProgress = 0.f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	mutable bool bResourcesWasConsumed = false;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TArray<FInitItemsEntry> ConsumedResources;
 	
 	FQueuedRecipe() = default;
-	FQueuedRecipe(FItemRecipeRow InItemRecipeRow, int32 InCount) : ItemRecipeRow(InItemRecipeRow), Count(InCount) {}
+	FQueuedRecipe(FItemRecipeRow InItemRecipeRow, int32 InCount, bool bInResourcesWasConsumed = false)
+	: ItemRecipeRow(InItemRecipeRow), Count(InCount), bResourcesWasConsumed(bInResourcesWasConsumed) {}
 };
 
 USTRUCT(BlueprintType)
-struct FAlternativeItemRequirementCheck
+struct FRecipeRequirementResult
 {
 	GENERATED_BODY()
-	
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FName RequiredItemID;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	FItemMetaData ItemMetaData;
 
@@ -46,11 +69,9 @@ struct FAlternativeItemRequirementCheck
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 AmountNeed = 0;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 AmountHave = 0;
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	//int32 MissingQuantity = 0;
-
 };
 
 USTRUCT(BlueprintType)
@@ -59,24 +80,10 @@ struct FRecipeItemRequirementCheck
 	GENERATED_BODY()
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FName RequiredItemID;
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	FItemMetaData ItemMetaData;
+	FRecipeRequirementResult Primary;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	bool bIsSatisfied = false;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 AmountNeed = 0;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 AmountHave = 0;
-	
-	/* Not Used */
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	//int32 MissingQuantity = 0;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<FAlternativeItemRequirementCheck> AlternativeRequirementCheck;
+	TArray<FRecipeRequirementResult> Alternatives;
 };
 
 USTRUCT(BlueprintType)
@@ -89,6 +96,9 @@ struct FRecipeCheckResult
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bCanCraft = false;
+
+	UPROPERTY(BlueprintReadOnly)
+	TArray<FInitItemsEntry> ResourcesToConsume;
 };
 
 USTRUCT(BlueprintType)

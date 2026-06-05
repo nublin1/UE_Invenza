@@ -19,12 +19,13 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UCraftingComponent : public UActorCompone
 
 #pragma region Delegates
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAvailableRecipesChanged, const TArray<FCachedRecipeResult>&, NewResults);
-	
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNewCraftStarted, FQueuedRecipe, QueuedRecipe);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCraftStateChanged, bool, bIsPaused);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCraftDataChanged, FQueuedRecipe&, Recipe);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCraftQueueChanged,TArray<FQueuedRecipe>&,NewQueue);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBlocksUpdated, TArray<FBlockReasonData>, Blocks);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNewCraftStarted, FQueuedRecipe, QueuedRecipe);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCraftFinished, FName, RecipeID);
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCraftCanceled, FName, RecipeID);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCraftCanceled);
 #pragma endregion
 
 public:
@@ -42,6 +43,12 @@ public:
 	// Delegates
 	UPROPERTY(BlueprintAssignable, Category = "Crafting|Events")
 	FOnAvailableRecipesChanged OnAvailableRecipesChanged;
+
+	UPROPERTY(BlueprintAssignable, Category="Crafting|Delegates")
+	FOnCraftStateChanged OnCraftStateChanged;
+	UPROPERTY(BlueprintAssignable, Category="Crafting|Delegates")
+	FOnBlocksUpdated OnBlocksUpdated;
+	
 	UPROPERTY(BlueprintAssignable, Category="Crafting|Events")
 	FOnNewCraftStarted OnNewCraftStarted;
 	UPROPERTY(BlueprintAssignable, Category="Crafting|Events")
@@ -65,6 +72,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Crafting")
 	void RecalculateAvailableRecipes();
 
+	UFUNCTION(BlueprintCallable, Category="Crafting")
+	void SetManualPauseRequest(bool bNewPaused);
+	UFUNCTION(BlueprintCallable, Category="Crafting")
+	void SetNoResourcesRequest(bool bNewValue);
+
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Crafting")
 	TArray<FItemRecipeRow> GetAvailableRecipes() const { return AvailableRecipes; }
 
@@ -84,18 +96,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Crafting")
 	void EnqueueRecipeRequest(FItemRecipeRow ItemRecipeRow, int32 Count = 1);
 	UFUNCTION(BlueprintCallable, Category="Crafting")
-	void CancelCurrentCraft();
+	void CancelRecipeRequest(int32 QueueIndex);
 
 	UFUNCTION(BlueprintCallable, Category = "Crafting")
-	void RequestMoveQueueItem(FName RecipeID, bool bMoveUp);
+	void RequestMoveQueueItem(FName RecipeID, int32 QueueIndex, bool bMoveUp);
 
 protected:
 
 	// Refs
-	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Replicated, ReplicatedUsing=OnRep_InputInventory, Category="Crafting|Ref")
+	UPROPERTY(ReplicatedUsing=OnRep_InventoryUpdated, EditInstanceOnly, BlueprintReadWrite, Category="Crafting|Ref")
 	TObjectPtr<UInventoryBase> InputInventory;
 
-	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category="Crafting|Ref")
+	UPROPERTY(ReplicatedUsing=OnRep_InventoryUpdated, EditInstanceOnly, BlueprintReadWrite, Category="Crafting|Ref")
 	TObjectPtr<UInventoryBase> OutputInventory;
 	
 	//
@@ -112,42 +124,56 @@ protected:
 	bool bDebugMode = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float CraftingSpeed = 1.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float ProcessCraftTickTime = 0.25f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Crafting")
 	ECraftingResourceConsumePolicy ConsumePolicy =
 		ECraftingResourceConsumePolicy::OnCraftStart;
 
+	UPROPERTY(EditDefaultsOnly, Category="Crafting|Blocks")
+	FBlockReasonData Block_NoResources;
+
+	UPROPERTY(EditDefaultsOnly, Category="Crafting|Blocks")
+	FBlockReasonData Block_ManualPause;
+
 	// Data
 	UPROPERTY()
 	FTimerHandle CraftTimerHandle;
 
-	// --- Production queue (replicated by everyone) ---
 	UPROPERTY(ReplicatedUsing=OnRep_Queue, VisibleInstanceOnly, BlueprintReadOnly, Category="Crafting")
 	TArray<FQueuedRecipe> RecipeQueue;
 	
 	UPROPERTY(ReplicatedUsing=OnRep_CurrentRecipe, VisibleInstanceOnly, BlueprintReadOnly, Category="Crafting")
 	FQueuedRecipe CurrentCraftingRecipe;
+
+	UPROPERTY(ReplicatedUsing=OnRep_Blocks, VisibleInstanceOnly, BlueprintReadWrite, Category="Crafting")
+	TArray<FBlockReasonData> BlocksReasons;
 	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-
 	UFUNCTION()
-	void OnRep_InputInventory();
+	void OnRep_InventoryUpdated();
 
 	UFUNCTION()
 	void OnRep_CachedRecipes();
 	
 	UFUNCTION()
 	void OnRep_AvailableRecipes();
+
+	UFUNCTION()
+	void OnRep_Blocks();
 	
 	UFUNCTION(BlueprintCallable, Server, Reliable)
 	void Server_EnqueueRecipe(FItemRecipeRow ItemRecipeRow, int32 Count);
 	UFUNCTION(BlueprintCallable)
 	void HandleEnqueueRecipe(FItemRecipeRow ItemRecipeRow, int32 Count);
 	UFUNCTION(Server, Reliable)
-	void Server_CancelCurrentCraft();
+	void Server_CancelRecipe(int32 QueueIndex);
+	UFUNCTION(BlueprintCallable)
+	void HandleCancelRecipe(int32 QueueIndex);
 
 	UFUNCTION()
 	void ProcessCraftTick();
@@ -156,8 +182,9 @@ protected:
 	void TryStartNext();
 	void StartCurrentRecipe(const FQueuedRecipe& Item);
 	void FinishCurrentRecipe();
-	bool ConsumeResourcesForRecipe(FName RecipeID, int32 Count);
-	void RefundResourcesForRecipe(FName RecipeID, int32 Count);
+	bool ConsumeResourcesForRecipe(const FQueuedRecipe& Item, int32 Count);
+	void RefundResourcesForRecipe(const FQueuedRecipe& Item, int32 Count);
+	void GiveCraftedItemToInventory(FItemRecipeRow CraftedRow);
 
 	// --- Notification replication ---
 	UFUNCTION()
@@ -167,12 +194,24 @@ protected:
 
 	//
 	UFUNCTION(NetMulticast, Unreliable)
+	void Multicast_OnBlocksUpdated (const TArray<FBlockReasonData>& BlocksActive);
+	UFUNCTION(NetMulticast, Unreliable)
 	void Multicast_OnCraftStarted();
 	UFUNCTION(NetMulticast, Unreliable)
 	void Multicast_OnCraftFinished(FName RecipeID);
 	UFUNCTION(NetMulticast, Unreliable)
-	void Multicast_OnCraftCanceled(FName RecipeID);
+	void Multicast_OnCraftCanceled();
+
+	//
+	UFUNCTION(Server, Reliable)
+	void Server_MoveQueueItem(FName RecipeID, int32 QueueIndex, bool bMoveUp);
+	UFUNCTION()
+	void Handle_MoveQueueItem(FName RecipeID, int32 QueueIndex, bool bMoveUp);
 
 	UFUNCTION()
 	void CurrentRecipeProgressChanged();
+
+	UFUNCTION(BlueprintCallable)
+	void SaveCurrentProgressToQueue();
+	
 };

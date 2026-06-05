@@ -120,9 +120,13 @@ public:
 
 	virtual void RequestSplitStack(UItemBase* ItemToSplit, int32 SplitAmount)
 	PURE_VIRTUAL(UInventoryBase::TrySplitItem, );
+	
+	UFUNCTION(BlueprintCallable)
+	virtual void HandleRemoveItemsByID(FName ItemID, int32 RequestedAmount)
+	PURE_VIRTUAL(UInventoryBase::HandleRemoveItemsByID,);
 
 	UFUNCTION(BlueprintCallable)
-	virtual void HandleRemoveItemsByType(UItemBase* ItemSample, int32 RequestedAmount)
+	virtual void HandleRemoveItemsBySample(UItemBase* ItemSample, int32 RequestedAmount)
 	PURE_VIRTUAL(UInventoryBase::HandleRemoveItemsByType,);
 	
 	UFUNCTION(BlueprintCallable)

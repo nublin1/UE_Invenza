@@ -130,13 +130,35 @@ void UListInventory::RequestSplitStack(UItemBase* ItemToSplit, int32 SplitAmount
 	OnSplitDelegate.Broadcast(this, ItemToSplit, SplitAmount);
 }
 
-void UListInventory::HandleRemoveItemsByType(UItemBase* ItemSample, int32 RequestedAmount)
+void UListInventory::HandleRemoveItemsByID(FName ItemID, int32 RequestedAmount)
+{
+	if (ItemID.IsNone() || RequestedAmount <= 0) return;
+
+	int32 RemainingToRemove = RequestedAmount;
+	int32 RemovedTotal = 0;
+	TArray<UItemBase*> FoundItems =	ItemCollectionLinked->GetAllSameItemsInContainerByID(InventoryContainerID, ItemID);
+	if (FoundItems.IsEmpty())
+		return;
+
+	for (UItemBase* Item : FoundItems)
+	{
+		if (!Item || RemainingToRemove <= 0)
+			break;
+
+		int32 Removed = TryRemoveFromStackItem(Item, RemainingToRemove);
+
+		RemainingToRemove -= Removed;
+		RemovedTotal += Removed;
+	}
+}
+
+void UListInventory::HandleRemoveItemsBySample(UItemBase* ItemSample, int32 RequestedAmount)
 {
 	if (!ItemSample || RequestedAmount <= 0) return;
 	
 	int32 RemainingToRemove = RequestedAmount;
 	int32 RemovedTotal = 0;
-	TArray<UItemBase*> FoundItems =	ItemCollectionLinked->GetAllSameItemsInContainer(InventoryContainerID, ItemSample);
+	TArray<UItemBase*> FoundItems =	ItemCollectionLinked->GetAllSameItemsInContainerByItemSample(InventoryContainerID, ItemSample);
 	if (FoundItems.IsEmpty())
 		return;
 
@@ -318,7 +340,7 @@ int32 UListInventory::HandleStackableItems(FItemMoveData& ItemMoveData, int32 Re
 	int32 AmountToDistribute = RequestedAddAmount;
 	int32 TotalAddedAmount = 0;
 
-	auto SameItems = ItemCollectionLinked->GetAllSameItemsInContainer(InventoryContainerID, ItemMoveData.SourceItem);
+	auto SameItems = ItemCollectionLinked->GetAllSameItemsInContainerByItemSample(InventoryContainerID, ItemMoveData.SourceItem);
 	if (SameItems.Num()> 0)
 	{
 		for (auto& SameItem : SameItems)
