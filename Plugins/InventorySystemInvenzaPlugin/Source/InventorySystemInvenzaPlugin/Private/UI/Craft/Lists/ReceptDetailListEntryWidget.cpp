@@ -2,7 +2,6 @@
 
 #include "UI/Craft/Lists/ReceptDetailListEntryWidget.h"
 
-#include "Components/Button.h"
 #include "Components/VerticalBox.h"
 #include "Data/CraftSystem/Entries/RecipeRequiredIListEntryObject.h"
 #include "Factory/InvenzaWidgetFactory.h"
@@ -23,26 +22,76 @@ void UReceptDetailListEntryWidget::NativeOnListItemObjectSet(UObject* DetailItem
 {
 	IUserObjectListEntry::NativeOnListItemObjectSet(DetailItemObject);
 
-	if (auto RecipeDetail = Cast<URecipeRequiredIListEntryObject>(DetailItemObject))
+	auto* RecipeItem = Cast<URecipeRequiredIListEntryObject>(DetailItemObject);
+	if (!RecipeItem || !RequirementOptionClass || !RequirementsContainer)
 	{
-		if (RequirementOptionClass && RequirementsContainer)
+		return;
+	}
+
+	const TArray<URequirementOptionEntry*> OptionEntries =
+		CreateRequirementOptionEntries(RecipeItem->RecipeCheckResult);
+
+	if (OptionEntries.IsEmpty())
+	{
+		return;
+	}
+
+	RequirementsContainer->ClearChildren();
+	ButtonToEntryMap.Empty();
+	EntryToIndexMap.Empty();
+
+	int32 Index = 0;
+
+	for (URequirementOptionEntry* OptionEntry : OptionEntries)
+	{
+		if (!OptionEntry || !OptionEntry->MainButton)
 		{
-			TArray<URequirementOptionEntry*> Entries = CreateRequirementOptionEntries(RecipeDetail->RecipeCheckResult);
-			if (Entries.IsEmpty())
-				return;
-
-			RequirementsContainer->ClearChildren();
-
-			for (URequirementOptionEntry* Entry : Entries)
-			{
-				RequirementsContainer->AddChild(Entry);
-				Entry->OnButtonClicked.AddDynamic()
-			}
+			continue;
 		}
+
+		RequirementsContainer->AddChild(OptionEntry);
+
+		OptionEntry->MainButton->OnButtonClicked.AddDynamic(
+			this,
+			&UReceptDetailListEntryWidget::HandleOptionButtonClicked
+		);
+
+		ButtonToEntryMap.Add(OptionEntry->MainButton, OptionEntry);
+		EntryToIndexMap.Add(OptionEntry, Index);
+
+		++Index;
+	}
+	
+	if (OptionEntries.Num() > 0 && OptionEntries[0] && OptionEntries[0]->MainButton)
+	{
+		OptionEntries[0]->MainButton->SetToggleStatus(true);
 	}
 }
 
-URequirementOptionEntry* UReceptDetailListEntryWidget:: CreateRequirementOptionEntry(
+void UReceptDetailListEntryWidget::HandleOptionButtonClicked(UUIButton* ClickedButton)
+{
+	if (!ClickedButton)
+		return;
+
+	auto FindResult = ButtonToEntryMap.FindRef(ClickedButton);
+	if (!FindResult)
+		return;
+
+	for (auto Element : ButtonToEntryMap)
+	{
+		if (Element.Value->MainButton == ClickedButton)
+		{
+			Element.Value->MainButton->SetToggleStatus(true);
+		}
+		else
+			Element.Value->MainButton->SetToggleStatus(false);
+	}
+
+	SelectedOption = EntryToIndexMap.FindRef(FindResult);
+	
+}
+
+URequirementOptionEntry* UReceptDetailListEntryWidget::CreateRequirementOptionEntry(
 	const FRecipeRequirementResult& RequirementResult, TSubclassOf<URequirementOptionEntry> OptionClass)
 {
 	auto Wid = UInvenzaWidgetFactory::CreateInvenzaWidget(GetOwningPlayer(), OptionClass);

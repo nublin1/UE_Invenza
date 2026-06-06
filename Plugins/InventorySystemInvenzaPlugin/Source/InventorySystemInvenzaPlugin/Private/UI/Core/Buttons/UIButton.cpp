@@ -17,11 +17,6 @@ UUIButton::UUIButton(): bIsToggleButton(false), bIsToggleOn(false), DefaultButto
 
 void UUIButton::NativePreConstruct()
 {
-	if (!MainButton)
-	{
-		MainButton = Cast<UButton>(GetWidgetFromName(TEXT("MainButton")));
-	}
-	
 	Super::NativeConstruct();
 
 	if (MainButton)
@@ -73,6 +68,9 @@ void UUIButton::ClickButton()
 void UUIButton::SetToggleStatus(const bool bNewStatus)
 {
 	bIsToggleOn = bNewStatus;
+
+	OnToggled.Broadcast(bIsToggleOn);
+	
 	if (bIsToggleOn)
 		MainButton->SetBackgroundColor(ToggleColor);
 	else

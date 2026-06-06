@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "ActorComponents/Crafting/CraftingComponent.h"
 #include "UI/InvenzaBaseWidget.h"
-#include "UI/Core/Buttons/UIButton.h"
 #include "CraftMenuChoose.generated.h"
 
 class UMovableTitleBar;
@@ -21,7 +20,6 @@ UCLASS()
 class INVENTORYSYSTEMINVENZAPLUGIN_API UCraftMenuChoose : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
-
 	
 #pragma region Delegates
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnCraftRequested, FItemRecipeRow, RecipeRow, int32, Amount);

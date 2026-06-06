@@ -7,6 +7,7 @@
 #include "UI/InvenzaBaseWidget.h"
 #include "ReceptDetailListEntryWidget.generated.h"
 
+class UUIButton;
 class UVerticalBox;
 struct FRecipeRequirementResult;
 struct FRecipeItemRequirementCheck;
@@ -22,7 +23,6 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UReceptDetailListEntryWidget : public UIn
 {
 	GENERATED_BODY()
 
-		
 public:
 	UReceptDetailListEntryWidget();
 	
@@ -42,6 +42,9 @@ public:
 	// FUNCTIONS
 	//====================================================================
 
+	UFUNCTION(BlueprintCallable)
+	int GetSelectedOption() {return SelectedOption;}
+
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
@@ -55,10 +58,15 @@ protected:
 	// Data
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "UI|Data")
 	int SelectedOption = 0;
+
+	TMap<UUIButton*, URequirementOptionEntry*> ButtonToEntryMap;
+	TMap<URequirementOptionEntry*, int> EntryToIndexMap;
 	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+	UFUNCTION()
+	void HandleOptionButtonClicked(UUIButton* ClickedButton);
 	
 	UFUNCTION()
 	URequirementOptionEntry* CreateRequirementOptionEntry(const FRecipeRequirementResult& RequirementResult, TSubclassOf<URequirementOptionEntry> OptionClass);

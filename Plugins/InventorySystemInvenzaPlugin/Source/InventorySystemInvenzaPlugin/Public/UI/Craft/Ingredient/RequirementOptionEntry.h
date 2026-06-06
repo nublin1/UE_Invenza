@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Interface/SelectableOption.h"
 #include "UI/InvenzaBaseWidget.h"
 #include "UI/Core/Buttons/UIButton.h"
 #include "RequirementOptionEntry.generated.h"
@@ -17,7 +16,7 @@ class UImageBaseWidget;
  * 
  */
 UCLASS()
-class INVENTORYSYSTEMINVENZAPLUGIN_API URequirementOptionEntry : public UUIButton
+class INVENTORYSYSTEMINVENZAPLUGIN_API URequirementOptionEntry : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
 
@@ -39,6 +38,9 @@ public:
 	TObjectPtr<ULabelBaseText> RequiredItemName;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Componets", meta = (BindWidget))
 	TObjectPtr<UCurrentMaxDisplay> RemainingCounter;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Componets", meta = (BindWidgetOptional))
+	TObjectPtr<UUIButton> MainButton;
 	
 	//====================================================================
 	// FUNCTIONS
@@ -58,4 +60,7 @@ protected:
 	//====================================================================
 	UFUNCTION(BlueprintCallable)
 	void UpdateIngredientImage(const TSoftObjectPtr<UTexture2D>& NewIngredientIcon);
+
+	UFUNCTION(BlueprintCallable)
+	void SetToggleStatus(bool bNewStatus);
 };

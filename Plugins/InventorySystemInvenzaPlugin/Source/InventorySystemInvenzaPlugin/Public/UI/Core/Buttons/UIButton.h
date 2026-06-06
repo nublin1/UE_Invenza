@@ -25,15 +25,23 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UUIButton : public UInvenzaBaseWidget
 
 #pragma region Delegates
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnButtonClicked, UUIButton*, UIButton);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnToggled, bool, Status);
 #pragma endregion Delegates
 
 public:
+	UUIButton();
+	
+	virtual void NativePreConstruct() override;
+	virtual void NativeConstruct() override;
+	
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	// Delegates
 	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "UI|Events")
 	FOnButtonClicked OnButtonClicked;
+	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "UI|Events")
+	FOnToggled OnToggled;
 	
 	// Widgets
 	UPROPERTY(BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
@@ -46,8 +54,7 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UUIButton();
-
+	
 	UFUNCTION(BlueprintCallable, Category = "UI|State")
 	bool GetToggleStatus() const {return bIsToggleOn;}
 
@@ -81,8 +88,6 @@ protected:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	virtual void NativePreConstruct() override;
-	virtual void NativeConstruct() override;
 
 	UFUNCTION()
 	virtual void ClickButton();

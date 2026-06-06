@@ -15,6 +15,11 @@ URequirementOptionEntry::URequirementOptionEntry()
 void URequirementOptionEntry::NativeConstruct()
 {
 	Super::NativeConstruct();
+
+	if (MainButton)
+	{
+		MainButton->OnToggled.AddDynamic(this, &URequirementOptionEntry::URequirementOptionEntry::SetToggleStatus);
+	}
 }
 
 void URequirementOptionEntry::UpdateData(FRecipeRequirementResult NewData)
@@ -40,4 +45,9 @@ void URequirementOptionEntry::UpdateIngredientImage(const TSoftObjectPtr<UTextur
 	NewBrush.SetResourceObject(LoadedTexture);
 	//NewBrush.ImageSize = FVector2D(LoadedTexture->GetSizeX(), LoadedTexture->GetSizeY());
 	IngredientIcon->UpdateBrush(NewBrush);
+}
+
+void URequirementOptionEntry::SetToggleStatus(bool bNewStatus)
+{
+	
 }
