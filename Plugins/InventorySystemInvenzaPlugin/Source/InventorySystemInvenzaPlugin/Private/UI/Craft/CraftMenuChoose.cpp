@@ -13,6 +13,7 @@
 #include "Data/ItemDataStructures.h"
 #include "UI/Core/MovableTitleBar/MovableTitleBar.h"
 #include "UI/Craft/Lists/CraftRecipesList.h"
+#include "UI/Craft/Lists/ReceptDetailRequiredListSimple.h"
 
 
 UCraftMenuChoose::UCraftMenuChoose()
@@ -153,6 +154,7 @@ void UCraftMenuChoose::CraftBtnPressed(UUIButton* Btn)
 		return;
 
 	AmountToCraft = CraftMenuDetail->CraftingQuantitySelector->GetCurrentQuantity();
+	SelectedOptions = CraftMenuDetail->RecipeDetailRequiredListSimple->GetAllSelectedOptions();
 	
 	OnCraftRequested.Broadcast(SelectedObj->RecipeRow, AmountToCraft);
 	

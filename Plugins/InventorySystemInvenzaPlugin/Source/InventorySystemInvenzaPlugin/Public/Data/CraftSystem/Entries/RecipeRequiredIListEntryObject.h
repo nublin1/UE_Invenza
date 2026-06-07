@@ -26,4 +26,7 @@ public:
 
 	UPROPERTY(BlueprintReadOnly)
 	int32 Index = INDEX_NONE;
+	
+	UPROPERTY(BlueprintReadOnly)
+	int32 SelectedOptionIndex = 0;
 };

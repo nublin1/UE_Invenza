@@ -6,6 +6,9 @@
 #include "UI/InvenzaBaseWidget.h"
 #include "ReceptDetailRequiredListSimple.generated.h"
 
+class URecipeRequiredIListEntryObject;
+struct FRecipeItemRequirementCheck;
+struct FItemRecipeRow;
 class UListView;
 /**
  * 
@@ -33,12 +36,18 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+	UFUNCTION(BlueprintCallable)
+	void RefreshRequiredList(const FItemRecipeRow& RecipeRow, const TArray<FRecipeItemRequirementCheck>& Requirements);
+	UFUNCTION(BlueprintCallable)
+	TArray<int32> GetAllSelectedOptions();
 
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI|Settings")
+	TSubclassOf<URecipeRequiredIListEntryObject> RequiredListEntryObjectClass;
 
 	//====================================================================
 	// FUNCTIONS

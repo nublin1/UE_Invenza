@@ -19,53 +19,25 @@ UCraftMenuDetail::UCraftMenuDetail()
 void UCraftMenuDetail::NativeConstruct()
 {
 	Super::NativeConstruct();
-
-	/*if (RecipeDetailTabs)
-	{
-		RecipeDetailTabs->Btn_Requirements->OnButtonClicked.AddDynamic(this, &UCraftMenuDetail::OnClickedTabRecipeRequireds);
-		RecipeDetailTabs->Btn_Description->OnButtonClicked.AddDynamic(this, &UCraftMenuDetail::OnClickedTabRecipeDescription);
-	}*/
 }
 
 void UCraftMenuDetail::SetCraftDetail(FItemRecipeRow RecipeRow, FRecipeCheckResult CheckResult)
 {
-	if (RecipeImage)
+	if (RecipeImage && !RecipeRow.RecipeIcon.IsNull())
 	{
-		if (!RecipeRow.RecipeIcon.IsNull())
+		if (UTexture2D* Texture = RecipeRow.RecipeIcon.Get())
 		{
-			if (UTexture2D* LoadedTexture = RecipeRow.RecipeIcon.LoadSynchronous())
-			{
-				RecipeImage->UpdateImage(LoadedTexture);
-			}
+			RecipeImage->UpdateImage(Texture);
+		}
+		else
+		{
+			RecipeImage->UpdateImage(RecipeRow.RecipeIcon.LoadSynchronous()); 
 		}
 	}
-
-	if (!RecipeRequiredListEntryObjectClass)
+	
+	if (RecipeDetailRequiredListSimple)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("UCraftMenuDetail::SetCraftDetail - RecipeRequiredListEntryObjectClass is not set!"));
-		return;
-	}
-
-	RecipeDetailRequiredListSimple->RequiredList->ClearListItems();
-	if (CheckResult.Requirements.IsEmpty())
-	{
-		UE_LOG(LogTemp, Error, TEXT("UCraftMenuDetail::SetCraftDetail - CheckResult.Requirements is empty!"));
-	}
-	else
-	{
-		int32 Index = 0;
-		for (const auto& Req : CheckResult.Requirements)
-		{
-			auto ItemObj = NewObject<URecipeRequiredIListEntryObject>(this, RecipeRequiredListEntryObjectClass);
-
-			ItemObj->RecipeRow = RecipeRow;
-			ItemObj->RecipeCheckResult = Req;
-			ItemObj->Index = Index;
-
-			RecipeDetailRequiredListSimple->RequiredList->AddItem(ItemObj);
-
-			++Index;
-		}
+		RecipeDetailRequiredListSimple->RefreshRequiredList(RecipeRow, CheckResult.Requirements);
 	}
 }
 

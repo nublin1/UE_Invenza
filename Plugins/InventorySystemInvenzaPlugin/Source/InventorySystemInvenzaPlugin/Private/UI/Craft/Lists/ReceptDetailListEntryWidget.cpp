@@ -28,6 +28,8 @@ void UReceptDetailListEntryWidget::NativeOnListItemObjectSet(UObject* DetailItem
 		return;
 	}
 
+	CashedListEntryObject = RecipeItem;
+
 	const TArray<URequirementOptionEntry*> OptionEntries =
 		CreateRequirementOptionEntries(RecipeItem->RecipeCheckResult);
 
@@ -89,6 +91,7 @@ void UReceptDetailListEntryWidget::HandleOptionButtonClicked(UUIButton* ClickedB
 
 	SelectedOption = EntryToIndexMap.FindRef(FindResult);
 	
+	CashedListEntryObject->Index = SelectedOption;
 }
 
 URequirementOptionEntry* UReceptDetailListEntryWidget::CreateRequirementOptionEntry(

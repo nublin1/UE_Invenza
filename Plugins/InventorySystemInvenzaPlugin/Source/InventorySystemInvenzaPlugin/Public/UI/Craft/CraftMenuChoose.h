@@ -77,7 +77,9 @@ protected:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "UI|Data")
 	TObjectPtr<URecipeListEntryObject> SelectedObj = nullptr;
 	UPROPERTY()
-	float AmountToCraft = 0; 
+	float AmountToCraft = 0;
+	UPROPERTY()
+	TArray<int32> SelectedOptions;
 
 	//====================================================================
 	// FUNCTIONS

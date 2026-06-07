@@ -7,6 +7,7 @@
 #include "UI/InvenzaBaseWidget.h"
 #include "ReceptDetailListEntryWidget.generated.h"
 
+class URecipeRequiredIListEntryObject;
 class UUIButton;
 class UVerticalBox;
 struct FRecipeRequirementResult;
@@ -59,7 +60,12 @@ protected:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "UI|Data")
 	int SelectedOption = 0;
 
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "UI|Data")
+	TObjectPtr<URecipeRequiredIListEntryObject> CashedListEntryObject;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "UI|Data")
 	TMap<UUIButton*, URequirementOptionEntry*> ButtonToEntryMap;
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "UI|Data")
 	TMap<URequirementOptionEntry*, int> EntryToIndexMap;
 	
 	//====================================================================

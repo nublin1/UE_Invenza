@@ -38,8 +38,6 @@ public:
 	// Widgets
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Componets", meta = (BindWidget))
 	TObjectPtr<UImageBaseWidget> RecipeImage;
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Componets", meta = (BindWidgetOptional))
-	//TObjectPtr<URecipeDetailTabs> RecipeDetailTabs;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Componets", meta = (BindWidget))
 	TObjectPtr<UReceptDetailRequiredListSimple> RecipeDetailRequiredListSimple;
 	
@@ -61,10 +59,7 @@ protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	//Data
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI|Data")
-	TSubclassOf<URecipeRequiredIListEntryObject> RecipeRequiredListEntryObjectClass;
-
+		
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
