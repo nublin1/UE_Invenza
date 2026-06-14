@@ -3,12 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Data/ItemDataStructures.h"
 #include "ItemRecipe.generated.h"
 
-#pragma region enums
-struct FInitItemsEntry;
 class UResourcesDT;
 
+#pragma region enums
 UENUM(BlueprintType)
 enum class ERecipeOperatorType : uint8
 {

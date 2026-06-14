@@ -262,7 +262,7 @@ TArray<FItemIDEntry> UItemCollection::CollectItemsAggregated(FString InvID)
 	TArray<UItemBase*> Instances =
 		GetAllItemsByContainer(InvID);
 
-	TMap<UItemBase*, int32> AggregatedMap;
+	TMap<FName, int32> AggregatedMap;
 
 	for (auto Instance : Instances)
 	{
@@ -272,14 +272,14 @@ TArray<FItemIDEntry> UItemCollection::CollectItemsAggregated(FString InvID)
 		FName ItemID = Instance->GetItemID();
 		int32 Count = Instance->GetQuantity();
 
-		int32& StoredCount = AggregatedMap.FindOrAdd(Instance);
+		int32& StoredCount = AggregatedMap.FindOrAdd(ItemID);
 		StoredCount += Count;
 	}
 
 	for (const auto& Pair : AggregatedMap)
 	{
 		FItemIDEntry Entry;
-		Entry.ItemID = Pair.Key->GetItemID();
+		Entry.ItemID = Pair.Key;
 		Entry.Amount = Pair.Value;
 
 		Result.Add(Entry);

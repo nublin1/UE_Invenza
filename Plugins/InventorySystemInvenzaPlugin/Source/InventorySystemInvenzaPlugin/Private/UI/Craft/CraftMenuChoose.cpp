@@ -48,7 +48,6 @@ void UCraftMenuChoose::NativeConstruct()
 	{
 		WidgetSwitcher->SetActiveWidget(static_cast<UWidget*>(EmptySelectionText));
 	}
-
 	
 }
 
@@ -75,7 +74,7 @@ void UCraftMenuChoose::SetCraftComponentPtr(UCraftingComponent* NewCraftingCompo
 	RefreshCurrentSelectionDetails();
 }
 
-void UCraftMenuChoose::HandleAvailableRecipesChanged(const TArray<FCachedRecipeResult>& NewResults)
+void UCraftMenuChoose::HandleAvailableRecipesChanged()
 {
 	if (!CraftComponentPtr) return;
 	
@@ -108,14 +107,14 @@ void UCraftMenuChoose::RefreshCurrentSelectionDetails()
 	{
 		if (CurrentAmount > 1)
 		{
-			CachedCheckResult = CraftComponentPtr->CanCraft(SelectedObj->RecipeRow, CurrentAmount);
+			CachedCheckResult = CraftComponentPtr->CanCraft(SelectedObj->RecipeRow,SelectedOptions, CurrentAmount);
 		}
         
 		CraftMenuDetail->SetCraftDetail(SelectedObj->RecipeRow, CachedCheckResult);
 	}
 	else
 	{
-		auto DirectResult = CraftComponentPtr->CanCraft(SelectedObj->RecipeRow, CurrentAmount);
+		auto DirectResult = CraftComponentPtr->CanCraft(SelectedObj->RecipeRow,SelectedOptions, CurrentAmount);
 		CraftMenuDetail->SetCraftDetail(SelectedObj->RecipeRow, DirectResult);
 	}
 
@@ -156,10 +155,10 @@ void UCraftMenuChoose::CraftBtnPressed(UUIButton* Btn)
 	AmountToCraft = CraftMenuDetail->CraftingQuantitySelector->GetCurrentQuantity();
 	SelectedOptions = CraftMenuDetail->RecipeDetailRequiredListSimple->GetAllSelectedOptions();
 	
-	OnCraftRequested.Broadcast(SelectedObj->RecipeRow, AmountToCraft);
+	OnCraftRequested.Broadcast(SelectedObj->RecipeRow, AmountToCraft, SelectedOptions);
 	
 	if (CraftComponentPtr)
 	{
-		CraftComponentPtr->EnqueueRecipeRequest(SelectedObj->RecipeRow, AmountToCraft);
+		CraftComponentPtr->EnqueueRecipeRequest(SelectedObj->RecipeRow,SelectedOptions, AmountToCraft);
 	}
 }

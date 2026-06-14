@@ -83,7 +83,8 @@ void UCraftingComponent::RecalculateAvailableRecipes()
 	CachedRecipeResults.Empty();
 	for (const FItemRecipeRow& Recipe : AvailableRecipes)
 	{
-		FRecipeCheckResult CheckResult = CanCraft(Recipe, 1); 
+		TArray<int32> EmptyOptions;
+		FRecipeCheckResult CheckResult = CanCraft(Recipe, EmptyOptions, 1); 
 		CachedRecipeResults.Add(FCachedRecipeResult(Recipe.ID, CheckResult));
 	}
 	
@@ -170,7 +171,7 @@ bool UCraftingComponent::GetCachedResultForRecipe(FName RecipeID, FRecipeCheckRe
 	return false;
 }
 
-FRecipeCheckResult UCraftingComponent::CanCraft(const FItemRecipeRow& RecipeRow, int32 Amount) const
+FRecipeCheckResult UCraftingComponent::CanCraft(const FItemRecipeRow& RecipeRow, const TArray<int32>& SelectedOptions, int32 Amount) const
 {
 	FRecipeCheckResult Result;
 
@@ -179,7 +180,10 @@ FRecipeCheckResult UCraftingComponent::CanCraft(const FItemRecipeRow& RecipeRow,
 
 	auto InvItems = InputInventory->GetItemCollectionLinked()->CollectItemsAggregated(InputInventory->GetInventoryContainerID());
 
-	return CanCraftWithItems(RecipeRow, InvItems, Amount);
+	if (SelectedOptions.IsEmpty())
+		return CanCraftWithItems(RecipeRow, InvItems, Amount);
+	
+	return CanCraftWithItemsOptions(RecipeRow, InvItems, SelectedOptions, Amount);
 }
 
 FRecipeCheckResult UCraftingComponent::CanCraftWithItems(const FItemRecipeRow& RecipeRow,
@@ -288,7 +292,115 @@ FRecipeCheckResult UCraftingComponent::CanCraftWithItems(const FItemRecipeRow& R
 	return Result;
 }
 
-void UCraftingComponent::EnqueueRecipeRequest(FItemRecipeRow ItemRecipeRow, int32 Count)
+FRecipeCheckResult UCraftingComponent::CanCraftWithItemsOptions(const FItemRecipeRow& RecipeRow,
+                                                                const TArray<FItemIDEntry>& InventoryItems,
+                                                                const TArray<int32>& SelectedOptions, int32 Amount)
+{
+	FRecipeCheckResult Result;
+	Result.bCanCraft = true;
+
+	auto GetItemAmountByID = [&InventoryItems](const FName& ItemID) -> int32
+	{
+		const FItemIDEntry* Item = InventoryItems.FindByPredicate(
+			[&](const FItemIDEntry& I) { return I.ItemID.IsValid() && I.ItemID == ItemID; }
+		);
+		return Item ? Item->Amount : 0;
+	};
+
+	auto HasItemWithQuantity = [&InventoryItems](const FName& ItemID, int32 Quantity)
+	{
+		const FItemIDEntry* Item = InventoryItems.FindByPredicate(
+			[&](const FItemIDEntry& I) { return I.ItemID == ItemID; }
+		);
+		return Item && Item->Amount >= Quantity;
+	};
+
+	for (int32 ReqIndex = 0; ReqIndex < RecipeRow.RequiredItems.Num(); ++ReqIndex)
+	{
+		const FRecipeItemRequirement& Req = RecipeRow.RequiredItems[ReqIndex];
+		if (!Req.Item.DataTable) continue;
+
+		FRecipeItemRequirementCheck ReqCheck;
+
+		const FItemData* ItemRow = Req.Item.DataTable->FindRow<FItemData>(Req.Item.RowName, TEXT("Context_MainItem"));
+		if (!ItemRow)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Main recipe item %s not found in DataTable!"), *Req.Item.RowName.ToString());
+			continue;
+		}
+
+		ReqCheck.Primary.RequiredItemID = ItemRow->ID;
+		ReqCheck.Primary.ItemMetaData = ItemRow->ItemMetaData;
+		ReqCheck.Primary.AmountNeed = Req.Quantity * Amount;
+		ReqCheck.Primary.AmountHave = GetItemAmountByID(ItemRow->ID);
+		ReqCheck.Primary.bIsSatisfied = HasItemWithQuantity(ItemRow->ID, ReqCheck.Primary.AmountNeed);
+
+		for (const FAlternativeItem& Alt : Req.Alternatives)
+		{
+			if (!Alt.Item.DataTable) continue;
+
+			const FItemData* AltItemRow = Alt.Item.DataTable->FindRow<FItemData>(
+				Alt.Item.RowName, TEXT("Context_AltItem"));
+			if (!AltItemRow) continue;
+
+			FRecipeRequirementResult AltCheck;
+			AltCheck.RequiredItemID = AltItemRow->ID;
+			AltCheck.ItemMetaData = AltItemRow->ItemMetaData;
+			AltCheck.AmountNeed = Alt.Quantity * Amount;
+			AltCheck.AmountHave = GetItemAmountByID(AltItemRow->ID);
+			AltCheck.bIsSatisfied = HasItemWithQuantity(AltItemRow->ID, AltCheck.AmountNeed);
+
+			ReqCheck.Alternatives.Add(AltCheck);
+		}
+
+		int32 ChosenOption = SelectedOptions.IsValidIndex(ReqIndex) ? SelectedOptions[ReqIndex] : 0;
+		bool bCurrentSlotSatisfied = false;
+
+		if (ChosenOption == 0)
+		{
+			bCurrentSlotSatisfied = ReqCheck.Primary.bIsSatisfied;
+			if (bCurrentSlotSatisfied)
+			{
+				FInitItemsEntry ConsumeEntry;
+				ConsumeEntry.Item = Req.Item;
+				ConsumeEntry.Amount = ReqCheck.Primary.AmountNeed;
+				Result.ResourcesToConsume.Add(ConsumeEntry);
+			}
+		}
+		else
+		{
+			int32 AltIndex = ChosenOption - 1;
+			if (ReqCheck.Alternatives.IsValidIndex(AltIndex) && Req.Alternatives.IsValidIndex(AltIndex))
+			{
+				bCurrentSlotSatisfied = ReqCheck.Alternatives[AltIndex].bIsSatisfied;
+				if (bCurrentSlotSatisfied)
+				{
+					FInitItemsEntry ConsumeEntry;
+					ConsumeEntry.Item = Req.Alternatives[AltIndex].Item;
+					ConsumeEntry.Amount = ReqCheck.Alternatives[AltIndex].AmountNeed;
+					Result.ResourcesToConsume.Add(ConsumeEntry);
+				}
+			}
+		}
+
+		if (!bCurrentSlotSatisfied)
+		{
+			Result.bCanCraft = false;
+		}
+
+		Result.Requirements.Add(ReqCheck);
+	}
+
+
+	if (!Result.bCanCraft)
+	{
+		Result.ResourcesToConsume.Empty();
+	}
+
+	return Result;
+}
+
+void UCraftingComponent::EnqueueRecipeRequest(FItemRecipeRow ItemRecipeRow, const TArray<int32>& SelectedOptions, int32 Count)
 {
 	if (!GetOwner()) return;
 
@@ -297,11 +409,11 @@ void UCraftingComponent::EnqueueRecipeRequest(FItemRecipeRow ItemRecipeRow, int3
 
 	if (GetOwner()->HasAuthority())
 	{
-		Server_EnqueueRecipe(ItemRecipeRow, Count);
+		Server_EnqueueRecipe(ItemRecipeRow, SelectedOptions, Count);
 	}
 	else
 	{
-		HandleEnqueueRecipe(ItemRecipeRow, Count);
+		HandleEnqueueRecipe(ItemRecipeRow,SelectedOptions, Count);
 	}
 }
 
@@ -345,7 +457,7 @@ void UCraftingComponent::OnRep_InventoryUpdated()
 
 void UCraftingComponent::OnRep_CachedRecipes()
 {
-	OnAvailableRecipesChanged.Broadcast(CachedRecipeResults);
+	OnAvailableRecipesChanged.Broadcast();
 }
 
 void UCraftingComponent::OnRep_AvailableRecipes()
@@ -361,20 +473,22 @@ void UCraftingComponent::OnRep_Blocks()
 	Multicast_OnBlocksUpdated(BlocksReasons);
 }
 
-void UCraftingComponent::Server_EnqueueRecipe_Implementation(FItemRecipeRow ItemRecipeRow, int32 Count)
+void UCraftingComponent::Server_EnqueueRecipe_Implementation(FItemRecipeRow ItemRecipeRow, const TArray<int32>& SelectedOptions, int32 Count)
 {
-	HandleEnqueueRecipe(ItemRecipeRow, Count);
+	HandleEnqueueRecipe(ItemRecipeRow,SelectedOptions, Count);
 }
 
-void UCraftingComponent::HandleEnqueueRecipe(FItemRecipeRow ItemRecipeRow, int32 Count)
+void UCraftingComponent::HandleEnqueueRecipe(FItemRecipeRow ItemRecipeRow, const TArray<int32>& SelectedOptions, int32 Count)
 {
 	const bool bConsumeOnQueueAdd =	ConsumePolicy == ECraftingResourceConsumePolicy::OnQueueAdd;
 	auto NewQueuedRecipe = FQueuedRecipe(ItemRecipeRow, Count, bConsumeOnQueueAdd);
-	RecipeQueue.Add(NewQueuedRecipe);
+	NewQueuedRecipe.SelectedOptions = SelectedOptions;
+	int32 AddedIndex = RecipeQueue.Add(NewQueuedRecipe);
 
 	if (bConsumeOnQueueAdd)
 	{
-		auto Result = ConsumeResourcesForRecipe(NewQueuedRecipe, Count);
+		FQueuedRecipe& QueuedRecipeInArray = RecipeQueue[AddedIndex];
+		auto Result = ConsumeResourcesForRecipe(QueuedRecipeInArray, Count);
 		if (!Result)
 		{
 			RecipeQueue.RemoveAt(RecipeQueue.Num() - 1);
@@ -465,7 +579,7 @@ void UCraftingComponent::TryStartNext()
 	StartCurrentRecipe(Next);
 }
 
-void UCraftingComponent::StartCurrentRecipe(const FQueuedRecipe& Item)
+void UCraftingComponent::StartCurrentRecipe(FQueuedRecipe& Item)
 {
 	if (!GetOwner() || !GetOwner()->HasAuthority())
 		return;
@@ -557,18 +671,21 @@ void UCraftingComponent::FinishCurrentRecipe()
 	}
 }
 
-bool UCraftingComponent::ConsumeResourcesForRecipe(const FQueuedRecipe& Item, int32 Count)
+bool UCraftingComponent::ConsumeResourcesForRecipe( FQueuedRecipe& Item, int32 Count) 
 {
-	auto CheckResult = CanCraft(Item.ItemRecipeRow, Count);
+	auto CheckResult = CanCraft(Item.ItemRecipeRow, Item.SelectedOptions, Count);
 	if (!CheckResult.bCanCraft)
 		return false;
 
 	for (const FInitItemsEntry& ResourceToConsume : CheckResult.ResourcesToConsume)
 	{
+		Item.ConsumedResources.Add(ResourceToConsume);
 		InputInventory->HandleRemoveItemsByID( ResourceToConsume.Item.RowName, ResourceToConsume.Amount);
 	}
 	
 	Item.bResourcesWasConsumed = true;
+	
+	OnRep_InventoryUpdated();
 
 	return true;
 }
@@ -581,6 +698,8 @@ void UCraftingComponent::RefundResourcesForRecipe(const FQueuedRecipe& Item, int
 		{
 			UInventoryUtility::AddItemQuantity(this, InputInventory, Element);
 		}
+		
+		OnRep_InventoryUpdated();
 	}
 }
 

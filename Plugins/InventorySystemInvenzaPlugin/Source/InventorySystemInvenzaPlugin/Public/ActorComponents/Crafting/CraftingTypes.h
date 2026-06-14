@@ -47,6 +47,8 @@ struct FQueuedRecipe
 	mutable bool bResourcesWasConsumed = false;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TArray<FInitItemsEntry> ConsumedResources;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TArray<int32> SelectedOptions;
 	
 	FQueuedRecipe() = default;
 	FQueuedRecipe(FItemRecipeRow InItemRecipeRow, int32 InCount, bool bInResourcesWasConsumed = false)

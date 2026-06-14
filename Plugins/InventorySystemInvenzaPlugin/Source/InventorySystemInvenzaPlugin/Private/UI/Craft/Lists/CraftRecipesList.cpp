@@ -40,25 +40,71 @@ void UCraftRecipesList::RefreshList()
 
 	if (!RecipeEntryObjectClass)
 	{
-		UE_LOG(LogTemp, Error, TEXT("СraftRecipesList: RecipeEntryObjectClass is NULL!"));
+		UE_LOG(LogTemp, Error, TEXT("CraftRecipesList: RecipeEntryObjectClass is NULL!"));
 		return;
 	}
 
-	AvailableRecipesList->ClearListItems();
-	ItemsArray.Empty(); 
-	FilteredItemsArray.Empty();
-    
+	// Update the list incrementally instead of recreating all entries.
+	// Remove items that no longer exist, update existing ones,
+	// and create only the newly added recipe entries.
+
+	TSet<FName> NewIDs;
 	for (const FItemRecipeRow& RecipeRow : RecipesData)
 	{
-		auto ItemObj = NewObject<URecipeListEntryObject>(this, RecipeEntryObjectClass);
-		ItemObj->RecipeRow = RecipeRow;
-		ItemObj->Text = RecipeRow.DisplayName;
-
-		
-
-		AvailableRecipesList->AddItem(ItemObj);
-		ItemsArray.Add(ItemObj);
+		NewIDs.Add(RecipeRow.ID);
 	}
+
+	// Remove obsolete entries
+	for (int32 i = ItemsArray.Num() - 1; i >= 0; --i)
+	{
+		URecipeListEntryObject* ItemObj = ItemsArray[i];
+		if (!ItemObj)
+		{
+			ItemsArray.RemoveAt(i);
+			continue;
+		}
+
+		if (!NewIDs.Contains(ItemObj->RecipeRow.ID))
+		{
+			AvailableRecipesList->RemoveItem(ItemObj);
+			ItemsArray.RemoveAt(i);
+		}
+	}
+
+	// Create a lookup for existing entries
+	TMap<FName, URecipeListEntryObject*> ExistingItems;
+	for (URecipeListEntryObject* ItemObj : ItemsArray)
+	{
+		if (ItemObj)
+		{
+			ExistingItems.Add(ItemObj->RecipeRow.ID, ItemObj);
+		}
+	}
+
+	// Add new entries and update existing ones
+	for (const FItemRecipeRow& RecipeRow : RecipesData)
+	{
+		if (URecipeListEntryObject** ExistingItem = ExistingItems.Find(RecipeRow.ID))
+		{
+			// Update existing entry
+			(*ExistingItem)->RecipeRow = RecipeRow;
+			(*ExistingItem)->Text = RecipeRow.DisplayName;
+		}
+		else
+		{
+			// Add new entry
+			URecipeListEntryObject* ItemObj =
+				NewObject<URecipeListEntryObject>(this, RecipeEntryObjectClass);
+
+			ItemObj->RecipeRow = RecipeRow;
+			ItemObj->Text = RecipeRow.DisplayName;
+
+			AvailableRecipesList->AddItem(ItemObj);
+			ItemsArray.Add(ItemObj);
+		}
+	}
+
+	AvailableRecipesList->RequestRefresh();
 }
 
 void UCraftRecipesList::SearchTextChanged(const FText& NewText)

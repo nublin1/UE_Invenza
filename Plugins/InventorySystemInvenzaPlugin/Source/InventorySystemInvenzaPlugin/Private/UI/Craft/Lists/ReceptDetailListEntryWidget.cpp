@@ -24,49 +24,73 @@ void UReceptDetailListEntryWidget::NativeOnListItemObjectSet(UObject* DetailItem
 
 	auto* RecipeItem = Cast<URecipeRequiredIListEntryObject>(DetailItemObject);
 	if (!RecipeItem || !RequirementOptionClass || !RequirementsContainer)
-	{
 		return;
-	}
 
 	CashedListEntryObject = RecipeItem;
+	SelectedOption = CashedListEntryObject->SelectedOptionIndex;
 
-	const TArray<URequirementOptionEntry*> OptionEntries =
-		CreateRequirementOptionEntries(RecipeItem->RecipeCheckResult);
-
-	if (OptionEntries.IsEmpty())
+	if (RequirementsContainer->GetChildrenCount() == 0)
 	{
-		return;
-	}
+		const TArray<URequirementOptionEntry*> OptionEntries =
+			CreateRequirementOptionEntries(RecipeItem->RecipeCheckResult);
+		if (OptionEntries.IsEmpty()) return;
 
-	RequirementsContainer->ClearChildren();
-	ButtonToEntryMap.Empty();
-	EntryToIndexMap.Empty();
-
-	int32 Index = 0;
-
-	for (URequirementOptionEntry* OptionEntry : OptionEntries)
-	{
-		if (!OptionEntry || !OptionEntry->MainButton)
+		for (URequirementOptionEntry* OptionEntry : OptionEntries)
 		{
-			continue;
+			if (!OptionEntry || !OptionEntry->MainButton) continue;
+			RequirementsContainer->AddChild(OptionEntry);
+			OptionEntry->MainButton->OnButtonClicked.AddDynamic(
+				this,
+				&UReceptDetailListEntryWidget::HandleOptionButtonClicked
+			);
 		}
+	}
+	else
+	{
+		TArray<UWidget*> ChildWidgets = RequirementsContainer->GetAllChildren();
 
-		RequirementsContainer->AddChild(OptionEntry);
+		if (ChildWidgets.IsValidIndex(0))
+			if (auto* PrimaryEntry = Cast<URequirementOptionEntry>(ChildWidgets[0]))
+				PrimaryEntry->UpdateData(RecipeItem->RecipeCheckResult.Primary);
 
-		OptionEntry->MainButton->OnButtonClicked.AddDynamic(
-			this,
-			&UReceptDetailListEntryWidget::HandleOptionButtonClicked
-		);
+		const TArray<FRecipeRequirementResult>& Alternatives = RecipeItem->RecipeCheckResult.Alternatives;
+		
+		for (int32 ExcessIndex = ChildWidgets.Num() - 1; ExcessIndex >= Alternatives.Num() + 1; --ExcessIndex)
+		{
+			RequirementsContainer->RemoveChildAt(ExcessIndex);
+		}
+		
+		for (int32 AltIndex = 0; AltIndex < Alternatives.Num(); ++AltIndex)
+		{
+			int32 ChildIndex = AltIndex + 1;
 
-		ButtonToEntryMap.Add(OptionEntry->MainButton, OptionEntry);
-		EntryToIndexMap.Add(OptionEntry, Index);
+			if (ChildWidgets.IsValidIndex(ChildIndex))
+			{
+				if (auto* AltEntry = Cast<URequirementOptionEntry>(ChildWidgets[ChildIndex]))
+					AltEntry->UpdateData(Alternatives[AltIndex]);
+			}
+			else
+			{
+				if (URequirementOptionEntry* NewEntry = CreateRequirementOptionEntry(Alternatives[AltIndex], RequirementOptionClassAlt))
+				{
+					if (!NewEntry->MainButton) continue;
 
-		++Index;
+					RequirementsContainer->AddChild(NewEntry);
+					NewEntry->MainButton->OnButtonClicked.AddDynamic(
+						this,
+						&UReceptDetailListEntryWidget::HandleOptionButtonClicked
+					);
+				}
+			}
+		}
 	}
 	
-	if (OptionEntries.Num() > 0 && OptionEntries[0] && OptionEntries[0]->MainButton)
+	RebuildMaps();
+
+	for (auto& Element : ButtonToEntryMap)
 	{
-		OptionEntries[0]->MainButton->SetToggleStatus(true);
+		int32 TargetIndex = EntryToIndexMap.FindRef(Element.Value);
+		Element.Value->MainButton->SetToggleStatus(TargetIndex == SelectedOption);
 	}
 }
 
@@ -81,17 +105,11 @@ void UReceptDetailListEntryWidget::HandleOptionButtonClicked(UUIButton* ClickedB
 
 	for (auto Element : ButtonToEntryMap)
 	{
-		if (Element.Value->MainButton == ClickedButton)
-		{
-			Element.Value->MainButton->SetToggleStatus(true);
-		}
-		else
-			Element.Value->MainButton->SetToggleStatus(false);
+		Element.Value->MainButton->SetToggleStatus(Element.Value->MainButton == ClickedButton);
 	}
 
 	SelectedOption = EntryToIndexMap.FindRef(FindResult);
-	
-	CashedListEntryObject->Index = SelectedOption;
+	CashedListEntryObject->SelectedOptionIndex = SelectedOption;
 }
 
 URequirementOptionEntry* UReceptDetailListEntryWidget::CreateRequirementOptionEntry(
@@ -124,4 +142,20 @@ TArray<URequirementOptionEntry*> UReceptDetailListEntryWidget::CreateRequirement
 	}
 
 	return Result;
+}
+
+void UReceptDetailListEntryWidget::RebuildMaps()
+{
+	ButtonToEntryMap.Empty();
+	EntryToIndexMap.Empty();
+
+	TArray<UWidget*> ChildWidgets = RequirementsContainer->GetAllChildren();
+	for (int32 Index = 0; Index < ChildWidgets.Num(); ++Index)
+	{
+		auto* Entry = Cast<URequirementOptionEntry>(ChildWidgets[Index]);
+		if (!Entry || !Entry->MainButton) continue;
+
+		ButtonToEntryMap.Add(Entry->MainButton, Entry);
+		EntryToIndexMap.Add(Entry, Index);
+	}
 }

@@ -39,6 +39,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void RefreshRequiredList(const FItemRecipeRow& RecipeRow, const TArray<FRecipeItemRequirementCheck>& Requirements);
 	UFUNCTION(BlueprintCallable)
+	void UpdateRequirementsCheck(const FItemRecipeRow& UpdateRecipeRow, const TArray<FRecipeItemRequirementCheck>& NewRequirements);
+	
+	UFUNCTION(BlueprintCallable)
 	TArray<int32> GetAllSelectedOptions();
 
 protected:

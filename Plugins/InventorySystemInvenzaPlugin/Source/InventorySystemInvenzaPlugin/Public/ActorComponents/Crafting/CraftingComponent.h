@@ -18,7 +18,7 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UCraftingComponent : public UActorCompone
 	GENERATED_BODY()
 
 #pragma region Delegates
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAvailableRecipesChanged, const TArray<FCachedRecipeResult>&, NewResults);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAvailableRecipesChanged);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCraftStateChanged, bool, bIsPaused);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCraftDataChanged, FQueuedRecipe&, Recipe);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCraftQueueChanged,TArray<FQueuedRecipe>&,NewQueue);
@@ -87,14 +87,21 @@ public:
 	bool GetCachedResultForRecipe(FName RecipeID, FRecipeCheckResult& OutResult) const;
 	
 	UFUNCTION()
-	FRecipeCheckResult CanCraft(const FItemRecipeRow& RecipeRow, int32 Amount = 1) const;
+	FRecipeCheckResult CanCraft(const FItemRecipeRow& RecipeRow, const TArray<int32>& SelectedOptions, int32 Amount = 1) const;
 	UFUNCTION(BlueprintCallable, Category="Crafting")
 	static FRecipeCheckResult CanCraftWithItems(const FItemRecipeRow& RecipeRow,
 	                                            const TArray<FItemIDEntry>& InventoryItems,
 	                                            int32 Amount = 1);
 	
 	UFUNCTION(BlueprintCallable, Category="Crafting")
-	void EnqueueRecipeRequest(FItemRecipeRow ItemRecipeRow, int32 Count = 1);
+	static FRecipeCheckResult CanCraftWithItemsOptions(const FItemRecipeRow& RecipeRow,
+												const TArray<FItemIDEntry>& InventoryItems,
+												const TArray<int32>& SelectedOptions,
+												int32 Amount = 1);
+	
+	UFUNCTION(BlueprintCallable, Category="Crafting")
+	void EnqueueRecipeRequest(FItemRecipeRow ItemRecipeRow, const TArray<int32>& SelectedOptions, int32 Count = 1);
+	
 	UFUNCTION(BlueprintCallable, Category="Crafting")
 	void CancelRecipeRequest(int32 QueueIndex);
 
@@ -167,9 +174,9 @@ protected:
 	void OnRep_Blocks();
 	
 	UFUNCTION(BlueprintCallable, Server, Reliable)
-	void Server_EnqueueRecipe(FItemRecipeRow ItemRecipeRow, int32 Count);
+	void Server_EnqueueRecipe(FItemRecipeRow ItemRecipeRow, const TArray<int32>& SelectedOptions, int32 Count);
 	UFUNCTION(BlueprintCallable)
-	void HandleEnqueueRecipe(FItemRecipeRow ItemRecipeRow, int32 Count);
+	void HandleEnqueueRecipe(FItemRecipeRow ItemRecipeRow,const TArray<int32>& SelectedOptions, int32 Count);
 	UFUNCTION(Server, Reliable)
 	void Server_CancelRecipe(int32 QueueIndex);
 	UFUNCTION(BlueprintCallable)
@@ -180,9 +187,9 @@ protected:
 
 	//
 	void TryStartNext();
-	void StartCurrentRecipe(const FQueuedRecipe& Item);
+	void StartCurrentRecipe(FQueuedRecipe& Item);
 	void FinishCurrentRecipe();
-	bool ConsumeResourcesForRecipe(const FQueuedRecipe& Item, int32 Count);
+	bool ConsumeResourcesForRecipe(FQueuedRecipe& Item, int32 Count);
 	void RefundResourcesForRecipe(const FQueuedRecipe& Item, int32 Count);
 	void GiveCraftedItemToInventory(FItemRecipeRow CraftedRow);
 

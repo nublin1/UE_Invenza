@@ -7,6 +7,7 @@
 #include "UI/InvenzaBaseWidget.h"
 #include "CraftMenuChoose.generated.h"
 
+class UUIButton;
 class UMovableTitleBar;
 class UCraftRecipesList;
 class UCraftMenuDetail;
@@ -22,7 +23,7 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UCraftMenuChoose : public UInvenzaBaseWid
 	GENERATED_BODY()
 	
 #pragma region Delegates
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnCraftRequested, FItemRecipeRow, RecipeRow, int32, Amount);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnCraftRequested, FItemRecipeRow, RecipeRow, int32, Amount, TArray<int>, Options );
 #pragma endregion Delegates
 	
 public:
@@ -86,7 +87,7 @@ protected:
 	//====================================================================
 
 	UFUNCTION()
-	void HandleAvailableRecipesChanged(const TArray<FCachedRecipeResult>& NewResults);
+	void HandleAvailableRecipesChanged();
 
 	UFUNCTION()
 	void RefreshCurrentSelectionDetails();

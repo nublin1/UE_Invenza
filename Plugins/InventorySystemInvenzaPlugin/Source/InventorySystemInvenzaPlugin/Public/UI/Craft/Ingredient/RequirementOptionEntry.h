@@ -47,7 +47,7 @@ public:
 	//====================================================================
 
 	UFUNCTION(BlueprintCallable)
-	void UpdateData(FRecipeRequirementResult NewData);
+	void UpdateData(const FRecipeRequirementResult& NewData);
 
 protected:
 	//====================================================================

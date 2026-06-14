@@ -22,14 +22,20 @@ void URequirementOptionEntry::NativeConstruct()
 	}
 }
 
-void URequirementOptionEntry::UpdateData(FRecipeRequirementResult NewData)
+void URequirementOptionEntry::UpdateData(const FRecipeRequirementResult& NewData)
 {
 	UpdateIngredientImage(NewData.ItemMetaData.ItemAssetData.Icon);
 		
 	RequiredItemName->UpdateText(NewData.ItemMetaData.ItemTextData.DisplayName);
 	if (RemainingCounter->CurrentValue)
+	{
 		RemainingCounter->CurrentValue->UpdateText(FText::AsNumber(NewData.AmountNeed));
-	RemainingCounter->MaxValue->UpdateText(FText::AsNumber(NewData.AmountHave));
+	}
+    
+	if (RemainingCounter->MaxValue)
+	{
+		RemainingCounter->MaxValue->UpdateText(FText::AsNumber(NewData.AmountHave));
+	}
 }
 
 void URequirementOptionEntry::UpdateIngredientImage(const TSoftObjectPtr<UTexture2D>& NewIngredientIcon)

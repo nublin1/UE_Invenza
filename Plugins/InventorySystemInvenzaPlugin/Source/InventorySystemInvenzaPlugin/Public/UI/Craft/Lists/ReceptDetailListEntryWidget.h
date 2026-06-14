@@ -80,4 +80,7 @@ protected:
 	UFUNCTION()
 	TArray<URequirementOptionEntry*> CreateRequirementOptionEntries(const FRecipeItemRequirementCheck& ItemRequirementCheck);	
 	
+	UFUNCTION()
+	void RebuildMaps();
+	
 };
