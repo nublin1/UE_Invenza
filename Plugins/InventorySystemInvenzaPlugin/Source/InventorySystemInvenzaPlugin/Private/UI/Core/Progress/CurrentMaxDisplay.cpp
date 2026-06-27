@@ -10,13 +10,4 @@ void UCurrentMaxDisplay::NativePreConstruct()
 {
 	Super::NativePreConstruct();
 	
-	if (PrefixText)
-	{
-		PrefixText->UpdateText(PreTextValue);
-	}
-
-	if (SeparatorSymbol)
-	{
-		SeparatorSymbol->UpdateText(SeparatorSymbolValue);
-	}
 }

@@ -12,11 +12,15 @@
 UCraftingComponent::UCraftingComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
+	SetIsReplicatedByDefault(true);
 }
 
 void UCraftingComponent::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	if (InputInventory)
+		OnRep_InventoryUpdated();
 }
 
 void UCraftingComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -27,6 +31,7 @@ void UCraftingComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	DOREPLIFETIME(UCraftingComponent, RecipeQueue);
 	DOREPLIFETIME(UCraftingComponent, CurrentCraftingRecipe);
 	DOREPLIFETIME(UCraftingComponent, InputInventory);
+	DOREPLIFETIME(UCraftingComponent, OutputInventory);
 	DOREPLIFETIME(UCraftingComponent, CachedRecipeResults);
 	DOREPLIFETIME(UCraftingComponent, AvailableRecipes);
 }
@@ -37,11 +42,26 @@ void UCraftingComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 }
 
-void UCraftingComponent::InitCraftingComponent()
+void UCraftingComponent::RequestInitCraftingComponent()
 {
-	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
+	if (GetOwner() && GetOwner()->HasAuthority())
+	{
+		HandleInitCraftingComponent();
+	}
+	else
+	{
+		Server_InitCraftingComponent();
+	}
+}
 
-	if (StartingRecipes.IsEmpty())
+void UCraftingComponent::Server_InitCraftingComponent_Implementation()
+{
+	HandleInitCraftingComponent();
+}
+
+void UCraftingComponent::HandleInitCraftingComponent()
+{
+	if (Config.StartingRecipes.IsEmpty())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("StartingRecipes is empty on %s."), *GetOwner()->GetName());
 		return;
@@ -49,7 +69,7 @@ void UCraftingComponent::InitCraftingComponent()
     
 	AvailableRecipes.Empty();
     
-	for (auto RecipeHandle : StartingRecipes)
+	for (auto RecipeHandle : Config.StartingRecipes)
 	{
 		if (!RecipeHandle.DataTable)
 			continue;
@@ -62,12 +82,12 @@ void UCraftingComponent::InitCraftingComponent()
 		AvailableRecipes.Add(*RecipeRow);
 	}
 	
-	RecalculateAvailableRecipes();
+	RequestRecalculateAvailableRecipes();
 }
 
-void UCraftingComponent::SetInputInventory(UInventoryBase* NewInputInventory)
+void UCraftingComponent::SetInputInventory_Implementation(UInventoryBase* NewInputInventory)
 {
-	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
+	if (!GetOwner()) return;
 
 	if (InputInventory != NewInputInventory)
 	{
@@ -76,10 +96,36 @@ void UCraftingComponent::SetInputInventory(UInventoryBase* NewInputInventory)
 	}
 }
 
-void UCraftingComponent::RecalculateAvailableRecipes()
+void UCraftingComponent::SetOutputInventory_Implementation(UInventoryBase* NewOutputInventory)
 {
-	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
+	if (!GetOwner()) return;
 
+	if (OutputInventory != NewOutputInventory)
+	{
+		OutputInventory = NewOutputInventory;
+		OnRep_InventoryUpdated();
+	}
+}
+
+void UCraftingComponent::RequestRecalculateAvailableRecipes()
+{
+	if (GetOwner() && GetOwner()->HasAuthority())
+	{
+		HandleRecalculateAvailableRecipes();
+	}
+	else
+	{
+		Server_RecalculateAvailableRecipes();
+	}
+}
+
+void UCraftingComponent::Server_RecalculateAvailableRecipes_Implementation()
+{
+	HandleRecalculateAvailableRecipes();
+}
+
+void UCraftingComponent::HandleRecalculateAvailableRecipes()
+{
 	CachedRecipeResults.Empty();
 	for (const FItemRecipeRow& Recipe : AvailableRecipes)
 	{
@@ -100,11 +146,14 @@ void UCraftingComponent::SetManualPauseRequest(bool bNewPaused)
 	{
 		BlocksReasons.AddUnique(Block_ManualPause);
 		GetWorld()->GetTimerManager().ClearTimer(CraftTimerHandle);
+		IsManualPaused = true;
 	}
 	else
 	{
 		if (BlocksReasons.Contains(Block_ManualPause))
 			BlocksReasons.Remove(Block_ManualPause);
+		
+		IsManualPaused = false;
 		
 		if (!CurrentCraftingRecipe.ItemRecipeRow.ID.IsNone())
 		{
@@ -409,11 +458,11 @@ void UCraftingComponent::EnqueueRecipeRequest(FItemRecipeRow ItemRecipeRow, cons
 
 	if (GetOwner()->HasAuthority())
 	{
-		Server_EnqueueRecipe(ItemRecipeRow, SelectedOptions, Count);
+		HandleEnqueueRecipe(ItemRecipeRow,SelectedOptions, Count);
 	}
 	else
 	{
-		HandleEnqueueRecipe(ItemRecipeRow,SelectedOptions, Count);
+		Server_EnqueueRecipe(ItemRecipeRow, SelectedOptions, Count);
 	}
 }
 
@@ -445,14 +494,8 @@ void UCraftingComponent::RequestMoveQueueItem(FName RecipeID, int32 QueueIndex, 
 
 void UCraftingComponent::OnRep_InventoryUpdated()
 {
-	if (bDebugMode)
-	{
-		UE_LOG(LogTemp, Log, TEXT("Input Inventory updated on %s"), 
-			GetOwner()->HasAuthority() ? TEXT("Server") : TEXT("Client"));
-	}
-
 	if (InputInventory)
-		RecalculateAvailableRecipes();
+		RequestRecalculateAvailableRecipes();
 }
 
 void UCraftingComponent::OnRep_CachedRecipes()
@@ -581,7 +624,7 @@ void UCraftingComponent::TryStartNext()
 
 void UCraftingComponent::StartCurrentRecipe(FQueuedRecipe& Item)
 {
-	if (!GetOwner() || !GetOwner()->HasAuthority())
+	if (!GetOwner())
 		return;
 
 	const bool bConsumeOnCraftStart = ConsumePolicy == ECraftingResourceConsumePolicy::OnCraftStart;
@@ -598,14 +641,17 @@ void UCraftingComponent::StartCurrentRecipe(FQueuedRecipe& Item)
 	GetWorld()->GetTimerManager().ClearTimer(CraftTimerHandle);
 
 	CurrentCraftingRecipe = Item;
-
-	GetWorld()->GetTimerManager().SetTimer(
+	
+	if (BlocksReasons.IsEmpty())
+	{
+		GetWorld()->GetTimerManager().SetTimer(
 		CraftTimerHandle,
 		this,
 		&UCraftingComponent::ProcessCraftTick,
 		ProcessCraftTickTime,
-		true
-	);
+		true);
+	}
+		
 
 	OnRep_CurrentRecipe();
 }

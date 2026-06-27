@@ -60,7 +60,9 @@ public:
 	TObjectPtr<UCraftingQuantitySelector> CraftingQuantitySelectorMini;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Componets", meta = (BindWidgetOptional))
-	TObjectPtr<UCurrentMaxDisplay> CurrentMaxDisplay;
+	TObjectPtr<UCurrentMaxDisplay> RemainingCount ;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Componets", meta = (BindWidgetOptional))
+	TObjectPtr<UCurrentMaxDisplay> CraftProgress ;
 	
 	//====================================================================
 	// FUNCTIONS

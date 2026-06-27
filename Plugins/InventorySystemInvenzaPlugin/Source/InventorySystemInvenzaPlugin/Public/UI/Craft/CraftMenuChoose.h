@@ -52,7 +52,6 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = "UI|Components", meta = (BindWidget))
 	TObjectPtr<ULabelBaseText> EmptySelectionText;
 	
-	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================

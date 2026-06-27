@@ -3,9 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "UI/InvenzaBaseWidget.h"
 #include "CraftDashboard.generated.h"
 
+class UCraftControlPanel;
 struct FQueuedRecipe;
 class UQueueCraftList;
 class UGenericProgress;
@@ -37,13 +39,11 @@ public:
 	TObjectPtr<UQueueCraftList> QueueCraftList;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
-	TObjectPtr<UUIButton> Btn_AddTask;
+	TObjectPtr<UCraftControlPanel> CraftControlPanel;
 	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UFUNCTION(BlueprintCallable)
-	void BindCraftMenu(UCraftMenuChoose* NewCraftMenuChooseRef);
 
 	UFUNCTION(BlueprintCallable)
 	void InitializeCraftComponentBindings();
@@ -59,14 +59,21 @@ protected:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category = "UI|Refs")
 	TObjectPtr<UCraftingComponent> CraftComponentPtr;
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "UI|Refs")
-	TObjectPtr<UCraftMenuChoose> CraftMenuRef;
+	
+	// Config
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="UI|Config")
+	FGameplayTag AddTaskBtnTag;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="UI|Config")
+	FGameplayTag PauseBtnTag;
 	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
 	UFUNCTION()
 	void AddTaskBtnPressed(UUIButton* Btn);
+	
+	UFUNCTION()
+	void PauseBtnPressed(UUIButton* Btn);
 
 	UFUNCTION()
 	void SetNewCurrentCraftRecipe(FQueuedRecipe NewQueuedRecipe);

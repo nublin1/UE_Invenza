@@ -63,20 +63,32 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UFUNCTION(BlueprintCallable, Category="Crafting")
-	void InitCraftingComponent();
-
 	UFUNCTION(BlueprintCallable, Category = "Crafting")
+	void RequestInitCraftingComponent();
+	UFUNCTION(Server, Reliable,  Category = "Crafting")
+	void Server_InitCraftingComponent();
+	UFUNCTION(BlueprintCallable, Category = "Crafting")
+	void HandleInitCraftingComponent();
+
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Crafting")
 	void SetInputInventory(UInventoryBase* NewInputInventory);
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Crafting")
+	void SetOutputInventory(UInventoryBase* NewOutputInventory);
 
 	UFUNCTION(BlueprintCallable, Category = "Crafting")
-	void RecalculateAvailableRecipes();
+	void RequestRecalculateAvailableRecipes();
+	UFUNCTION(Server, Reliable)
+	void Server_RecalculateAvailableRecipes();
+	UFUNCTION(BlueprintCallable, Category = "Crafting")
+	void HandleRecalculateAvailableRecipes();
 
 	UFUNCTION(BlueprintCallable, Category="Crafting")
 	void SetManualPauseRequest(bool bNewPaused);
 	UFUNCTION(BlueprintCallable, Category="Crafting")
 	void SetNoResourcesRequest(bool bNewValue);
 
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Crafting")
+	FCraftingComponentConfig GetConfig() const { return Config; }
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Crafting")
 	TArray<FItemRecipeRow> GetAvailableRecipes() const { return AvailableRecipes; }
 
@@ -85,6 +97,12 @@ public:
 	
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Crafting")
 	bool GetCachedResultForRecipe(FName RecipeID, FRecipeCheckResult& OutResult) const;
+	
+	UFUNCTION(BlueprintCallable)
+	TArray<FBlockReasonData> GetBlocksReasons() {return BlocksReasons; }
+	
+	UFUNCTION(BlueprintCallable)
+	bool GetIsManualPaused() { return IsManualPaused; } 
 	
 	UFUNCTION()
 	FRecipeCheckResult CanCraft(const FItemRecipeRow& RecipeRow, const TArray<int32>& SelectedOptions, int32 Amount = 1) const;
@@ -111,20 +129,28 @@ public:
 protected:
 
 	// Refs
-	UPROPERTY(ReplicatedUsing=OnRep_InventoryUpdated, EditInstanceOnly, BlueprintReadWrite, Category="Crafting|Ref")
+	UPROPERTY(ReplicatedUsing=OnRep_InventoryUpdated, VisibleInstanceOnly, BlueprintReadWrite, Category="Crafting|Ref")
 	TObjectPtr<UInventoryBase> InputInventory;
 
-	UPROPERTY(ReplicatedUsing=OnRep_InventoryUpdated, EditInstanceOnly, BlueprintReadWrite, Category="Crafting|Ref")
+	UPROPERTY(ReplicatedUsing=OnRep_InventoryUpdated, VisibleInstanceOnly, BlueprintReadWrite, Category="Crafting|Ref")
 	TObjectPtr<UInventoryBase> OutputInventory;
 	
-	//
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Crafting")
-	TArray<FDataTableRowHandle> StartingRecipes;
-	UPROPERTY(ReplicatedUsing=OnRep_AvailableRecipes, VisibleInstanceOnly, BlueprintReadOnly, Category="Crafting")
-	TArray<FItemRecipeRow> AvailableRecipes;
+	// Config
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Crafting|Config")
+	FCraftingComponentConfig Config;
 
+	// Runtime
+	UPROPERTY(ReplicatedUsing=OnRep_AvailableRecipes, VisibleInstanceOnly, BlueprintReadOnly, Category="Crafting|Runtime")
+	TArray<FItemRecipeRow> AvailableRecipes;
+	
 	UPROPERTY(ReplicatedUsing=OnRep_CachedRecipes, VisibleInstanceOnly, BlueprintReadOnly, Category="Crafting")
 	TArray<FCachedRecipeResult> CachedRecipeResults;
+	
+	UPROPERTY(ReplicatedUsing=OnRep_Blocks, VisibleInstanceOnly, BlueprintReadWrite, Category="Crafting|Runtime")
+	TArray<FBlockReasonData> BlocksReasons;
+	
+	UPROPERTY(ReplicatedUsing=OnRep_Blocks, VisibleInstanceOnly, BlueprintReadWrite, Category="Crafting|Runtime")
+	bool IsManualPaused = false;
 
 	// Settings
 	UPROPERTY(editAnywhere, BlueprintReadWrite)
@@ -154,9 +180,6 @@ protected:
 	
 	UPROPERTY(ReplicatedUsing=OnRep_CurrentRecipe, VisibleInstanceOnly, BlueprintReadOnly, Category="Crafting")
 	FQueuedRecipe CurrentCraftingRecipe;
-
-	UPROPERTY(ReplicatedUsing=OnRep_Blocks, VisibleInstanceOnly, BlueprintReadWrite, Category="Crafting")
-	TArray<FBlockReasonData> BlocksReasons;
 	
 	//====================================================================
 	// FUNCTIONS

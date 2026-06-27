@@ -347,8 +347,10 @@ void UIInventoryManager::SetupAdditionalComponents()
 	if (!CraftingComponentRef || !UIInvProvider)
 		return;
 	
-	CraftingComponentRef->InitCraftingComponent();
-	CraftingComponentRef->SetInputInventory(MainPawnInventory);
+	CraftingComponentRef->SetInputInventory(ItemCollectionRef->GetInventoryByTag(CraftingComponentRef->GetConfig().InputInventoryTag));
+	CraftingComponentRef->SetOutputInventory(ItemCollectionRef->GetInventoryByTag(CraftingComponentRef->GetConfig().OutputInventoryTag));
+	
+	CraftingComponentRef->RequestInitCraftingComponent();
 	
 	if (auto CraftMenuDashboard = Cast<UCraftDashboard>(UIInvProvider->GetCraftMenuDashboard()))
 	{

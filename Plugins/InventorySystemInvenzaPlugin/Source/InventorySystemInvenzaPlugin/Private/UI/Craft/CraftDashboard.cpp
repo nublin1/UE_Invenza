@@ -6,7 +6,7 @@
 #include "Components/ListView.h"
 #include "Data/CraftSystem/Entries/ProductionQueueListEntryObject.h"
 #include "UI/Core/Buttons/UIButton.h"
-#include "UI/Core/Progress/GenericProgress.h"
+#include "UI/Craft/CraftControlPanel.h"
 #include "UI/Craft/CraftMenuChoose.h"
 #include "UI/Craft/Lists/QueueCraftList.h"
 
@@ -23,24 +23,23 @@ void UCraftDashboard::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	Btn_AddTask->OnButtonClicked.AddDynamic(this, &UCraftDashboard::AddTaskBtnPressed);
+	if (CraftControlPanel)
+	{
+		for (auto Btn : CraftControlPanel->Execute_GetButtons(CraftControlPanel))
+		{
+			if (Btn->GetBtnTag() == AddTaskBtnTag)
+				Btn->OnButtonClicked.AddDynamic(this, &UCraftDashboard::AddTaskBtnPressed);
+			
+			if (Btn->GetBtnTag() == PauseBtnTag)
+				Btn->OnButtonClicked.AddDynamic(this, &UCraftDashboard::PauseBtnPressed);
+		}
+	}
 
 	if (QueueCraftList)
 	{
 		QueueCraftList->OnQueueOrderChangeRequested.AddDynamic(this, &UCraftDashboard::HandleQueueOrderChangeRequested);
 		QueueCraftList->OnQueueItemDeleteRequested.AddDynamic(this, &UCraftDashboard::HandleQueueItemDeleteRequested);
 	}
-}
-
-void UCraftDashboard::BindCraftMenu(UCraftMenuChoose* NewCraftMenuChooseRef)
-{
-	CraftMenuRef = NewCraftMenuChooseRef;
-	if (!CraftMenuRef)
-		return;
-
-	CraftComponentPtr = CraftMenuRef->GetCraftComponentPtr();
-	
-	InitializeCraftComponentBindings();
 }
 
 void UCraftDashboard::InitializeCraftComponentBindings()
@@ -70,10 +69,16 @@ void UCraftDashboard::SetCraftComponentPtr(UCraftingComponent* NewCraftingCompon
 
 void UCraftDashboard::AddTaskBtnPressed(UUIButton* Btn)
 {
-	if (!CraftMenuRef)
+	if (!CraftComponentPtr)
 		return;
+}
 
-	CraftMenuRef->SetVisibility(ESlateVisibility::Visible);
+void UCraftDashboard::PauseBtnPressed(UUIButton* Btn)
+{
+	if (!CraftComponentPtr)
+		return;
+	
+	CraftComponentPtr->SetManualPauseRequest(!CraftComponentPtr->GetIsManualPaused());
 }
 
 void UCraftDashboard::SetNewCurrentCraftRecipe(FQueuedRecipe NewQueuedRecipe)

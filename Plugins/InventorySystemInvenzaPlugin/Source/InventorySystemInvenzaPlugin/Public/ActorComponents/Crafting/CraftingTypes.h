@@ -16,6 +16,24 @@ enum class ECraftingResourceConsumePolicy : uint8
 };
 
 USTRUCT(BlueprintType)
+struct FCraftingComponentConfig
+{
+	GENERATED_BODY()
+
+	// Inventory tags used for automatic inventory discovery.
+	// The Inventory Manager searches for inventories with these tags and,
+	// when found, automatically assigns them to InputInventory and OutputInventory.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Crafting")
+	FGameplayTag InputInventoryTag;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Crafting")
+	FGameplayTag OutputInventoryTag;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Crafting")
+	TArray<FDataTableRowHandle> StartingRecipes;
+};
+
+USTRUCT(BlueprintType)
 struct FBlockReasonData
 {
 	GENERATED_BODY()

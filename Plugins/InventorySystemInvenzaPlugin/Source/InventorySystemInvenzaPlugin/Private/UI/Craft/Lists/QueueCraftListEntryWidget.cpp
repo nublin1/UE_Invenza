@@ -58,11 +58,16 @@ void UQueueCraftListEntryWidget::NativeOnListItemObjectSet(UObject* DetailItemOb
 		{
 			CraftingQuantitySelectorMini->SetQuantity(ProductionDetail->GetQueuedRecipeData().Count);
 		}
-
-		if (CurrentMaxDisplay)
+		
+		if (RemainingCount)
 		{
-			CurrentMaxDisplay->CurrentValue->UpdateText(FText::AsNumber(ProductionDetail->GetQueuedRecipeData().CurrentProgress));
-			CurrentMaxDisplay->MaxValue->UpdateText(FText::AsNumber(ProductionDetail->GetQueuedRecipeData().ItemRecipeRow.CraftVolume));
+			RemainingCount->CurrentValue->UpdateText(FText::AsNumber(ProductionDetail->GetQueuedRecipeData().Count));
+		}
+
+		if (CraftProgress)
+		{
+			CraftProgress->CurrentValue->UpdateText(FText::AsNumber(ProductionDetail->GetQueuedRecipeData().CurrentProgress));
+			CraftProgress->MaxValue->UpdateText(FText::AsNumber(ProductionDetail->GetQueuedRecipeData().ItemRecipeRow.CraftVolume));
 		}
 	}
 }
@@ -74,10 +79,15 @@ void UQueueCraftListEntryWidget::HandleDataChanged()
 		CraftingQuantitySelectorMini->SetQuantity(QueueListEntryRef->GetQueuedRecipeData().Count);
 	}
 	
-	if (CurrentMaxDisplay)
+	if (RemainingCount)
 	{
-		CurrentMaxDisplay->CurrentValue->UpdateText(FText::AsNumber(QueueListEntryRef->GetQueuedRecipeData().CurrentProgress));
-		CurrentMaxDisplay->MaxValue->UpdateText(FText::AsNumber(QueueListEntryRef->GetQueuedRecipeData().ItemRecipeRow.CraftVolume));
+		RemainingCount->CurrentValue->UpdateText(FText::AsNumber(QueueListEntryRef->GetQueuedRecipeData().Count));
+	}
+	
+	if (CraftProgress)
+	{
+		CraftProgress->CurrentValue->UpdateText(FText::AsNumber(QueueListEntryRef->GetQueuedRecipeData().CurrentProgress));
+		CraftProgress->MaxValue->UpdateText(FText::AsNumber(QueueListEntryRef->GetQueuedRecipeData().ItemRecipeRow.CraftVolume));
 	}
 }
 

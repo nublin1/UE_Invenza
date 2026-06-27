@@ -9,7 +9,9 @@
 #include "Components/PanelWidget.h"
 #include "Data/Inventory/InventoryBase.h"
 #include "DragDrop/InvContainerDragDropOperation.h"
+#include "UI/Core/Buttons/UIButton.h"
 #include "UI/Core/MovableTitleBar/MovableTitleBar.h"
+#include "UI/Craft/CraftControlPanel.h"
 #include "UI/Craft/CraftDashboard.h"
 #include "UI/Craft/CraftMenuChoose.h"
 
@@ -213,9 +215,9 @@ void UGameMenuLayerInv::ToggleCraftMenuLayout()
 void UGameMenuLayerInv::BindCraftWidgets()
 {
 	auto Dashboard = Cast<UCraftDashboard>(GetCraftMenuDashboard());
-	if (Dashboard && Dashboard->Btn_AddTask)
+	if (Dashboard && Dashboard->CraftControlPanel && Dashboard->CraftControlPanel->Btn_AddTask)
 	{
-		Dashboard->Btn_AddTask->OnButtonClicked.AddDynamic(
+		Dashboard->CraftControlPanel->Btn_AddTask->OnButtonClicked.AddDynamic(
 			this,
 			&UGameMenuLayerInv::HandleCraftMenuSwap
 		);
@@ -226,7 +228,7 @@ void UGameMenuLayerInv::BindCraftWidgets()
 	{
 		Choose->MovableTitleBar->Button_Close->OnButtonClicked.AddDynamic(
 			this,
-			&UGameMenuLayerInv::HandleCraftMenuSwap  );
+			&UGameMenuLayerInv::HandleCraftMenuSwap);
 	}
 }
 

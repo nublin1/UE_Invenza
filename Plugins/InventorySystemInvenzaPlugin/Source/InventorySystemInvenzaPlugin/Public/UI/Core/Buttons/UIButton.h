@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "UI/InvenzaBaseWidget.h"
 #include "UIButton.generated.h"
 
@@ -55,6 +56,9 @@ public:
 	// FUNCTIONS
 	//====================================================================
 	
+	UFUNCTION(BlueprintCallable, Category = "UI|Config")
+	FGameplayTag GetBtnTag() const {return BtnTag;}
+	
 	UFUNCTION(BlueprintCallable, Category = "UI|State")
 	bool GetToggleStatus() const {return bIsToggleOn;}
 
@@ -74,6 +78,10 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|State")
 	FLinearColor ToggleColor = FLinearColor(FColor::FromHex(TEXT("FFD369FF")));
+	
+	//
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Config")
+	FGameplayTag BtnTag;
 
 	//
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Defaults")
