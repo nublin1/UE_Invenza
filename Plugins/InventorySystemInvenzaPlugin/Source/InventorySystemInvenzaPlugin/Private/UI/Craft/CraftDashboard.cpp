@@ -46,9 +46,8 @@ void UCraftDashboard::InitializeCraftComponentBindings()
 {
 	if (!CraftComponentPtr)
 		return;
-
-	CraftComponentPtr->OnNewCraftStarted.AddDynamic(this, &UCraftDashboard::SetNewCurrentCraftRecipe);
-	CraftComponentPtr->OnCraftDataChanged.AddDynamic(this, &UCraftDashboard::UpdateCurrentCraftProgress);
+	
+	CraftComponentPtr->OnCurrentCraftDataChanged.AddDynamic(this, &UCraftDashboard::UpdateCurrentCraftProgress);
 	CraftComponentPtr->OnCraftQueueChanged.AddDynamic(this, &UCraftDashboard::UpdateQueueCraftList);
 }
 
@@ -81,11 +80,7 @@ void UCraftDashboard::PauseBtnPressed(UUIButton* Btn)
 	CraftComponentPtr->SetManualPauseRequest(!CraftComponentPtr->GetIsManualPaused());
 }
 
-void UCraftDashboard::SetNewCurrentCraftRecipe(FQueuedRecipe NewQueuedRecipe)
-{
-}
-
-void UCraftDashboard::UpdateCurrentCraftProgress(FQueuedRecipe& Recipe)
+void UCraftDashboard::UpdateCurrentCraftProgress(const FQueuedRecipe& Recipe)
 {
 	if (QueueCraftList)
 	{
@@ -93,7 +88,7 @@ void UCraftDashboard::UpdateCurrentCraftProgress(FQueuedRecipe& Recipe)
 	}
 }
 
-void UCraftDashboard::UpdateQueueCraftList(TArray<FQueuedRecipe>& NewRecipeQueue)
+void UCraftDashboard::UpdateQueueCraftList(const TArray<FQueuedRecipe>& NewRecipeQueue)
 {
 	if (!QueueCraftList)
 		return;

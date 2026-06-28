@@ -3,7 +3,7 @@
 
 #include "UI/Core/Progress/GenericProgress.h"
 
-#include "ActorComponents/Crafting/CraftingTypes.h"
+#include "ActorComponents/Crafting/CraftingStructs.h"
 #include "Data/CraftSystem/ItemRecipe.h"
 #include "UI/Core/LabelBaseText.h"
 #include "UI/Core/Image/ImageBaseWidget.h"

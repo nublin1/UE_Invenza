@@ -5,15 +5,8 @@
 #include "CoreMinimal.h"
 #include "Data/CraftSystem/ItemRecipe.h"
 #include "Data/ItemDataStructures.h"
-#include "CraftingTypes.generated.h"
-
-UENUM(BlueprintType)
-enum class ECraftingResourceConsumePolicy : uint8
-{
-	OnQueueAdd      UMETA(DisplayName="Consume On Queue Add"),
-	OnCraftStart    UMETA(DisplayName="Consume On Craft Start"),
-	OnCraftFinish   UMETA(DisplayName="Consume On Craft Finish")
-};
+#include "Net/Serialization/FastArraySerializer.h"
+#include "CraftingStructs.generated.h"
 
 USTRUCT(BlueprintType)
 struct FCraftingComponentConfig
@@ -51,26 +44,64 @@ struct FBlockReasonData
 };
 
 USTRUCT(BlueprintType)
-struct FQueuedRecipe
+struct FQueuedRecipe : public FFastArraySerializerItem 
 {
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FItemRecipeRow ItemRecipeRow;
+    
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 Count = 0;
+    
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	float CurrentProgress = 0.f;
+    
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	mutable bool bResourcesWasConsumed = false;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	TArray<FInitItemsEntry> ConsumedResources;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	TArray<int32> SelectedOptions;
-	
+	bool bResourcesWasConsumed = false;
+    
 	FQueuedRecipe() = default;
 	FQueuedRecipe(FItemRecipeRow InItemRecipeRow, int32 InCount, bool bInResourcesWasConsumed = false)
 	: ItemRecipeRow(InItemRecipeRow), Count(InCount), bResourcesWasConsumed(bInResourcesWasConsumed) {}
+};
+
+USTRUCT(BlueprintType)
+struct FRecipeQueueContainer : public FFastArraySerializer
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	TArray<FQueuedRecipe> Items;
+	
+	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
+	{
+		return FFastArraySerializer::FastArrayDeltaSerialize<FQueuedRecipe, FRecipeQueueContainer>(Items, DeltaParms, *this);
+	}
+};
+
+template<>
+struct TStructOpsTypeTraits<FRecipeQueueContainer> : public TStructOpsTypeTraitsBase2<FRecipeQueueContainer>
+{
+	enum { WithNetDeltaSerializer = true };
+};
+
+USTRUCT(BlueprintType)
+struct FCraftAdditionalData
+{
+	GENERATED_BODY()
+	
+	UPROPERTY()
+	int32 TargetRepID = -10;
+
+	UPROPERTY(BlueprintReadOnly)
+	TArray<FInitItemsEntry> ConsumedResources;
+
+	UPROPERTY(BlueprintReadOnly)
+	TArray<int32> SelectedOptions;
+
+	FCraftAdditionalData() = default;
+	FCraftAdditionalData(int32 InRepID, const TArray<int32>& InOptions) 
+		: TargetRepID(InRepID), SelectedOptions(InOptions) {}
 };
 
 USTRUCT(BlueprintType)

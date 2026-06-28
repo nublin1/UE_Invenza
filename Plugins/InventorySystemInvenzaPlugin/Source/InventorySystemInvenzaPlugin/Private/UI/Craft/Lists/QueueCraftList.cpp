@@ -20,7 +20,7 @@ void UQueueCraftList::NativeConstruct()
 	this, &UQueueCraftList::OnEntryGenerated);
 }
 
-void UQueueCraftList::SetNewProductionQueueList(TArray<FQueuedRecipe>& InRecipeQueue)
+void UQueueCraftList::SetNewProductionQueueList(const TArray<FQueuedRecipe>& InRecipeQueue)
 {
 	ProductionQueueList.Empty();
 	QueueList->ClearListItems();
@@ -42,7 +42,7 @@ void UQueueCraftList::SetNewProductionQueueList(TArray<FQueuedRecipe>& InRecipeQ
 	UpdateProductionQueueList();
 }
 
-void UQueueCraftList::UpdateDataInRecipe(FQueuedRecipe& UpdatedRecipe)
+void UQueueCraftList::UpdateDataInRecipe(const FQueuedRecipe& UpdatedRecipe)
 {
 	TObjectPtr<UProductionQueueListEntryObject>* FoundEntryPtr = ProductionQueueList.FindByPredicate(
 		[&UpdatedRecipe](const TObjectPtr<UProductionQueueListEntryObject>& Entry)

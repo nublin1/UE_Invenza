@@ -2,7 +2,7 @@
 
 #include "UI/Craft/CraftMenuDetail.h"
 
-#include "ActorComponents/Crafting/CraftingTypes.h"
+#include "ActorComponents/Crafting/CraftingStructs.h"
 #include "Components/ListView.h"
 #include "Components/MultiLineEditableTextBox.h"
 #include "Components/WidgetSwitcher.h"

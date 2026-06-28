@@ -3,7 +3,7 @@
 
 #include "UI/Craft/Ingredient/RequirementOptionEntry.h"
 
-#include "ActorComponents/Crafting/CraftingTypes.h"
+#include "ActorComponents/Crafting/CraftingStructs.h"
 #include "UI/Core/LabelBaseText.h"
 #include "UI/Core/Image/ImageBaseWidget.h"
 #include "UI/Core/Progress/CurrentMaxDisplay.h"

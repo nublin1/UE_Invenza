@@ -76,12 +76,10 @@ protected:
 	void PauseBtnPressed(UUIButton* Btn);
 
 	UFUNCTION()
-	void SetNewCurrentCraftRecipe(FQueuedRecipe NewQueuedRecipe);
-	UFUNCTION()
-	void UpdateCurrentCraftProgress(FQueuedRecipe& Recipe);
+	void UpdateCurrentCraftProgress(const FQueuedRecipe& Recipe);
 
 	UFUNCTION()
-	void UpdateQueueCraftList(TArray<FQueuedRecipe>& NewRecipeQueue);
+	void UpdateQueueCraftList(const TArray<FQueuedRecipe>& NewRecipeQueue);
 
 	UFUNCTION()
 	void HandleQueueOrderChangeRequested(FName RecipeID, const int32 QueueIndex, bool bMoveUp);

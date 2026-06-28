@@ -47,10 +47,10 @@ public:
 	// FUNCTIONS
 	//====================================================================
 	UFUNCTION(BlueprintCallable, Category = "Crafting|UI")
-	void SetNewProductionQueueList(TArray<FQueuedRecipe>& InRecipeQueue);
+	void SetNewProductionQueueList(const TArray<FQueuedRecipe>& InRecipeQueue);
 
 	UFUNCTION(BlueprintCallable, Category = "Crafting|UI")
-	void UpdateDataInRecipe(FQueuedRecipe& UpdatedRecipe);
+	void UpdateDataInRecipe(const  FQueuedRecipe& UpdatedRecipe);
 
 protected:
 	//====================================================================
