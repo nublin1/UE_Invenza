@@ -5,10 +5,13 @@
 
 #include "Components/ListView.h"
 #include "Data/CraftSystem/Entries/ProductionQueueListEntryObject.h"
+#include "Data/Settings/InvenzaInventorySettingsAsset.h"
+#include "Subsystems/InvenzaInventorySettingsSubsystem.h"
 #include "UI/Core/Buttons/UIButton.h"
 #include "UI/Craft/CraftControlPanel.h"
 #include "UI/Craft/CraftMenuChoose.h"
 #include "UI/Craft/Lists/QueueCraftList.h"
+#include "Utility/InventoryUtility.h"
 
 UCraftDashboard::UCraftDashboard()
 {
@@ -77,7 +80,30 @@ void UCraftDashboard::PauseBtnPressed(UUIButton* Btn)
 	if (!CraftComponentPtr)
 		return;
 	
-	CraftComponentPtr->SetManualPauseRequest(!CraftComponentPtr->GetIsManualPaused());
+	if (!Btn->GetBtnTag().IsValid())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[PauseBtnPressed] Btn has an invalid Tag."));
+		return;
+	}
+	
+	const auto* MySettings = UInvenzaInventorySettingsSubsystem::GetSettingsStatic(this);
+	if (!MySettings)
+		return;
+	
+	const FGameplayTag BtnTag = Btn->GetBtnTag();
+	const TArray<FBlockReasonData>& ActiveBlocks = CraftComponentPtr->GetBlocksReasons();
+	const bool bAlreadyBlocked = ActiveBlocks.ContainsByPredicate(
+		[&BtnTag](const FBlockReasonData& Data)
+		{
+			return Data.Tag == BtnTag;
+		}
+	);
+	
+	const FBlockReasonData* BlockReason = MySettings->FindBlockReason(BtnTag);
+	if (BlockReason)
+	{
+		CraftComponentPtr->SetBlockStateRequest(*BlockReason, !bAlreadyBlocked);
+	}
 }
 
 void UCraftDashboard::UpdateCurrentCraftProgress(const FQueuedRecipe& Recipe)

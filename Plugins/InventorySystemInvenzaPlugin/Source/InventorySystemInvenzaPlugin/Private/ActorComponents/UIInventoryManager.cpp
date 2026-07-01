@@ -22,7 +22,6 @@
 #include "Data/Inventory/SlotBasedInv/SlotbasedInventory.h"
 #include "DragDrop/ItemDragDropOperation.h"
 #include "Factory/InvenzaWidgetFactory.h"
-#include "Factory/ItemFactory.h"
 #include "Interface/Interaction/InteractionUIProvider.h"
 #include "Interface/Interaction/LootContainerProvider.h"
 #include "Interface/Interaction/VendorProvider.h"

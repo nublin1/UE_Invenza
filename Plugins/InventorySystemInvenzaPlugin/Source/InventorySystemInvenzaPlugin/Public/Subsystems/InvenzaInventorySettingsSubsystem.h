@@ -6,7 +6,7 @@
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "InvenzaInventorySettingsSubsystem.generated.h"
 
-class UInvenzaInventoryUISettingsAsset;
+class UInvenzaInventorySettingsAsset;
 /**
  * 
  */
@@ -19,12 +19,15 @@ public:
 
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 
-	const UInvenzaInventoryUISettingsAsset* GetSettings() const { return Settings; }
+	const UInvenzaInventorySettingsAsset* GetSettings() const { return Settings; }
 
-	static const UInvenzaInventoryUISettingsAsset* GetSettingsStatic(const UObject* WorldContextObject);
+	static const UInvenzaInventorySettingsAsset* GetSettingsStatic(const UObject* WorldContextObject);
 
 private:
 
 	UPROPERTY()
-	TObjectPtr<UInvenzaInventoryUISettingsAsset> Settings;
+	TObjectPtr<UInvenzaInventorySettingsAsset> Settings;
+	
+	UFUNCTION()
+	void ValidateSettings() const;
 };

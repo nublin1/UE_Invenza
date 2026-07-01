@@ -83,8 +83,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Crafting")
 	void HandleRecalculateAvailableRecipes();
 
-	UFUNCTION(BlueprintCallable, Category="Crafting")
-	void SetManualPauseRequest(bool bNewPaused);
+	UFUNCTION(BlueprintCallable, BlueprintCallable, Category="Crafting")
+	void SetBlockStateRequest(const FBlockReasonData& BlockReason, bool bBlocked);
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category="Crafting")
+	void Server_SetBlockState(const FBlockReasonData& BlockReason, bool bBlocked);
+	UFUNCTION(BlueprintCallable, BlueprintCallable, Category="Crafting")
+	void HandleSetBlockState(const FBlockReasonData& BlockReason, bool bBlocked);
+	
 	UFUNCTION(BlueprintCallable, Category="Crafting")
 	void SetNoResourcesRequest(bool bNewValue);
 
@@ -100,10 +105,7 @@ public:
 	bool GetCachedResultForRecipe(FName RecipeID, FRecipeCheckResult& OutResult) const;
 	
 	UFUNCTION(BlueprintCallable)
-	TArray<FBlockReasonData> GetBlocksReasons() {return BlocksReasons; }
-	
-	UFUNCTION(BlueprintCallable)
-	bool GetIsManualPaused() { return IsManualPaused; } 
+	TArray<FBlockReasonData> GetBlocksReasons() {return ActiveBlocksReasons; }
 	
 	UFUNCTION()
 	FRecipeCheckResult CanCraft(const FItemRecipeRow& RecipeRow, const TArray<int32>& SelectedOptions, int32 Amount = 1) const;
@@ -144,14 +146,12 @@ protected:
 	UPROPERTY(ReplicatedUsing=OnRep_AvailableRecipes, VisibleInstanceOnly, BlueprintReadOnly, Category="Crafting|Runtime")
 	TArray<FItemRecipeRow> AvailableRecipes;
 	
-	UPROPERTY(ReplicatedUsing=OnRep_CachedRecipes, VisibleInstanceOnly, BlueprintReadOnly, Category="Crafting")
+	UPROPERTY(ReplicatedUsing=OnRep_CachedRecipes, VisibleInstanceOnly, BlueprintReadOnly, Category="Crafting|Runtime")
 	TArray<FCachedRecipeResult> CachedRecipeResults;
 	
 	UPROPERTY(ReplicatedUsing=OnRep_Blocks, VisibleInstanceOnly, BlueprintReadWrite, Category="Crafting|Runtime")
-	TArray<FBlockReasonData> BlocksReasons;
+	TArray<FBlockReasonData> ActiveBlocksReasons;
 	
-	UPROPERTY(ReplicatedUsing=OnRep_Blocks, VisibleInstanceOnly, BlueprintReadWrite, Category="Crafting|Runtime")
-	bool IsManualPaused = false;
 
 	// Settings
 	UPROPERTY(editAnywhere, BlueprintReadWrite)
@@ -165,12 +165,6 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Crafting")
 	ECraftingResourceConsumePolicy ConsumePolicy =
 		ECraftingResourceConsumePolicy::OnCraftStart;
-
-	UPROPERTY(EditDefaultsOnly, Category="Crafting|Blocks")
-	FBlockReasonData Block_NoResources;
-
-	UPROPERTY(EditDefaultsOnly, Category="Crafting|Blocks")
-	FBlockReasonData Block_ManualPause;
 
 	// Data
 	UPROPERTY()

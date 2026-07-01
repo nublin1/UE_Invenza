@@ -8,7 +8,7 @@
 #include "Data/Inventory/InventoryBase.h"
 #include "Data/Inventory/InventorySlotData.h"
 #include "Data/Inventory/SlotBasedInv/SlotbasedInventory.h"
-#include "Data/Settings/InvenzaInventoryUISettingsAsset.h"
+#include "Data/Settings/InvenzaInventorySettingsAsset.h"
 #include "Engine/ActorChannel.h"
 #include "Factory/ItemFactory.h"
 #include "Net/UnrealNetwork.h"

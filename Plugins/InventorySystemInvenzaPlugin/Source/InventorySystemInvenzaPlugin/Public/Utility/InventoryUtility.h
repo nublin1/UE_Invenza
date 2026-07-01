@@ -8,7 +8,7 @@
 
 struct FInitItemsEntry;
 class IInventoryInteractionHandler;
-class UInvenzaInventoryUISettingsAsset;
+class UInvenzaInventorySettingsAsset;
 enum class EItemOrientationType : uint8;
 class UInventoryBase;
 class UItemBase;
@@ -34,7 +34,7 @@ public:
 	static FVector2D CalculateItemVisualSize(UItemBase* Item, EItemOrientationType Orientation, FVector2D SlotSize, FMargin SlotSpacing, bool bIgnoreSize);
 
 	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
-	static const UInvenzaInventoryUISettingsAsset* GetInvenzaGlobalSettings(const UObject* WorldContext);
+	static const UInvenzaInventorySettingsAsset* GetInvenzaGlobalSettings(const UObject* WorldContext);
 
 	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
 	static TScriptInterface<IInventoryInteractionHandler> FindInventoryHandler(AActor* Actor);

@@ -8,7 +8,7 @@
 #include "Components/CanvasPanelSlot.h"
 #include "Components/SizeBox.h"
 #include "Components/TextBlock.h"
-#include "Data/Settings/InvenzaInventoryUISettingsAsset.h"
+#include "Data/Settings/InvenzaInventorySettingsAsset.h"
 #include "DragDrop/InvContainerDragDropOperation.h"
 #include "DragDrop/ItemDragDropOperation.h"
 #include "Framework/Application/SlateApplication.h"

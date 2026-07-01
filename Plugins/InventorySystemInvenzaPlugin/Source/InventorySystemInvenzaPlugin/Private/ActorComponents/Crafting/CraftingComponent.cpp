@@ -6,7 +6,9 @@
 #include "Data/ItemData.h"
 #include "Data/CraftSystem/ItemRecipe.h"
 #include "Data/Inventory/InventoryBase.h"
+#include "Data/Settings/InvenzaInventorySettingsAsset.h"
 #include "Net/UnrealNetwork.h"
+#include "Subsystems/InvenzaInventorySettingsSubsystem.h"
 #include "Utility/InventoryUtility.h"
 
 UCraftingComponent::UCraftingComponent()
@@ -27,7 +29,7 @@ void UCraftingComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(UCraftingComponent, BlocksReasons);
+	DOREPLIFETIME(UCraftingComponent, ActiveBlocksReasons);
 	DOREPLIFETIME(UCraftingComponent, RecipeQueue);
 	DOREPLIFETIME(UCraftingComponent, QueueAdditionalData);
 	DOREPLIFETIME(UCraftingComponent, CurrentCraftingRecipe);
@@ -138,72 +140,72 @@ void UCraftingComponent::HandleRecalculateAvailableRecipes()
 	OnRep_CachedRecipes();
 }
 
-void UCraftingComponent::SetManualPauseRequest(bool bNewPaused)
+void UCraftingComponent::SetBlockStateRequest(const FBlockReasonData& BlockReason, bool bBlocked)
+{
+	if (!BlockReason.Tag.IsValid())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("SetBlockState: Invalid block tag."));
+		return;
+	}
+	
+	if (!GetOwner())
+		return;
+	
+	if (GetOwner()->HasAuthority())
+		HandleSetBlockState(BlockReason, bBlocked);
+	else
+	{
+		Server_SetBlockState(BlockReason, bBlocked);
+	}
+}
+
+void UCraftingComponent::Server_SetBlockState_Implementation(const FBlockReasonData& BlockReason, bool bBlocked)
+{
+	HandleSetBlockState(BlockReason, bBlocked);
+}
+
+void UCraftingComponent::HandleSetBlockState(const FBlockReasonData& BlockReason, bool bBlocked)
 {
 	if (!GetOwner() || !GetOwner()->HasAuthority())
 		return;
 	
-	if (bNewPaused)
+	if (!BlockReason.Tag.IsValid())
 	{
-		BlocksReasons.AddUnique(Block_ManualPause);
+		UE_LOG(LogTemp, Warning, TEXT("HandleSetBlockState: Invalid block tag."));
+		return;
+	}
+	
+	if (bBlocked)
+	{
+		ActiveBlocksReasons.AddUnique(BlockReason);
 		GetWorld()->GetTimerManager().ClearTimer(CraftTimerHandle);
-		IsManualPaused = true;
 	}
 	else
 	{
-		if (BlocksReasons.Contains(Block_ManualPause))
-			BlocksReasons.Remove(Block_ManualPause);
-		
-		IsManualPaused = false;
-		
-		if (!CurrentCraftingRecipe.ItemRecipeRow.ID.IsNone())
-		{
-			GetWorld()->GetTimerManager().SetTimer(
-			   CraftTimerHandle, this, &UCraftingComponent::ProcessCraftTick, ProcessCraftTickTime, true
-			);
-		}
-		else
-		{
-			TryStartNext();
-		}
+		ActiveBlocksReasons.Remove(BlockReason);
 	}
+	
+	OnRep_Blocks();
 }
 
 void UCraftingComponent::SetNoResourcesRequest(bool bNewValue)
 {
-	if (!GetOwner() || !GetOwner()->HasAuthority())
+	if (!GetOwner())
 		return;
 
-	if (bNewValue)
+	const auto* MySettings = UInvenzaInventorySettingsSubsystem::GetSettingsStatic(this);
+	if (!MySettings)
+		return;
+	
+	const FGameplayTag BlockTag = MySettings->Block_NoResources;
+	if (!BlockTag.IsValid())
 	{
-		BlocksReasons.AddUnique(Block_NoResources);
-		GetWorld()->GetTimerManager().ClearTimer(CraftTimerHandle);
+		UE_LOG(LogTemp, Warning, TEXT("SetNoResourcesRequest: Invalid block tag."));
+		return;
 	}
-	else
-	{
-		if (BlocksReasons.Contains(Block_NoResources))
-		{
-			BlocksReasons.Remove(Block_NoResources);
-		}
-		
-		if (BlocksReasons.Num() == 0)
-		{
-			if (!CurrentCraftingRecipe.ItemRecipeRow.ID.IsNone())
-			{
-				GetWorld()->GetTimerManager().SetTimer(
-					CraftTimerHandle,
-					this,
-					&UCraftingComponent::ProcessCraftTick,
-					ProcessCraftTickTime,
-					true
-				);
-			}
-			else
-			{
-				TryStartNext();
-			}
-		}
-	}
+
+	if (const FBlockReasonData* BlockReason = MySettings->FindBlockReason(BlockTag))
+		SetBlockStateRequest(*BlockReason, bNewValue);
 }
 
 bool UCraftingComponent::GetCachedResultForRecipe(FName RecipeID, FRecipeCheckResult& OutResult) const
@@ -503,7 +505,7 @@ void UCraftingComponent::HandleEnqueueRecipe(FItemRecipeRow ItemRecipeRow, const
 {
 	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
 	
-	LogQueueState(TEXT("BEFORE_Enqueue"));
+	//LogQueueState(TEXT("BEFORE_Enqueue"));
 
 	const bool bConsumeOnQueueAdd = ConsumePolicy == ECraftingResourceConsumePolicy::OnQueueAdd;
 	FQueuedRecipe NewQueuedRecipe = FQueuedRecipe(ItemRecipeRow, Count, bConsumeOnQueueAdd);
@@ -527,7 +529,7 @@ void UCraftingComponent::HandleEnqueueRecipe(FItemRecipeRow ItemRecipeRow, const
 	}
     
 	OnRep_Queue();
-	LogQueueState(TEXT("AFTER_Enqueue")); 
+	//LogQueueState(TEXT("AFTER_Enqueue")); 
 	if (CurrentCraftingRecipe.ItemRecipeRow.ID.IsNone() || CurrentCraftingRecipe.Count == 0)
 	{
 		TryStartNext();
@@ -571,7 +573,7 @@ void UCraftingComponent::HandleCancelRecipe(int32 QueueIndex)
 		   return Data.TargetRepID == TargetID;
 	   });
 
-		if (BlocksReasons.IsEmpty())
+		if (ActiveBlocksReasons.IsEmpty())
 		{
 			TryStartNext();
 		}
@@ -618,8 +620,11 @@ void UCraftingComponent::TryStartNext()
 	if (!GetOwner() || !GetOwner()->HasAuthority())
 		return;
 	
-	if (!CurrentCraftingRecipe.ItemRecipeRow.ID.IsNone() || CurrentCraftingRecipe.Count > 0)
+	if (!ActiveBlocksReasons.IsEmpty())
 		return;
+	
+	//if (!CurrentCraftingRecipe.ItemRecipeRow.ID.IsNone() || CurrentCraftingRecipe.Count > 0)
+	//	return;
 
 	if (RecipeQueue.Items.Num() == 0)
 		return;
@@ -652,16 +657,16 @@ void UCraftingComponent::StartCurrentRecipe(FQueuedRecipe& Item)
 
 	CurrentCraftingRecipe = Item;
 	
-	if (BlocksReasons.IsEmpty())
-	{
-		GetWorld()->GetTimerManager().SetTimer(
+	UE_LOG(LogTemp, Warning,TEXT("SERVER CurrentRecipe Progress = %f"),	CurrentCraftingRecipe.CurrentProgress);
+	
+	GetWorld()->GetTimerManager().SetTimer(
 		CraftTimerHandle,
 		this,
 		&UCraftingComponent::ProcessCraftTick,
 		ProcessCraftTickTime,
-		true);
-	}
-
+		true
+		);
+	
 	OnRep_CurrentRecipe();
 }
 
@@ -708,7 +713,7 @@ void UCraftingComponent::FinishCurrentRecipe()
 		OnRep_Queue();
 		OnRep_CurrentRecipe();
 		
-		if (BlocksReasons.IsEmpty())
+		if (ActiveBlocksReasons.IsEmpty())
 		{
 			GetWorld()->GetTimerManager().SetTimer(
 			CraftTimerHandle,
@@ -739,7 +744,7 @@ void UCraftingComponent::FinishCurrentRecipe()
 		TryStartNext();
 	}
 	
-	LogQueueState(TEXT("FinishCurrentRecipe"));
+	//LogQueueState(TEXT("FinishCurrentRecipe"));
 }
 
 bool UCraftingComponent::ConsumeResourcesForRecipe(FQueuedRecipe& Item, int32 Count, FCraftAdditionalData& AddData) 
@@ -785,9 +790,7 @@ void UCraftingComponent::GiveCraftedItemToInventory(FItemRecipeRow CraftedRow)
 
 void UCraftingComponent::OnRep_Queue()
 {
-	LogQueueState(TEXT("OnRep_Queue_BEFORE_Broadcast"));
 	OnCraftQueueChanged.Broadcast(RecipeQueue.Items);
-	LogQueueState(TEXT("OnRep_Queue_AFTER_Broadcast"));
 }
 
 void UCraftingComponent::OnRep_CurrentRecipe()
@@ -816,7 +819,9 @@ void UCraftingComponent::OnRep_AvailableRecipes()
 
 void UCraftingComponent::OnRep_Blocks()
 {
-	Multicast_OnBlocksUpdated(BlocksReasons);
+	Multicast_OnBlocksUpdated(ActiveBlocksReasons);
+	if (ActiveBlocksReasons.IsEmpty())
+		TryStartNext();
 }
 
 void UCraftingComponent::Multicast_OnBlocksUpdated_Implementation(const TArray<FBlockReasonData>& BlocksActive)
@@ -851,53 +856,32 @@ void UCraftingComponent::Handle_MoveQueueItem(FName RecipeID, int32 QueueIndex, 
 {
 	if (!RecipeQueue.Items.IsValidIndex(QueueIndex)) 
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Server_MoveQueueItem: Invalid queue index received: %d"), QueueIndex);
+		UE_LOG(LogTemp, Warning, TEXT("Handle_MoveQueueItem: Invalid queue index received: %d"), QueueIndex);
+		return;
+	}
+	
+	const int32 NewIndex = bMoveUp ? QueueIndex - 1 : QueueIndex + 1;
+	if (!RecipeQueue.Items.IsValidIndex(NewIndex))
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("Handle_MoveQueueItem: Cannot move recipe '%s' %s. It is already at the %s of the queue."),
+			*RecipeID.ToString(),
+			bMoveUp ? TEXT("up") : TEXT("down"),
+			bMoveUp ? TEXT("top") : TEXT("bottom"));
+
 		return;
 	}
 
 	SaveCurrentProgressToQueue();
 
 	GetWorld()->GetTimerManager().ClearTimer(CraftTimerHandle);
+	
+	RecipeQueue.Items.Swap(QueueIndex, NewIndex);
+	RecipeQueue.MarkArrayDirty();
 
-	if (bMoveUp && RecipeQueue.Items.IsValidIndex(QueueIndex - 1))
-	{
-		RecipeQueue.Items.Swap(QueueIndex, QueueIndex - 1);
-		RecipeQueue.MarkArrayDirty();
-       
-		if (QueueIndex == 1) 
-		{
-			CurrentCraftingRecipe = FQueuedRecipe();
-			OnRep_CurrentRecipe();
-		}
-       
-		OnRep_Queue();
-		TryStartNext();
-	}
-	else if (!bMoveUp && RecipeQueue.Items.IsValidIndex(QueueIndex + 1))
-	{
-		RecipeQueue.Items.Swap(QueueIndex, QueueIndex + 1);
-		RecipeQueue.MarkArrayDirty();
-       
-		if (QueueIndex == 0)
-		{
-			CurrentCraftingRecipe = FQueuedRecipe();
-			OnRep_CurrentRecipe();
-		}
-       
-		OnRep_Queue();
-		TryStartNext();
-	}
+	OnRep_Queue();
 
-	if (RecipeQueue.Items.Num() > 0)
-	{
-		CurrentCraftingRecipe = RecipeQueue.Items[0];
-		OnRep_CurrentRecipe();
-	}
-
-	/*for (auto Rec : RecipeQueue)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("ID is %s RecipeQueue count is %i"), *Rec.ItemRecipeRow.ID.ToString(), Rec.Count);
-	}*/
+	TryStartNext();
 }
 
 void UCraftingComponent::SaveCurrentProgressToQueue()
@@ -908,6 +892,7 @@ void UCraftingComponent::SaveCurrentProgressToQueue()
 		{
 			RecipeQueue.Items[0].CurrentProgress = CurrentCraftingRecipe.CurrentProgress;
 			RecipeQueue.MarkItemDirty(RecipeQueue.Items[0]);
+			
 			//UE_LOG(LogTemp, Log, TEXT("SaveCurrentProgressToQueue: Saved progress (%f) for recipe '%s'"), 
 			//	CurrentCraftingRecipe.CurrentProgress, *CurrentCraftingRecipe.ItemRecipeRow.ID.ToString());
 		}

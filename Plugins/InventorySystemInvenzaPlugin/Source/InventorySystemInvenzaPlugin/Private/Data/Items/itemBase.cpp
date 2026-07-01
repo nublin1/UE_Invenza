@@ -5,7 +5,7 @@
 #include "ActorComponents/UIInventoryManager.h"
 #include "ActorComponents/Interactable/PickupComponent.h"
 #include "Data/ItemData.h"
-#include "Data/Settings/InvenzaInventoryUISettingsAsset.h"
+#include "Data/Settings/InvenzaInventorySettingsAsset.h"
 #include "GameFramework/Pawn.h"
 #include "Engine/Engine.h"
 #include "GameplayTagContainer.h"

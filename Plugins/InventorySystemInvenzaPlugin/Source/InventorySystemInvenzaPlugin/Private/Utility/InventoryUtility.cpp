@@ -6,7 +6,7 @@
 #include "Data/Inventory/InventoryBase.h"
 #include "Data/Inventory/InventoryTypes.h"
 #include "Data/Items/itemBase.h"
-#include "Data/Settings/InvenzaInventoryUISettingsAsset.h"
+#include "Data/Settings/InvenzaInventorySettingsAsset.h"
 #include "Factory/ItemFactory.h"
 #include "Interface/Inventory/InventoryInteractionHandler.h"
 #include "Subsystems/InvenzaInventorySettingsSubsystem.h"
@@ -84,7 +84,7 @@ FVector2D UInventoryUtility::CalculateItemVisualSize(UItemBase* Item, EItemOrien
 		SlotSize.Y * ItemSize.Y + SlotSpacing.Top  * (ItemSize.Y - 1));
 }
 
-const UInvenzaInventoryUISettingsAsset* UInventoryUtility::GetInvenzaGlobalSettings(const UObject* WorldContext)
+const UInvenzaInventorySettingsAsset* UInventoryUtility::GetInvenzaGlobalSettings(const UObject* WorldContext)
 {
 	if (!WorldContext) return nullptr;
 

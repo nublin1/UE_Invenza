@@ -3,7 +3,7 @@
 #include "Data/Inventory/SlotBasedInv/SlotbasedInventory.h"
 
 #include "ActorComponents/ItemCollection.h"
-#include "Data/Settings/InvenzaInventoryUISettingsAsset.h"
+#include "Data/Settings/InvenzaInventorySettingsAsset.h"
 #include "Engine/ActorChannel.h"
 #include "Net/UnrealNetwork.h"
 #include "Subsystems/InvenzaInventorySettingsSubsystem.h"

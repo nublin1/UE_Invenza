@@ -6,7 +6,7 @@
 #include "Engine/DeveloperSettings.h"
 #include "InvenzaInventoryDeveloperSettings.generated.h"
 
-class UInvenzaInventoryUISettingsAsset;
+class UInvenzaInventorySettingsAsset;
 /**
  * 
  */
@@ -18,5 +18,5 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UInvenzaInventoryDeveloperSettings : publ
 public:
 
 	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly)
-	TSoftObjectPtr<UInvenzaInventoryUISettingsAsset> InventorySettingsAsset;
+	TSoftObjectPtr<UInvenzaInventorySettingsAsset> InventorySettingsAsset;
 };

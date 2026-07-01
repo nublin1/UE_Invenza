@@ -5,7 +5,7 @@
 
 #include "ActorComponents/ItemCollection.h"
 #include "Data/Items/ItemBase.h"
-#include "Data/Settings/InvenzaInventoryUISettingsAsset.h"
+#include "Data/Settings/InvenzaInventorySettingsAsset.h"
 #include "Factory/ItemFactory.h"
 #include "Net/UnrealNetwork.h"
 #include "Subsystems/InvenzaInventorySettingsSubsystem.h"
