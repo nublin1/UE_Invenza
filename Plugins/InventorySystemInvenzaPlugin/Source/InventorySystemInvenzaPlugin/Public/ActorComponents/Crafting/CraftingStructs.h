@@ -47,6 +47,9 @@ USTRUCT(BlueprintType)
 struct FQueuedRecipe : public FFastArraySerializerItem 
 {
 	GENERATED_BODY()
+	
+	UPROPERTY()
+	FGuid QueueEntryId = FGuid::NewGuid();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FItemRecipeRow ItemRecipeRow;
@@ -59,10 +62,13 @@ struct FQueuedRecipe : public FFastArraySerializerItem
     
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	bool bResourcesWasConsumed = false;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	int32 SortOrder = 0;
     
 	FQueuedRecipe() = default;
-	FQueuedRecipe(FItemRecipeRow InItemRecipeRow, int32 InCount, bool bInResourcesWasConsumed = false)
-	: ItemRecipeRow(InItemRecipeRow), Count(InCount), bResourcesWasConsumed(bInResourcesWasConsumed) {}
+	FQueuedRecipe(FItemRecipeRow InItemRecipeRow, int32 InCount, bool bInResourcesWasConsumed = false, int32 NewSortOrder = 0)
+	: ItemRecipeRow(InItemRecipeRow), Count(InCount), bResourcesWasConsumed(bInResourcesWasConsumed), SortOrder(NewSortOrder) {}
 };
 
 USTRUCT(BlueprintType)

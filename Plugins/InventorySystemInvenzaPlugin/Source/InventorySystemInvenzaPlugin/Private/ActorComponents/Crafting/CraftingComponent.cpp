@@ -511,6 +511,7 @@ void UCraftingComponent::HandleEnqueueRecipe(FItemRecipeRow ItemRecipeRow, const
 	FQueuedRecipe NewQueuedRecipe = FQueuedRecipe(ItemRecipeRow, Count, bConsumeOnQueueAdd);
 	
 	FQueuedRecipe& QueuedRecipeInArray = RecipeQueue.Items.Add_GetRef(NewQueuedRecipe);
+	QueuedRecipeInArray.SortOrder = RecipeQueue.Items.Num() - 1;
 	RecipeQueue.MarkItemDirty(QueuedRecipeInArray);
 	
 	FCraftAdditionalData AddData(QueuedRecipeInArray.ReplicationID, SelectedOptions);
@@ -567,7 +568,7 @@ void UCraftingComponent::HandleCancelRecipe(int32 QueueIndex)
 		CurrentCraftingRecipe = FQueuedRecipe();
        
 		RecipeQueue.Items.RemoveAt(QueueIndex);
-		RecipeQueue.MarkArrayDirty();
+		RecalculateSortOrders();
 		
 		QueueAdditionalData.RemoveAll([TargetID](const FCraftAdditionalData& Data) {
 		   return Data.TargetRepID == TargetID;
@@ -581,7 +582,7 @@ void UCraftingComponent::HandleCancelRecipe(int32 QueueIndex)
 	else
 	{
 		RecipeQueue.Items.RemoveAt(QueueIndex);
-		RecipeQueue.MarkArrayDirty();
+		RecalculateSortOrders();
 		
 		QueueAdditionalData.RemoveAll([TargetID](const FCraftAdditionalData& Data) {
 		   return Data.TargetRepID == TargetID;
@@ -604,9 +605,9 @@ void UCraftingComponent::ProcessCraftTick()
 	if (RecipeQueue.Items.Num() > 0 && RecipeQueue.Items[0].ItemRecipeRow.ID == CurrentCraftingRecipe.ItemRecipeRow.ID)
 	{
 		RecipeQueue.Items[0].CurrentProgress = CurrentCraftingRecipe.CurrentProgress;
-		//RecipeQueue.MarkItemDirty(RecipeQueue.Items[0]);
+		RecipeQueue.MarkItemDirty(RecipeQueue.Items[0]);
 	}
-
+	
 	OnRep_CurrentRecipe();
 
 	if (CurrentCraftingRecipe.CurrentProgress >= CurrentCraftingRecipe.ItemRecipeRow.CraftVolume)
@@ -730,7 +731,7 @@ void UCraftingComponent::FinishCurrentRecipe()
 		if (RecipeQueue.Items.Num() > 0)
 		{
 			RecipeQueue.Items.RemoveAt(0);
-			RecipeQueue.MarkArrayDirty();
+			RecalculateSortOrders();
 		}
 		
 		QueueAdditionalData.RemoveAll([TargetID](const FCraftAdditionalData& Data) {
@@ -790,6 +791,9 @@ void UCraftingComponent::GiveCraftedItemToInventory(FItemRecipeRow CraftedRow)
 
 void UCraftingComponent::OnRep_Queue()
 {
+	/*RecipeQueue.Items.Sort([](const FQueuedRecipe& A, const FQueuedRecipe& B) {
+		return A.SortOrder < B.SortOrder;
+	});*/
 	OnCraftQueueChanged.Broadcast(RecipeQueue.Items);
 }
 
@@ -872,12 +876,14 @@ void UCraftingComponent::Handle_MoveQueueItem(FName RecipeID, int32 QueueIndex, 
 		return;
 	}
 
-	SaveCurrentProgressToQueue();
+	//SaveCurrentProgressToQueue();
 
 	GetWorld()->GetTimerManager().ClearTimer(CraftTimerHandle);
 	
-	RecipeQueue.Items.Swap(QueueIndex, NewIndex);
-	RecipeQueue.MarkArrayDirty();
+	FQueuedRecipe MovingItem = RecipeQueue.Items[QueueIndex];
+	RecipeQueue.Items.RemoveAt(QueueIndex);
+	RecipeQueue.Items.Insert(MovingItem, NewIndex);
+	RecalculateSortOrders();
 
 	OnRep_Queue();
 
@@ -886,16 +892,16 @@ void UCraftingComponent::Handle_MoveQueueItem(FName RecipeID, int32 QueueIndex, 
 
 void UCraftingComponent::SaveCurrentProgressToQueue()
 {
-	if (!CurrentCraftingRecipe.ItemRecipeRow.ID.IsNone() && RecipeQueue.Items.Num() > 0)
-	{
-		if (RecipeQueue.Items[0].ItemRecipeRow.ID == CurrentCraftingRecipe.ItemRecipeRow.ID)
+	FQueuedRecipe* QueueRecipe = RecipeQueue.Items.FindByPredicate(
+		[this](const FQueuedRecipe& Recipe)
 		{
-			RecipeQueue.Items[0].CurrentProgress = CurrentCraftingRecipe.CurrentProgress;
-			RecipeQueue.MarkItemDirty(RecipeQueue.Items[0]);
-			
-			//UE_LOG(LogTemp, Log, TEXT("SaveCurrentProgressToQueue: Saved progress (%f) for recipe '%s'"), 
-			//	CurrentCraftingRecipe.CurrentProgress, *CurrentCraftingRecipe.ItemRecipeRow.ID.ToString());
-		}
+			return Recipe.QueueEntryId == CurrentCraftingRecipe.QueueEntryId;
+		});
+
+	if (QueueRecipe)
+	{
+		QueueRecipe->CurrentProgress = CurrentCraftingRecipe.CurrentProgress;
+		RecipeQueue.MarkItemDirty(*QueueRecipe);
 	}
 }
 
@@ -926,4 +932,17 @@ void UCraftingComponent::LogQueueState(const FString& Context) const
 		const int32 OnScreenKey = GetTypeHash(Role + Context);
 		GEngine->AddOnScreenDebugMessage(OnScreenKey, 8.f, Color, Msg);
 	}
+}
+
+void UCraftingComponent::RecalculateSortOrders()
+{
+	for (int32 i = 0; i < RecipeQueue.Items.Num(); ++i)
+	{
+		if (RecipeQueue.Items[i].SortOrder != i)
+		{
+			RecipeQueue.Items[i].SortOrder = i;
+			RecipeQueue.MarkItemDirty(RecipeQueue.Items[i]);
+		}
+	}
+	RecipeQueue.MarkArrayDirty();
 }

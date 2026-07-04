@@ -240,4 +240,6 @@ protected:
 	
 	void LogQueueState(const FString& Context) const;
 	
+	void RecalculateSortOrders();
+	
 };

@@ -30,7 +30,13 @@ void UQueueCraftList::SetNewProductionQueueList(const TArray<FQueuedRecipe>& InR
 		return;
 	}
 	
-	for (const FQueuedRecipe& Recipe : InRecipeQueue)
+	auto RecipeQueue = InRecipeQueue;
+	
+	RecipeQueue.Sort([](const FQueuedRecipe& A, const FQueuedRecipe& B) {
+		return A.SortOrder < B.SortOrder;
+	});
+	
+	for (const FQueuedRecipe& Recipe : RecipeQueue)
 	{
 		UProductionQueueListEntryObject* NewEntry = NewObject<UProductionQueueListEntryObject>(this);
 
@@ -47,7 +53,7 @@ void UQueueCraftList::UpdateDataInRecipe(const FQueuedRecipe& UpdatedRecipe)
 	TObjectPtr<UProductionQueueListEntryObject>* FoundEntryPtr = ProductionQueueList.FindByPredicate(
 		[&UpdatedRecipe](const TObjectPtr<UProductionQueueListEntryObject>& Entry)
 		{
-			return Entry && Entry->GetQueuedRecipeData().ItemRecipeRow.ID == UpdatedRecipe.ItemRecipeRow.ID;
+			return Entry && Entry->GetQueuedRecipeData().QueueEntryId == UpdatedRecipe.QueueEntryId;
 		}
 	);
 
