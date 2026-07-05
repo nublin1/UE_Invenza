@@ -21,11 +21,6 @@ void UCraftRecipesList::NativePreConstruct()
 void UCraftRecipesList::NativeConstruct()
 {
 	Super::NativeConstruct();
-
-	if (ItemFiltersPanel && ItemFiltersPanel->GetSearchText())
-	{
-		ItemFiltersPanel->GetSearchText()->OnTextChanged.AddDynamic(this, &UCraftRecipesList::SearchTextChanged);
-	}
 }
 
 void UCraftRecipesList::SetRecipes(const TArray<FItemRecipeRow>& Recipes)
@@ -36,7 +31,7 @@ void UCraftRecipesList::SetRecipes(const TArray<FItemRecipeRow>& Recipes)
 
 void UCraftRecipesList::RefreshList()
 {
-	if (!AvailableRecipesList) return;
+	if (!ObjectList) return;
 
 	if (!RecipeEntryObjectClass)
 	{
@@ -66,7 +61,7 @@ void UCraftRecipesList::RefreshList()
 
 		if (!NewIDs.Contains(ItemObj->RecipeRow.ID))
 		{
-			AvailableRecipesList->RemoveItem(ItemObj);
+			ObjectList->RemoveItem(ItemObj);
 			ItemsArray.RemoveAt(i);
 		}
 	}
@@ -99,12 +94,12 @@ void UCraftRecipesList::RefreshList()
 			ItemObj->RecipeRow = RecipeRow;
 			ItemObj->Text = RecipeRow.DisplayName;
 
-			AvailableRecipesList->AddItem(ItemObj);
+			ObjectList->AddItem(ItemObj);
 			ItemsArray.Add(ItemObj);
 		}
 	}
 
-	AvailableRecipesList->RequestRefresh();
+	ObjectList->RequestRefresh();
 }
 
 void UCraftRecipesList::SearchTextChanged(const FText& NewText)
@@ -112,7 +107,7 @@ void UCraftRecipesList::SearchTextChanged(const FText& NewText)
 	const TArray<TObjectPtr<URecipeListEntryObject>>& SourceArray =
 		ItemFiltersPanel->IsSearchInFilteredSlots() ? FilteredItemsArray : ItemsArray;
 
-	AvailableRecipesList->ClearListItems();
+	ObjectList->ClearListItems();
 	
 	if (NewText.IsEmpty())
 	{
@@ -127,7 +122,7 @@ void UCraftRecipesList::SearchTextChanged(const FText& NewText)
 		{
 			for (auto ArrayElement : SourceArray)
 			{
-				AvailableRecipesList->AddItem(ArrayElement);
+				ObjectList->AddItem(ArrayElement);
 			}
 		}
 		return;
@@ -138,7 +133,7 @@ void UCraftRecipesList::SearchTextChanged(const FText& NewText)
 		FString StringName = ArrayElement->Text.ToString();
 		if (StringName.Contains(NewText.ToString(), ESearchCase::IgnoreCase))
 		{
-			AvailableRecipesList->AddItem(ArrayElement);
+			ObjectList->AddItem(ArrayElement);
 		}
 	}
 }

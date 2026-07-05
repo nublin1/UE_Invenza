@@ -19,10 +19,11 @@ void URecipeListEntryWidget::NativeOnListItemObjectSet(UObject* ListItemObject)
 	if (!RecipeObj)
 		return;
 
-	UpdateRecipeImage(RecipeObj->RecipeRow.RecipeIcon);
-	UpdateRecipeText(RecipeObj->Text);
+	UpdateImage(RecipeObj->RecipeRow.RecipeIcon);
+	UpdateText(RecipeObj->Text);
 }
 
+/*
 void URecipeListEntryWidget::UpdateRecipeImage(const TSoftObjectPtr<UTexture2D>& RecipeIcon)
 {
 	if (!Recipe_Image || RecipeIcon.IsNull())
@@ -45,3 +46,4 @@ void URecipeListEntryWidget::UpdateRecipeText(const FText& Text)
 
 	Recipe_Text->UpdateText(Text);
 }
+*/

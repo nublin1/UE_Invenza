@@ -34,9 +34,9 @@ void UCraftMenuChoose::NativeConstruct()
 		MovableTitleBar->Button_Close->OnButtonClicked.AddDynamic(this, &UCraftMenuChoose::OnBtnClosePressed);
 	}
 
-	if (CraftRecipesList && CraftRecipesList->AvailableRecipesList)
+	if (CraftRecipesList && CraftRecipesList->ObjectList)
 	{
-		 CraftRecipesList->AvailableRecipesList->OnItemSelectionChanged().AddUObject(this,	&UCraftMenuChoose::HandleItemSelectionChanged);
+		 CraftRecipesList->ObjectList->OnItemSelectionChanged().AddUObject(this, &UCraftMenuChoose::HandleItemSelectionChanged);
 	}
 	if (CraftMenuDetail)
 	{
@@ -48,7 +48,6 @@ void UCraftMenuChoose::NativeConstruct()
 	{
 		WidgetSwitcher->SetActiveWidget(static_cast<UWidget*>(EmptySelectionText));
 	}
-	
 }
 
 void UCraftMenuChoose::SetAvailableRecipes(const TArray<FItemRecipeRow>& Recipes)

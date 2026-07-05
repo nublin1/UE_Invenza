@@ -31,3 +31,18 @@ FText UInputUtility::GetKeyForAction(UWorld* World, UInputAction* Action)
 	
 	return QueryKeysMapped[0].GetDisplayName();
 }
+
+void UInputUtility::RemoveBinding(
+	UEnhancedInputComponent* Input,
+	uint32& Handle)
+{
+	if (!Input)
+		return;
+
+	if (Handle == INDEX_NONE)
+		return;
+
+	Input->RemoveBindingByHandle(Handle);
+
+	Handle = INDEX_NONE;
+}

@@ -1,4 +1,4 @@
-// Nublin Studio 2025 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 
 #include "UI/Core/Buttons/UIButton.h"
@@ -9,6 +9,7 @@
 #include "Components/SizeBox.h"
 #include "Components/TextBlock.h"
 #include "Engine/Texture2D.h"
+#include "Utility/InputUtility.h"
 
 
 UUIButton::UUIButton(): bIsToggleButton(false), bIsToggleOn(false), DefaultButtonBackgroundColor()
@@ -53,11 +54,33 @@ void UUIButton::NativeConstruct()
 
 	if (ClickAction)
 	{
-		UEnhancedInputComponent* Input = Cast<UEnhancedInputComponent>(GetOwningPlayer()->InputComponent);
-		if (!Input) return;
-
-		Input->BindAction(ClickAction, ETriggerEvent::Started, this, &UUIButton::ClickButton);
+		SetupInput();
 	}
+}
+
+void UUIButton::NativeDestruct()
+{
+	if (ClickActionHandle != 0)
+	{
+		if (UEnhancedInputComponent* Input = Cast<UEnhancedInputComponent>(GetOwningPlayer()->InputComponent))
+		{
+			UInputUtility::RemoveBinding(Input, ClickActionHandle);
+		}
+	}
+}
+
+void UUIButton::SetupInput()
+{
+	UEnhancedInputComponent* Input = Cast<UEnhancedInputComponent>(GetOwningPlayer()->InputComponent);
+	if (!Input) return;
+
+	ClickActionHandle = UInputUtility::BindAction(
+		Input,
+		ClickAction,
+		ETriggerEvent::Started,
+		this,
+		&UUIButton::ClickButton
+	);
 }
 
 void UUIButton::ClickButton()
@@ -75,6 +98,22 @@ void UUIButton::SetToggleStatus(const bool bNewStatus)
 		MainButton->SetBackgroundColor(ToggleColor);
 	else
 		MainButton->SetBackgroundColor(DefaultButtonBackgroundColor);
+}
+
+void UUIButton::UpdateUseAction(UInputAction* NewAction)
+{
+	UEnhancedInputComponent* Input = Cast<UEnhancedInputComponent>(GetOwningPlayer()->InputComponent);
+	if (!Input) return;
+	
+	ClickAction = NewAction;
+	ClickActionHandle = UInputUtility::RebindAction(
+		Input,
+		ClickActionHandle,
+		ClickAction,
+		ETriggerEvent::Started,
+		this,
+		&UUIButton::ClickButton
+	);
 }
 
 void UUIButton::OnMainButtonClicked()

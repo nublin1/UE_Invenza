@@ -6,6 +6,7 @@
 #include "Components/ListView.h"
 #include "Data/CraftSystem/Entries/RecipeListEntryObject.h"
 #include "UI/InvenzaBaseWidget.h"
+#include "UI/Core/List/SimpleUserObjectList.h"
 #include "CraftRecipesList.generated.h"
 
 class UFiltersPanel;
@@ -15,7 +16,7 @@ class URecipeListEntryObject;
  * 
  */
 UCLASS()
-class INVENTORYSYSTEMINVENZAPLUGIN_API UCraftRecipesList : public UInvenzaBaseWidget
+class INVENTORYSYSTEMINVENZAPLUGIN_API UCraftRecipesList : public USimpleUserObjectList
 {
 	GENERATED_BODY()
 	
@@ -31,12 +32,6 @@ public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	// Widgets
-	UPROPERTY(EditAnywhere, Category = "UI|Components", meta=(BindWidgetOptional))
-	TObjectPtr<UFiltersPanel> ItemFiltersPanel;
-	UPROPERTY(BlueprintReadWrite, Category = "UI|Components", meta = (BindWidget))
-	TObjectPtr<UListView> AvailableRecipesList;
-
 	//Data
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Data")
 	TSubclassOf<URecipeListEntryObject> RecipeEntryObjectClass;
@@ -63,6 +58,5 @@ protected:
 	// FUNCTIONS
 	//====================================================================
 	
-	UFUNCTION()
-	virtual void SearchTextChanged(const FText& NewText);
+	virtual void SearchTextChanged(const FText& NewText) override;
 };

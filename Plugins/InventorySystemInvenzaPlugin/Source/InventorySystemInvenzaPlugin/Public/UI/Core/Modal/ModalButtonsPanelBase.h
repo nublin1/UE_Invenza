@@ -28,7 +28,7 @@ public:
 	// FUNCTIONS
 	//====================================================================
 
-	virtual TArray<UUIButton*> GetButtons() override;
+	virtual TArray<UUIButton*> GetButtons_Implementation() override;
 	
 protected:
 	//====================================================================

@@ -3,7 +3,7 @@
 
 #include "UI/Core/Modal/ModalButtonsPanelBase.h"
 
-TArray<UUIButton*> UModalButtonsPanelBase::GetButtons()
+TArray<UUIButton*> UModalButtonsPanelBase::GetButtons_Implementation()
 {
 	TArray<UUIButton*> Result;
 	

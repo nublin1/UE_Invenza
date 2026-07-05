@@ -1,4 +1,4 @@
-// Nublin Studio 2025 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -32,6 +32,7 @@ public:
 	
 	virtual void NativePreConstruct() override;
 	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
 	
 	//====================================================================
 	// PROPERTIES AND VARIABLES
@@ -50,6 +51,7 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
 	TObjectPtr<UButton> MainButton;
 
+
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
@@ -59,9 +61,11 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "UI|State")
 	bool GetToggleStatus() const {return bIsToggleOn;}
-
 	UFUNCTION(BlueprintCallable, Category = "UI|State")
 	void SetToggleStatus(const bool bNewStatus);
+	
+	UFUNCTION(BlueprintCallable, Category = "UI|Config")
+	void UpdateUseAction(UInputAction* NewAction);
 
 protected:
 	//====================================================================
@@ -69,6 +73,8 @@ protected:
 	//====================================================================
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI|Input")
 	TObjectPtr<UInputAction> ClickAction;
+	uint32 ClickActionHandle;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI|State")
 	bool bIsToggleButton;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|State")
@@ -94,7 +100,9 @@ protected:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-
+	
+	UFUNCTION()
+	virtual void SetupInput();
 	UFUNCTION()
 	virtual void ClickButton();
 	UFUNCTION()

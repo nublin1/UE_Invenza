@@ -11,13 +11,17 @@ void UModalDialogBase::NativeConstruct()
 {
 	Super::NativeConstruct();
 	
-	if (Btns_Slot)
+	if (Down_Slot)
 		Configure();
+}
+
+void UModalDialogBase::ForceClose(FModalResult Result)
+{
 }
 
 void UModalDialogBase::Configure()
 {
-	UWidget* Content = Btns_Slot->GetContent();
+	UWidget* Content = Down_Slot->GetContent();
 	
 	if (!Content)
 	{

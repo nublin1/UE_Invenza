@@ -3,60 +3,50 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "ModalTypes.h"
 #include "UI/InvenzaBaseWidget.h"
-#include "UI/Core/Buttons/UIButton.h"
-#include "ModalDialogBase.generated.h"
+#include "SimpleUserObjectList.generated.h"
 
-class ULabelBaseText;
-struct FModalResult;
+class UListView;
+class UFiltersPanel;
 /**
  * 
  */
 UCLASS()
-class INVENTORYSYSTEMINVENZAPLUGIN_API UModalDialogBase : public UInvenzaBaseWidget
+class INVENTORYSYSTEMINVENZAPLUGIN_API USimpleUserObjectList : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
 	
-#pragma region Delegates
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnModalClosed, FModalResult, Result);
-#pragma endregion Delegates
-	
 public:
-	UModalDialogBase(){}
-	
+	USimpleUserObjectList() {}
+
+protected:
 	virtual void NativeConstruct() override;
-	
+
+public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	// Widgets
-	
+	UPROPERTY(EditAnywhere, Category = "UI|Components", meta=(BindWidgetOptional))
+	TObjectPtr<UFiltersPanel> ItemFiltersPanel;
 	UPROPERTY(BlueprintReadWrite, Category = "UI|Components", meta = (BindWidget))
-	TObjectPtr<UNamedSlot> Upper_Slot;
-	
-	UPROPERTY(BlueprintReadWrite, Category = "UI|Components", meta = (BindWidget))
-	TObjectPtr<UNamedSlot> Down_Slot;
+	TObjectPtr<UListView> ObjectList;
+
 	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	
-	UFUNCTION(BlueprintCallable, Category = "Modal")
-	void ForceClose(FModalResult Result);
 	
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	
+
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
 	
-	UFUNCTION(BlueprintCallable)
-	void Configure();
-	
 	UFUNCTION()
-	void OnButtonClicked(UUIButton* UIButton);
+	virtual void SearchTextChanged(const FText& NewText) {};
 };

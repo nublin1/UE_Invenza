@@ -6,7 +6,9 @@
 #include "Engine/DataAsset.h"
 #include "GameplayTagContainer.h"
 #include "ActorComponents/Crafting/CraftingStructs.h"
+#include "UI/Core/Modal/ModalTypes.h"
 #include "InvenzaInventorySettingsAsset.generated.h"
+
 
 class UInvenzaBaseWidget;
 class UDragContainerWidget;
@@ -32,7 +34,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
 	FGameplayTag AnyCategoryGameplayTag;
 	
-	// Widgets
+	//Inv Widgets
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
 	TSubclassOf<UDragContainerWidget> DragContainerWidgetClass;
 	
@@ -44,4 +46,23 @@ public:
 	FGameplayTag Block_NoResources;
 	
 	const FBlockReasonData* FindBlockReason(const FGameplayTag& Tag) const;
+	
+	//
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Modal|Config")
+	TArray<FObjectModalActionRule> InvItemsModalActionRules;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Modal")
+	TMap<FGameplayTag, TObjectPtr<UModalAction>> AvailableObjectActions;
+
+	UFUNCTION(BlueprintCallable)
+	UModalAction* GetObjectAction(FGameplayTag FindTag) const;
+	
+	/*UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Modal")
+	FGameplayTag ResultModal_Yes;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Modal")
+	FGameplayTag ResultModal_No;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Modal")
+	FGameplayTag ResultModalCancel;*/
 };

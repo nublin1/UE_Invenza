@@ -37,8 +37,10 @@
 #include "UI/Core/Zones/WorldDropZoneWidget.h"
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
+#include "Data/Settings/InvenzaInventorySettingsAsset.h"
 #include "UI/Craft/CraftDashboard.h"
 #include "UI/Craft/CraftMenuChoose.h"
+#include "Utility/InputUtility.h"
 
 class UEnhancedInputLocalPlayerSubsystem;
 
@@ -1065,42 +1067,74 @@ void UIInventoryManager::InitializeBindings()
 
 void UIInventoryManager::BindInputActions()
 {
-	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	if (!PlayerController) return;
+	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	if (!PC) return;
 
-	UEnhancedInputComponent* Input = Cast<UEnhancedInputComponent>(PlayerController->InputComponent);
+	UEnhancedInputComponent* Input = Cast<UEnhancedInputComponent>(PC->InputComponent);
 	if (!Input) return;
 
 	auto ActorInvs = ItemCollectionRef->GetActorInventories();
+	if (ActorInvs.IsEmpty()) return;
 
-	if (ActorInvs.IsEmpty())
-		return;
-	
-	for (auto& Inv : ActorInvs)
+	for (UInventoryBase* Inventory : ActorInvs)
 	{
-		UInventoryBase* Inventory = Inv;
-		if (!Inventory)
-			continue;
+		if (!Inventory) continue;
 
 		USlotbasedInventory* SlotBased = Cast<USlotbasedInventory>(Inventory);
-		if (!SlotBased)
-			continue;
+		if (!SlotBased) continue;
 
 		if (SlotBased->GetInventorySlots().IsEmpty()) continue;
+
 		for (UInventorySlotData* SlotData : SlotBased->GetInventorySlots())
 		{
-			if (!SlotData)
-				continue;
-
-			if (!SlotData->InventorySlotInfo.UseAction)
-				continue;
-
-			Input->BindAction(
+			if (!SlotData) continue;
+			if (!SlotData->InventorySlotInfo.UseAction) continue;
+			
+			UInputUtility::BindAction(
+				Input,
 				SlotData->InventorySlotInfo.UseAction.Get(),
 				ETriggerEvent::Started,
 				Inventory,
 				&UInventoryBase::UseSlot,
-				SlotData);
+				SlotData
+			);
 		}
 	}
+}
+
+FGameplayTagContainer UIInventoryManager::CollectAccessibleItemActions(UItemBase* InItem)
+{
+	FGameplayTagContainer AllowedActions;
+    
+	if (!InItem)
+		return AllowedActions;
+	
+	auto Rules = UInventoryUtility::GetInvenzaGlobalSettings(GetWorld())->InvItemsModalActionRules;
+	
+	for (const auto& Rule : Rules)
+	{
+		bool bConditionMet = false;
+
+		switch (Rule.Condition)
+		{
+		case EObjectConditionType::AlwaysAvailable:
+			bConditionMet = true;
+			break;
+
+		case EObjectConditionType::IfStackable:
+			bConditionMet = InItem->IsStackable();
+			break;
+			
+		default: ;
+		}
+
+	
+		if (bConditionMet && Rule.ActionTag.IsValid())
+		{
+			AllowedActions.AddTag(Rule.ActionTag);
+		}
+	}
+	
+	
+	return AllowedActions;
 }

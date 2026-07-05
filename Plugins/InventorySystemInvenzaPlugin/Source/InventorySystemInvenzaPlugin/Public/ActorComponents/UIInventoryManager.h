@@ -246,5 +246,6 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Initialization")
 	void BindInputActions();
 
-	
+	UFUNCTION(BlueprintCallable)
+	virtual FGameplayTagContainer CollectAccessibleItemActions(UItemBase* InItem);
 };

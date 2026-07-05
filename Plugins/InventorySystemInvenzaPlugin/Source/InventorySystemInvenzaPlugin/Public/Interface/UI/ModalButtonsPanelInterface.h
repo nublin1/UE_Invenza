@@ -24,7 +24,7 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API IModalButtonsPanelInterface
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
 	UFUNCTION(BlueprintNativeEvent, Category = "Modal")
-	virtual TArray<UUIButton*> GetButtons();
+	TArray<UUIButton*> GetButtons();
 	
 	UFUNCTION(BlueprintNativeEvent, Category = "Modal")
 	bool IsInteractionEnabled() const;

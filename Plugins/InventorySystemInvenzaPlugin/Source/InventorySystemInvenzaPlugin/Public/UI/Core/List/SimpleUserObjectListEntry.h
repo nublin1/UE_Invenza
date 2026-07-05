@@ -3,60 +3,48 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "ModalTypes.h"
+#include "Blueprint/IUserObjectListEntry.h"
 #include "UI/InvenzaBaseWidget.h"
-#include "UI/Core/Buttons/UIButton.h"
-#include "ModalDialogBase.generated.h"
+#include "SimpleUserObjectListEntry.generated.h"
 
 class ULabelBaseText;
-struct FModalResult;
+class UImageBaseWidget;
 /**
  * 
  */
 UCLASS()
-class INVENTORYSYSTEMINVENZAPLUGIN_API UModalDialogBase : public UInvenzaBaseWidget
+class INVENTORYSYSTEMINVENZAPLUGIN_API USimpleUserObjectListEntry : public UInvenzaBaseWidget, public IUserObjectListEntry
 {
 	GENERATED_BODY()
-	
-#pragma region Delegates
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnModalClosed, FModalResult, Result);
-#pragma endregion Delegates
-	
+		
 public:
-	UModalDialogBase(){}
-	
-	virtual void NativeConstruct() override;
+	USimpleUserObjectListEntry() {}
 	
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	// Widgets
-	
+	UPROPERTY(BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
+	TObjectPtr<UImageBaseWidget> ListEntry_Image;
 	UPROPERTY(BlueprintReadWrite, Category = "UI|Components", meta = (BindWidget))
-	TObjectPtr<UNamedSlot> Upper_Slot;
-	
-	UPROPERTY(BlueprintReadWrite, Category = "UI|Components", meta = (BindWidget))
-	TObjectPtr<UNamedSlot> Down_Slot;
-	
+	TObjectPtr<ULabelBaseText> ListEntry_Text;
+
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
 	
-	UFUNCTION(BlueprintCallable, Category = "Modal")
-	void ForceClose(FModalResult Result);
-	
+	UFUNCTION()
+	void UpdateImage(const TSoftObjectPtr<UTexture2D>& NewIcon);
+	UFUNCTION()
+	void UpdateText(const FText& Text);
+
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	
+
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
 	
-	UFUNCTION(BlueprintCallable)
-	void Configure();
-	
-	UFUNCTION()
-	void OnButtonClicked(UUIButton* UIButton);
 };

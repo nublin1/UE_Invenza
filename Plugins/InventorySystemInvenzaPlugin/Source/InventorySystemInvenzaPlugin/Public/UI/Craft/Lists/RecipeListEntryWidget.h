@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Blueprint/IUserObjectListEntry.h"
 #include "UI/InvenzaBaseWidget.h"
+#include "UI/Core/List/SimpleUserObjectListEntry.h"
 #include "RecipeListEntryWidget.generated.h"
 
 class ULabelBaseText;
@@ -13,7 +14,7 @@ class UImageBaseWidget;
  * 
  */
 UCLASS()
-class INVENTORYSYSTEMINVENZAPLUGIN_API URecipeListEntryWidget : public UInvenzaBaseWidget, public IUserObjectListEntry
+class INVENTORYSYSTEMINVENZAPLUGIN_API URecipeListEntryWidget : public USimpleUserObjectListEntry
 {
 	GENERATED_BODY()
 	
@@ -26,10 +27,10 @@ public:
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	// Widgets
-	UPROPERTY(BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
+	/*UPROPERTY(BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
 	TObjectPtr<UImageBaseWidget> Recipe_Image;
 	UPROPERTY(BlueprintReadWrite, Category = "UI|Components", meta = (BindWidget))
-	TObjectPtr<ULabelBaseText> Recipe_Text;
+	TObjectPtr<ULabelBaseText> Recipe_Text;*/
 
 	//====================================================================
 	// FUNCTIONS
@@ -43,8 +44,8 @@ protected:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UFUNCTION()
+	/*UFUNCTION()
 	void UpdateRecipeImage(const TSoftObjectPtr<UTexture2D>& RecipeIcon);
 	UFUNCTION()
-	void UpdateRecipeText(const FText& Text);
+	void UpdateRecipeText(const FText& Text);*/
 };
