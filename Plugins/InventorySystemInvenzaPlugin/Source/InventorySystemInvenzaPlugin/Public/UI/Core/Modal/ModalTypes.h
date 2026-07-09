@@ -14,43 +14,35 @@ enum class EObjectConditionType : uint8
 	IfCanBeUsed,
 };
 
-USTRUCT(BlueprintType)
-struct FObjectModalActionRule
+UENUM(BlueprintType)
+enum class EObjectInteractionType : uint8
 {
-	GENERATED_BODY()
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory Rules")
-	EObjectConditionType Condition = EObjectConditionType::AlwaysAvailable;
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory Rules")
-	FGameplayTag ActionTag;
+	None,
+	UseItem,
+	Drop,
+	Destroy,
+	Split
 };
 
-UCLASS(BlueprintType, Blueprintable)
-class UModalAction : public UPrimaryDataAsset
+USTRUCT(BlueprintType)
+struct FObjectModalAction
 {
 	GENERATED_BODY()
-
-public:
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Modal")
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Modal")
+	EObjectInteractionType ObjectInteractionType = EObjectInteractionType::None;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Modal")
+	EObjectConditionType Condition = EObjectConditionType::AlwaysAvailable;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Modal")
 	FGameplayTag ActionTag;
-
+	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Modal")
 	FText DisplayText;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Modal")
 	TObjectPtr<UTexture2D> Icon = nullptr;
-
-	UModalAction()
-	: ActionTag()
-	, DisplayText(FText::GetEmpty())
-	, Icon(nullptr)
-	{}
-	
-	virtual FPrimaryAssetId GetPrimaryAssetId() const override
-	{
-		return FPrimaryAssetId(TEXT("ModalAction"), GetFName());
-	}
 };
 
 USTRUCT(BlueprintType)
@@ -59,7 +51,7 @@ struct FModalResult
 	GENERATED_BODY()
  
 	UPROPERTY(BlueprintReadOnly, Category = "Modal")
-	FGameplayTag ResultTag;
+	FObjectModalAction ResultAction;
 	
 	// Choice only
 	UPROPERTY(BlueprintReadOnly, Category = "Modal")

@@ -1125,16 +1125,18 @@ FGameplayTagContainer UIInventoryManager::CollectAccessibleItemActions(UItemBase
 			bConditionMet = InItem->IsStackable();
 			break;
 			
-		default: ;
+		case EObjectConditionType::IfCanBeUsed:
+			auto TestTag = UInventoryUtility::GetInvenzaGlobalSettings(GetWorld())->ConsumableGameplayTag;
+			bConditionMet = InItem->GetItemRef().ItemCategory == TestTag ;
+			
+		//default: ;
 		}
-
-	
+		
 		if (bConditionMet && Rule.ActionTag.IsValid())
 		{
 			AllowedActions.AddTag(Rule.ActionTag);
 		}
 	}
-	
 	
 	return AllowedActions;
 }

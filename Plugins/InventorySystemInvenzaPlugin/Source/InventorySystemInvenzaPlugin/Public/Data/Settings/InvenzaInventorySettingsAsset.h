@@ -30,6 +30,8 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
 	FGameplayTag CurrencyGameplayTag;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
+	FGameplayTag ConsumableGameplayTag;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
 	FGameplayTag AnyCategoryGameplayTag;
@@ -49,13 +51,7 @@ public:
 	
 	//
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Modal|Config")
-	TArray<FObjectModalActionRule> InvItemsModalActionRules;
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Modal")
-	TMap<FGameplayTag, TObjectPtr<UModalAction>> AvailableObjectActions;
-
-	UFUNCTION(BlueprintCallable)
-	UModalAction* GetObjectAction(FGameplayTag FindTag) const;
+	TArray<FObjectModalAction> InvItemsModalActionRules;
 	
 	/*UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Modal")
 	FGameplayTag ResultModal_Yes;

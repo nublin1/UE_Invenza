@@ -18,14 +18,3 @@ const FBlockReasonData* UInvenzaInventorySettingsAsset::FindBlockReason(const FG
 			return Data.Tag == Tag;
 		});
 }
-
-UModalAction* UInvenzaInventorySettingsAsset::GetObjectAction(FGameplayTag FindTag) const
-{
-	if (const TObjectPtr<UModalAction>* FoundAction = AvailableObjectActions.Find(FindTag))
-	{
-		return *FoundAction;
-	}
-
-	return nullptr;
-}
-
