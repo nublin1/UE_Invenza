@@ -197,6 +197,11 @@ TArray<UInventorySlotData*> UInventoryBase::GetAvailableSlotForItem(UItemBase* I
 	return ReturnSlots;
 }
 
+UInventorySlotData* UInventoryBase::GetSlotByPosition(FIntPoint CellPosition)
+{
+	return nullptr;
+}
+
 void UInventoryBase::SetTradeContext(FTradeContext InTradeContext)
 {
 	this->TradeContext = InTradeContext;

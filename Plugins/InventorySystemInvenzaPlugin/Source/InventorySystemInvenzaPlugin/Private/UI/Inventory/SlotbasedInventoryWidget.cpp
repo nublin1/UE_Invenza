@@ -725,41 +725,43 @@ FReply USlotbasedInventoryWidget::NativeOnMouseButtonDown(const FGeometry& InGeo
 	auto ItemCollection = SlotBasedInventoryRef->GetItemCollectionLinked();
 	auto InvID = SlotBasedInventoryRef->GetInventoryContainerID();
 	
+	bool bIsPosValid = bIsGridPositionValid(GridPosition);
+	if (bIsPosValid)
+	{
+		SlotUnderMouse = GetSlotByPosition(GridPosition);
+	}
+	
+	if (!SlotUnderMouse || !ItemCollection) return FReply::Unhandled();
+	
+	auto ItemInSlot = ItemCollection->GetItemFromSlot(SlotUnderMouse->GetSlotData(), InvID);
+	if (!ItemInSlot) return FReply::Unhandled();
+	
+	auto Handler = UInventoryUtility::FindInventoryHandler(GetOwningPlayerPawn());
+	if (!Handler) return FReply::Unhandled();
+	
 	if (InMouseEvent.GetEffectingButton() == UISettings.ItemSelectKey)
 	{
-		if (bIsGridPositionValid(GridPosition))
+		FItemMoveData ItemMoveData;
+		ItemMoveData.SourceInventory = SlotBasedInventoryRef;
+		ItemMoveData.SourceItemPivotSlotCoordinate = SlotUnderMouse->GetSlotData()->InventorySlotInfo.CellPosition;
+		ItemMoveData.SourceItem = ItemInSlot;
+		if (!ItemMoveData.SourceItem)
+			return FReply::Unhandled();
+
+		FInventoryModifierState Modifiers =
+			IInventoryInteractionHandler::Execute_GetInventoryModifierStates(Handler->_getUObject());
+
+		if (Modifiers.bIsQuickGrabModifierActive)
 		{
-			SlotUnderMouse = GetSlotByPosition(GridPosition);
+			Handler->Execute_OnQuickTransferItem(Handler.GetObject(), ItemMoveData);
+
+			return FReply::Handled();
 		}
-		if (!SlotUnderMouse || !ItemCollection) return FReply::Unhandled();
-		
-		auto ItemInSlot = ItemCollection->GetItemFromSlot(SlotUnderMouse->GetSlotData(), InvID);
-		if (!ItemInSlot) return FReply::Unhandled();
-
-		if (auto Handler = UInventoryUtility::FindInventoryHandler(GetOwningPlayerPawn()))
+		if (Modifiers.bIsGrabAllSameModifierActive)
 		{
-			FItemMoveData ItemMoveData;
-			ItemMoveData.SourceInventory = SlotBasedInventoryRef;
-			ItemMoveData.SourceItemPivotSlotCoordinate = SlotUnderMouse->GetSlotData()->InventorySlotInfo.CellPosition;
-			ItemMoveData.SourceItem = ItemInSlot;
-			if (!ItemMoveData.SourceItem)
-				return FReply::Unhandled();
+			Handler->Execute_OnQuickTransferAllSameItems(Handler.GetObject(), ItemMoveData);
 
-			FInventoryModifierState Modifiers =
-				IInventoryInteractionHandler::Execute_GetInventoryModifierStates(Handler->_getUObject());
-
-			if (Modifiers.bIsQuickGrabModifierActive)
-			{
-				Handler->Execute_OnQuickTransferItem(Handler.GetObject(), ItemMoveData);
-
-				return FReply::Handled();
-			}
-			if (Modifiers.bIsGrabAllSameModifierActive)
-			{
-				Handler->Execute_OnQuickTransferAllSameItems(Handler.GetObject(), ItemMoveData);
-				
-				return FReply::Handled();
-			}
+			return FReply::Handled();
 		}
 		
 		return Reply.Handled().DetectDrag(TakeWidget(), UISettings.ItemSelectKey);
@@ -767,20 +769,18 @@ FReply USlotbasedInventoryWidget::NativeOnMouseButtonDown(const FGeometry& InGeo
 
 	if (InMouseEvent.GetEffectingButton() == UISettings.ItemUseKey)
 	{
-		if (bIsGridPositionValid(GridPosition))
-		{
-			SlotUnderMouse = GetSlotByPosition(GridPosition);
-		}
-		if (!SlotUnderMouse) return FReply::Unhandled();
-		
-		auto ItemInSlot = ItemCollection->GetItemFromSlot(SlotUnderMouse->GetSlotData(), InvID);
-		if (!ItemInSlot) return FReply::Unhandled();
-
 		if (SlotBasedInventoryRef->GetInventorySettings().bAllowItemUsage)
 		{
 			ItemInSlot->UseItem();
 			FReply::Handled();
 		}
+	}
+	
+	if (InMouseEvent.GetEffectingButton() == UISettings.ItemMenuKey)
+	{
+		Handler->Execute_ItemContextMenuRequest(Handler.GetObject(),InvID, ItemInSlot);
+
+		return FReply::Handled();
 	}
 	
 	return FReply::Unhandled();

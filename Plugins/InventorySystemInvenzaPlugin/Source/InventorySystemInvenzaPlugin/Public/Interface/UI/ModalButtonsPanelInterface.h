@@ -6,9 +6,12 @@
 #include "UObject/Interface.h"
 #include "ModalButtonsPanelInterface.generated.h"
 
+struct FModalAction;
+enum class EObjectInteractionType : uint8;
 class UUIButton;
+
 // This class does not need to be modified.
-UINTERFACE()
+UINTERFACE(BlueprintType)
 class UModalButtonsPanelInterface : public UInterface
 {
 	GENERATED_BODY()
@@ -23,9 +26,12 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API IModalButtonsPanelInterface
 
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
-	UFUNCTION(BlueprintNativeEvent, Category = "Modal")
-	TArray<UUIButton*> GetButtons();
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Modal")
+	void Configure(const TArray<EObjectInteractionType>& Actions, const TArray<FModalAction>& Display);
 	
-	UFUNCTION(BlueprintNativeEvent, Category = "Modal")
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Modal")
+	void ConfigureModalBtn(const EObjectInteractionType& Action, const FModalAction& Display);
+	
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Modal")
 	bool IsInteractionEnabled() const;
 };

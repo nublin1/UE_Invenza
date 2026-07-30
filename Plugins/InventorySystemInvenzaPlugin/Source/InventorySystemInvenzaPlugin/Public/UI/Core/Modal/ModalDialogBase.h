@@ -10,6 +10,7 @@
 
 class ULabelBaseText;
 struct FModalResult;
+
 /**
  * 
  */
@@ -17,10 +18,6 @@ UCLASS()
 class INVENTORYSYSTEMINVENZAPLUGIN_API UModalDialogBase : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
-	
-#pragma region Delegates
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnModalClosed, FModalResult, Result);
-#pragma endregion Delegates
 	
 public:
 	UModalDialogBase(){}
@@ -30,8 +27,10 @@ public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	// Widgets
+	UPROPERTY(BlueprintReadWrite, Category = "Modal")
+	FModalResultDelegate DynamicResultDelegate;
 	
+	// Widgets
 	UPROPERTY(BlueprintReadWrite, Category = "UI|Components", meta = (BindWidget))
 	TObjectPtr<UNamedSlot> Upper_Slot;
 	
@@ -45,17 +44,22 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Modal")
 	void ForceClose(FModalResult Result);
 	
+	UFUNCTION(BlueprintCallable)
+	void Configure(const TArray<EObjectInteractionType>& Actions, const TArray<FModalAction>& Display);
+	
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
+	UPROPERTY()
+	TMap<TObjectPtr<UUIButton>, FModalResult> ButtonToResultMap;
 	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
 	
 	UFUNCTION(BlueprintCallable)
-	void Configure();
+	void ConfigureButtons(TArray<UUIButton*> InBtns, const TArray<EObjectInteractionType>& Actions, const TArray<FModalAction>& Display);
 	
 	UFUNCTION()
 	void OnButtonClicked(UUIButton* UIButton);

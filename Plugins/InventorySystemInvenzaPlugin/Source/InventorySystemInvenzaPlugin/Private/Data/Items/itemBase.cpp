@@ -66,6 +66,35 @@ void UItemBase::InitItem(const FName ID, FItemData Data, int32 InQuantity)
 	Quantity = InQuantity;
 }
 
+bool UItemBase::CanPerformAction(EObjectInteractionType Action, const UInvenzaInventorySettingsAsset* SettingsAsset ) const
+{
+	const UInvenzaInventorySettingsAsset* Settings  = SettingsAsset;
+	
+	if (!Settings)
+		Settings = UInventoryUtility::GetInvenzaGlobalSettings(GetWorld());
+	
+	if (!Settings)
+		return false;
+	
+	switch (Action)
+	{
+	case EObjectInteractionType::UseItem:
+		return ItemRef.ItemCategory == Settings->ConsumableGameplayTag;
+
+	case EObjectInteractionType::Drop:
+		return ItemRef.bIsDroppable;
+
+	case EObjectInteractionType::Destroy:
+		return ItemRef.bIsDeletable;
+
+	case EObjectInteractionType::Split:
+		return IsStackable();
+
+	default:
+		return false;
+	}
+}
+
 void UItemBase::UseItem()
 {
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("UseItem was called!"));

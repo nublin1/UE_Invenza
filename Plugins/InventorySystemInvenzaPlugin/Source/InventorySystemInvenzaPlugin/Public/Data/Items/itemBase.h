@@ -4,9 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "Data/ItemDataStructures.h"
+#include "UI/Core/Modal/ModalTypes.h"
 #include "UObject/Object.h"
 #include "itemBase.generated.h"
 
+class UInvenzaInventorySettingsAsset;
 struct FItemData;
 
 /**
@@ -55,8 +57,11 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable)
 	virtual void InitItem(FName ID, FItemData Data, int32 InQuantity);
+	
+	UFUNCTION(BlueprintCallable)
+	virtual bool CanPerformAction(EObjectInteractionType Action, const UInvenzaInventorySettingsAsset* SettingsAsset = nullptr) const;
 
 	UFUNCTION()
 	virtual void UseItem();

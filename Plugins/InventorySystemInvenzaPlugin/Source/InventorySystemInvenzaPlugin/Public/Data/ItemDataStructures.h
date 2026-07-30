@@ -154,4 +154,11 @@ struct FItemMetaData
 	//==============================
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Metadata")
 	EStorageMethod StorageMethod;
+	
+	// Behavor
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Metadata")
+	bool bIsDroppable = true;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Metadata")
+	bool bIsDeletable = true;
 };

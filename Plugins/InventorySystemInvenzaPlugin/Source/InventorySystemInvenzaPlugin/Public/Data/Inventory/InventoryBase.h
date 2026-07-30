@@ -144,7 +144,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	virtual void MergeStackableItems();
 
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable)
 	void UseSlot(UInventorySlotData* UsedSlot);
 
 	UFUNCTION()
@@ -176,6 +176,8 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	virtual TArray<UInventorySlotData*> GetAvailableSlotForItem(UItemBase* Item, EItemOrientationType& OutOrientation);
+	
+	virtual UInventorySlotData* GetSlotByPosition(FIntPoint CellPosition);
 
 	// Setters
 	UFUNCTION()

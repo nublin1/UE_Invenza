@@ -28,12 +28,14 @@ public:
 	// FUNCTIONS
 	//====================================================================
 	
+	UFUNCTION()
+	UPrimaryLayout* GetPrimaryLayout() {return PrimaryLayout;}	
 
 protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================	
-	//
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TObjectPtr<UPrimaryLayout> PrimaryLayout;
 

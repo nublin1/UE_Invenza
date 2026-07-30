@@ -3,6 +3,7 @@
 
 #include "UI/Core/Zones/WorldDropZoneWidget.h"
 
+#include "Data/Items/itemBase.h"
 #include "DragDrop/ItemDragDropOperation.h"
 
 class UItemDragDropOperation;
@@ -23,8 +24,12 @@ bool UWorldDropZoneWidget::NativeOnDrop(const FGeometry& InGeometry, const FDrag
 	{
 		return false;
 	}
+	
+	FItemDropData DropData(ItemOperation->ItemMoveData.SourceItem,
+		ItemOperation->ItemMoveData.SourceInventory,
+		ItemOperation->ItemMoveData.SourceItem->GetQuantity());
 
-	OnItemDroppedToWorld.Broadcast(ItemOperation->ItemMoveData);
+	OnItemDroppedToWorld.Broadcast(DropData);
 
 	return true;
 }

@@ -10,6 +10,9 @@
 #include "InvenzaInventorySettingsAsset.generated.h"
 
 
+class UModalDialogBase;
+class USimpleUserObjectListEntry;
+class USimpleUserObjectList;
 class UInvenzaBaseWidget;
 class UDragContainerWidget;
 /**
@@ -49,9 +52,12 @@ public:
 	
 	const FBlockReasonData* FindBlockReason(const FGameplayTag& Tag) const;
 	
-	//
+	// Modal
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Modal|Config")
-	TArray<FObjectModalAction> InvItemsModalActionRules;
+	TMap<EObjectInteractionType, FObjectModalAction> InvItemsModalActions;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Modal|Config")
+	TMap<EObjectInteractionType, FModalAction> ModalActions;
 	
 	/*UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Modal")
 	FGameplayTag ResultModal_Yes;
@@ -61,4 +67,14 @@ public:
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Modal")
 	FGameplayTag ResultModalCancel;*/
+	
+	// Modal Widgets
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Modal|Config")
+	TSubclassOf<UModalDialogBase> DefaultModalDialogClass;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Modal|Config")
+	TSubclassOf<UInvenzaBaseWidget> DefaultModalBtnClass;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Modal|Config")
+	TMap<EModalHeaderType, TSubclassOf<UUserWidget>> ModalHeaderWidgets;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Modal|Config")
+	TMap<EModalFooterType, TSubclassOf<UUserWidget>> ModalFooterWidgets;
 };

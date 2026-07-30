@@ -19,7 +19,7 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UWorldDropZoneWidget : public UInvenzaBas
 	GENERATED_BODY()
 
 #pragma region Delegates
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnItemDroppedToWorld, FItemMoveData, ItemMoveData);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnItemDroppedToWorld, FItemDropData, DropData);
 #pragma endregion Delegates
 
 public:

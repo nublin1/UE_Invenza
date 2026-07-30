@@ -38,6 +38,7 @@
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Data/Settings/InvenzaInventorySettingsAsset.h"
+#include "Subsystems/ModalWindowManager.h"
 #include "UI/Craft/CraftDashboard.h"
 #include "UI/Craft/CraftMenuChoose.h"
 #include "Utility/InputUtility.h"
@@ -364,6 +365,35 @@ void UIInventoryManager::SetupAdditionalComponents()
 	}
 }
 
+void UIInventoryManager::ItemContextMenuRequest_Implementation(FString FromInventory, UItemBase* Item)
+{
+	auto AllowedActions = CollectAccessibleItemActions(Item);
+	if (AllowedActions.Num() == 0) return;
+
+	UModalWindowManager* ModalManager = nullptr;
+	APlayerController* PC = GetWorld()->GetFirstPlayerController();
+	if (PC)
+	{
+		 ModalManager =	PC->GetLocalPlayer()->GetSubsystem<UModalWindowManager>();
+	}
+	
+	if (!ModalManager)
+		return;
+	
+	PendingContextItem = Item;
+	PendingContextInv = ItemCollectionRef->GetInventoryByID(FromInventory);
+
+	FModalResultDelegate ResponseDelegate;
+	ResponseDelegate.BindDynamic(this, &UIInventoryManager::OnInventoryModalResponse);
+
+	ModalManager->OpenModalFlow(
+		EModalHeaderType::None,
+		EModalFooterType::Selection,
+		AllowedActions,
+		ResponseDelegate
+	);
+}
+
 void UIInventoryManager::OnItemAddedToInventory(FItemMapping& ItemSlots, UItemBase* Item)
 {
 	if (!Item || !EquipmentComponentRef) return;
@@ -558,7 +588,10 @@ void UIInventoryManager::Handle_ItemTransferRequest(FItemMoveData ItemMoveData)
 		break;
 	case EItemAddResult::IAR_NoItemAdded:
 		if (ItemMoveData.SourceInventory == nullptr)
-			ItemDropRequest(ItemMoveData);
+		{
+			FItemDropData DropData(ItemMoveData.SourceItem, ItemMoveData.SourceInventory, ItemMoveData.SourceItem->GetQuantity());
+			ItemDropRequest(DropData);
+		}
 		break;
 	case EItemAddResult::IAR_PartialAmountItemAdded:
 		if (Result.bIsUsedReferences)
@@ -655,37 +688,68 @@ void UIInventoryManager::Handle_SplitItem(UInventoryBase* TargetInventory, UItem
 	TargetInventory->UpdateWeightInfo();
 }
 
-void UIInventoryManager::ItemDropRequest_Implementation(FItemMoveData ItemToDrop)
+void UIInventoryManager::ItemDropRequest_Implementation(FItemDropData DropData)
 {
 	if (GetOwnerRole() < ROLE_Authority)
 	{
-		Server_OnItemDrop(ItemToDrop, ItemToDrop.SourceItem->GetQuantity());
+		Server_OnItemDrop(DropData);
 	}
 	else
 	{
-		HandleItemDrop(ItemToDrop, ItemToDrop.SourceItem->GetQuantity());
+		HandleItemDrop(DropData);
 	}
 }
 
-void UIInventoryManager::Server_OnItemDrop_Implementation(FItemMoveData ItemToDrop, int32 DropAmount)
+void UIInventoryManager::Server_OnItemDrop_Implementation(FItemDropData DropData)
 {
-	HandleItemDrop(ItemToDrop, DropAmount);
+	HandleItemDrop(DropData);
 }
 
-void UIInventoryManager::HandleItemDrop(FItemMoveData ItemToDrop, int32 DropAmount)
+void UIInventoryManager::HandleItemDrop(FItemDropData DropData)
 {
-	if (DropAmount <= 0)
+	if (DropData.DropAmount <= 0)
 		return;
+	
+	if (!DropData.ItemToDrop->GetItemRef().bIsDroppable)
+	{
+		return;
+	}
 	
 	if (auto Pawn = UGameplayStatics::GetPlayerController(GetWorld(), 0)->GetPawn())
 	{
 		FVector SpawnLocation = Pawn->GetActorLocation() + Pawn->GetActorForwardVector() * 50.f;
 		FRotator SpawnRotation = Pawn->GetActorRotation();
 
-		UInventoryUtility::DropItem(GetWorld(), Pawn, ItemToDrop.SourceItem->GetItemRow(),DropAmount, SpawnLocation, SpawnRotation);
+		UInventoryUtility::DropItem(GetWorld(), Pawn, DropData.ItemToDrop->GetItemRow(), DropData.DropAmount, SpawnLocation, SpawnRotation);
 
-		ItemToDrop.SourceInventory->HandleRemoveItem(ItemToDrop.SourceItem, DropAmount);
+		DropData.SourceInventory->HandleRemoveItem(DropData.ItemToDrop, DropData.DropAmount);
 	}
+}
+
+void UIInventoryManager::RequestUseSlot_Implementation( const FString& InvID, FIntPoint SlotPosition)
+{
+	Server_RequestUseSlot(InvID, SlotPosition);
+}
+
+void UIInventoryManager::Server_RequestUseSlot_Implementation(const FString& InvID, FIntPoint SlotPosition)
+{
+	if (InvID.IsEmpty())
+		return;
+	
+	UInventoryBase* Inventory = ItemCollectionRef->GetInventoryByID(InvID);
+	if (!Inventory)
+		return;
+
+	UInventorySlotData* Slot = Inventory->GetSlotByPosition(SlotPosition);
+	if (!Slot)
+		return;
+	
+	Inventory->UseSlot(Slot);
+}
+
+void UIInventoryManager::OnUseSlotInput(FString InvID, FIntPoint SlotPosition)
+{
+	RequestUseSlot(InvID, SlotPosition);
 }
 
 void UIInventoryManager::RebuildInventoryRequest_Implementation(const FString& InvID)
@@ -1090,53 +1154,78 @@ void UIInventoryManager::BindInputActions()
 			if (!SlotData) continue;
 			if (!SlotData->InventorySlotInfo.UseAction) continue;
 			
-			UInputUtility::BindAction(
+			UInputUtility::BindAction<UIInventoryManager, FString, FIntPoint>(
 				Input,
 				SlotData->InventorySlotInfo.UseAction.Get(),
 				ETriggerEvent::Started,
-				Inventory,
-				&UInventoryBase::UseSlot,
-				SlotData
+				this,
+				&UIInventoryManager::OnUseSlotInput,
+				Inventory->GetInventoryContainerID(),
+				SlotData->InventorySlotInfo.CellPosition
 			);
 		}
 	}
 }
 
-FGameplayTagContainer UIInventoryManager::CollectAccessibleItemActions(UItemBase* InItem)
+TArray<EObjectInteractionType> UIInventoryManager::CollectAccessibleItemActions(UItemBase* InItem)
 {
-	FGameplayTagContainer AllowedActions;
-    
+	TArray<EObjectInteractionType> AllowedActions;
+
 	if (!InItem)
 		return AllowedActions;
-	
-	auto Rules = UInventoryUtility::GetInvenzaGlobalSettings(GetWorld())->InvItemsModalActionRules;
-	
-	for (const auto& Rule : Rules)
+
+	const auto* Settings = UInventoryUtility::GetInvenzaGlobalSettings(GetWorld());
+
+	for (const auto& Pair : Settings->InvItemsModalActions)
 	{
-		bool bConditionMet = false;
-
-		switch (Rule.Condition)
+		if (InItem->CanPerformAction(Pair.Key, Settings))
 		{
-		case EObjectConditionType::AlwaysAvailable:
-			bConditionMet = true;
-			break;
-
-		case EObjectConditionType::IfStackable:
-			bConditionMet = InItem->IsStackable();
-			break;
-			
-		case EObjectConditionType::IfCanBeUsed:
-			auto TestTag = UInventoryUtility::GetInvenzaGlobalSettings(GetWorld())->ConsumableGameplayTag;
-			bConditionMet = InItem->GetItemRef().ItemCategory == TestTag ;
-			
-		//default: ;
-		}
-		
-		if (bConditionMet && Rule.ActionTag.IsValid())
-		{
-			AllowedActions.AddTag(Rule.ActionTag);
+			AllowedActions.Add(Pair.Key);
 		}
 	}
-	
+
 	return AllowedActions;
+}
+
+void UIInventoryManager::OnInventoryModalResponse(FModalResult Result)
+{
+	if (!PendingContextItem || !PendingContextInv)
+		return;
+
+	switch (Result.ResultInteractionType)
+	{
+	case EObjectInteractionType::UseItem:
+		{
+			RequestUseSlot(PendingContextInv->GetInventoryContainerID(), );
+			break;
+		}
+
+	case EObjectInteractionType::Drop:
+		{
+			FItemDropData Data;
+			Data.ItemToDrop = PendingContextItem;
+			Data.SourceInventory = PendingContextInv;
+			Data.DropAmount = PendingContextItem->GetQuantity();
+			ItemDropRequest(Data);
+			break;
+		}
+
+	case EObjectInteractionType::Destroy:
+		{
+			DestroyItem(PendingContextItem);
+			break;
+		}
+
+	case EObjectInteractionType::Split:
+		{
+			ItemSplitRequest(PendingContextItem);
+			break;
+		}
+	
+	default:
+		break;
+	}*/
+
+	PendingContextItem = nullptr;
+	PendingContextInv = nullptr;
 }

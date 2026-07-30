@@ -17,6 +17,8 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UUILayer : public UInvenzaBaseWidget
 
 	
 public:
+	UUILayer();
+	
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
@@ -24,7 +26,18 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UUILayer();
+	
+	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent )
+	UInvenzaBaseWidget* PushContent(const TSoftClassPtr<UUserWidget>& WidgetClass);
+	
+	UFUNCTION()
+	TArray<UInvenzaBaseWidget*> GetStack() { return Stack; }
+	
+	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent )
+	void ClearStack();
+	
+	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent )
+	void PopContent();
 
 protected:
 	//====================================================================
@@ -35,8 +48,16 @@ protected:
 	TObjectPtr<UBorder> MainBorder;
 
 	//
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
 	TObjectPtr<UInvenzaBaseWidget> PushedWidget;
+	
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
+	TArray<TObjectPtr<UInvenzaBaseWidget>> Stack;
+	
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
+	TEnumAsByte<EHorizontalAlignment> DefaultHorizontalAlignment = HAlign_Center;
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
+	TEnumAsByte<EVerticalAlignment> DefaultVerticalAlignment = VAlign_Center;
 	
 	//====================================================================
 	// FUNCTIONS

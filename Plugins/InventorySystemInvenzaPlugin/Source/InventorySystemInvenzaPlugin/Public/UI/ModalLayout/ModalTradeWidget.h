@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UI/ModalWidgets/ModalBaseWidget.h"
+#include "UI/InvenzaBaseWidget.h"
 #include "ModalTradeWidget.generated.h"
 
 class UBinaryPromptButtons;
@@ -65,15 +65,14 @@ public:
 
 protected:
 	//====================================================================
-	// PROPERTIES AND VARIABLES
 	//====================================================================
 	// Widgets
-	UPROPERTY(BlueprintReadWrite, Category = "Trade UI|Widgets", meta=(BindWidget))
-	TObjectPtr<USlider> QuantitySlider;
-	UPROPERTY(BlueprintReadWrite, Category = "Trade UI|Widgets", meta=(BindWidget))
-	TObjectPtr<UModalBaseWidget> ModalWindowBase;
-	UPROPERTY(BlueprintReadWrite, Category = "Trade UI|Widgets", meta=(BindWidgetOptional))
-	TObjectPtr<UBinaryPromptButtons> PromtButtomsWidget;
+	//UPROPERTY(BlueprintReadWrite, Category = "Trade UI|Widgets", meta=(BindWidget))
+	//TObjectPtr<USlider> QuantitySlider;
+	//UPROPERTY(BlueprintReadWrite, Category = "Trade UI|Widgets", meta=(BindWidget))
+	//TObjectPtr<UModalBaseWidget> ModalWindowBase;
+	//UPROPERTY(BlueprintReadWrite, Category = "Trade UI|Widgets", meta=(BindWidgetOptional))
+	//TObjectPtr<UBinaryPromptButtons> PromtButtomsWidget;
 	
 	//====================================================================
 	// FUNCTIONS

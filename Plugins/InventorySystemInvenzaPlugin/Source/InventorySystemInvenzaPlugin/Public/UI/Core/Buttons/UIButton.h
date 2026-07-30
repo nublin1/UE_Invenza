@@ -44,11 +44,11 @@ public:
 	FOnToggled OnToggled;
 	
 	// Widgets
-	UPROPERTY(BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> MainLabel;
-	UPROPERTY(BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
 	TObjectPtr<UImage> MainImage;
-	UPROPERTY(BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
 	TObjectPtr<UButton> MainButton;
 
 
@@ -58,6 +58,8 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "UI|Config")
 	FGameplayTag GetBtnTag() const {return BtnTag;}
+	UFUNCTION(BlueprintCallable, Category = "UI|Config")
+	void SetBtnTag(FGameplayTag NewTag) {BtnTag = NewTag;}
 	
 	UFUNCTION(BlueprintCallable, Category = "UI|State")
 	bool GetToggleStatus() const {return bIsToggleOn;}

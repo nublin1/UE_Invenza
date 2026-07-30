@@ -21,14 +21,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Helpers|Input")
 	static FText GetKeyForAction(UWorld* World, UInputAction* Action);
 	
-	template<typename UserClass, typename FuncType, typename... VarTypes>
-	static uint32 BindAction(
-		UEnhancedInputComponent* Input,
-		UInputAction* Action,
-		ETriggerEvent Trigger,
-		UserClass* Object,
-		FuncType Func,
-		VarTypes... Vars);
+	template <typename UserClass, typename... VarTypes>
+	static uint32 BindAction(UEnhancedInputComponent* Input, UInputAction* Action, ETriggerEvent Trigger,
+		UserClass* Object, void (UserClass::*Func)(VarTypes...), VarTypes... Vars);
 	
 	template<typename UserClass, typename FuncType, typename... VarTypes>
 	static uint32 RebindAction(
@@ -47,9 +42,9 @@ public:
 };
 
 
-template <typename UserClass, typename FuncType, typename ... VarTypes>
+template <typename UserClass, typename... VarTypes>
 uint32 UInputUtility::BindAction(UEnhancedInputComponent* Input, UInputAction* Action, ETriggerEvent Trigger,
-	UserClass* Object, FuncType Func, VarTypes... Vars)
+	UserClass* Object, void (UserClass::*Func)(VarTypes...), VarTypes... Vars)
 {
 	if (!Input || !Action || !Object)
 		return INDEX_NONE;

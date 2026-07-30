@@ -163,6 +163,13 @@ FReply UListInventorySlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeom
 			CachedEntry->Item->UseItem();
 	}
 	
+	if (InMouseEvent.GetEffectingButton() == CachedEntry->ParentInventoryWidget->GetUISettings().ItemMenuKey)
+	{
+		Handler->Execute_ItemContextMenuRequest(Handler.GetObject(), CachedEntry->Item);
+
+		return FReply::Handled();
+	}
+	
 	return FReply::Unhandled();
 }
 

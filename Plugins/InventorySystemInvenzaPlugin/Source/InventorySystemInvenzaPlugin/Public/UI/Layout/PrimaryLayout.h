@@ -3,8 +3,10 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "UI/InvenzaBaseWidget.h"
 #include "PrimaryLayout.generated.h"
+
 
 class UUILayer;
 /**
@@ -34,6 +36,8 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent )
+	UUserWidget* PushContentToLayer(FGameplayTag LayerName, const TSoftClassPtr<UUserWidget>& WidgetClass);
 	
 protected:
 	//====================================================================

@@ -51,6 +51,8 @@ struct FUISettings
     FKey ItemSelectKey;
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Input")
     FKey ItemUseKey;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Input")
+	FKey ItemMenuKey;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Highlight")
 	FLinearColor AllowedColor = FLinearColor::Green;

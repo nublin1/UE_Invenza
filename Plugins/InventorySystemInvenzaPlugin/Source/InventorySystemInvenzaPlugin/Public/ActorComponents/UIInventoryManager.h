@@ -9,6 +9,9 @@
 #include "Interface/Inventory/InventoryInteractionHandler.h"
 #include "UIInventoryManager.generated.h"
 
+struct FModalResult;
+enum class EObjectInteractionType : uint8;
+struct FObjectModalAction;
 class UCraftingComponent;
 class ILootContainerProvider;
 class UVendorComponent;
@@ -81,6 +84,9 @@ public:
 	virtual void SetupStartingResources();
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Initialization")
 	virtual void SetupAdditionalComponents();
+	
+	// ItemMenu
+	virtual void ItemContextMenuRequest_Implementation(FString FromInventory, UItemBase* Item) override;
 
 	// Quick Transfer
 	virtual void OnQuickTransferItem_Implementation(FItemMoveData InData) override;
@@ -110,11 +116,18 @@ public:
 	void Handle_SplitItem(UInventoryBase* TargetInventory, UItemBase* ItemToSplit, int32 SplitAmount);
 
 	// Drop
-	virtual void ItemDropRequest_Implementation(FItemMoveData ItemToDrop) override;
+	virtual void ItemDropRequest_Implementation(FItemDropData DropData) override;
 	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Inventory|Transfer")
-	void Server_OnItemDrop(FItemMoveData ItemToDrop, int32 DropAmount);
+	void Server_OnItemDrop(FItemDropData DropData);
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Transfer")
-	void HandleItemDrop(FItemMoveData ItemToDrop, int32 DropAmount = 0 );
+	void HandleItemDrop(FItemDropData DropData );
+	
+	// Use
+	virtual void RequestUseSlot_Implementation(const FString& InvID, FIntPoint SlotPosition) override;
+	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Inventory|Transfer")
+	void Server_RequestUseSlot(const FString& InvID, FIntPoint SlotPosition);
+	UFUNCTION()
+	void OnUseSlotInput(FString InvID, FIntPoint SlotPosition);
 
 	//
 	virtual void RebuildInventoryRequest_Implementation(const FString& InvID) override;
@@ -174,6 +187,12 @@ protected:
 	TObjectPtr<UItemCollection> ItemCollectionRef;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TObjectPtr<UInteractionComponent> InteractionComponent;
+	
+	//
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
+	TObjectPtr<UItemBase> PendingContextItem = nullptr;
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
+	TObjectPtr<UInventoryBase> PendingContextInv = nullptr;
 	
 	//====================================================================
 	// FUNCTIONS
@@ -247,5 +266,8 @@ protected:
 	void BindInputActions();
 
 	UFUNCTION(BlueprintCallable)
-	virtual FGameplayTagContainer CollectAccessibleItemActions(UItemBase* InItem);
+	virtual TArray<EObjectInteractionType> CollectAccessibleItemActions(UItemBase* InItem);
+	
+	UFUNCTION(BlueprintCallable)
+	void OnInventoryModalResponse(FModalResult Result);
 };

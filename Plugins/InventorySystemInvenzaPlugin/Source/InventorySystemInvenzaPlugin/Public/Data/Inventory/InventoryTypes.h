@@ -147,6 +147,32 @@ struct FSlotReservationData
 };
 
 USTRUCT(BlueprintType)
+struct FItemDropData
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(BlueprintReadWrite)
+	TObjectPtr<UItemBase> ItemToDrop;
+	UPROPERTY(BlueprintReadWrite)
+	TObjectPtr<UInventoryBase> SourceInventory;
+	UPROPERTY(BlueprintReadWrite)
+	int32 DropAmount = 0;
+	
+	FItemDropData (): ItemToDrop(nullptr),
+					  SourceInventory(nullptr),
+					  DropAmount(0)
+	{
+	}
+	
+	FItemDropData(UItemBase* InItem, UInventoryBase* InInv, int32 InAmount)
+	{
+		ItemToDrop = InItem;
+		SourceInventory = InInv;
+		DropAmount = InAmount;
+	}
+};
+
+USTRUCT(BlueprintType)
 struct FItemMoveData 
 {
 	GENERATED_BODY()
@@ -190,6 +216,9 @@ USTRUCT(BlueprintType)
 struct FInventorySlotInfo
 {
 	GENERATED_BODY()
+	
+	UPROPERTY()
+	FGuid SlotGuid = FGuid::NewGuid();
 
 	UPROPERTY()
 	FName SlotName = NAME_None;

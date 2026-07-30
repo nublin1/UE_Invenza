@@ -141,8 +141,8 @@ public:
 	TArray<UInventorySlotData*> CollectOccupiedSlots();
 	UFUNCTION()
 	TArray<UInventorySlotData*> GetIgnoreSlotsForItem(UItemBase* Item);
-	UFUNCTION()
-	UInventorySlotData* GetSlotByPosition(FIntPoint SlotPosition);
+
+	virtual UInventorySlotData* GetSlotByPosition(FIntPoint SlotPosition) override;
 	
 protected:
 	UFUNCTION()

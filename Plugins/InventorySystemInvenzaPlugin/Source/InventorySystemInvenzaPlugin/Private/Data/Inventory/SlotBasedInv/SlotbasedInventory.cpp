@@ -263,8 +263,6 @@ void USlotbasedInventory::RequestSplitStack(UItemBase* ItemToSplit, int32 SplitA
 	
 }
 
-
-
 TArray<FItemIDEntry> USlotbasedInventory::CollectItemsAggregated() const
 {
 	TArray<FItemIDEntry> Result;

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Interface/UIInterface.h"
 #include "Interface/UI/ModalButtonsPanelInterface.h"
 #include "UI/InvenzaBaseWidget.h"
 #include "ModalButtonsPanelBase.generated.h"
@@ -11,7 +12,7 @@
  * 
  */
 UCLASS()
-class INVENTORYSYSTEMINVENZAPLUGIN_API UModalButtonsPanelBase : public UInvenzaBaseWidget, public IModalButtonsPanelInterface
+class INVENTORYSYSTEMINVENZAPLUGIN_API UModalButtonsPanelBase : public UInvenzaBaseWidget, public IUIInterface
 {
 	GENERATED_BODY()
 	
@@ -28,7 +29,7 @@ public:
 	// FUNCTIONS
 	//====================================================================
 
-	virtual TArray<UUIButton*> GetButtons_Implementation() override;
+	TArray<UUIButton*> GetButtons_Implementation();
 	
 protected:
 	//====================================================================

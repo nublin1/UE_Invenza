@@ -30,6 +30,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Inventory")
 	void OnQuickTransferAllSameItems(FItemMoveData ItemMoveData);
+	
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Inventory")
+	void ItemContextMenuRequest(FString FromInventory, UItemBase* Item);
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Inventory")
 	void ItemTransferRequest(FItemMoveData ItemMoveData);
@@ -38,7 +41,10 @@ public:
 	void ItemSplitRequest(UInventoryBase* TargetInventory, UItemBase* ItemToSplit, int32 SplitAmount);
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Inventory")
-	void ItemDropRequest(FItemMoveData ItemToDrop);
+	void ItemDropRequest(FItemDropData DropData);
+
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Inventory")
+	void RequestUseSlot(const FString& InvID, FIntPoint SlotPosition);
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Inventory")
 	void RebuildInventoryRequest(const FString& InvID);

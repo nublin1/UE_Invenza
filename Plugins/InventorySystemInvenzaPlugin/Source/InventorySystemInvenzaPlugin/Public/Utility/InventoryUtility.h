@@ -33,8 +33,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
 	static FVector2D CalculateItemVisualSize(UItemBase* Item, EItemOrientationType Orientation, FVector2D SlotSize, FMargin SlotSpacing, bool bIgnoreSize);
 
-	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
-	static const UInvenzaInventorySettingsAsset* GetInvenzaGlobalSettings(const UObject* WorldContext);
+	UFUNCTION(BlueprintPure, meta = (WorldContext = "WorldContextObject"),Category = "InventorySystemInvenza")
+	static const UInvenzaInventorySettingsAsset* GetInvenzaGlobalSettings(	const UObject* WorldContextObject);
 
 	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
 	static TScriptInterface<IInventoryInteractionHandler> FindInventoryHandler(AActor* Actor);
