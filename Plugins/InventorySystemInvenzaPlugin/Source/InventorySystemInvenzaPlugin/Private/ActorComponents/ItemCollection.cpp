@@ -544,6 +544,19 @@ void UItemCollection::RemoveItemFromAllContainers(UItemBase* Item)
 	}
 }
 
+TArray<FGuid> UItemCollection::GetOccupatedSlotsIDByContainerName(FString InventoryID, UItemBase* Item)
+{
+	TArray<FGuid> ResultArray;
+	
+	auto ItemMapping = FindItemMappingByContainerName(Item, InventoryID);
+	for (auto OccSlot : ItemMapping->OccupiedSlots)
+	{
+		ResultArray.Add(OccSlot->InventorySlotInfo.SlotGuid);
+	}
+	
+	return ResultArray;
+}
+
 FItemMapping* UItemCollection::FindItemMappingByContainerName(UItemBase* Item, FString InventoryID)
 {
 	FInventoryEntry* DummyEntry = nullptr;

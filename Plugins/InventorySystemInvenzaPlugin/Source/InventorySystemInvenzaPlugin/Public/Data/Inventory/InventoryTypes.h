@@ -46,7 +46,6 @@ enum class EHighlightState : uint8
 	Partial		UMETA(DisplayName = "Partial")
 };
 
-
 UENUM(BlueprintType)
 enum class EItemAddResult : uint8
 {

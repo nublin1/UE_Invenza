@@ -31,6 +31,9 @@ public:
 	TArray<TObjectPtr<UInventoryListEntry>> InvSlotsArray;
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Data")
 	TArray<TObjectPtr<UInventoryListEntry>> FilteredInvSlotsArray;
+	
+	UPROPERTY(BlueprintReadOnly, Replicated, Category = "Inventory|Data")
+	TArray<TObjectPtr<UInventorySlotData>> InventorySlots;
 
 	//====================================================================
 	// FUNCTIONS

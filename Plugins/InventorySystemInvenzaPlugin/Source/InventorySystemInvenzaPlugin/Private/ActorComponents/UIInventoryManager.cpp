@@ -365,7 +365,7 @@ void UIInventoryManager::SetupAdditionalComponents()
 	}
 }
 
-void UIInventoryManager::ItemContextMenuRequest_Implementation(FString FromInventory, UItemBase* Item)
+void UIInventoryManager::ItemContextMenuRequest_Implementation(const FString& FromInventory, FGuid SlotGuid, UItemBase* Item)
 {
 	auto AllowedActions = CollectAccessibleItemActions(Item);
 	if (AllowedActions.Num() == 0) return;
@@ -382,6 +382,7 @@ void UIInventoryManager::ItemContextMenuRequest_Implementation(FString FromInven
 	
 	PendingContextItem = Item;
 	PendingContextInv = ItemCollectionRef->GetInventoryByID(FromInventory);
+	PendingContextSlotGuid = SlotGuid;
 
 	FModalResultDelegate ResponseDelegate;
 	ResponseDelegate.BindDynamic(this, &UIInventoryManager::OnInventoryModalResponse);
@@ -726,12 +727,12 @@ void UIInventoryManager::HandleItemDrop(FItemDropData DropData)
 	}
 }
 
-void UIInventoryManager::RequestUseSlot_Implementation( const FString& InvID, FIntPoint SlotPosition)
+void UIInventoryManager::RequestUseSlot_Implementation( const FString& InvID, FGuid SlotID)
 {
-	Server_RequestUseSlot(InvID, SlotPosition);
+	Server_RequestUseSlot(InvID, SlotID);
 }
 
-void UIInventoryManager::Server_RequestUseSlot_Implementation(const FString& InvID, FIntPoint SlotPosition)
+void UIInventoryManager::Server_RequestUseSlot_Implementation(const FString& InvID, FGuid SlotID)
 {
 	if (InvID.IsEmpty())
 		return;
@@ -740,16 +741,16 @@ void UIInventoryManager::Server_RequestUseSlot_Implementation(const FString& Inv
 	if (!Inventory)
 		return;
 
-	UInventorySlotData* Slot = Inventory->GetSlotByPosition(SlotPosition);
+	UInventorySlotData* Slot = Inventory->GetSlotByGuid(SlotID);
 	if (!Slot)
 		return;
 	
 	Inventory->UseSlot(Slot);
 }
 
-void UIInventoryManager::OnUseSlotInput(FString InvID, FIntPoint SlotPosition)
+void UIInventoryManager::OnUseSlotInput(FString InvID, FGuid SlotID)
 {
-	RequestUseSlot(InvID, SlotPosition);
+	RequestUseSlot(InvID, SlotID);
 }
 
 void UIInventoryManager::RebuildInventoryRequest_Implementation(const FString& InvID)
@@ -1154,14 +1155,14 @@ void UIInventoryManager::BindInputActions()
 			if (!SlotData) continue;
 			if (!SlotData->InventorySlotInfo.UseAction) continue;
 			
-			UInputUtility::BindAction<UIInventoryManager, FString, FIntPoint>(
+			UInputUtility::BindAction<UIInventoryManager, FString, FGuid>(
 				Input,
 				SlotData->InventorySlotInfo.UseAction.Get(),
 				ETriggerEvent::Started,
 				this,
 				&UIInventoryManager::OnUseSlotInput,
 				Inventory->GetInventoryContainerID(),
-				SlotData->InventorySlotInfo.CellPosition
+				SlotData->InventorySlotInfo.SlotGuid
 			);
 		}
 	}
@@ -1196,7 +1197,7 @@ void UIInventoryManager::OnInventoryModalResponse(FModalResult Result)
 	{
 	case EObjectInteractionType::UseItem:
 		{
-			RequestUseSlot(PendingContextInv->GetInventoryContainerID(), );
+			Execute_RequestUseSlot(this, PendingContextInv->GetInventoryContainerID(), PendingContextSlotGuid);
 			break;
 		}
 
@@ -1212,20 +1213,21 @@ void UIInventoryManager::OnInventoryModalResponse(FModalResult Result)
 
 	case EObjectInteractionType::Destroy:
 		{
-			DestroyItem(PendingContextItem);
+			//DestroyItem(PendingContextItem);
 			break;
 		}
 
 	case EObjectInteractionType::Split:
 		{
-			ItemSplitRequest(PendingContextItem);
+			//ItemSplitRequest(PendingContextItem);
 			break;
 		}
 	
 	default:
 		break;
-	}*/
+	}
 
 	PendingContextItem = nullptr;
 	PendingContextInv = nullptr;
+	PendingContextSlotGuid.Invalidate();
 }

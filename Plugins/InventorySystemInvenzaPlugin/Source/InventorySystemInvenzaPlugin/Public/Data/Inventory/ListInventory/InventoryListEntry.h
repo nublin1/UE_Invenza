@@ -21,6 +21,9 @@ public:
 	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
+	UPROPERTY(BlueprintReadWrite, Category="Inventory")
+	FGuid SlotGuid;
+	
 	UPROPERTY(BlueprintReadWrite, Replicated, Category="Inventory")
 	TObjectPtr<UItemBase> Item = nullptr;
 

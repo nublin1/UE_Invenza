@@ -144,6 +144,8 @@ public:
 
 	virtual UInventorySlotData* GetSlotByPosition(FIntPoint SlotPosition) override;
 	
+	virtual UInventorySlotData* GetSlotByGuid(FGuid InGuid) override;
+	
 protected:
 	UFUNCTION()
 	TArray<UItemBase*> GetAllSameItems(UItemBase* ReferenceItem);

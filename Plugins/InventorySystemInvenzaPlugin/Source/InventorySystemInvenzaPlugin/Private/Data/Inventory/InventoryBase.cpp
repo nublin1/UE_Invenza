@@ -202,6 +202,11 @@ UInventorySlotData* UInventoryBase::GetSlotByPosition(FIntPoint CellPosition)
 	return nullptr;
 }
 
+UInventorySlotData* UInventoryBase::GetSlotByGuid(FGuid InGuid)
+{
+	return nullptr;
+}
+
 void UInventoryBase::SetTradeContext(FTradeContext InTradeContext)
 {
 	this->TradeContext = InTradeContext;

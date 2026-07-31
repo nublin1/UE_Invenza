@@ -34,6 +34,12 @@ void UListInventorySlotWidget::NativeConstruct()
 		auto InvRef = CachedEntry->ParentInventoryWidget->GetInventoryRef();
 		InvRef->OnTradeContextUpdated.AddDynamic(this, &UListInventorySlotWidget::UpdatePriceText);
 	}
+	
+	if (!SlotData)
+	{
+		UInventorySlotData* NewSlotData = NewObject<UInventorySlotData>();
+		SlotData = NewSlotData;
+	}
 }
 
 void UListInventorySlotWidget::UpdateVisualWithItemInfo(UItemBase* Item)
@@ -165,7 +171,10 @@ FReply UListInventorySlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeom
 	
 	if (InMouseEvent.GetEffectingButton() == CachedEntry->ParentInventoryWidget->GetUISettings().ItemMenuKey)
 	{
-		Handler->Execute_ItemContextMenuRequest(Handler.GetObject(), CachedEntry->Item);
+		Handler->Execute_ItemContextMenuRequest(Handler.GetObject(), 
+			CachedEntry->ParentInventoryWidget->GetInventoryRef()->GetInventoryContainerID(),
+			CachedEntry->SlotGuid,
+			CachedEntry->Item);
 
 		return FReply::Handled();
 	}

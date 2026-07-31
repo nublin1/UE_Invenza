@@ -116,6 +116,7 @@ public:
 	TArray<UItemBase*> GetAllItemsByCategory(FGameplayTag ItemCategory);
 	UItemBase* GetItemFromSlot(UInventorySlotData* TargetSlotData, const FString& InventoryID);
 	
+	
 	UFUNCTION(BlueprintCallable, Category = "Item Collection|Item Management")
 	FItemMapping AddItem(UItemBase* NewItem, const FItemMapping& ItemMapping);
 	UFUNCTION(BlueprintCallable, Category="Item Collection|Item Management")
@@ -123,6 +124,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Item Collection|Item Management")
 	void RemoveItemFromAllContainers(UItemBase* Item);
 	
+	TArray<FGuid> GetOccupatedSlotsIDByContainerName(FString InventoryID, UItemBase* Item);
 	FItemMapping* FindItemMappingByContainerName(UItemBase* Item, FString InventoryID);
 	TArray<FItemMapping> FindAllMappingsForItem(UItemBase* Item);
 	

@@ -86,7 +86,7 @@ public:
 	virtual void SetupAdditionalComponents();
 	
 	// ItemMenu
-	virtual void ItemContextMenuRequest_Implementation(FString FromInventory, UItemBase* Item) override;
+	virtual void ItemContextMenuRequest_Implementation(const FString& FromInventory, FGuid SlotGuid, UItemBase* Item) override;
 
 	// Quick Transfer
 	virtual void OnQuickTransferItem_Implementation(FItemMoveData InData) override;
@@ -123,11 +123,11 @@ public:
 	void HandleItemDrop(FItemDropData DropData );
 	
 	// Use
-	virtual void RequestUseSlot_Implementation(const FString& InvID, FIntPoint SlotPosition) override;
+	virtual void RequestUseSlot_Implementation(const FString& InvID, FGuid SlotID) override;
 	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Inventory|Transfer")
-	void Server_RequestUseSlot(const FString& InvID, FIntPoint SlotPosition);
+	void Server_RequestUseSlot(const FString& InvID, FGuid SlotID);
 	UFUNCTION()
-	void OnUseSlotInput(FString InvID, FIntPoint SlotPosition);
+	void OnUseSlotInput(FString InvID, FGuid SlotID);
 
 	//
 	virtual void RebuildInventoryRequest_Implementation(const FString& InvID) override;
@@ -193,6 +193,8 @@ protected:
 	TObjectPtr<UItemBase> PendingContextItem = nullptr;
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
 	TObjectPtr<UInventoryBase> PendingContextInv = nullptr;
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
+	FGuid PendingContextSlotGuid;
 	
 	//====================================================================
 	// FUNCTIONS

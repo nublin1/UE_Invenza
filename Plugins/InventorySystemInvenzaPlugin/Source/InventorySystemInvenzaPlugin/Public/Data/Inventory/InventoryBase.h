@@ -177,7 +177,11 @@ public:
 	UFUNCTION(BlueprintCallable)
 	virtual TArray<UInventorySlotData*> GetAvailableSlotForItem(UItemBase* Item, EItemOrientationType& OutOrientation);
 	
+	UFUNCTION()
 	virtual UInventorySlotData* GetSlotByPosition(FIntPoint CellPosition);
+	
+	UFUNCTION()
+	virtual UInventorySlotData* GetSlotByGuid(FGuid InGuid);
 
 	// Setters
 	UFUNCTION()

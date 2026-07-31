@@ -75,6 +75,13 @@ void UListInventory::SortItemsInContainerByName()
 	{
 		UInventoryListEntry* EntryObject = NewObject<UInventoryListEntry>(this, EntryClass);
 		EntryObject->Item = Item;
+		
+		auto IDs = ItemCollectionLinked->GetOccupatedSlotsIDByContainerName(InventoryContainerID, Item);
+		if (!IDs.IsEmpty())
+		{
+			EntryObject->SlotGuid = IDs[0];
+		}
+		
 		InvSlotsArray.Add(EntryObject);
 	}
 	
@@ -136,9 +143,8 @@ void UListInventory::HandleRemoveItemsByID(FName ItemID, int32 RequestedAmount)
 
 	int32 RemainingToRemove = RequestedAmount;
 	int32 RemovedTotal = 0;
-	TArray<UItemBase*> FoundItems =	ItemCollectionLinked->GetAllSameItemsInContainerByID(InventoryContainerID, ItemID);
-	if (FoundItems.IsEmpty())
-		return;
+	TArray<UItemBase*> FoundItems = ItemCollectionLinked->GetAllSameItemsInContainerByID(InventoryContainerID, ItemID);
+	if (FoundItems.IsEmpty()) return;
 
 	for (UItemBase* Item : FoundItems)
 	{
@@ -146,9 +152,24 @@ void UListInventory::HandleRemoveItemsByID(FName ItemID, int32 RequestedAmount)
 			break;
 
 		int32 Removed = TryRemoveFromStackItem(Item, RemainingToRemove);
-
 		RemainingToRemove -= Removed;
 		RemovedTotal += Removed;
+
+		if (Item->GetQuantity() <= 0)
+		{
+			auto IDs = ItemCollectionLinked->GetOccupatedSlotsIDByContainerName(InventoryContainerID, Item);
+			if (!IDs.IsEmpty())
+			{
+				const FGuid& SlotID = IDs[0];
+
+				InventorySlots.RemoveAll(
+					[&SlotID](const UInventorySlotData* Slot)
+					{
+						return Slot &&
+							   Slot->InventorySlotInfo.SlotGuid == SlotID;
+					});
+			}
+		}
 	}
 }
 
@@ -171,6 +192,22 @@ void UListInventory::HandleRemoveItemsBySample(UItemBase* ItemSample, int32 Requ
 
 		RemainingToRemove -= Removed;
 		RemovedTotal += Removed;
+		
+		if (Item->GetQuantity() <= 0)
+		{
+			auto IDs = ItemCollectionLinked->GetOccupatedSlotsIDByContainerName(InventoryContainerID, Item);
+			if (!IDs.IsEmpty())
+			{
+				const FGuid& SlotID = IDs[0];
+
+				InventorySlots.RemoveAll(
+					[&SlotID](const UInventorySlotData* Slot)
+					{
+						return Slot &&
+							   Slot->InventorySlotInfo.SlotGuid == SlotID;
+					});
+			}
+		}
 	}
 }
 
@@ -180,8 +217,23 @@ void UListInventory::HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity)
 
 	auto RemovedActual = TryRemoveFromStackItem(Item, RemoveQuantity);
 
+	if (Item->GetQuantity() <= 0)
+	{
+		auto IDs = ItemCollectionLinked->GetOccupatedSlotsIDByContainerName(InventoryContainerID, Item);
+		if (!IDs.IsEmpty())
+		{
+			const FGuid& SlotID = IDs[0];
+
+			InventorySlots.RemoveAll(
+				[&SlotID](const UInventorySlotData* Slot)
+				{
+					return Slot &&
+						   Slot->InventorySlotInfo.SlotGuid == SlotID;
+				});
+		}
+	}
+
 	UpdateInvSlotsArray();
-	
 }
 
 FItemAddResult UListInventory::HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck)
@@ -261,16 +313,20 @@ FItemAddResult UListInventory::HandleAddReferenceItem(FItemMoveData& ItemMoveDat
 			));
 	}
 
-	UListInventorySlotWidget* ListInventorySlot = NewObject<UListInventorySlotWidget>();
+	UInventorySlotData* NewSlot = UInventorySlotData::Create(this);
+
 	FItemMapping Slots;
 	Slots.InventoryID = InventoryContainerID;
-	Slots.OccupiedSlots.Add(ListInventorySlot->GetSlotData());
+	Slots.OccupiedSlots.Add(NewSlot);
 
 	if (!bOnlyCheck)
+	{
 		AddNewItem(ItemMoveData, Slots, ItemMoveData.SourceItem->GetQuantity());
+		InventorySlots.Add(NewSlot);
+	}
 
 	TMap<UInventorySlotData*, FItemPlacementData> AffectedSlots;
-	//AffectedSlots.Add(ItemMoveData.TargetSlot->GetSlotData(), {1, ItemMoveData.SavedOrientation});
+	AffectedSlots.Add(NewSlot, FItemPlacementData());
 
 	return FItemAddResult::AddedAll(1, true, FText::Format(
 		                                FText::FromString("Successfully added {0} to inventory as a reference"),
@@ -288,19 +344,19 @@ FItemAddResult UListInventory::HandleNonStackableItems(FItemMoveData ItemMoveDat
 				ItemMoveData.SourceItem->GetItemRef().ItemTextData.DisplayName));
 	}
 	
+	UInventorySlotData* NewSlot = UInventorySlotData::Create(this);
+
 	if (!bOnlyCheck)
 	{
-		UListInventorySlotWidget* ListInventorySlot = NewObject<UListInventorySlotWidget>();
 		FItemMapping Slots;
 		Slots.InventoryID = InventoryContainerID;
-		Slots.OccupiedSlots.Add(ListInventorySlot->GetSlotData());
+		Slots.OccupiedSlots.Add(NewSlot);
 		AddNewItem(ItemMoveData, Slots, 1);
+		InventorySlots.Add(NewSlot);
 	}
 
 	TMap<UInventorySlotData*, FItemPlacementData> AffectedSlots;
-	/*if (ItemMoveData.TargetSlot)
-		AffectedSlots.Add(ItemMoveData.TargetSlot->GetSlotData(), {1, ItemMoveData.SavedOrientation});
-		*/
+	AffectedSlots.Add(NewSlot, FItemPlacementData());
 
 	return FItemAddResult::AddedAll(1, false, FText::Format(
 										FText::FromString("Successfully added {0} of {1} to inventory"),
@@ -361,10 +417,10 @@ int32 UListInventory::HandleStackableItems(FItemMoveData& ItemMoveData, int32 Re
 	if (bOnlyCheck)
 		return RequestedAddAmount;
 
-	UListInventorySlotWidget* ListInventorySlot = NewObject<UListInventorySlotWidget>();	
+	UInventorySlotData* NewSlot = UInventorySlotData::Create(this);
 	FItemMapping Slots;
 	Slots.InventoryID = InventoryContainerID;
-	Slots.OccupiedSlots.Add(ListInventorySlot->GetSlotData());
+	Slots.OccupiedSlots.Add(NewSlot);
 			
 	AddNewItem(ItemMoveData, Slots, AmountToDistribute);
 	return ActualAmountToAdd + TotalAddedAmount;
@@ -413,6 +469,12 @@ void UListInventory::UpdateInvSlotsArray()
 	{
 		UInventoryListEntry* EntryObject = NewObject<UInventoryListEntry>(this, EntryClass);
 		EntryObject->Item = Item;
+		
+		auto IDs = ItemCollectionLinked->GetOccupatedSlotsIDByContainerName(InventoryContainerID, Item);
+		if (!IDs.IsEmpty())
+		{
+			EntryObject->SlotGuid = IDs[0];
+		}		
 		InvSlotsArray.Add(EntryObject);
 	}
 	

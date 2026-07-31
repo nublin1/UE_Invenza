@@ -1052,6 +1052,17 @@ UInventorySlotData* USlotbasedInventory::GetSlotByPosition(FIntPoint SlotPositio
 	return nullptr;
 }
 
+UInventorySlotData* USlotbasedInventory::GetSlotByGuid(FGuid InGuid)
+{
+	for (auto& Elem : InventorySlotData)
+	{
+		if (Elem->InventorySlotInfo.SlotGuid == InGuid)
+			return Elem;
+	}
+
+	return nullptr;
+}
+
 TArray<UItemBase*> USlotbasedInventory::GetAllSameItems(UItemBase* ReferenceItem)
 {
 	TArray<UItemBase*> SameItems;

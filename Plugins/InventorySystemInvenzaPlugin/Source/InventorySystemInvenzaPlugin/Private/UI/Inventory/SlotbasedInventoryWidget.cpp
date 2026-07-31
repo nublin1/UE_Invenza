@@ -778,7 +778,7 @@ FReply USlotbasedInventoryWidget::NativeOnMouseButtonDown(const FGeometry& InGeo
 	
 	if (InMouseEvent.GetEffectingButton() == UISettings.ItemMenuKey)
 	{
-		Handler->Execute_ItemContextMenuRequest(Handler.GetObject(),InvID, ItemInSlot);
+		Handler->Execute_ItemContextMenuRequest(Handler.GetObject(),InvID, SlotUnderMouse->GetSlotData()->InventorySlotInfo.SlotGuid, ItemInSlot);
 
 		return FReply::Handled();
 	}
