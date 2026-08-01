@@ -54,7 +54,7 @@ public:
 	
 	// Modal
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Modal|Config")
-	TMap<EObjectInteractionType, FObjectModalAction> InvItemsModalActions;
+	TMap<EObjectInteractionType, FModalActionConfig> InvItemsModalActions;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Modal|Config")
 	TMap<EObjectInteractionType, FModalAction> ModalActions;

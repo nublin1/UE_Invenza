@@ -43,6 +43,8 @@ public:
 	virtual void SortItemsInContainerByName() override;
 
 	virtual float GetInventoryOccupancyPercent() override;
+	
+	virtual UInventorySlotData* GetSlotByGuid(FGuid InGuid) override;
 
 	UFUNCTION(BlueprintCallable)
 	virtual void RequestSplitStack(UItemBase* ItemToSplit, int32 SplitAmount) override;

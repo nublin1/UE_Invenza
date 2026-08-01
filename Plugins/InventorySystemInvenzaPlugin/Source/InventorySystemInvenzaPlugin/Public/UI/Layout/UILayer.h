@@ -28,6 +28,15 @@ public:
 	//====================================================================
 	
 	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent )
+	void ShowTop();
+	
+	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent )
+	void CollapseTop();
+	
+	UFUNCTION(BlueprintCallable, BlueprintPure, BlueprintImplementableEvent )
+	UUserWidget* Peek();
+	
+	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent )
 	UInvenzaBaseWidget* PushContent(const TSoftClassPtr<UUserWidget>& WidgetClass);
 	
 	UFUNCTION()

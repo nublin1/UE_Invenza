@@ -45,7 +45,12 @@ public:
 	void ForceClose(FModalResult Result);
 	
 	UFUNCTION(BlueprintCallable)
-	void Configure(const TArray<EObjectInteractionType>& Actions, const TArray<FModalAction>& Display);
+	void Configure(const FText& HeaderText, const TArray<EObjectInteractionType>& Actions, const TArray<FModalAction>& Display);
+	
+	UFUNCTION(BlueprintCallable)
+	void ConfigureHeader(const FText& HeaderText);
+	UFUNCTION(BlueprintCallable)
+	void ConfigureFooter(const TArray<EObjectInteractionType>& Actions, const TArray<FModalAction>& Display);
 	
 protected:
 	//====================================================================

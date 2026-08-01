@@ -6,7 +6,7 @@
 #include "Components/NamedSlot.h"
 #include "Components/TextBlock.h"
 #include "Interface/UIInterface.h"
-#include "Interface/UI/ModalButtonsPanelInterface.h"
+#include "Interface/UI/ModalInterface.h"
 #include "UI/Core/Buttons/UIButton.h"
 
 void UModalDialogBase::NativeConstruct()
@@ -19,7 +19,19 @@ void UModalDialogBase::ForceClose(FModalResult Result)
 	DynamicResultDelegate.Execute(Result);
 }
 
-void UModalDialogBase::Configure(const TArray<EObjectInteractionType>& Actions, const TArray<FModalAction>& Display)
+void UModalDialogBase::Configure(const FText& HeaderText, const TArray<EObjectInteractionType>& Actions, const TArray<FModalAction>& Display)
+{
+	ConfigureHeader(HeaderText);
+	ConfigureFooter(Actions, Display);
+}
+
+void UModalDialogBase::ConfigureHeader(const FText& HeaderText)
+{
+	
+}
+
+void UModalDialogBase::ConfigureFooter(const TArray<EObjectInteractionType>& Actions,
+                                       const TArray<FModalAction>& Display)
 {
 	ButtonToResultMap.Empty();
 
@@ -31,9 +43,9 @@ void UModalDialogBase::Configure(const TArray<EObjectInteractionType>& Actions, 
 	}
 
 	TArray<UUIButton*> Buttons;
-	if (Content->GetClass()->ImplementsInterface(UModalButtonsPanelInterface::StaticClass()))
+	if (Content->GetClass()->ImplementsInterface(UModalInterface::StaticClass()))
 	{
-		IModalButtonsPanelInterface::Execute_Configure(Content, Actions, Display);
+		IModalInterface::Execute_ConfigureButtons(Content, Actions, Display);
 		Buttons = IUIInterface::Execute_GetButtons(Content);
 	}
 	else
@@ -50,7 +62,7 @@ void UModalDialogBase::Configure(const TArray<EObjectInteractionType>& Actions, 
 }
 
 void UModalDialogBase::ConfigureButtons(TArray<UUIButton*> InBtns, const TArray<EObjectInteractionType>& Actions,
-	const TArray<FModalAction>& Display)
+                                        const TArray<FModalAction>& Display)
 {
 	for (auto Btn : InBtns)
 	{

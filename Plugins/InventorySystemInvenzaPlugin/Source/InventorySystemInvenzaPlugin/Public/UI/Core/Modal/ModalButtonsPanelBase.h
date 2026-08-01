@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Interface/UIInterface.h"
-#include "Interface/UI/ModalButtonsPanelInterface.h"
+#include "Interface/UI/ModalInterface.h"
 #include "UI/InvenzaBaseWidget.h"
 #include "ModalButtonsPanelBase.generated.h"
 

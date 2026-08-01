@@ -6,6 +6,7 @@
 #include "Components/NamedSlot.h"
 #include "Data/Settings/InvenzaInventorySettingsAsset.h"
 #include "HUD/GameHUD_Inz.h"
+#include "Interface/HUD/HUDProvider.h"
 #include "UI/Layout/PrimaryLayout.h"
 #include "UI/Layout/UILayer.h"
 #include "Utility/InventoryUtility.h"
@@ -37,26 +38,32 @@ void UModalWindowManager::InitializeUI()
 		return;
 	}
 
-	PrimaryLayoutRef = Cast<AGameHUD_Inz>(PC->GetHUD())->GetPrimaryLayout();
+	AHUD* HUD = PC->GetHUD();
+	if (!HUD || !HUD->Implements<UHUDProvider>())
+	{
+		return;
+	}
+
+	PrimaryLayoutRef = IHUDProvider::Execute_GetPrimaryLayout(HUD);
 	if (!PrimaryLayoutRef)
 	{
 		return;
 	}
-	
+
 	ModalLayoutRef = Cast<UModalLayout>(PrimaryLayoutRef->ModalLayer);
 }
 
-void UModalWindowManager::OpenModalFlow(EModalHeaderType HeaderType, EModalFooterType FooterType,
-                                        const TArray<EObjectInteractionType>& Actions, FModalResultDelegate OnResult)
+void UModalWindowManager::OpenModalFlow(EModalHeaderType HeaderType, const FText& HeaderText, EModalFooterType FooterType,
+                                        const TMap<EObjectInteractionType, FModalActionConfig>& Actions, FModalResultDelegate OnResult)
 {
 	FinalDelegate = OnResult;
 	PendingOriginalResult = FModalResult();
 
-	ShowModalStep(HeaderType, FooterType, Actions);
+	ShowModalStep(HeaderType, HeaderText, FooterType, Actions);
 }
 
-void UModalWindowManager::ShowModalStep(EModalHeaderType HeaderType, EModalFooterType FooterType,
-	const TArray<EObjectInteractionType>& Actions)
+void UModalWindowManager::ShowModalStep(EModalHeaderType HeaderType,const FText& HeaderText, EModalFooterType FooterType,
+	 const TMap<EObjectInteractionType, FModalActionConfig>& Actions)
 {
 	UWorld* World = GetWorld();
 	if (!World || !InvenzaInventorySettingsAsset) return;
@@ -65,6 +72,13 @@ void UModalWindowManager::ShowModalStep(EModalHeaderType HeaderType, EModalFoote
 	{
 		return;
 	}
+	
+	// Если в стеке уже есть окно (это не первый шаг цепочки) — скрываем его, прежде чем показать следующее.
+	if (ModalLayoutRef->GetStack().Num() > 0)
+	{
+		ModalLayoutRef->CollapseTop();
+	}
+	
 	UInvenzaBaseWidget* ModalDialog = ModalLayoutRef->PushContent(InvenzaInventorySettingsAsset->DefaultModalDialogClass.Get());
 	if (!ModalDialog)
 	{
@@ -75,7 +89,6 @@ void UModalWindowManager::ShowModalStep(EModalHeaderType HeaderType, EModalFoote
 	if (!ModalDialogCasted)
 		return;
 	
-
 	if (HeaderType != EModalHeaderType::None)
 	{
 		const TSubclassOf<UUserWidget>* HeaderClassPtr = InvenzaInventorySettingsAsset->ModalHeaderWidgets.Find(HeaderType);
@@ -87,15 +100,22 @@ void UModalWindowManager::ShowModalStep(EModalHeaderType HeaderType, EModalFoote
 
 	ModalDialogCasted->DynamicResultDelegate.BindDynamic(this, &UModalWindowManager::HandleModalResponse);
 
+	TArray<EObjectInteractionType> ActionKeys;
+	Actions.GenerateKeyArray(ActionKeys);
+
 	TArray<FModalAction> AvActions;
-	for (auto Action : Actions)
+	AvActions.Reserve(ActionKeys.Num());
+	for (const EObjectInteractionType& ActionKey : ActionKeys)
 	{
-		AvActions.Add(InvenzaInventorySettingsAsset->ModalActions.FindRef(Action));
+		AvActions.Add(InvenzaInventorySettingsAsset->ModalActions.FindRef(ActionKey));
 	}
-	ModalDialogCasted->Configure(Actions, AvActions);
-	
-	
-	//ModalDialog->AddToViewport(); // в исходнике этого шага не было — без него окно просто не покажется
+	ModalDialogCasted->Configure(HeaderText, ActionKeys, AvActions);
+
+	// Запоминаем полную карту текущего шага — понадобится в HandleModalResponse,
+	// чтобы по нажатому Interaction найти соответствующий FObjectModalAction.
+	CurrentStepActionsMap = Actions;
+
+	ModalLayoutRef->ShowTop();
 }
 
 void UModalWindowManager::HandleModalResponse(FModalResult Result)
@@ -105,6 +125,7 @@ void UModalWindowManager::HandleModalResponse(FModalResult Result)
 	if (Interaction == EObjectInteractionType::None || Interaction == EObjectInteractionType::Cancel)
 	{
 		PendingOriginalResult = FModalResult();
+		ModalLayoutRef->ClearStack();
 		if (FinalDelegate.IsBound())
 		{
 			FModalResult CancelResult;
@@ -114,17 +135,20 @@ void UModalWindowManager::HandleModalResponse(FModalResult Result)
 		return;
 	}
 	
-	if (PendingOriginalResult.StepRequirement != EModalStepRequirement::None)
+	if (PendingOriginalAction.StepRequirement != EModalStepRequirement::None)
 	{
-		FModalResult OriginalAction = PendingOriginalResult;
+		const FModalResult OriginalResult = PendingOriginalResult;
+		const FModalActionConfig OriginalAction = PendingOriginalAction;
 		PendingOriginalResult = FModalResult();
+		PendingOriginalAction = FModalActionConfig();
 
 		if (OriginalAction.StepRequirement == EModalStepRequirement::RequiresConfirm)
 		{
+			ModalLayoutRef->ClearStack();
+			
 			if (Interaction == EObjectInteractionType::Yes)
 			{
-				OriginalAction.StepRequirement = EModalStepRequirement::None;
-				FinalDelegate.Execute(OriginalAction);
+				FinalDelegate.Execute(OriginalResult);
 			}
 			else if (FinalDelegate.IsBound())
 			{
@@ -141,31 +165,37 @@ void UModalWindowManager::HandleModalResponse(FModalResult Result)
 			return;
 		}
 	}
+	
+	const FModalActionConfig* ActionData = CurrentStepActionsMap.Find(Interaction);
+	const EModalStepRequirement Requirement = ActionData ? ActionData->StepRequirement : EModalStepRequirement::None;
 
 	// Обычный первый шаг
-	switch (Result.StepRequirement)
+	switch (Requirement)
 	{
 	case EModalStepRequirement::RequiresConfirm:
 		{
 			PendingOriginalResult = Result;
+			PendingOriginalAction = *ActionData; 
 
-			TArray<EObjectInteractionType> DummyActions;
-			DummyActions.Add(EObjectInteractionType::Yes);
-			DummyActions.Add(EObjectInteractionType::No);
+			TMap<EObjectInteractionType, FModalActionConfig> DummyActions;
+			DummyActions.Add(EObjectInteractionType::Yes, FModalActionConfig());
+			DummyActions.Add(EObjectInteractionType::No, FModalActionConfig());
 
-			ShowModalStep(EModalHeaderType::SimpleText, EModalFooterType::Binary, DummyActions);
+			ShowModalStep(EModalHeaderType::SimpleText, ActionData->HeaderText, EModalFooterType::Binary, DummyActions);
 			return;
 		}
 
 	case EModalStepRequirement::RequiresAmount:
 		{
 			PendingOriginalResult = Result;
+			PendingOriginalAction = *ActionData;
 			// TODO: открыть AmountInput footer, когда он появится
 			return;
 		}
 
 	case EModalStepRequirement::None:
 	default:
+		ModalLayoutRef->ClearStack();
 		FinalDelegate.Execute(Result);
 		break;
 	}

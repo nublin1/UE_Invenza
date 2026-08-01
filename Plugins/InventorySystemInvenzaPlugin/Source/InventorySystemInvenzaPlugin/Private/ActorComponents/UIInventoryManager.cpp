@@ -389,6 +389,7 @@ void UIInventoryManager::ItemContextMenuRequest_Implementation(const FString& Fr
 
 	ModalManager->OpenModalFlow(
 		EModalHeaderType::None,
+		FText(),
 		EModalFooterType::Selection,
 		AllowedActions,
 		ResponseDelegate
@@ -725,6 +726,16 @@ void UIInventoryManager::HandleItemDrop(FItemDropData DropData)
 
 		DropData.SourceInventory->HandleRemoveItem(DropData.ItemToDrop, DropData.DropAmount);
 	}
+}
+
+void UIInventoryManager::ItemDeleteRequest_Implementation(const FString& FromInventory, UItemBase* Item)
+{
+	Server_OnItemDelete(FromInventory, Item);
+}
+
+void UIInventoryManager::Server_OnItemDelete_Implementation(const FString& FromInventory, UItemBase* Item)
+{
+	ItemCollectionRef->RemoveItemFromAllContainers(Item);
 }
 
 void UIInventoryManager::RequestUseSlot_Implementation( const FString& InvID, FGuid SlotID)
@@ -1168,9 +1179,9 @@ void UIInventoryManager::BindInputActions()
 	}
 }
 
-TArray<EObjectInteractionType> UIInventoryManager::CollectAccessibleItemActions(UItemBase* InItem)
+TMap<EObjectInteractionType, FModalActionConfig> UIInventoryManager::CollectAccessibleItemActions(UItemBase* InItem)
 {
-	TArray<EObjectInteractionType> AllowedActions;
+	TMap<EObjectInteractionType, FModalActionConfig> AllowedActions;
 
 	if (!InItem)
 		return AllowedActions;
@@ -1181,7 +1192,7 @@ TArray<EObjectInteractionType> UIInventoryManager::CollectAccessibleItemActions(
 	{
 		if (InItem->CanPerformAction(Pair.Key, Settings))
 		{
-			AllowedActions.Add(Pair.Key);
+			AllowedActions.Add(Pair);
 		}
 	}
 
@@ -1207,13 +1218,13 @@ void UIInventoryManager::OnInventoryModalResponse(FModalResult Result)
 			Data.ItemToDrop = PendingContextItem;
 			Data.SourceInventory = PendingContextInv;
 			Data.DropAmount = PendingContextItem->GetQuantity();
-			ItemDropRequest(Data);
+			Execute_ItemDropRequest(this, Data);
 			break;
 		}
 
 	case EObjectInteractionType::Destroy:
 		{
-			//DestroyItem(PendingContextItem);
+			Execute_ItemDeleteRequest(this, PendingContextInv->GetInventoryContainerID(), PendingContextItem);
 			break;
 		}
 

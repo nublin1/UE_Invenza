@@ -38,12 +38,13 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Modal|Manager", meta = (WorldContext = "WorldContextObject"))
 	void OpenModalFlow(
 		EModalHeaderType HeaderType,
+		const FText& HeaderText,
 		EModalFooterType FooterType,
-		const TArray<EObjectInteractionType>& Actions,
+		const TMap<EObjectInteractionType, FModalActionConfig>& Actions,
 		FModalResultDelegate OnResult);
 	
-	void ShowModalStep(EModalHeaderType HeaderType, EModalFooterType FooterType,
-		const TArray<EObjectInteractionType>& Actions);
+	void ShowModalStep(EModalHeaderType HeaderType, const FText& HeaderText, EModalFooterType FooterType,
+		const TMap<EObjectInteractionType, FModalActionConfig>& Actions);
 
 protected:
 
@@ -52,6 +53,12 @@ protected:
 	
 	UPROPERTY()
 	FModalResult PendingOriginalResult;
+	
+	UPROPERTY()
+	FModalActionConfig PendingOriginalAction;
+	
+	UPROPERTY()
+	TMap<EObjectInteractionType, FModalActionConfig> CurrentStepActionsMap;
 	
 	// Refs
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)

@@ -11,12 +11,14 @@ UENUM(BlueprintType)
 enum class EModalHeaderType : uint8
 {
 	None,
-	SimpleText
+	SimpleText,
+	TextWithAmountSelection
 };
 
 UENUM(BlueprintType)
 enum class EModalFooterType : uint8
 {
+	None,
 	Notification, // ОК
 	Binary,
 	Confirmation, // Да / Нет / Отмена
@@ -53,12 +55,12 @@ enum class EModalStepRequirement : uint8
 };
 
 USTRUCT(BlueprintType)
-struct FObjectModalAction
+struct FModalActionConfig
 {
 	GENERATED_BODY()
-		
-	//UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Modal")
-	//FGameplayTag ActionTag;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Modal|Flow")
+	FText HeaderText;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Modal|Flow")
 	EModalStepRequirement StepRequirement = EModalStepRequirement::None;
@@ -87,12 +89,8 @@ struct FModalResult
 	UPROPERTY(BlueprintReadOnly, Category = "Modal")
 	EObjectInteractionType ResultInteractionType;
 	
-	//UPROPERTY(BlueprintReadOnly, Category = "Modal")
-	//int32 ChoiceIndex = -1;
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Modal|Flow")
-	EModalStepRequirement StepRequirement = EModalStepRequirement::None;
-	
+	UPROPERTY(BlueprintReadOnly)
+	int32 Amount = 0;
 };
 
 #pragma region Delegates

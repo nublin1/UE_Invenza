@@ -11,7 +11,7 @@
 
 struct FModalResult;
 enum class EObjectInteractionType : uint8;
-struct FObjectModalAction;
+struct FModalActionConfig;
 class UCraftingComponent;
 class ILootContainerProvider;
 class UVendorComponent;
@@ -121,6 +121,11 @@ public:
 	void Server_OnItemDrop(FItemDropData DropData);
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Transfer")
 	void HandleItemDrop(FItemDropData DropData );
+	
+	// Delete
+	virtual void ItemDeleteRequest_Implementation(const FString& FromInventory, UItemBase* Item) override;
+	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Inventory|Transfer")
+	void Server_OnItemDelete(const FString& FromInventory, UItemBase* Item);
 	
 	// Use
 	virtual void RequestUseSlot_Implementation(const FString& InvID, FGuid SlotID) override;
@@ -268,7 +273,7 @@ protected:
 	void BindInputActions();
 
 	UFUNCTION(BlueprintCallable)
-	virtual TArray<EObjectInteractionType> CollectAccessibleItemActions(UItemBase* InItem);
+	virtual TMap<EObjectInteractionType, FModalActionConfig> CollectAccessibleItemActions(UItemBase* InItem);
 	
 	UFUNCTION(BlueprintCallable)
 	void OnInventoryModalResponse(FModalResult Result);

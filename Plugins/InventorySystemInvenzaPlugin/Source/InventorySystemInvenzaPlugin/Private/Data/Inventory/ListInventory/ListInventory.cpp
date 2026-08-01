@@ -108,6 +108,23 @@ float UListInventory::GetInventoryOccupancyPercent()
 	return static_cast<float>(CurrentCount) / InventorySettings.MaxStackCount * 100.0f;
 }
 
+UInventorySlotData* UListInventory::GetSlotByGuid(FGuid InGuid)
+{
+	if (!InGuid.IsValid())
+		return nullptr;
+
+	for (UInventorySlotData* Slot : InventorySlots)
+	{
+		if (!Slot)
+			continue;
+
+		if (Slot->InventorySlotInfo.SlotGuid == InGuid)
+			return Slot;
+	}
+
+	return nullptr;
+}
+
 void UListInventory::RequestSplitStack(UItemBase* ItemToSplit, int32 SplitAmount)
 {
 	if (!ItemToSplit || SplitAmount <= 0)

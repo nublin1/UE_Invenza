@@ -42,6 +42,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Inventory")
 	void ItemDropRequest(FItemDropData DropData);
+	
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Inventory")
+	void ItemDeleteRequest(const FString& FromInventory, UItemBase* Item);
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Inventory")
 	void RequestUseSlot(const FString& InvID, FGuid SlotID);
