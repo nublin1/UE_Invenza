@@ -77,8 +77,6 @@ struct FUISettings
     TSubclassOf<UHighlightSlotWidget> HighlightSlotWidgetClass;
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
     TSubclassOf<UItemTooltipWidget> ItemTooltipWidgetClass;
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
-    TSubclassOf<UModalTradeWidget> ModalTradeWidgetClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
 	bool bCreateCraftWidgetsDynamically = false;	
@@ -91,13 +89,13 @@ struct FUISettings
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Layout")
     FVector2D DragWidgetSlotSize = FVector2D(0.f);
 
-	FUISettings(): InventoryMappingContext(nullptr),
-	               ToggleInventoryAction(nullptr),
-	               ToggleEquipmentAction(nullptr),
-	               IA_Mod_QuickGrab(nullptr),
-	               IA_Mod_GrabAllSame(nullptr), IA_RotateDraggedItem(nullptr),
-	               ItemSelectKey(EKeys::LeftMouseButton),
-	               ItemUseKey(EKeys::RightMouseButton)
+	FUISettings() : InventoryMappingContext(nullptr),
+	                ToggleInventoryAction(nullptr), ToggleCraftAction(nullptr),
+	                ToggleEquipmentAction(nullptr),
+	                IA_Mod_QuickGrab(nullptr),
+	                IA_Mod_GrabAllSame(nullptr), IA_RotateDraggedItem(nullptr),
+	                ItemSelectKey(EKeys::LeftMouseButton),
+	                ItemUseKey(EKeys::RightMouseButton)
 	{
 	}
 };

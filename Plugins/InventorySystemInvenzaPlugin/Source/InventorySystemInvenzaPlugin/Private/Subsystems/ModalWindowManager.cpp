@@ -7,9 +7,10 @@
 #include "Data/Settings/InvenzaInventorySettingsAsset.h"
 #include "HUD/GameHUD_Inz.h"
 #include "Interface/HUD/HUDProvider.h"
+#include "Interface/Interaction/ObjectDataProvider.h"
 #include "UI/Layout/PrimaryLayout.h"
 #include "UI/Layout/UILayer.h"
-#include "Utility/InventoryUtility.h"
+#include "Utility/InvenzayUtility.h"
 
 UModalWindowManager::UModalWindowManager()
 {
@@ -22,7 +23,7 @@ void UModalWindowManager::Initialize(FSubsystemCollectionBase& Collection)
 	UWorld* World = GetWorld();
 	if (!World) return;
 	
-	InvenzaInventorySettingsAsset = UInventoryUtility::GetInvenzaGlobalSettings(World);
+	InvenzaInventorySettingsAsset = UInvenzayUtility::GetInvenzaGlobalSettings(World);
 	if (!InvenzaInventorySettingsAsset)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("ModalWindowManager: Global Settings not found!"));
@@ -50,19 +51,47 @@ void UModalWindowManager::InitializeUI()
 		return;
 	}
 
-	ModalLayoutRef = Cast<UModalLayout>(PrimaryLayoutRef->ModalLayer);
+	ModalLayoutRef = PrimaryLayoutRef->ModalLayer;
+	if (!ModalLayoutRef)
+		return;
+	
+	ModalLayoutRef->OnBackgroundClicked.AddDynamic(this, &UModalWindowManager::ForceCancelModalFlow);
 }
 
-void UModalWindowManager::OpenModalFlow(EModalHeaderType HeaderType, const FText& HeaderText, EModalFooterType FooterType,
+void UModalWindowManager::ForceCancelModalFlow()
+{
+	PendingOriginalResult = FModalResult();
+	PendingOriginalAction = FModalActionConfig();
+	CurrentStepActionsMap.Empty();
+	CachedContextObject = nullptr;
+
+	if (ModalLayoutRef)
+	{
+		ModalLayoutRef->ClearStack();
+	}
+
+	if (FinalDelegate.IsBound())
+	{
+		FModalResult CancelResult;
+		CancelResult.ResultInteractionType = EObjectInteractionType::None;
+		FinalDelegate.Execute(CancelResult);
+	}
+	
+	FinalDelegate.Unbind();
+}
+
+void UModalWindowManager::OpenModalFlow(UObject* InObject, FModalHeaderData HeaderData, EModalFooterType FooterType,
                                         const TMap<EObjectInteractionType, FModalActionConfig>& Actions, FModalResultDelegate OnResult)
 {
+	CachedContextObject = InObject;
+	
 	FinalDelegate = OnResult;
 	PendingOriginalResult = FModalResult();
 
-	ShowModalStep(HeaderType, HeaderText, FooterType, Actions);
+	ShowModalStep(HeaderData, FooterType, Actions);
 }
 
-void UModalWindowManager::ShowModalStep(EModalHeaderType HeaderType,const FText& HeaderText, EModalFooterType FooterType,
+void UModalWindowManager::ShowModalStep(FModalHeaderData HeaderData, EModalFooterType FooterType,
 	 const TMap<EObjectInteractionType, FModalActionConfig>& Actions)
 {
 	UWorld* World = GetWorld();
@@ -89,9 +118,9 @@ void UModalWindowManager::ShowModalStep(EModalHeaderType HeaderType,const FText&
 	if (!ModalDialogCasted)
 		return;
 	
-	if (HeaderType != EModalHeaderType::None)
+	if (HeaderData.HeaderType != EModalHeaderType::None)
 	{
-		const TSubclassOf<UUserWidget>* HeaderClassPtr = InvenzaInventorySettingsAsset->ModalHeaderWidgets.Find(HeaderType);
+		const TSubclassOf<UUserWidget>* HeaderClassPtr = InvenzaInventorySettingsAsset->ModalHeaderWidgets.Find(HeaderData.HeaderType);
 		AttachChildWidget(World, ModalDialogCasted->Upper_Slot, HeaderClassPtr ? *HeaderClassPtr : nullptr);
 	}
 
@@ -109,7 +138,7 @@ void UModalWindowManager::ShowModalStep(EModalHeaderType HeaderType,const FText&
 	{
 		AvActions.Add(InvenzaInventorySettingsAsset->ModalActions.FindRef(ActionKey));
 	}
-	ModalDialogCasted->Configure(HeaderText, ActionKeys, AvActions);
+	ModalDialogCasted->Configure(HeaderData, ActionKeys, AvActions);
 
 	// Запоминаем полную карту текущего шага — понадобится в HandleModalResponse,
 	// чтобы по нажатому Interaction найти соответствующий FObjectModalAction.
@@ -161,7 +190,21 @@ void UModalWindowManager::HandleModalResponse(FModalResult Result)
 
 		if (OriginalAction.StepRequirement == EModalStepRequirement::RequiresAmount)
 		{
-			// TODO: склеить введённое количество с OriginalAction и разбродкастить
+			ModalLayoutRef->ClearStack();
+			
+			if (Interaction == EObjectInteractionType::Yes)
+			{
+				FModalResult FinalResult = OriginalResult; 
+				FinalResult.HeaderResult = Result.HeaderResult;
+
+				FinalDelegate.Execute(FinalResult);
+			}
+			else if (FinalDelegate.IsBound())
+			{
+				FModalResult CancelResult;
+				CancelResult.ResultInteractionType = EObjectInteractionType::None;
+				FinalDelegate.Execute(CancelResult);
+			}
 			return;
 		}
 	}
@@ -180,16 +223,48 @@ void UModalWindowManager::HandleModalResponse(FModalResult Result)
 			TMap<EObjectInteractionType, FModalActionConfig> DummyActions;
 			DummyActions.Add(EObjectInteractionType::Yes, FModalActionConfig());
 			DummyActions.Add(EObjectInteractionType::No, FModalActionConfig());
+			
+			FModalHeaderData HeaderData;
+			HeaderData.HeaderType = EModalHeaderType::SimpleText;
+			HeaderData.Title = ActionData->HeaderText;
 
-			ShowModalStep(EModalHeaderType::SimpleText, ActionData->HeaderText, EModalFooterType::Binary, DummyActions);
+			ShowModalStep(HeaderData, EModalFooterType::Binary, DummyActions);
 			return;
 		}
 
 	case EModalStepRequirement::RequiresAmount:
 		{
+			if (!CachedContextObject)
+				return;
+			
+			FModalHeaderData HeaderData;
+			
+			if (CachedContextObject->GetClass()->ImplementsInterface(UObjectDataProvider::StaticClass()))
+			{
+				FVector2D MinMax = IObjectDataProvider::Execute_GetMinMaxSplit(CachedContextObject);
+				HeaderData.MinValue = MinMax[0];
+				HeaderData.MaxValue = MinMax[1];
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[%hs] CachedContextObject '%s' does not implement IObjectDataProvider"),
+					__FUNCTION__, *GetNameSafe(CachedContextObject));
+				return;
+			}
+			
 			PendingOriginalResult = Result;
 			PendingOriginalAction = *ActionData;
-			// TODO: открыть AmountInput footer, когда он появится
+			
+			TMap<EObjectInteractionType, FModalActionConfig> DummyActions;
+			DummyActions.Add(EObjectInteractionType::Yes, FModalActionConfig());
+			DummyActions.Add(EObjectInteractionType::No, FModalActionConfig());
+			
+			
+			HeaderData.HeaderType = EModalHeaderType::TextWithAmountSelection;
+			HeaderData.Title = ActionData->HeaderText;
+			
+			ShowModalStep(HeaderData, EModalFooterType::Binary, DummyActions);
+			
 			return;
 		}
 

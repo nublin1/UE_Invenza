@@ -1,6 +1,6 @@
 ﻿//  Nublin Studio 2026 All Rights Reserved.
 
-#include "Utility/InventoryUtility.h"
+#include "Utility/InvenzayUtility.h"
 
 #include "ActorComponents/Interactable/PickupComponent.h"
 #include "Data/Inventory/InventoryBase.h"
@@ -11,7 +11,7 @@
 #include "Interface/Inventory/InventoryInteractionHandler.h"
 #include "Subsystems/InvenzaInventorySettingsSubsystem.h"
 
-void UInventoryUtility::DropItem(UWorld* World, AActor* OwnerActor, const FDataTableRowHandle& ItemRow, int32 AmountToDrop,
+void UInvenzayUtility::DropItem(UWorld* World, AActor* OwnerActor, const FDataTableRowHandle& ItemRow, int32 AmountToDrop,
 	const FVector& SpawnLocation, const FRotator& SpawnRotation)
 {
 	if (!World) return;
@@ -50,7 +50,7 @@ void UInventoryUtility::DropItem(UWorld* World, AActor* OwnerActor, const FDataT
 	}
 }
 
-bool UInventoryUtility::AddItemQuantity(UObject* Outer, UInventoryBase* TargetInventory, const FInitItemsEntry InitItemsEntry)
+bool UInvenzayUtility::AddItemQuantity(UObject* Outer, UInventoryBase* TargetInventory, const FInitItemsEntry InitItemsEntry)
 {
 	if (!TargetInventory || InitItemsEntry.Item.IsNull() || InitItemsEntry.Amount <= 0)
 		return false;
@@ -59,7 +59,7 @@ bool UInventoryUtility::AddItemQuantity(UObject* Outer, UInventoryBase* TargetIn
 	return AddItemQuantityInternal(TargetInventory, ItemForDuplicate, InitItemsEntry.Amount);
 }
 
-bool UInventoryUtility::AddItemQuantityBySample(UObject* Outer, UInventoryBase* TargetInventory, UItemBase* ItemSample,
+bool UInvenzayUtility::AddItemQuantityBySample(UObject* Outer, UInventoryBase* TargetInventory, UItemBase* ItemSample,
                                                 int32 TotalQuantity)
 {
 	if (!TargetInventory || !ItemSample || TotalQuantity <= 0)
@@ -69,7 +69,7 @@ bool UInventoryUtility::AddItemQuantityBySample(UObject* Outer, UInventoryBase* 
 	return AddItemQuantityInternal(TargetInventory, ItemForDuplicate, TotalQuantity);
 }
 
-FVector2D UInventoryUtility::CalculateItemVisualSize(UItemBase* Item, EItemOrientationType Orientation,
+FVector2D UInvenzayUtility::CalculateItemVisualSize(UItemBase* Item, EItemOrientationType Orientation,
 	FVector2D SlotSize, FMargin SlotSpacing, bool bIgnoreSize)
 {
 	if (!Item)
@@ -84,7 +84,34 @@ FVector2D UInventoryUtility::CalculateItemVisualSize(UItemBase* Item, EItemOrien
 		SlotSize.Y * ItemSize.Y + SlotSpacing.Top  * (ItemSize.Y - 1));
 }
 
-const UInvenzaInventorySettingsAsset* UInventoryUtility::GetInvenzaGlobalSettings(const UObject* WorldContext)
+TMap<EObjectInteractionType, FModalActionConfig> UInvenzayUtility::CollectAccessibleObjectActions(UWorld* World, UObject* InItem)
+{
+	TMap<EObjectInteractionType, FModalActionConfig> AllowedActions;
+
+	if (!InItem)
+	{
+		return AllowedActions;
+	}
+
+	const auto* Settings = GetInvenzaGlobalSettings(World);
+
+	if (!InItem->Implements<UObjectDataProvider>())
+	{
+		return AllowedActions;
+	}
+
+	for (const auto& Pair : Settings->InvItemsModalActions)
+	{
+		if (IObjectDataProvider::Execute_CanPerformAction(InItem, Pair.Key, Settings))
+		{
+			AllowedActions.Add(Pair);
+		}
+	}
+
+	return AllowedActions;
+}
+
+const UInvenzaInventorySettingsAsset* UInvenzayUtility::GetInvenzaGlobalSettings(const UObject* WorldContext)
 {
 	if (!WorldContext) return nullptr;
 
@@ -99,7 +126,7 @@ const UInvenzaInventorySettingsAsset* UInventoryUtility::GetInvenzaGlobalSetting
 	return nullptr;
 }
 
-TScriptInterface<IInventoryInteractionHandler> UInventoryUtility::FindInventoryHandler(AActor* Actor)
+TScriptInterface<IInventoryInteractionHandler> UInvenzayUtility::FindInventoryHandler(AActor* Actor)
 {
 	TScriptInterface<IInventoryInteractionHandler> Handler;
 
@@ -119,7 +146,7 @@ TScriptInterface<IInventoryInteractionHandler> UInventoryUtility::FindInventoryH
 	return Handler;
 }
 
-bool UInventoryUtility::AddItemQuantityInternal(UInventoryBase* TargetInventory, UItemBase* ItemForDuplicate,
+bool UInvenzayUtility::AddItemQuantityInternal(UInventoryBase* TargetInventory, UItemBase* ItemForDuplicate,
 	int32 Remaining)
 {
 	if (!ItemForDuplicate) return false;

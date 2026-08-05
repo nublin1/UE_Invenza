@@ -45,10 +45,10 @@ public:
 	void ForceClose(FModalResult Result);
 	
 	UFUNCTION(BlueprintCallable)
-	void Configure(const FText& HeaderText, const TArray<EObjectInteractionType>& Actions, const TArray<FModalAction>& Display);
+	void Configure(FModalHeaderData HeaderData, const TArray<EObjectInteractionType>& Actions, const TArray<FModalAction>& Display);
 	
 	UFUNCTION(BlueprintCallable)
-	void ConfigureHeader(const FText& HeaderText);
+	void ConfigureHeader(FModalHeaderData HeaderData);
 	UFUNCTION(BlueprintCallable)
 	void ConfigureFooter(const TArray<EObjectInteractionType>& Actions, const TArray<FModalAction>& Display);
 	

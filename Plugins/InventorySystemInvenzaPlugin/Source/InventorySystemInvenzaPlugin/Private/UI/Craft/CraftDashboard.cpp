@@ -11,7 +11,7 @@
 #include "UI/Craft/CraftControlPanel.h"
 #include "UI/Craft/CraftMenuChoose.h"
 #include "UI/Craft/Lists/QueueCraftList.h"
-#include "Utility/InventoryUtility.h"
+#include "Utility/InvenzayUtility.h"
 
 UCraftDashboard::UCraftDashboard()
 {

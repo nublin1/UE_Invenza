@@ -2,7 +2,6 @@
 
 #include "Data/Items/itemBase.h"
 
-#include "ActorComponents/UIInventoryManager.h"
 #include "ActorComponents/Interactable/PickupComponent.h"
 #include "Data/ItemData.h"
 #include "Data/Settings/InvenzaInventorySettingsAsset.h"
@@ -10,7 +9,7 @@
 #include "Engine/Engine.h"
 #include "GameplayTagContainer.h"
 #include "Net/UnrealNetwork.h"
-#include "Utility/InventoryUtility.h"
+#include "Utility/InvenzayUtility.h"
 
 UItemBase::UItemBase(): ItemRef(), Quantity(0)
 {
@@ -66,12 +65,13 @@ void UItemBase::InitItem(const FName ID, FItemData Data, int32 InQuantity)
 	Quantity = InQuantity;
 }
 
-bool UItemBase::CanPerformAction(EObjectInteractionType Action, const UInvenzaInventorySettingsAsset* SettingsAsset ) const
+bool UItemBase::CanPerformAction_Implementation(EObjectInteractionType Action,
+	const UInvenzaInventorySettingsAsset* SettingsAsset)
 {
 	const UInvenzaInventorySettingsAsset* Settings  = SettingsAsset;
 	
 	if (!Settings)
-		Settings = UInventoryUtility::GetInvenzaGlobalSettings(GetWorld());
+		Settings = UInvenzayUtility::GetInvenzaGlobalSettings(GetWorld());
 	
 	if (!Settings)
 		return false;
@@ -88,7 +88,7 @@ bool UItemBase::CanPerformAction(EObjectInteractionType Action, const UInvenzaIn
 		return ItemRef.bIsDeletable;
 
 	case EObjectInteractionType::Split:
-		return IsStackable();
+		return Execute_IsStackable(this);
 
 	default:
 		return false;

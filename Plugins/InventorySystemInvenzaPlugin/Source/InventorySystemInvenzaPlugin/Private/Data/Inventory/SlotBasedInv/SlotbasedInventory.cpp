@@ -453,7 +453,7 @@ FItemAddResult USlotbasedInventory::HandleAddItem(FItemMoveData ItemMoveData, bo
 		{
 			TArray<UInventorySlotData*> SlotsToIgnore;
 		
-			if (ItemMoveData.SourceItem->IsStackable() && !bIsSlotEmpty(GetSlotByPosition(ItemMoveData.TargetSlotCoordinate), SlotsToIgnore))
+			if (ItemMoveData.SourceItem->Execute_IsStackable(ItemMoveData.SourceItem) && !bIsSlotEmpty(GetSlotByPosition(ItemMoveData.TargetSlotCoordinate), SlotsToIgnore))
 			{
 				return TryAddStackableItem(ItemMoveData, bOnlyCheck);
 			}
@@ -489,12 +489,12 @@ FItemAddResult USlotbasedInventory::HandleAddItem(FItemMoveData ItemMoveData, bo
 	}
 
 	// non-stack
-	if (!ItemMoveData.SourceItem->IsStackable())
+	if (!ItemMoveData.SourceItem->Execute_IsStackable(ItemMoveData.SourceItem))
 	{
 		// will the item weight overflow the weight capacity?
 		if (InventorySettings.InventoryMaxWeightCapacity >= 0)
 		{
-			if (InventoryTotalWeight + ItemMoveData.SourceItem->GetItemSingleWeight() > InventorySettings.
+			if (InventoryTotalWeight + ItemMoveData.SourceItem->Execute_GetItemSingleWeight( ItemMoveData.SourceItem) > InventorySettings.
 				InventoryMaxWeightCapacity)
 			{
 				return FItemAddResult::AddedNone(FText::Format(
@@ -506,7 +506,7 @@ FItemAddResult USlotbasedInventory::HandleAddItem(FItemMoveData ItemMoveData, bo
 		return HandleNonStackableItems(ItemMoveData, bOnlyCheck);
 	}
 
-	if (ItemMoveData.SourceItem->IsStackable())
+	if (ItemMoveData.SourceItem->Execute_IsStackable(ItemMoveData.SourceItem))
 	{
 		return TryAddStackableItem(ItemMoveData, bOnlyCheck);
 	}
@@ -620,7 +620,7 @@ FItemAddResult USlotbasedInventory::HandleNonStackableItems(FItemMoveData ItemMo
 		return FItemAddResult::AddedNone(FText::FromString("Invalid slot data"));
 	}
 
-	if (CalculateActualAmountToAdd(1, ItemMoveData.SourceItem->GetItemSingleWeight()) <= 0)
+	if (CalculateActualAmountToAdd(1, ItemMoveData.SourceItem->Execute_GetItemSingleWeight( ItemMoveData.SourceItem)) <= 0)
 	{
 		return FItemAddResult::AddedNone(FText::Format(
 			FText::FromString("Item {0} would overflow limits"),
@@ -913,13 +913,13 @@ int32 USlotbasedInventory::TryInsertToStackItem(UItemBase* ItemToInsertInto,
                                                 int32 AmountToDistribute,
                                                 bool bOnlyCheck)
 {
-	if (ItemToInsertInto->IsFullItemStack())
+	if (ItemToInsertInto->Execute_IsFullItemStack(ItemToInsertInto))
 		return 0;
 
 	int32 AmountToAddToStack = FMath::Min(AmountToDistribute,
 	                                      ItemToInsertInto->GetItemRef().ItemNumeraticData.MaxStackSizeInCharacter
 	                                      - ItemToInsertInto ->GetQuantity());
-	int32 ActualAmountToAdd = CalculateActualAmountToAdd(AmountToAddToStack, ItemToInsertInto->GetItemSingleWeight());
+	int32 ActualAmountToAdd = CalculateActualAmountToAdd(AmountToAddToStack, ItemToInsertInto->Execute_GetItemSingleWeight(ItemToInsertInto));
 	int32 OldAmount = ItemToInsertInto->GetQuantity();
 
 	if (!bOnlyCheck)

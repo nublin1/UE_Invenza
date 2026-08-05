@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Data/ItemDataStructures.h"
+#include "Interface/Interaction/ObjectDataProvider.h"
 #include "UI/Core/Modal/ModalTypes.h"
 #include "UObject/Object.h"
 #include "itemBase.generated.h"
@@ -15,7 +16,7 @@ struct FItemData;
  * Base class for inventory items
  */
 UCLASS(Blueprintable)
-class INVENTORYSYSTEMINVENZAPLUGIN_API UItemBase : public UObject
+class INVENTORYSYSTEMINVENZAPLUGIN_API UItemBase : public UObject, public IObjectDataProvider
 {
 	GENERATED_BODY()
 
@@ -60,34 +61,25 @@ public:
 	UFUNCTION(BlueprintCallable)
 	virtual void InitItem(FName ID, FItemData Data, int32 InQuantity);
 	
-	UFUNCTION(BlueprintCallable)
-	virtual bool CanPerformAction(EObjectInteractionType Action, const UInvenzaInventorySettingsAsset* SettingsAsset = nullptr) const;
+	virtual bool CanPerformAction_Implementation(EObjectInteractionType Action, const UInvenzaInventorySettingsAsset* SettingsAsset = nullptr) override;
 
 	UFUNCTION()
 	virtual void UseItem();
 
 	UFUNCTION(BlueprintCallable, Category = "Item|Factory")
 	UItemBase* DuplicateItem();
+	
+	virtual bool IsStackable_Implementation() override { return ItemRef.ItemNumeraticData.MaxStackSizeInCharacter > 1; }
 
-	/** Returns whether the item is stackable */
-	UFUNCTION(BlueprintCallable, Category = "Item|Properties")
-	FORCEINLINE bool IsStackable() const { return ItemRef.ItemNumeraticData.MaxStackSizeInCharacter > 1; }
+	virtual FVector2D GetMinMaxSplit_Implementation() override { return FVector2D(1.0f, Quantity); }
 
-	/** Checks if the item stack is full */
-	UFUNCTION(BlueprintCallable, Category = "Item|Properties")
-	FORCEINLINE bool IsFullItemStack() const { return Quantity == ItemRef.ItemNumeraticData.MaxStackSizeInCharacter; }
-
-	/** Calculates the total weight of the item stack */
-	UFUNCTION(BlueprintCallable, Category = "Item|Properties")
-	FORCEINLINE float GetItemStackWeight() const { return Quantity * ItemRef.ItemNumeraticData.Weight; }
-
-	/** Returns the weight of a single item */
-	UFUNCTION(BlueprintCallable, Category = "Item|Properties")
-	FORCEINLINE float GetItemSingleWeight() const { return ItemRef.ItemNumeraticData.Weight; }
+	// Weight
+	virtual bool IsFullItemStack_Implementation() override { return Quantity == ItemRef.ItemNumeraticData.MaxStackSizeInCharacter; }
+	virtual float GetItemStackWeight_Implementation() override { return Quantity * ItemRef.ItemNumeraticData.Weight; }
+	virtual float GetItemSingleWeight_Implementation() override { return ItemRef.ItemNumeraticData.Weight; }
 
 	UFUNCTION(blueprintCallable, Category = "Item|Properties")
 	EItemOrientationType GetInitialItemOrientation();
-	
 
 	UFUNCTION(Category = "Item|Properties")
 	FIntPoint GetItemSize(EItemOrientationType Orientation);

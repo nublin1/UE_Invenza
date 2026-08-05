@@ -85,9 +85,12 @@ protected:
 	TEnumAsByte<ECollisionChannel> TraceChannel;
 #pragma endregion
 
-#pragma region Input
+ #pragma region Input
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interaction|Input")
 	TObjectPtr<UInputAction> InteractAction;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interaction|Input")
+	TObjectPtr<UInputAction> InteractionMenuAction;
 #pragma endregion
 
 	//
@@ -144,6 +147,9 @@ protected:
  	*/
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
 	void Interact();
+	
+	UFUNCTION()
+	void OpenInteractionMenu();
 
 public:
 	/**

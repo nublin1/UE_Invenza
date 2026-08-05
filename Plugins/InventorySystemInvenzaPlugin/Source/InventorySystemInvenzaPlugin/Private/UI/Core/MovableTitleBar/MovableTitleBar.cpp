@@ -15,7 +15,7 @@
 #include "UI/Core/CoreCellWidget.h"
 #include "Blueprint/SlateBlueprintLibrary.h"
 #include "UI/Drag/DragContainerWidget.h"
-#include "Utility/InventoryUtility.h"
+#include "Utility/InvenzayUtility.h"
 
 UMovableTitleBar::UMovableTitleBar()
 {
@@ -84,7 +84,7 @@ FReply UMovableTitleBar::NativeOnMouseButtonDown(const FGeometry& InGeometry, co
 void UMovableTitleBar::NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent,
 	UDragDropOperation*& OutOperation)
 {
-	auto* Settings = UInventoryUtility::GetInvenzaGlobalSettings(GetWorld());
+	auto* Settings = UInvenzayUtility::GetInvenzaGlobalSettings(GetWorld());
 	auto DragContainerclass = Settings->DragContainerWidgetClass;
 	
 	DragContainer_Temp = CreateWidget<UDragContainerWidget>(GetWorld(), DragContainerclass);

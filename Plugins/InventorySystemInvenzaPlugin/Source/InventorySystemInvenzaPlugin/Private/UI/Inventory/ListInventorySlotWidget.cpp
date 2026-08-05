@@ -18,7 +18,7 @@
 #include "UI/HelpersWidgets/ItemTooltipWidget.h"
 #include "UI/Inventory/ListInventoryWidget.h"
 #include "UI/Item/InventoryItemWidget.h"
-#include "Utility/InventoryUtility.h"
+#include "Utility/InvenzayUtility.h"
 
 
 UListInventorySlotWidget::UListInventorySlotWidget()
@@ -51,7 +51,7 @@ void UListInventorySlotWidget::UpdateVisualWithItemInfo(UItemBase* Item)
 
 	if (ItemName)
 	{
-		if (Item->IsStackable())
+		if (Item->Execute_IsStackable(Item))
 		{
 			FString ItemNameWithCount = FString::Printf(TEXT("%s (%d)"), 
 				*Item->GetItemRef().ItemTextData.DisplayName.ToString(), 
@@ -131,7 +131,7 @@ FReply UListInventorySlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeom
 	if (!CachedEntry || !CachedEntry->Item || !CachedEntry->ParentInventoryWidget)
 		return FReply::Unhandled();
 
-	auto Handler = UInventoryUtility::FindInventoryHandler(GetOwningPlayerPawn());
+	auto Handler = UInvenzayUtility::FindInventoryHandler(GetOwningPlayerPawn());
 	if (!Handler)
 		return Reply;
 
@@ -227,7 +227,7 @@ void UListInventorySlotWidget::NativeOnDragDetected(const FGeometry& InGeometry,
 	auto InitialItemOrientation = CachedEntry->Item->GetInitialItemOrientation();
 
 	FVector2D WidgetSlotSize = CachedEntry->ParentInventoryWidget->GetUISettings().DragWidgetSlotSize;
-	auto TotalSize = UInventoryUtility::CalculateItemVisualSize(CachedEntry->Item, InitialItemOrientation, WidgetSlotSize, FMargin(0), false);
+	auto TotalSize = UInvenzayUtility::CalculateItemVisualSize(CachedEntry->Item, InitialItemOrientation, WidgetSlotSize, FMargin(0), false);
 	
 	DraggedWidget->UpdateItemVisual( CachedEntry->Item, InitialItemOrientation, TotalSize, FVector2D(0.0f), true);
 	

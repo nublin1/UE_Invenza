@@ -110,7 +110,7 @@ void UInventoryBase::MergeStackableItems()
 
 	for (int i = Items.Num() - 1; i > 0; --i)
 	{
-		if (!Items[i] || !Items[i]->IsStackable())
+		if (!Items[i] || !Items[i]->Execute_IsStackable(Items[i]))
 		{
 			continue;
 		}
@@ -154,7 +154,7 @@ void UInventoryBase::UpdateWeightInfo()
 	{
 		for (auto Item : AllItems)
 		{
-			InventoryTotalWeight += Item->GetQuantity() * Item->GetItemSingleWeight();
+			InventoryTotalWeight += Item->GetQuantity() * Item->Execute_GetItemSingleWeight(Item);
 		}
 
 		InventoryTotalWeight = FMath::RoundToFloat(InventoryTotalWeight * 100.0f) / 100.0f;
@@ -245,7 +245,7 @@ int32 UInventoryBase::TryInsertToStackItem(UItemBase* ResourceToInsertInto,	int3
 										  ResourceToInsertInto->GetItemRef().ItemNumeraticData.MaxStackSizeInCharacter -
 										  ResourceToInsertInto->GetQuantity());
 	
-	int32 ActualAmountToAdd = CalculateActualAmountToAdd(AmountToAddToStack, ResourceToInsertInto->GetItemSingleWeight());
+	int32 ActualAmountToAdd = CalculateActualAmountToAdd(AmountToAddToStack, ResourceToInsertInto->Execute_GetItemSingleWeight(ResourceToInsertInto));
 
 	if (!bOnlyCheck)
 	{

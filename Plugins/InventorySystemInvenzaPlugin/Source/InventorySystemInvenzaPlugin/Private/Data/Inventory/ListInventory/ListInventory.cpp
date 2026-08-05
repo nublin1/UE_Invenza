@@ -295,11 +295,11 @@ FItemAddResult UListInventory::HandleAddItem(FItemMoveData ItemMoveData, bool bO
 	if (InventorySettings.bIsReferenceContainer)
 		return HandleAddReferenceItem(ItemMoveData, bOnlyCheck);
 
-	if (!ItemMoveData.SourceItem->IsStackable())
+	if (!ItemMoveData.SourceItem->Execute_IsStackable(ItemMoveData.SourceItem))
 		return HandleNonStackableItems(ItemMoveData, bOnlyCheck);
 	
 	
-	if (ItemMoveData.SourceItem->IsStackable())
+	if (ItemMoveData.SourceItem->Execute_IsStackable(ItemMoveData.SourceItem))
 	{
 		return TryAddStackableItem(ItemMoveData, bOnlyCheck);
 	}
@@ -352,7 +352,7 @@ FItemAddResult UListInventory::HandleAddReferenceItem(FItemMoveData& ItemMoveDat
 
 FItemAddResult UListInventory::HandleNonStackableItems(FItemMoveData ItemMoveData, bool bOnlyCheck)
 {
-	int32 ActualAmountToAdd = CalculateActualAmountToAdd(1, ItemMoveData.SourceItem->GetItemSingleWeight());
+	int32 ActualAmountToAdd = CalculateActualAmountToAdd(1, ItemMoveData.SourceItem->Execute_GetItemSingleWeight(ItemMoveData.SourceItem));
 
 	if (ActualAmountToAdd <= 0)
 	{
@@ -429,7 +429,7 @@ int32 UListInventory::HandleStackableItems(FItemMoveData& ItemMoveData, int32 Re
 
 	if (AmountToDistribute<=0) return RequestedAddAmount;
 	const int32 AmountToAddToStack = FMath::Min(AmountToDistribute, ItemMoveData.SourceItem->GetQuantity());
-	int32 ActualAmountToAdd = CalculateActualAmountToAdd(AmountToAddToStack, ItemMoveData.SourceItem->GetItemSingleWeight());
+	int32 ActualAmountToAdd = CalculateActualAmountToAdd(AmountToAddToStack, ItemMoveData.SourceItem->Execute_GetItemSingleWeight(ItemMoveData.SourceItem));
 		
 	if (bOnlyCheck)
 		return RequestedAddAmount;

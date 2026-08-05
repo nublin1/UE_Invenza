@@ -4,8 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
-#include "InventoryUtility.generated.h"
+#include "InvenzayUtility.generated.h"
 
+struct FModalActionConfig;
+enum class EObjectInteractionType : uint8;
 struct FInitItemsEntry;
 class IInventoryInteractionHandler;
 class UInvenzaInventorySettingsAsset;
@@ -16,7 +18,7 @@ class UItemBase;
  * 
  */
 UCLASS()
-class INVENTORYSYSTEMINVENZAPLUGIN_API UInventoryUtility : public UBlueprintFunctionLibrary
+class INVENTORYSYSTEMINVENZAPLUGIN_API UInvenzayUtility : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
 
@@ -32,7 +34,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
 	static FVector2D CalculateItemVisualSize(UItemBase* Item, EItemOrientationType Orientation, FVector2D SlotSize, FMargin SlotSpacing, bool bIgnoreSize);
+	
+	//
+	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
+	static TMap<EObjectInteractionType, FModalActionConfig> CollectAccessibleObjectActions(UWorld* World, UObject* InItem);
 
+	//
 	UFUNCTION(BlueprintPure, meta = (WorldContext = "WorldContextObject"),Category = "InventorySystemInvenza")
 	static const UInvenzaInventorySettingsAsset* GetInvenzaGlobalSettings(	const UObject* WorldContextObject);
 

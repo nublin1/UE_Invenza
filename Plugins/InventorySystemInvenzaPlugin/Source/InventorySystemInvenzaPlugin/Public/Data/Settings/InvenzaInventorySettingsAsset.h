@@ -64,9 +64,9 @@ public:
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Modal")
 	FGameplayTag ResultModal_No;
-	
+	*/
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Modal")
-	FGameplayTag ResultModalCancel;*/
+	FGameplayTag DefaultModalCancelTag;
 	
 	// Modal Widgets
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Modal|Config")

@@ -8,6 +8,7 @@
 #include "Interface/UIInterface.h"
 #include "Interface/UI/ModalInterface.h"
 #include "UI/Core/Buttons/UIButton.h"
+#include "Utility/InterfaceUtils.h"
 
 void UModalDialogBase::NativeConstruct()
 {
@@ -19,15 +20,34 @@ void UModalDialogBase::ForceClose(FModalResult Result)
 	DynamicResultDelegate.Execute(Result);
 }
 
-void UModalDialogBase::Configure(const FText& HeaderText, const TArray<EObjectInteractionType>& Actions, const TArray<FModalAction>& Display)
+void UModalDialogBase::Configure(FModalHeaderData HeaderData, const TArray<EObjectInteractionType>& Actions, const TArray<FModalAction>& Display)
 {
-	ConfigureHeader(HeaderText);
+	ConfigureHeader(HeaderData);
 	ConfigureFooter(Actions, Display);
 }
 
-void UModalDialogBase::ConfigureHeader(const FText& HeaderText)
+void UModalDialogBase::ConfigureHeader(FModalHeaderData HeaderData)
 {
+	UWidget* Content = Upper_Slot->GetContent();
+	if (!Content)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UModalDialogBase::Configure — Upper_Slot has no content."));
+		Upper_Slot->SetVisibility(ESlateVisibility::Collapsed);
+		return;
+	}
 	
+	if (Content->GetClass()->ImplementsInterface(UModalInterface::StaticClass()))
+	{
+		IModalInterface::Execute_ConfigureHeader(Content,HeaderData);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("UModalDialogBase::Configure — Widget '%s' does NOT implement UModalButtonsPanelInterface."),
+			*Content->GetClass()->GetName()
+		);
+		return;
+	}
 }
 
 void UModalDialogBase::ConfigureFooter(const TArray<EObjectInteractionType>& Actions,
@@ -85,8 +105,21 @@ void UModalDialogBase::ConfigureButtons(TArray<UUIButton*> InBtns, const TArray<
 
 void UModalDialogBase::OnButtonClicked(UUIButton* UIButton)
 {
-	if (const FModalResult* Found = ButtonToResultMap.Find(UIButton))
+	const FModalResult* Found = ButtonToResultMap.Find(UIButton);
+	if (!Found) return;
+
+	FModalResult Result = *Found;
+
+	UWidget* HeaderContent = Upper_Slot ? Upper_Slot->GetContent() : nullptr;
+	if (HeaderContent &&
+		HeaderContent->GetClass()->ImplementsInterface(UModalInterface::StaticClass()) &&
+		UInterfaceUtils::IsFunctionOverridden(
+			HeaderContent,
+			TEXT("GetHeaderResult"),
+			UModalInterface::StaticClass()))
 	{
-		DynamicResultDelegate.Execute(*Found);
+		Result.HeaderResult = IModalInterface::Execute_GetHeaderResult(HeaderContent);
 	}
+
+	DynamicResultDelegate.Execute(Result);
 }

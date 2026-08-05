@@ -81,6 +81,8 @@ void UInteractionComponent::InitInteractionComponent()
 	
 	Input->BindAction(InteractAction, ETriggerEvent::Started, this, &UInteractionComponent::BeginInteract);
 	Input->BindAction(InteractAction, ETriggerEvent::Completed, this, &UInteractionComponent::EndInteract);
+	
+	Input->BindAction(InteractionMenuAction, ETriggerEvent::Started, this, &UInteractionComponent::OpenInteractionMenu);
 }
 
 void UInteractionComponent::PerformInteractionCheck()
@@ -245,6 +247,12 @@ void UInteractionComponent::Interact()
 	{
 		EndInteract();
 	}
+}
+
+void UInteractionComponent::OpenInteractionMenu()
+{
+	if (!InteractionData.CurrentInteractable)
+		return;
 }
 
 void UInteractionComponent::StopInteract()

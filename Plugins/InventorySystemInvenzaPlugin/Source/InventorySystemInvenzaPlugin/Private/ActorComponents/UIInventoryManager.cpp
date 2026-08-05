@@ -32,16 +32,14 @@
 #include "UI/Inventory/InventorySlot.h"
 #include "UI/Inventory/ListInventoryWidget.h"
 #include "Data/Trade/TradeTypes.h"
-#include "Utility/InventoryUtility.h"
 #include "Net/UnrealNetwork.h"
 #include "UI/Core/Zones/WorldDropZoneWidget.h"
-#include "Blueprint/UserWidget.h"
-#include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Data/Settings/InvenzaInventorySettingsAsset.h"
 #include "Subsystems/ModalWindowManager.h"
 #include "UI/Craft/CraftDashboard.h"
 #include "UI/Craft/CraftMenuChoose.h"
 #include "Utility/InputUtility.h"
+#include "Utility/InvenzayUtility.h"
 
 class UEnhancedInputLocalPlayerSubsystem;
 
@@ -337,7 +335,7 @@ void UIInventoryManager::SetupStartingResources()
 			if (InitResource.Item.RowName.IsNone()) continue;
 			//UItemBase* NewItemSample = UItemFactory::CreateItemByHandle(this, InitResource.Item, 1);
 
-			UInventoryUtility::AddItemQuantity(this, TargetInventory,InitResource);
+			UInvenzayUtility::AddItemQuantity(this, TargetInventory,InitResource);
 		}
 	}
 
@@ -367,7 +365,7 @@ void UIInventoryManager::SetupAdditionalComponents()
 
 void UIInventoryManager::ItemContextMenuRequest_Implementation(const FString& FromInventory, FGuid SlotGuid, UItemBase* Item)
 {
-	auto AllowedActions = CollectAccessibleItemActions(Item);
+	auto AllowedActions = UInvenzayUtility::CollectAccessibleObjectActions(GetWorld(), Item);
 	if (AllowedActions.Num() == 0) return;
 
 	UModalWindowManager* ModalManager = nullptr;
@@ -386,10 +384,11 @@ void UIInventoryManager::ItemContextMenuRequest_Implementation(const FString& Fr
 
 	FModalResultDelegate ResponseDelegate;
 	ResponseDelegate.BindDynamic(this, &UIInventoryManager::OnInventoryModalResponse);
-
+	
+	FModalHeaderData HeaderData (EModalHeaderType::None, FText());
 	ModalManager->OpenModalFlow(
-		EModalHeaderType::None,
-		FText(),
+		PendingContextItem,
+		HeaderData,
 		EModalFooterType::Selection,
 		AllowedActions,
 		ResponseDelegate
@@ -722,7 +721,7 @@ void UIInventoryManager::HandleItemDrop(FItemDropData DropData)
 		FVector SpawnLocation = Pawn->GetActorLocation() + Pawn->GetActorForwardVector() * 50.f;
 		FRotator SpawnRotation = Pawn->GetActorRotation();
 
-		UInventoryUtility::DropItem(GetWorld(), Pawn, DropData.ItemToDrop->GetItemRow(), DropData.DropAmount, SpawnLocation, SpawnRotation);
+		UInvenzayUtility::DropItem(GetWorld(), Pawn, DropData.ItemToDrop->GetItemRow(), DropData.DropAmount, SpawnLocation, SpawnRotation);
 
 		DropData.SourceInventory->HandleRemoveItem(DropData.ItemToDrop, DropData.DropAmount);
 	}
@@ -1179,26 +1178,6 @@ void UIInventoryManager::BindInputActions()
 	}
 }
 
-TMap<EObjectInteractionType, FModalActionConfig> UIInventoryManager::CollectAccessibleItemActions(UItemBase* InItem)
-{
-	TMap<EObjectInteractionType, FModalActionConfig> AllowedActions;
-
-	if (!InItem)
-		return AllowedActions;
-
-	const auto* Settings = UInventoryUtility::GetInvenzaGlobalSettings(GetWorld());
-
-	for (const auto& Pair : Settings->InvItemsModalActions)
-	{
-		if (InItem->CanPerformAction(Pair.Key, Settings))
-		{
-			AllowedActions.Add(Pair);
-		}
-	}
-
-	return AllowedActions;
-}
-
 void UIInventoryManager::OnInventoryModalResponse(FModalResult Result)
 {
 	if (!PendingContextItem || !PendingContextInv)
@@ -1230,7 +1209,7 @@ void UIInventoryManager::OnInventoryModalResponse(FModalResult Result)
 
 	case EObjectInteractionType::Split:
 		{
-			//ItemSplitRequest(PendingContextItem);
+			Execute_ItemSplitRequest(this, PendingContextInv, PendingContextItem, Result.HeaderResult.SelectedAmount);
 			break;
 		}
 	

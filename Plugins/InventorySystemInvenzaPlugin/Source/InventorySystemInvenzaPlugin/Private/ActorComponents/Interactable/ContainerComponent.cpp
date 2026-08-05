@@ -12,7 +12,7 @@
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Data/Inventory/InventoryBase.h"
 #include "Factory/ItemFactory.h"
-#include "Utility/InventoryUtility.h"
+#include "Utility/InvenzayUtility.h"
 
 
 class UIInventoryManager;
@@ -157,7 +157,7 @@ void UContainerComponent::SetupStartingResources()
 
 			UItemBase* NewItemSample = UItemFactory::CreateItemByHandle(this, InitResource.Item, 1);
 
-			UInventoryUtility::AddItemQuantityBySample(this, TargetInventory, NewItemSample, InitResource.Amount);
+			UInvenzayUtility::AddItemQuantityBySample(this, TargetInventory, NewItemSample, InitResource.Amount);
 		}
 	}
 

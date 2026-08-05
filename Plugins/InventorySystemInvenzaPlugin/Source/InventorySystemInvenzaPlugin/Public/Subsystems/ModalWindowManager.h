@@ -32,24 +32,27 @@ public:
 	UFUNCTION(BlueprintCallable)
 	virtual void InitializeUI();
 	
+	UFUNCTION(BlueprintCallable, Category = "Modal|Manager", meta = (WorldContext = "WorldContextObject"))
+	void ForceCancelModalFlow();
+	
 	/**
 	* Создает модальное окно на основе типа из глобальных настроек.
 	*/
     UFUNCTION(BlueprintCallable, Category = "Modal|Manager", meta = (WorldContext = "WorldContextObject"))
 	void OpenModalFlow(
-		EModalHeaderType HeaderType,
-		const FText& HeaderText,
+		UObject* InObject,
+		FModalHeaderData HeaderData,
 		EModalFooterType FooterType,
 		const TMap<EObjectInteractionType, FModalActionConfig>& Actions,
 		FModalResultDelegate OnResult);
 	
-	void ShowModalStep(EModalHeaderType HeaderType, const FText& HeaderText, EModalFooterType FooterType,
+	void ShowModalStep(FModalHeaderData HeaderData, EModalFooterType FooterType,
 		const TMap<EObjectInteractionType, FModalActionConfig>& Actions);
 
 protected:
 
 	UPROPERTY()
-	TWeakObjectPtr<UObject> CachedContextObject;
+	TObjectPtr<UObject> CachedContextObject;
 	
 	UPROPERTY()
 	FModalResult PendingOriginalResult;

@@ -43,6 +43,9 @@ protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ExposeOnSpawn="true"))
+	TArray<FGameplayTag> InitialCollapsedScreens;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UInvenzaBaseWidget> LayersDebugger;
 

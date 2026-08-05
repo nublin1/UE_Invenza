@@ -82,16 +82,60 @@ struct FModalAction
 };
 
 USTRUCT(BlueprintType)
+struct FModalHeaderData
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(BlueprintReadOnly, Category = "Modal")
+	EModalHeaderType HeaderType = EModalHeaderType::None;
+	
+	UPROPERTY(BlueprintReadOnly, Category = "Modal")
+	FText Title;
+	
+	UPROPERTY(BlueprintReadOnly, Category="Modal")
+	bool bShowMinValue = false;
+	UPROPERTY(BlueprintReadOnly, Category="Modal")
+	FText MinValueLabel;
+
+	UPROPERTY(BlueprintReadOnly, Category="Modal")
+	float MinValue = 0.f;
+	UPROPERTY(BlueprintReadOnly, Category="Modal")
+	bool bShowMaxValue = false;
+
+	UPROPERTY(BlueprintReadOnly, Category="Modal")
+	FText MaxValueLabel;
+	UPROPERTY(BlueprintReadOnly, Category="Modal")
+	float MaxValue = 1.f;
+	
+	FModalHeaderData() {}
+	
+	FModalHeaderData(EModalHeaderType HeaderType, FText InTitle) : HeaderType(HeaderType), Title(InTitle) {}
+};
+
+USTRUCT(BlueprintType)
+struct FModalHeaderResult
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(BlueprintReadWrite)
+	float SelectedAmount = 0;
+	
+	UPROPERTY(BlueprintReadWrite)
+	FText EnteredText;
+};
+
+USTRUCT(BlueprintType)
 struct FModalResult
 {
 	GENERATED_BODY()
  
-	UPROPERTY(BlueprintReadOnly, Category = "Modal")
+	UPROPERTY(BlueprintReadWrite, Category = "Modal")
 	EObjectInteractionType ResultInteractionType;
 	
-	UPROPERTY(BlueprintReadOnly)
-	int32 Amount = 0;
+	UPROPERTY(BlueprintReadWrite)
+	FModalHeaderResult HeaderResult;
 };
+
 
 #pragma region Delegates
 DECLARE_DYNAMIC_DELEGATE_OneParam(FModalResultDelegate, FModalResult, Result);

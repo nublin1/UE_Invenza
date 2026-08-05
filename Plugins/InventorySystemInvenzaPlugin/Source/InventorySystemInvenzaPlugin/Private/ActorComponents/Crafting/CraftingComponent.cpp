@@ -9,7 +9,7 @@
 #include "Data/Settings/InvenzaInventorySettingsAsset.h"
 #include "Net/UnrealNetwork.h"
 #include "Subsystems/InvenzaInventorySettingsSubsystem.h"
-#include "Utility/InventoryUtility.h"
+#include "Utility/InvenzayUtility.h"
 
 UCraftingComponent::UCraftingComponent()
 {
@@ -774,7 +774,7 @@ void UCraftingComponent::RefundResourcesForRecipe(const FQueuedRecipe& Item, int
 	{
 		for (auto Element : AddData.ConsumedResources)
 		{
-			UInventoryUtility::AddItemQuantity(this, InputInventory, Element);
+			UInvenzayUtility::AddItemQuantity(this, InputInventory, Element);
 		}
 		
 		OnRep_InventoryUpdated();
@@ -785,7 +785,7 @@ void UCraftingComponent::GiveCraftedItemToInventory(FItemRecipeRow CraftedRow)
 {
 	for (auto Element : CraftedRow.OutputItems)
 	{
-		UInventoryUtility::AddItemQuantity(this, OutputInventory, Element);
+		UInvenzayUtility::AddItemQuantity(this, OutputInventory, Element);
 	}
 }
 

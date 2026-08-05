@@ -15,6 +15,9 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UUILayer : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
 
+#pragma region Delegates
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnBackgroundClicked);
+#pragma endregion Delegates
 	
 public:
 	UUILayer();
@@ -22,6 +25,8 @@ public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
+	UPROPERTY(BlueprintAssignable, Category = "ModalLayout")
+	FOnBackgroundClicked OnBackgroundClicked;
 
 	//====================================================================
 	// FUNCTIONS
@@ -63,12 +68,18 @@ protected:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
 	TArray<TObjectPtr<UInvenzaBaseWidget>> Stack;
 	
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bCollapseWhenStackIsEmpty = true;
+	
+	UPROPERTY(EditInstanceOnly, BlueprintReadWrite)
 	TEnumAsByte<EHorizontalAlignment> DefaultHorizontalAlignment = HAlign_Center;
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
+	UPROPERTY(EditInstanceOnly, BlueprintReadWrite)
 	TEnumAsByte<EVerticalAlignment> DefaultVerticalAlignment = VAlign_Center;
 	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+	
+	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+	
 };

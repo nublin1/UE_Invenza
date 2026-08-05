@@ -10,7 +10,7 @@
 #include "Factory/ItemFactory.h"
 #include "Net/UnrealNetwork.h"
 #include "Subsystems/InvenzaInventorySettingsSubsystem.h"
-#include "Utility/InventoryUtility.h"
+#include "Utility/InvenzayUtility.h"
 
 UVendorComponent::UVendorComponent()
 {
@@ -132,7 +132,7 @@ FTradeResult UVendorComponent::HandleProcessTrade(const FItemMoveData& TradeData
 				*Who, Price, AvailableMoney, Deficit)));
 	}
 
-	auto* Settings = UInventoryUtility::GetInvenzaGlobalSettings(GetWorld());
+	auto* Settings = UInvenzayUtility::GetInvenzaGlobalSettings(GetWorld());
 	if (!Settings)
 	{
 		return FTradeResult::Failed(FText::FromString("Settings not found"));
@@ -277,7 +277,7 @@ FTradeTransaction UVendorComponent::ExecuteTrade(const FItemMoveData& TradeData,
         });
 
         // VENDOR RECEIVES
-        UInventoryUtility::AddItemQuantityBySample(this, MainVendorLootInventory, CurrencyItem, Price);
+        UInvenzayUtility::AddItemQuantityBySample(this, MainVendorLootInventory, CurrencyItem, Price);
 
         Transaction.Entries.Add({
             MainVendorLootInventory,
@@ -322,7 +322,7 @@ FTradeTransaction UVendorComponent::ExecuteTrade(const FItemMoveData& TradeData,
         });
 
         // PLAYER RECEIVES MONEY
-        UInventoryUtility::AddItemQuantityBySample(this, PlayerInventory, CurrencyItem, Price);
+        UInvenzayUtility::AddItemQuantityBySample(this, PlayerInventory, CurrencyItem, Price);
 
         Transaction.Entries.Add({
             PlayerInventory,
@@ -334,7 +334,7 @@ FTradeTransaction UVendorComponent::ExecuteTrade(const FItemMoveData& TradeData,
     	// VENDOR RECEIVES ITEM
     	if (TradeSettings.bAddPurchasedItemsToVendorDisplay)
     	{
-    		UInventoryUtility::AddItemQuantityBySample(this, MainVendorLootInventory, TradeData.SourceItem, Quantity);
+    		UInvenzayUtility::AddItemQuantityBySample(this, MainVendorLootInventory, TradeData.SourceItem, Quantity);
 
     		Transaction.Entries.Add({
 				MainVendorLootInventory,

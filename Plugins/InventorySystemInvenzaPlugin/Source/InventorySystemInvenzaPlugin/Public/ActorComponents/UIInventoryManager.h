@@ -271,9 +271,7 @@ protected:
 	void InitializeBindings();
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Initialization")
 	void BindInputActions();
-
-	UFUNCTION(BlueprintCallable)
-	virtual TMap<EObjectInteractionType, FModalActionConfig> CollectAccessibleItemActions(UItemBase* InItem);
+	
 	
 	UFUNCTION(BlueprintCallable)
 	void OnInventoryModalResponse(FModalResult Result);

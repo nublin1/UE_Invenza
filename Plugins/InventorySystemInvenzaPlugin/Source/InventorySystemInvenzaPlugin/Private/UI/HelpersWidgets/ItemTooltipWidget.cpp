@@ -29,12 +29,12 @@ void UItemTooltipWidget::SetTooltipData(UItemBase* InItem, UInventoryBase* InInv
 	ItemName->UpdateText(ItemData.ItemTextData.DisplayName);
 	ItemType->UpdateText(FText::FromString(Item->CategoryToString()));
 	ItemDescription->UpdateText(ItemData.ItemTextData.ItemDescription);
-	StackWeightValue->UpdateText(FText::AsNumber(Item->GetItemStackWeight()));
+	StackWeightValue->UpdateText(FText::AsNumber(Item->Execute_GetItemStackWeight(Item)));
 
-	const FString WeightInfo = {"Weight: " + FString::SanitizeFloat(Item->GetItemStackWeight())};
+	const FString WeightInfo = {"Weight: " + FString::SanitizeFloat(Item->Execute_GetItemStackWeight(Item))};
 	StackWeightValue->UpdateText(FText::FromString(WeightInfo));
 
-	if (Item->IsStackable())
+	if (Item->Execute_IsStackable(Item))
 	{
 		const FString StackInfo = {FString::FromInt(ItemData.ItemNumeraticData.MaxStackSizeInCharacter)};
 		MaxStackSize->UpdateText(FText::FromString("Max Stack Size: "));
