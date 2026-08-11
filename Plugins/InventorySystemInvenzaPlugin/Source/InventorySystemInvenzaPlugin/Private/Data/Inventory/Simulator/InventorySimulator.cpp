@@ -6,6 +6,7 @@
 #include "ActorComponents/ItemCollection.h"
 #include "Data/Inventory/InventoryBase.h"
 #include "Factory/ItemFactory.h"
+#include "Utility/InterfaceUtils.h"
 
 UInventorySimulator::UInventorySimulator()
 {
@@ -36,30 +37,41 @@ void UInventorySimulator::DuplicateInventoryForSimulation(UInventoryBase* InInve
 	SimulationCollection->DeserializeFromSave(SavedData, SimulationInventory, IDMapping);
 }
 
-void UInventorySimulator::TransferRequestSimulateQuantity(UItemBase* ItemSample, int32 TotalQuantity)
+void UInventorySimulator::TransferRequestSimulateQuantity(UObject* ItemSample, int32 TotalQuantity)
 {
-	if (!SimulationInventory || !ItemSample ||TotalQuantity <= 0)
+	if (!SimulationInventory || !ItemSample || TotalQuantity <= 0)
 		return;
-	
+
+	if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(ItemSample, TEXT("TransferRequestSimulateQuantity")))
+		return;
+
 	int32 Remaining = TotalQuantity;
 
 	while (Remaining > 0)
 	{
-		auto ItemClass = ItemSample->GetItemRow();
-		UItemBase* Item = UItemFactory::CreateItemByHandle(this, ItemClass, Remaining);
+		// Получаем row через интерфейс
+		auto ItemRow = IObjectDataProvider::Execute_GetItemRow(ItemSample);
+
+		UObject* Item = UItemFactory::CreateItemByHandle(this, ItemRow, Remaining);
 		if (!Item)
 			return;
 
-		int32 MaxStack = Item->GetItemRef().ItemNumeraticData.MaxStackSizeInCharacter;
-		int32 AddAmount = FMath::Min(Remaining, MaxStack);
+		if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(Item, TEXT("TransferRequestSimulateQuantity")))
+			return;
 
-		Item->SetQuantity(AddAmount);
+		const FItemMetaData Meta = IObjectDataProvider::Execute_GetItemRef(Item);
+		const int32 MaxStack = Meta.ItemNumeraticData.MaxStackSizeInCharacter;
+
+		const int32 AddAmount = FMath::Min(Remaining, MaxStack);
+
+		IObjectDataProvider::Execute_SetQuantity(Item, AddAmount);
 
 		FItemMoveData MoveData;
 		MoveData.SourceItem = Item;
 		MoveData.TargetInventory = SimulationInventory;
 
 		TransferRequestSimulate(MoveData);
+
 		Remaining -= AddAmount;
 	}
 }

@@ -155,7 +155,7 @@ void UContainerComponent::SetupStartingResources()
 		{
 			if (InitResource.Item.RowName.IsNone()) continue;
 
-			UItemBase* NewItemSample = UItemFactory::CreateItemByHandle(this, InitResource.Item, 1);
+			UObject* NewItemSample = UItemFactory::CreateItemByHandle(this, InitResource.Item, 1);
 
 			UInvenzayUtility::AddItemQuantityBySample(this, TargetInventory, NewItemSample, InitResource.Amount);
 		}
@@ -164,7 +164,7 @@ void UContainerComponent::SetupStartingResources()
 	StartingItems.Empty();
 }
 
-void UContainerComponent::DestroyWhenEmpty(FItemMapping ItemSlots, UItemBase* Item)
+void UContainerComponent::DestroyWhenEmpty(FItemMapping ItemSlots, UObject* Item)
 {
 	GetWorld()->GetTimerManager().SetTimerForNextTick([this]()
 	{

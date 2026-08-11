@@ -59,9 +59,9 @@ public:
 	virtual void ReDrawAllItems() PURE_VIRTUAL(UUInventoryWidgetBase::ReDrawAllItems,);
 	
 	UFUNCTION(Category="Inventory")
-	virtual void HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity) PURE_VIRTUAL(UUInventoryWidgetBase::HandleRemoveItem,);
+	virtual void HandleRemoveItem(UObject* Item, int32 RemoveQuantity) PURE_VIRTUAL(UUInventoryWidgetBase::HandleRemoveItem,);
 	UFUNCTION(Category="Inventory")
-	virtual void HandleRemoveItemFromContainer(UItemBase* Item) PURE_VIRTUAL(UUInventoryWidgetBase::HandleRemoveItemFromContainer,);
+	virtual void HandleRemoveItemFromContainer(UObject* Item) PURE_VIRTUAL(UUInventoryWidgetBase::HandleRemoveItemFromContainer,);
 	UFUNCTION(BlueprintCallable, Category="Inventory")
 	virtual FItemAddResult HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck = false) PURE_VIRTUAL(UUInventoryWidgetBase::HandleAddItem, return FItemAddResult(););
 
@@ -99,13 +99,13 @@ protected:
 	//====================================================================
 public:
 	UFUNCTION()
-	virtual void AddItemToPanel(FItemMapping& ItemSlots, UItemBase* Item) PURE_VIRTUAL(UUInventoryWidgetBase::AddItemToPanel,);
+	virtual void AddItemToPanel(FItemMapping& ItemSlots, UObject* Item) PURE_VIRTUAL(UUInventoryWidgetBase::AddItemToPanel,);
 	UFUNCTION()
-	virtual void RemoveItemFromPanel(FItemMapping FromSlots, UItemBase* Item) PURE_VIRTUAL(UUInventoryWidgetBase::RemoveItemFromPanel,);
+	virtual void RemoveItemFromPanel(FItemMapping FromSlots, UObject* Item) PURE_VIRTUAL(UUInventoryWidgetBase::RemoveItemFromPanel,);
 	UFUNCTION()
-	virtual void ReplaceItemInPanel(TArray<UInventorySlotData*> OldItemSlots, FItemMapping& NewItemSlots, UItemBase* Item) {};
+	virtual void ReplaceItemInPanel(TArray<UInventorySlotData*> OldItemSlots, FItemMapping& NewItemSlots, UObject* Item) {};
 	UFUNCTION()
-	virtual void UpdateItem(UItemBase* Item) PURE_VIRTUAL(UUInventoryWidgetBase::RemoveItemFromPanel,);
+	virtual void UpdateItem(UObject* Item) PURE_VIRTUAL(UUInventoryWidgetBase::RemoveItemFromPanel,);
 
 protected:
 	// Filters

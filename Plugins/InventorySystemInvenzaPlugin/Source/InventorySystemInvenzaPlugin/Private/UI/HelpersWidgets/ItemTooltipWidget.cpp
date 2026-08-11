@@ -6,37 +6,45 @@
 #include "Data/ItemDataStructures.h"
 #include "Data/Inventory/InventoryBase.h"
 #include "UI/Core/LabelBaseText.h"
+#include "Utility/InterfaceUtils.h"
 
 
 UItemTooltipWidget::UItemTooltipWidget()
 {
 }
 
-void UItemTooltipWidget::SetTooltipData(UItemBase* InItem, UInventoryBase* InInventory)
+void UItemTooltipWidget::SetTooltipData(UObject* InItem, UInventoryBase* InInventory)
 {
 	if (!InItem || !ItemName || !ItemType || !ItemDescription)
 		return;
 
+	if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(InItem, TEXT("SetTooltipData")))
+		return;
+
 	Item = InItem;
+
 	if (InInventory)
 	{
-		Inventory = InInventory;	
+		Inventory = InInventory;
 		Inventory->OnTradeContextUpdated.AddUniqueDynamic(this, &UItemTooltipWidget::UpdatePrice);
 	}
-	
-	auto ItemData = Item->GetItemRef();
-	
-	ItemName->UpdateText(ItemData.ItemTextData.DisplayName);
-	ItemType->UpdateText(FText::FromString(Item->CategoryToString()));
-	ItemDescription->UpdateText(ItemData.ItemTextData.ItemDescription);
-	StackWeightValue->UpdateText(FText::AsNumber(Item->Execute_GetItemStackWeight(Item)));
 
-	const FString WeightInfo = {"Weight: " + FString::SanitizeFloat(Item->Execute_GetItemStackWeight(Item))};
+	const FItemMetaData ItemData = IObjectDataProvider::Execute_GetItemRef(Item);
+
+	ItemName->UpdateText(ItemData.ItemTextData.DisplayName);
+	ItemType->UpdateText(FText::FromString(IObjectDataProvider::Execute_CategoryToString(Item)));
+	ItemDescription->UpdateText(ItemData.ItemTextData.ItemDescription);
+
+	const float StackWeight = IObjectDataProvider::Execute_GetItemStackWeight(Item);
+	StackWeightValue->UpdateText(FText::AsNumber(StackWeight));
+
+	const FString WeightInfo = FString::Printf(TEXT("Weight: %.2f"), StackWeight);
 	StackWeightValue->UpdateText(FText::FromString(WeightInfo));
 
-	if (Item->Execute_IsStackable(Item))
+	if (IObjectDataProvider::Execute_IsStackable(Item))
 	{
-		const FString StackInfo = {FString::FromInt(ItemData.ItemNumeraticData.MaxStackSizeInCharacter)};
+		const FString StackInfo = FString::FromInt(ItemData.ItemNumeraticData.MaxStackSizeInCharacter);
+
 		MaxStackSize->UpdateText(FText::FromString("Max Stack Size: "));
 		StackSizeValue->UpdateText(FText::FromString(StackInfo));
 		MaxStackSize->SetVisibility(ESlateVisibility::Visible);
@@ -52,26 +60,35 @@ void UItemTooltipWidget::SetTooltipData(UItemBase* InItem, UInventoryBase* InInv
 
 void UItemTooltipWidget::UpdatePrice()
 {
-	if (!PriceText || !PriceValue)
+	if (!PriceText || !PriceValue || !Item)
 		return;
-	
-	float BasePrice = Item->GetItemRef().ItemTradeData.BasePrice * Item->GetQuantity();
+
+	if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(Item, TEXT("UpdatePrice")))
+		return;
+
+	const FItemMetaData ItemData = IObjectDataProvider::Execute_GetItemRef(Item);
+	const int32 Quantity = IObjectDataProvider::Execute_GetQuantity(Item);
+
+	float BasePrice = ItemData.ItemTradeData.BasePrice * Quantity;
 
 	if (!Inventory)
 	{
-		PriceValue->UpdateText(FText::AsNumber(Item->GetItemRef().ItemTradeData.BasePrice * Item->GetQuantity()));
+		PriceValue->UpdateText(FText::AsNumber(BasePrice));
+		return;
 	}
-	
+
 	float PriceMod = 1.0f;
-	auto TradeContext = Inventory->GetTradeContext();
-	if (TradeContext.Buyer != nullptr && TradeContext.Vendor !=nullptr)
+	const FTradeContext TradeContext = Inventory->GetTradeContext();
+
+	if (TradeContext.Buyer != nullptr && TradeContext.Vendor != nullptr)
 	{
-		bool bIsVendor = false;
-		Inventory->GetInventoryOwnerActor() == TradeContext.Vendor ? bIsVendor = true : bIsVendor = false;
-		bIsVendor ? PriceMod = TradeContext.TradeSettings.SellPriceFactor : PriceMod = TradeContext.TradeSettings.BuyPriceFactor;
+		const bool bIsVendor = (Inventory->GetInventoryOwnerActor() == TradeContext.Vendor);
+
+		PriceMod = bIsVendor
+			? TradeContext.TradeSettings.SellPriceFactor
+			: TradeContext.TradeSettings.BuyPriceFactor;
 	}
 
-	auto FullPrice = FMath::FloorToInt(PriceMod * BasePrice);
-
+	const int32 FullPrice = FMath::FloorToInt(PriceMod * BasePrice);
 	PriceValue->UpdateText(FText::AsNumber(FullPrice));
 }

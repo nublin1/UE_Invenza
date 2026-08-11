@@ -17,20 +17,20 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UInventoryBase : public UObject
 	GENERATED_BODY()
 
 #pragma region Delegates
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnSplitDelegate, UInventoryBase*, TargetInventory, UItemBase*, ItemToSplit, int32, SplitAmount);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnSplitDelegate, UInventoryBase*, TargetInventory, UObject*, ItemToSplit, int32, SplitAmount);
 	
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAddItemDelegate, FItemMapping&, ItemSlots, UItemBase*, Item);
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnStackedItemDelegate, UItemBase*, Item);
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnstackedItemDelegate, UItemBase*, Item);
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnItemRemovedDelegate, FItemMapping, ItemSlots, UItemBase*, Item);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAddItemDelegate, FItemMapping&, ItemSlots, UObject*, Item);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnStackedItemDelegate, UObject*, Item);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnstackedItemDelegate, UObject*, Item);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnItemRemovedDelegate, FItemMapping, ItemSlots, UObject*, Item);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnItemReplaceDelegate, TArray<UInventorySlotData*>, OldItemSlots,
-	                                               FItemMapping&, NewItemSlots, UItemBase*, Item);
+	                                               FItemMapping&, NewItemSlots, UObject*, Item);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUseSlot, UInventorySlotData*, UsedSlot);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWeightUpdatedDelegate, float, InventoryTotalWeight);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMoneyUpdatedDelegate, int32, InventoryTotalMoney);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryRedrawRequested);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnTradeContextUpdated);
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRequestToResetItemVisual, UItemBase*, Item);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRequestToResetItemVisual, UObject*, Item);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSlotsReservedDelegate, TArray<FSlotReservationData>, ReservationData);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnConsumeReservedDelegate, TArray<FSlotReservationData>,
 	                                            ReservationData);
@@ -113,12 +113,12 @@ public:
 	virtual void RebuildInventory() {};
 	
 	UFUNCTION(BlueprintCallable)
-	virtual void RequestToResetItemVisual(UItemBase* Item);
+	virtual void RequestToResetItemVisual(UObject* Item);
 
 	UFUNCTION(BlueprintCallable)
 	virtual void SortItemsInContainerByName() {};
 
-	virtual void RequestSplitStack(UItemBase* ItemToSplit, int32 SplitAmount)
+	virtual void RequestSplitStack(UObject* ItemToSplit, int32 SplitAmount)
 	PURE_VIRTUAL(UInventoryBase::TrySplitItem, );
 	
 	UFUNCTION(BlueprintCallable)
@@ -126,11 +126,11 @@ public:
 	PURE_VIRTUAL(UInventoryBase::HandleRemoveItemsByID,);
 
 	UFUNCTION(BlueprintCallable)
-	virtual void HandleRemoveItemsBySample(UItemBase* ItemSample, int32 RequestedAmount)
+	virtual void HandleRemoveItemsBySample(UObject* ItemSample, int32 RequestedAmount)
 	PURE_VIRTUAL(UInventoryBase::HandleRemoveItemsByType,);
 	
 	UFUNCTION(BlueprintCallable)
-	virtual void HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity)
+	virtual void HandleRemoveItem(UObject* Item, int32 RemoveQuantity)
 	PURE_VIRTUAL(UInventoryBase::HandleRemoveItem,);
 
 	UFUNCTION(BlueprintCallable)
@@ -145,7 +145,17 @@ public:
 	virtual void MergeStackableItems();
 
 	UFUNCTION(BlueprintCallable)
-	void UseSlot(UInventorySlotData* UsedSlot);
+	virtual void UseSlot(UInventorySlotData* UsedSlot);
+	
+	//
+	UFUNCTION(BlueprintCallable)
+	virtual bool bIsSlotEmptyByPos(FIntPoint SlotPosition, const TArray<UInventorySlotData*>& SlotsToIgnore) {return false;}
+	UFUNCTION(BlueprintCallable)
+	virtual bool bIsSlotEmptyByID(FGuid SlotIDToCheck, const TArray<FGuid>& SlotsIDToIgnore) {return false;}
+	UFUNCTION(BlueprintCallable)
+	virtual bool bIsSlotEmpty(UInventorySlotData* SlotToCheck, const TArray<UInventorySlotData*>& SlotsToIgnore) {return false;}
+	UFUNCTION(BlueprintCallable)
+	virtual bool AreSlotsEmpty(const TArray<UInventorySlotData*>& SlotsToCheck, const TArray<UInventorySlotData*>& SlotsToIgnore) {return false;}
 
 	UFUNCTION()
 	virtual void UpdateWeightInfo();
@@ -175,13 +185,16 @@ public:
 	virtual float GetInventoryOccupancyPercent() {return 0;}
 
 	UFUNCTION(BlueprintCallable)
-	virtual TArray<UInventorySlotData*> GetAvailableSlotForItem(UItemBase* Item, EItemOrientationType& OutOrientation);
+	virtual TArray<UInventorySlotData*> GetAvailableSlotForItem(UObject* Item, EItemOrientationType& OutOrientation);
 	
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable)
 	virtual UInventorySlotData* GetSlotByPosition(FIntPoint CellPosition);
 	
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable)
 	virtual UInventorySlotData* GetSlotByGuid(FGuid InGuid);
+	
+	UFUNCTION(BlueprintCallable)
+	virtual TArray<FGuid> GetSlotsWithLinkedEquipment();
 
 	// Setters
 	UFUNCTION()
@@ -253,26 +266,26 @@ protected:
 	PURE_VIRTUAL(UInventoryBase::HandleStackableItems, return 0; );
 
 
-	virtual UItemBase* AddNewItem(FItemMoveData& ItemMoveData, FItemMapping OccupiedSlots, int32 AddAmount)
+	virtual UObject* AddNewItem(FItemMoveData& ItemMoveData, FItemMapping OccupiedSlots, int32 AddAmount)
 	PURE_VIRTUAL(UInventoryBase::AddNewItem, return nullptr;);
 
 	UFUNCTION()
-	virtual int32 TryInsertToStackItem(UItemBase* ResourceToInsertInto, int32 AmountToDistribute, bool bOnlyCheck = false);
+	virtual int32 TryInsertToStackItem(UObject* ResourceToInsertInto, int32 AmountToDistribute, bool bOnlyCheck = false);
 	
 	UFUNCTION()
-	virtual int32 TryRemoveFromStackItem(UItemBase* Item, int32 RequestedRemoveAmount);
+	virtual int32 TryRemoveFromStackItem(UObject* Item, int32 RequestedRemoveAmount);
 
 	UFUNCTION()
-	virtual void RemoveItemFromInventory(UItemBase* Item);
+	virtual void RemoveItemFromInventory(UObject* Item);
 
 	//====================================================================
 	// Event Notifiers
 	//====================================================================
-	void NotifyAddNewItem(FItemMapping& FromSlots, UItemBase* NewItem, int32 ChangeQuantity);
-	void NotifyAddItemToStack(UItemBase* Item);
-	void NotifyRemoveItemFromStack(UItemBase* Item);
-	void NotifyFullyRemoveItem(FItemMapping FromSlots, UItemBase* Item);
-	virtual void NotifyReplaceItem(TArray<UInventorySlotData*> OldItemSlots, FItemMapping& NewItemSlots, UItemBase* Item);
+	void NotifyAddNewItem(FItemMapping& FromSlots, UObject* NewItem, int32 ChangeQuantity);
+	void NotifyAddItemToStack(UObject* Item);
+	void NotifyRemoveItemFromStack(UObject* Item);
+	void NotifyFullyRemoveItem(FItemMapping FromSlots, UObject* Item);
+	virtual void NotifyReplaceItem(TArray<UInventorySlotData*> OldItemSlots, FItemMapping& NewItemSlots, UObject* Item);
 
 	virtual void NotifyUseSlot(UInventorySlotData* UsedSlot);
 	UFUNCTION()
@@ -282,6 +295,6 @@ protected:
 	UFUNCTION()
 	virtual void OnRep_TradeContext();
 	virtual void NotifyReDrawRequest();
-	virtual void NotifyRequestToResetItemVisual(UItemBase* Item);
+	virtual void NotifyRequestToResetItemVisual(UObject* Item);
 
 };

@@ -7,7 +7,7 @@
 #include "InventoryListEntry.generated.h"
 
 class UListInventoryWidget;
-class UItemBase;
+class UObject;
 /**
  * 
  */
@@ -25,7 +25,7 @@ public:
 	FGuid SlotGuid;
 	
 	UPROPERTY(BlueprintReadWrite, Replicated, Category="Inventory")
-	TObjectPtr<UItemBase> Item = nullptr;
+	TObjectPtr<UObject> Item = nullptr;
 
 	UPROPERTY(BlueprintReadWrite, Category="Inventory")
 	TObjectPtr<UListInventoryWidget> ParentInventoryWidget = nullptr;

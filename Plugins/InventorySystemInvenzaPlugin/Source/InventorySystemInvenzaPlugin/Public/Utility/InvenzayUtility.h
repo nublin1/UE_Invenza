@@ -13,7 +13,7 @@ class IInventoryInteractionHandler;
 class UInvenzaInventorySettingsAsset;
 enum class EItemOrientationType : uint8;
 class UInventoryBase;
-class UItemBase;
+class UObject;
 /**
  * 
  */
@@ -24,16 +24,22 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UInvenzayUtility : public UBlueprintFunct
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
+	static bool bIsSameItems(UObject* FirstItem, UObject* SecondItem);
+	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
+	static bool DoItemsHaveSameFootprint(UObject* FirstItem, UObject* SecondItem, EItemOrientationType OrientationFirstItem,
+	                              EItemOrientationType OrientationSecondItem, bool bIgnoreSize);
+	
+	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
 	static void DropItem(UWorld* World, AActor* OwnerActor,
 		const FDataTableRowHandle& ItemRow, int32 AmountToDrop,	const FVector& SpawnLocation, const FRotator& SpawnRotation);
 
 	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
 	static bool AddItemQuantity(UObject* Outer, UInventoryBase* TargetInventory, FInitItemsEntry InitItemsEntry );
 	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
-	static bool AddItemQuantityBySample(UObject* Outer, UInventoryBase* TargetInventory, UItemBase* ItemSample, int32 TotalQuantity);
+	static bool AddItemQuantityBySample(UObject* Outer, UInventoryBase* TargetInventory, UObject* ItemSample, int32 TotalQuantity);
 
 	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
-	static FVector2D CalculateItemVisualSize(UItemBase* Item, EItemOrientationType Orientation, FVector2D SlotSize, FMargin SlotSpacing, bool bIgnoreSize);
+	static FVector2D CalculateItemVisualSize(UObject* Item, EItemOrientationType Orientation, FVector2D SlotSize, FMargin SlotSpacing, bool bIgnoreSize);
 	
 	//
 	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
@@ -48,5 +54,5 @@ public:
 
 protected:
 	UFUNCTION(BlueprintPure, Category = "InventorySystemInvenza")
-	static bool AddItemQuantityInternal(UInventoryBase* TargetInventory, UItemBase* ItemForDuplicate, int32 Remaining);
+	static bool AddItemQuantityInternal(UInventoryBase* TargetInventory, UObject* ItemForDuplicate, int32 Remaining);
 };

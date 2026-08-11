@@ -8,7 +8,7 @@
 #include "InventoryItemWidget.generated.h"
 
 enum class EItemOrientationType : uint8;
-class UItemBase;
+class UObject;
 class UTextBlock;
 class UHorizontalBox;
 class UCoreCellWidget;
@@ -47,9 +47,9 @@ public:
 	UInventoryItemWidget();
 
 	UFUNCTION()
-	void UpdateItemVisual(UItemBase* Item, EItemOrientationType Orientation,FVector2D TotalSize, FVector2D Position, bool bIgnoreSize);
+	void UpdateItemVisual(UObject* Item, EItemOrientationType Orientation,FVector2D TotalSize, FVector2D Position, bool bIgnoreSize);
 	UFUNCTION()
-	void UpdateVisual(UItemBase* Item, float AngleDegrees = 0.0f);
+	void UpdateVisual(UObject* Item, float AngleDegrees = 0.0f);
 	UFUNCTION()
 	void ClearVisual();
 	UFUNCTION()

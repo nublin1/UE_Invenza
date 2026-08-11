@@ -11,7 +11,7 @@
 
 class UCoreCellWidget;
 class UInputAction;
-class UItemBase;
+class UObject;
 /**
  * 
  */
@@ -40,7 +40,7 @@ public:
 	}
 	
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Visual")
-	virtual void UpdateVisualWithItemInfo(UItemBase* Item);
+	virtual void UpdateVisualWithItemInfo(UObject* Item);
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Visual")
 	virtual void UpdateVisualWithTexture(UTexture2D* NewTexture);
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Visual")

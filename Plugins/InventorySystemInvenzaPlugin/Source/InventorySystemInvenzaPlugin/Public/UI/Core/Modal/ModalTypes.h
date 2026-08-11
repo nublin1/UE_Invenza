@@ -43,7 +43,11 @@ enum class EObjectInteractionType : uint8
 	UseItem,
 	Drop,
 	Destroy,
-	Split
+	Split,
+	Equip,
+	UnEquip,
+	Sell,
+	Buy
 };
 
 UENUM(BlueprintType)

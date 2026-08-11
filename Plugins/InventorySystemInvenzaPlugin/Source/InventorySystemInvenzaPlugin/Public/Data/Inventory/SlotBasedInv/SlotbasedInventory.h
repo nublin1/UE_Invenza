@@ -50,7 +50,7 @@ public:
 	
 	//
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Reservation")
-	bool ReserveSlots(AActor* Requestor, TMap<UInventorySlotData*, FItemPlacementData> Slots, UItemBase* ItemBase = nullptr);
+	bool ReserveSlots(AActor* Requestor, TMap<UInventorySlotData*, FItemPlacementData> Slots, UObject* ItemBase = nullptr);
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Reservation")
 	void ReleaseReservation(AActor* Requestor);
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Reservation")
@@ -60,14 +60,14 @@ public:
 	virtual float GetInventoryOccupancyPercent() override;
 	
 	UFUNCTION(BlueprintCallable)
-	bool CanPlaceItemAt(const FIntPoint& StartPos, UItemBase* ItemBase, EItemOrientationType Orientation, TArray<UInventorySlotData*> IgnoreSlots);
+	bool CanPlaceItemAt(const FIntPoint& StartPos, FGameplayTag ItemCategory, FIntPoint ItemSize, EItemOrientationType Orientation, TArray<UInventorySlotData*> IgnoreSlots);
 
 	UFUNCTION(BlueprintCallable)
-	virtual void RequestSplitStack(UItemBase* ItemToSplit, int32 SplitAmount) override;
+	virtual void RequestSplitStack(UObject* ItemToSplit, int32 SplitAmount) override;
 
 	virtual void HandleRemoveItemsByID(FName ItemID, int32 RequestedAmount) override;
-	virtual void HandleRemoveItemsBySample(UItemBase* ItemSample, int32 RequestedAmount) override;
-	virtual void HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity) override;
+	virtual void HandleRemoveItemsBySample(UObject* ItemSample, int32 RequestedAmount) override;
+	virtual void HandleRemoveItem(UObject* Item, int32 RemoveQuantity) override;
 	virtual FItemAddResult HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck = false) override;
 
 	// Getters
@@ -79,11 +79,11 @@ public:
 	UFUNCTION(BlueprintCallable, meta = (ToolTip = "Returns a list of resources stored in this container, aggregating identical resources and summing their total amount."))
 	TArray<FItemIDEntry> CollectItemsAggregated() const;
 	UFUNCTION(BlueprintCallable)
-	TArray<UInventorySlotData*> GetSlotsForItemAt(const FIntPoint& StartPos, UItemBase* ItemBase, EItemOrientationType Orientation);
+	TArray<UInventorySlotData*> GetSlotsForItemAt(const FIntPoint& StartPos, UObject* ItemBase, EItemOrientationType Orientation);
 	UFUNCTION()
 	TArray<FIntPoint> GetItemGridPositions(const FIntPoint& StartPos, FIntPoint Size);
 	
-	virtual TArray<UInventorySlotData*> GetAvailableSlotForItem(UItemBase* Item, EItemOrientationType& OutOrientation) override;
+	virtual TArray<UInventorySlotData*> GetAvailableSlotForItem(UObject* Item, EItemOrientationType& OutOrientation) override;
 
 	// Setters
 	UFUNCTION(BlueprintCallable)
@@ -116,41 +116,43 @@ protected:
 	virtual FItemAddResult TryReplaceItems(FItemMoveData& ItemMoveData, bool bOnlyCheck);
 	
 	UFUNCTION()
-	int32 DistributeToExistingStacks(TArray<UItemBase*>& SameItems, int32& AmountToDistribute,
+	int32 DistributeToExistingStacks(TArray<UObject*>& SameItems, int32& AmountToDistribute,
 		bool bOnlyCheck,TMap<UInventorySlotData*, FItemPlacementData>& AffectedSlots);
 	
-	virtual UItemBase* AddNewItem(FItemMoveData& ItemMoveData, FItemMapping OccupiedSlots, int32 AddAmount) override;
-	void ReplaceItem(UItemBase* Item, const TArray<UInventorySlotData*>& NewSlotDatas, EItemOrientationType NewItemOrientation);
+	virtual UObject* AddNewItem(FItemMoveData& ItemMoveData, FItemMapping OccupiedSlots, int32 AddAmount) override;
+	void ReplaceItem(UObject* Item, const TArray<UInventorySlotData*>& NewSlotDatas, EItemOrientationType NewItemOrientation);
 	
-	virtual int32 TryInsertToStackItem(UItemBase* ResourceToInsertInto, int32 AmountToDistribute, bool bOnlyCheck) override;
+	virtual int32 TryInsertToStackItem(UObject* ResourceToInsertInto, int32 AmountToDistribute, bool bOnlyCheck) override;
 
 public:
 	UFUNCTION()
 	bool bIsSlotPositionValid(FIntPoint GridPosition);
 	UFUNCTION()
 	bool BIsItemCategoryCompatible(FGameplayTag ItemCategory, FGameplayTag SlotCategory, bool bExactMatch = false);
-	UFUNCTION()
-	bool bIsSlotEmptyByPos(FIntPoint SlotPosition, const TArray<UInventorySlotData*>& SlotsToIgnore);
-	UFUNCTION()
-	bool bIsSlotEmpty(UInventorySlotData* SlotToCheck, const TArray<UInventorySlotData*>& SlotsToIgnore);
-	UFUNCTION()
-	bool AreSlotsEmpty(const TArray<UInventorySlotData*>& SlotsToCheck, const TArray<UInventorySlotData*>& SlotsToIgnore);
-	UFUNCTION()
+
+	virtual bool bIsSlotEmptyByPos(FIntPoint SlotPosition, const TArray<UInventorySlotData*>& SlotsToIgnore) override;
+	virtual bool bIsSlotEmptyByID(FGuid SlotIDToCheck, const TArray<FGuid>& SlotsIDToIgnore) override;
+	virtual bool bIsSlotEmpty(UInventorySlotData* SlotToCheck, const TArray<UInventorySlotData*>& SlotsToIgnore) override;
+	virtual bool AreSlotsEmpty(const TArray<UInventorySlotData*>& SlotsToCheck, const TArray<UInventorySlotData*>& SlotsToIgnore) override;
+	
+	UFUNCTION(BlueprintCallable)
 	static bool DoSlotsMatch(const TArray<UInventorySlotData*>& FirstSlots, const TArray<UInventorySlotData*>& SecondSlots);
 	UFUNCTION()
 	TArray<UInventorySlotData*> CollectOccupiedSlots();
 	UFUNCTION()
-	TArray<UInventorySlotData*> GetIgnoreSlotsForItem(UItemBase* Item);
+	TArray<UInventorySlotData*> GetIgnoreSlotsForItem(UObject* Item);
 
 	virtual UInventorySlotData* GetSlotByPosition(FIntPoint SlotPosition) override;
 	
 	virtual UInventorySlotData* GetSlotByGuid(FGuid InGuid) override;
 	
+	virtual TArray<FGuid> GetSlotsWithLinkedEquipment() override;
+	
 protected:
 	UFUNCTION()
-	TArray<UItemBase*> GetAllSameItems(UItemBase* ReferenceItem);
+	TArray<UObject*> GetAllSameItems(UObject* ReferenceItem);
 	UFUNCTION()
-	UItemBase* GetItemFromSlot(UInventorySlotData* Slot);
+	UObject* GetItemFromSlot(UInventorySlotData* Slot);
 
 	UFUNCTION()
 	void OnRep_InventorySlotData();

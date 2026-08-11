@@ -10,35 +10,38 @@
 #include "Components/TextBlock.h"
 #include "UI/Core/CoreCellWidget.h"
 #include "UI/Core/Image/ImageBaseWidget.h"
+#include "Utility/InterfaceUtils.h"
 
 UInventoryItemWidget::UInventoryItemWidget()
 {
 }
 
-void UInventoryItemWidget::UpdateItemVisual( UItemBase* Item,EItemOrientationType Orientation, FVector2D TotalSize,
+void UInventoryItemWidget::UpdateItemVisual( UObject* Item,EItemOrientationType Orientation, FVector2D TotalSize,
 	FVector2D Position, bool bIgnoreSize)
 {
-	if (!Item) return;
+	if (!Item || !UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(Item, TEXT("UpdateItemVisual")))
+		return;
 
-	FIntPoint ItemSize = bIgnoreSize 
-		? FIntPoint(1,1)
-		: Item->GetItemSize(Orientation);
-	
+	FIntPoint ItemSize = bIgnoreSize
+		? FIntPoint(1, 1)
+		: IObjectDataProvider::Execute_GetItemSize(Item, Orientation);
+
 	float RotationAngle = 0.f;
 	if (ItemSize.X != ItemSize.Y)
 	{
-		if (Item->GetInitialItemOrientation() == Orientation)
-			RotationAngle = 0;
-		else
-			RotationAngle = -90.0f;
+		RotationAngle =
+			(IObjectDataProvider::Execute_GetInitialItemOrientation(Item) == Orientation)
+			? 0.f
+			: -90.f;
 	}
-	
+
 	if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(this->Slot))
 	{
 		CanvasSlot->SetAutoSize(false);
 		CanvasSlot->SetSize(FVector2D(TotalSize.X, TotalSize.Y));
 		CanvasSlot->SetPosition(Position);
 	}
+
 	UpdateVisualSize(TotalSize);
 	UpdateVisual(Item, RotationAngle);
 
@@ -47,22 +50,31 @@ void UInventoryItemWidget::UpdateItemVisual( UItemBase* Item,EItemOrientationTyp
 		Orientation == EItemOrientationType::Horizontal ? TEXT("Horizontal") : TEXT("Vertical"));*/
 }
 
-void UInventoryItemWidget::UpdateVisual(UItemBase* Item,float AngleDegrees)
+void UInventoryItemWidget::UpdateVisual(UObject* Item,float AngleDegrees)
 {
-	if (!Item || !CoreCellWidget || !CoreCellWidget->Content_Image) return;
+	if (!Item ||
+		!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(Item, TEXT("UpdateVisual")) ||
+		!CoreCellWidget ||
+		!CoreCellWidget->Content_Image)
+		return;
 
-	UTexture2D* Icon = Item->GetItemRef().ItemAssetData.Icon;
-	if (!Icon) return;
-	if (!IconMaterial) 
+	UTexture2D* Icon =
+		IObjectDataProvider::Execute_GetItemRef(Item).ItemAssetData.Icon;
+
+	if (!Icon)
+		return;
+
+	if (!IconMaterial)
 	{
 		CoreCellWidget->SetContentImage(Icon);
 		return;
 	}
-	
+
 	UImageBaseWidget* ImageWidget = CoreCellWidget->Content_Image;
 	ImageWidget->SetNewMaterial(IconMaterial);
-	
+
 	ImageWidget->SetMaterialTextureParam(FName("IconTexture"), Icon);
+
 	const float NormalizedAngle = FMath::Fmod(AngleDegrees, 360.f) / 360.f;
 	ImageWidget->SetMaterialScalarParam(FName("RotationAngle"), NormalizedAngle);
 }

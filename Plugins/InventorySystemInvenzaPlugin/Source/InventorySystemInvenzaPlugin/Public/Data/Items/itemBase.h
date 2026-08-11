@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "Data/ItemDataStructures.h"
 #include "Interface/Interaction/ObjectDataProvider.h"
-#include "UI/Core/Modal/ModalTypes.h"
 #include "UObject/Object.h"
 #include "itemBase.generated.h"
 
@@ -20,115 +19,250 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UItemBase : public UObject, public IObjec
 {
 	GENERATED_BODY()
 
-#pragma region Delegates
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUseItemDelegate, UItemBase*, Item);
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAmountChangedDelegate, int32, AmountChanged, UItemBase*, ItemBase);
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnItemDataReplicated, UItemBase*, Item);
-#pragma endregion Delegates
-
 public:
 	UItemBase();
+
+	//====================================================================
+	// NETWORKING
+	//====================================================================
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	virtual bool IsSupportedForNetworking() const override { return true; }
 
 	//====================================================================
-	// PROPERTIES AND VARIABLES
+	// EVENTS
 	//====================================================================
+
 	UPROPERTY(BlueprintAssignable, Category = "Item|Events")
 	FOnUseItemDelegate OnUseItemDelegate;
+
 	UPROPERTY(BlueprintAssignable, Category = "Item|Events")
 	FOnAmountChangedDelegate OnAmountChangedDelegate;
+
 	UPROPERTY(BlueprintAssignable, Category = "Item|Events")
 	FOnItemDataReplicated OnItemDataReplicated;
 
 	//====================================================================
-	// STATIC METHODS
+	// INITIALIZATION
 	//====================================================================
-	/** Creates an item from the data table */
-	UFUNCTION(BlueprintCallable, Category = "Item")
-	static bool bIsSameItems(UItemBase* FirstItem, UItemBase* SecondItem);
 
-	UFUNCTION(BlueprintCallable, Category = "Item")
-	static bool DoItemsHaveSameFootprint(UItemBase* FirstItem, UItemBase* SecondItem,
-		EItemOrientationType OrientationFirstItem, EItemOrientationType OrientationSecondItem,
-		bool bIgnoreSize = false);
+	UFUNCTION(BlueprintCallable, Category = "Item|Initialization")
+	virtual void InitItem(
+		FName ID,
+		FItemData Data,
+		int32 InQuantity
+	);
 
 	//====================================================================
-	// FUNCTIONS
+	// ACTIONS
 	//====================================================================
-	UFUNCTION(BlueprintCallable)
-	virtual void InitItem(FName ID, FItemData Data, int32 InQuantity);
+
+	virtual bool CanPerformAction_Implementation(
+		EObjectInteractionType Action,
+		const UInvenzaInventorySettingsAsset* SettingsAsset = nullptr
+	) override;
+
+	virtual void UseItem_Implementation() override;
 	
-	virtual bool CanPerformAction_Implementation(EObjectInteractionType Action, const UInvenzaInventorySettingsAsset* SettingsAsset = nullptr) override;
+	//====================================================================
+	// ITEM OPERATIONS
+	//====================================================================
 
-	UFUNCTION()
-	virtual void UseItem();
-
-	UFUNCTION(BlueprintCallable, Category = "Item|Factory")
-	UItemBase* DuplicateItem();
+	virtual UObject* DuplicateItem_Implementation() override;
 	
-	virtual bool IsStackable_Implementation() override { return ItemRef.ItemNumeraticData.MaxStackSizeInCharacter > 1; }
+	//====================================================================
+	// QUANTITY & STACK
+	//====================================================================
 
-	virtual FVector2D GetMinMaxSplit_Implementation() override { return FVector2D(1.0f, Quantity); }
+	virtual bool IsStackable_Implementation() override
+	{
+		return ItemRef.ItemNumeraticData.MaxStackSizeInCharacter > 1;
+	}
 
-	// Weight
-	virtual bool IsFullItemStack_Implementation() override { return Quantity == ItemRef.ItemNumeraticData.MaxStackSizeInCharacter; }
-	virtual float GetItemStackWeight_Implementation() override { return Quantity * ItemRef.ItemNumeraticData.Weight; }
-	virtual float GetItemSingleWeight_Implementation() override { return ItemRef.ItemNumeraticData.Weight; }
+	virtual FVector2D GetMinMaxSplit_Implementation() override
+	{
+		return FVector2D(1.0f, Quantity);
+	}
 
-	UFUNCTION(blueprintCallable, Category = "Item|Properties")
-	EItemOrientationType GetInitialItemOrientation();
+	virtual bool IsFullItemStack_Implementation() override
+	{
+		return Quantity == ItemRef.ItemNumeraticData.MaxStackSizeInCharacter;
+	}
 
-	UFUNCTION(Category = "Item|Properties")
-	FIntPoint GetItemSize(EItemOrientationType Orientation);
+	virtual int32 GetQuantity_Implementation() const override
+	{
+		return Quantity;
+	}
 
-	UFUNCTION(BlueprintCallable, Category = "Item|Properties")
-	FString CategoryToString();
-	UFUNCTION(BlueprintCallable, Category = "Item|Properties")
-	FString CategoryToShortString();
-
-	// Reservation
-	UFUNCTION(BlueprintCallable, Category = "Resources|Reservation")
-	int32 GetFreeAmount() const;
-	UFUNCTION(BlueprintCallable, Category = "Resources|Reservation")
-	bool ReserveAmount(AActor* Requestor, int32 AmountToReserve);
-	UFUNCTION(BlueprintCallable, Category = "Resources|Reservation")
-	void ReleaseReservation(AActor* Requestor, int32 AmountToRelease);
-	UFUNCTION(BlueprintCallable, Category = "Resources|Reservation")
-	UItemBase* ConsumeReserved(AActor* Requestor, int32 RequestedAmount);
+	virtual void SetQuantity_Implementation(int32 NewQuantity) override
+	{
+		Quantity = NewQuantity;
+	}
 
 
-	/** Get and set methods */
-	FName GetItemID() const { return ItemID; }
-	FDataTableRowHandle GetItemRow() { return ItemRow;}
-	FText GetItemDisplayText() const {return ItemRef.ItemTextData.DisplayName;}
-	FItemMetaData& GetItemRef() { return ItemRef; }
-	int32 GetQuantity() const { return Quantity; }
-	void SetItemRow(const FDataTableRowHandle& InRowHandle) {ItemRow = InRowHandle;}
-	void SetItemRef(const FItemMetaData& NewItemRef) { this->ItemRef = NewItemRef; }
-	void SetQuantity(int32 NewQuantity) { this->Quantity = NewQuantity; }
+	//====================================================================
+	// WEIGHT
+	//====================================================================
+
+	virtual float GetItemStackWeight_Implementation() override
+	{
+		return Quantity * ItemRef.ItemNumeraticData.Weight;
+	}
+
+	virtual float GetItemSingleWeight_Implementation() override
+	{
+		return ItemRef.ItemNumeraticData.Weight;
+	}
+	
+	//====================================================================
+	// FOOTPRINT & ORIENTATION
+	//====================================================================
+
+	virtual EItemOrientationType GetInitialItemOrientation_Implementation() override;
+
+	virtual FIntPoint GetItemSize_Implementation(
+		EItemOrientationType Orientation
+	) override;
+	
+	//====================================================================
+	// CATEGORY
+	//====================================================================
+
+	virtual FString CategoryToString_Implementation() override;
+
+	virtual FString CategoryToShortString_Implementation() override;
+	
+	//====================================================================
+	// RESERVATION
+	//====================================================================
+
+	virtual int32 GetFreeAmount_Implementation() const override;
+
+	virtual bool ReserveAmount_Implementation(
+		AActor* Requestor,
+		int32 AmountToReserve
+	) override;
+
+	virtual void ReleaseReservation_Implementation(
+		AActor* Requestor,
+		int32 AmountToRelease
+	) override;
+
+	virtual UObject* ConsumeReserved_Implementation(
+		AActor* Requestor,
+		int32 RequestedAmount
+	) override;
+
+	//====================================================================
+	// DATA ACCESS
+	//====================================================================
+
+	virtual FName GetItemID_Implementation() const override
+	{
+		return ItemID;
+	}
+
+	virtual FItemMetaData GetItemRef_Implementation() override
+	{
+		return ItemRef;
+	}
+
+	virtual FDataTableRowHandle GetItemRow_Implementation() override
+	{
+		return ItemRow;
+	}
+
+	virtual FText GetItemDisplayText_Implementation() const override
+	{
+		return ItemRef.ItemTextData.DisplayName;
+	}
+	
+	//====================================================================
+	// EVENT ACCESS
+	//====================================================================
+
+	virtual FOnUseItemDelegate& GetOnUseItemDelegate() override
+	{
+		return OnUseItemDelegate;
+	}
+
+	virtual FOnAmountChangedDelegate& GetOnAmountChangedDelegate() override
+	{
+		return OnAmountChangedDelegate;
+	}
+
+	virtual FOnItemDataReplicated& GetOnItemDataReplicatedDelegate() override
+	{
+		return OnItemDataReplicated;
+	}
+	
+	//====================================================================
+	// DATA MUTATORS
+	//====================================================================
+
+	void SetItemRow(const FDataTableRowHandle& InRowHandle)
+	{
+		ItemRow = InRowHandle;
+	}
+
+	void SetItemRef(const FItemMetaData& NewItemRef)
+	{
+		ItemRef = NewItemRef;
+	}
 
 protected:
 	//====================================================================
-	// PROPERTIES AND VARIABLES
+	// ITEM DATA
 	//====================================================================
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated, Category = "Item|Data")
+
+	UPROPERTY(
+		EditAnywhere,
+		BlueprintReadOnly,
+		Replicated,
+		Category = "Item|Data"
+	)
 	FName ItemID;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item|Data")
+
+	UPROPERTY(
+		VisibleAnywhere,
+		BlueprintReadOnly,
+		Category = "Item|Data"
+	)
 	FItemMetaData ItemRef;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, ReplicatedUsing=OnRep_ItemRow, Category = "Item|Data")
+
+	UPROPERTY(
+		VisibleAnywhere,
+		BlueprintReadOnly,
+		Replicated,
+		ReplicatedUsing = OnRep_ItemRow,
+		Category = "Item|Data"
+	)
 	FDataTableRowHandle ItemRow;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Replicated, Category = "Item|Data")
+	UPROPERTY(
+		VisibleAnywhere,
+		BlueprintReadWrite,
+		Replicated,
+		Category = "Item|Data"
+	)
 	int32 Quantity;
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Item|Data")
-	TMap<TObjectPtr<AActor>, int32> ReservedAmounts;
+	
+	//====================================================================
+	// RESERVATION DATA
+	//====================================================================
 
+	UPROPERTY(
+		VisibleAnywhere,
+		BlueprintReadOnly,
+		Category = "Item|Reservation"
+	)
+	TMap<TObjectPtr<AActor>, int32> ReservedAmounts;
+	
 	//====================================================================
-	// FUNCTIONS
+	// REPLICATION
 	//====================================================================
+
 	UFUNCTION()
 	void OnRep_ItemRow();
 };

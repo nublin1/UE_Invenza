@@ -39,6 +39,7 @@
 #include "UI/Craft/CraftDashboard.h"
 #include "UI/Craft/CraftMenuChoose.h"
 #include "Utility/InputUtility.h"
+#include "Utility/InterfaceUtils.h"
 #include "Utility/InvenzayUtility.h"
 
 class UEnhancedInputLocalPlayerSubsystem;
@@ -120,6 +121,8 @@ void UIInventoryManager::CreateInventories()
 	if (!GetOwner()->HasAuthority())
 		return;
 	
+	auto GlobalSettings = UInvenzayUtility::GetInvenzaGlobalSettings(GetWorld());
+	
 	for (FInventoryStartupData& StartupData : StartupInventories)
 	{
 		UInventoryBase* Inventory =	UInventoryBase::CreateInventoryAdvanced(GetOwner(), StartupData, GetOwner(), ItemCollectionRef);
@@ -131,7 +134,7 @@ void UIInventoryManager::CreateInventories()
 		ItemCollectionRef->AddPawnInventory_Internal(Inventory);
 		BindInventoryEvents(Inventory);
 
-		if (StartupData.Settings.InventoryTag == UISettings.MainInvTag)
+		if (StartupData.Settings.InventoryTag == GlobalSettings->MainInvTag)
 		{
 			MainPawnInventory = Inventory;
 		}
@@ -333,7 +336,7 @@ void UIInventoryManager::SetupStartingResources()
 		for (const auto& InitResource : InitItems)
 		{
 			if (InitResource.Item.RowName.IsNone()) continue;
-			//UItemBase* NewItemSample = UItemFactory::CreateItemByHandle(this, InitResource.Item, 1);
+			//UObject* NewItemSample = UItemFactory::CreateItemByHandle(this, InitResource.Item, 1);
 
 			UInvenzayUtility::AddItemQuantity(this, TargetInventory,InitResource);
 		}
@@ -363,7 +366,7 @@ void UIInventoryManager::SetupAdditionalComponents()
 	}
 }
 
-void UIInventoryManager::ItemContextMenuRequest_Implementation(const FString& FromInventory, FGuid SlotGuid, UItemBase* Item)
+void UIInventoryManager::ItemContextMenuRequest_Implementation(const FString& FromInventory, FGuid SlotGuid, UObject* Item)
 {
 	auto AllowedActions = UInvenzayUtility::CollectAccessibleObjectActions(GetWorld(), Item);
 	if (AllowedActions.Num() == 0) return;
@@ -395,7 +398,7 @@ void UIInventoryManager::ItemContextMenuRequest_Implementation(const FString& Fr
 	);
 }
 
-void UIInventoryManager::OnItemAddedToInventory(FItemMapping& ItemSlots, UItemBase* Item)
+void UIInventoryManager::OnItemAddedToInventory(FItemMapping& ItemSlots, UObject* Item)
 {
 	if (!Item || !EquipmentComponentRef) return;
 
@@ -409,7 +412,7 @@ void UIInventoryManager::OnItemAddedToInventory(FItemMapping& ItemSlots, UItemBa
 	}
 }
 
-void UIInventoryManager::OnItemRemovedFromInventory(FItemMapping ItemSlots, UItemBase* Item)
+void UIInventoryManager::OnItemRemovedFromInventory(FItemMapping ItemSlots, UObject* Item)
 {
 	if (!Item || !EquipmentComponentRef) return;
 
@@ -590,7 +593,15 @@ void UIInventoryManager::Handle_ItemTransferRequest(FItemMoveData ItemMoveData)
 	case EItemAddResult::IAR_NoItemAdded:
 		if (ItemMoveData.SourceInventory == nullptr)
 		{
-			FItemDropData DropData(ItemMoveData.SourceItem, ItemMoveData.SourceInventory, ItemMoveData.SourceItem->GetQuantity());
+			const int32 Quantity =
+				IObjectDataProvider::Execute_GetQuantity(ItemMoveData.SourceItem);
+
+			FItemDropData DropData(
+				ItemMoveData.SourceItem,
+				ItemMoveData.SourceInventory,
+				Quantity
+			);
+
 			ItemDropRequest(DropData);
 		}
 		break;
@@ -627,7 +638,7 @@ void UIInventoryManager::Handle_ItemTransferRequest(FItemMoveData ItemMoveData)
 	}
 }
 
-void UIInventoryManager::ItemSplitRequest_Implementation(UInventoryBase* TargetInventory, UItemBase* ItemToSplit, int32 SplitAmount)
+void UIInventoryManager::ItemSplitRequest_Implementation(UInventoryBase* TargetInventory, UObject* ItemToSplit, int32 SplitAmount)
 {
 	if (GetOwnerRole() < ROLE_Authority)
 	{
@@ -639,25 +650,32 @@ void UIInventoryManager::ItemSplitRequest_Implementation(UInventoryBase* TargetI
 	}
 }
 
-void UIInventoryManager::Server_ItemSplitRequest_Implementation(UInventoryBase* TargetInventory, UItemBase* ItemToSplit, int32 SplitAmount)
+void UIInventoryManager::Server_ItemSplitRequest_Implementation(UInventoryBase* TargetInventory, UObject* ItemToSplit, int32 SplitAmount)
 {
 	Handle_SplitItem(TargetInventory, ItemToSplit, SplitAmount);
 }
 
-void UIInventoryManager::Handle_SplitItem(UInventoryBase* TargetInventory, UItemBase* ItemToSplit, int32 SplitAmount)
+void UIInventoryManager::Handle_SplitItem(UInventoryBase* TargetInventory, UObject* ItemToSplit, int32 SplitAmount)
 {
-	if (!ItemToSplit || SplitAmount <= 0)
+	if (!TargetInventory || !ItemToSplit || SplitAmount <= 0)
 		return;
 
-	if (ItemToSplit->GetQuantity() == 1 || ItemToSplit->GetQuantity() <= SplitAmount)
+	if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(ItemToSplit, TEXT("Handle_SplitItem")))
+		return;
+
+	const int32 Quantity = IObjectDataProvider::Execute_GetQuantity(ItemToSplit);
+
+	if (Quantity == 1 || Quantity <= SplitAmount)
 		return;
 
 	EItemOrientationType FinalOrientation;
+
 	auto EmptySlots = TargetInventory->GetAvailableSlotForItem(ItemToSplit, FinalOrientation);
-	FIntPoint PivotPos = FIntPoint(-1);
+
+	FGuid PivotID;
 	if (!EmptySlots.IsEmpty())
 	{
-		PivotPos = EmptySlots[0]->InventorySlotInfo.CellPosition;
+		PivotID = EmptySlots[0]->InventorySlotInfo.SlotGuid;
 	}
 
 	auto TarInvSettings = TargetInventory->GetInventorySettings();
@@ -666,22 +684,24 @@ void UIInventoryManager::Handle_SplitItem(UInventoryBase* TargetInventory, UItem
 	if (TarInvSettings.MaxStackCount > 0)
 	{
 		auto ResultMaxStack = TarInvCollection->GetStackCountInContainer(TargetInventory->GetInventoryContainerID());
-		if (ResultMaxStack + 1 >TarInvSettings.MaxStackCount)
+		if (ResultMaxStack + 1 > TarInvSettings.MaxStackCount)
 			return;
 	}
-	
-	auto NewItem = ItemToSplit->DuplicateItem();
-	if (!NewItem) return;
 
-	NewItem->SetQuantity(SplitAmount);
-	
+	UObject* NewItem = IObjectDataProvider::Execute_DuplicateItem(ItemToSplit);
+	if (!NewItem ||
+		!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(NewItem, TEXT("Handle_SplitItem")))
+		return;
+
+	IObjectDataProvider::Execute_SetQuantity(NewItem, SplitAmount);
+
 	FItemMoveData ItemMove;
 	ItemMove.SourceItem = NewItem;
 	ItemMove.TargetInventory = TargetInventory;
-	ItemMove.TargetSlotCoordinate = PivotPos;
+	ItemMove.TargetSlotID = PivotID;
 	ItemMove.SavedOrientation = FinalOrientation;
 	ItemMove.TargetOrientation = FinalOrientation;
-	
+
 	TargetInventory->HandleRemoveItem(ItemToSplit, SplitAmount);
 	TargetInventory->HandleAddItem(ItemMove, false);
 
@@ -708,33 +728,181 @@ void UIInventoryManager::Server_OnItemDrop_Implementation(FItemDropData DropData
 
 void UIInventoryManager::HandleItemDrop(FItemDropData DropData)
 {
-	if (DropData.DropAmount <= 0)
+	if (DropData.DropAmount <= 0 || !DropData.ItemToDrop)
 		return;
-	
-	if (!DropData.ItemToDrop->GetItemRef().bIsDroppable)
-	{
+
+	const FItemMetaData Meta = IObjectDataProvider::Execute_GetItemRef(DropData.ItemToDrop);
+
+	if (!Meta.bIsDroppable)
 		return;
-	}
-	
+
 	if (auto Pawn = UGameplayStatics::GetPlayerController(GetWorld(), 0)->GetPawn())
 	{
 		FVector SpawnLocation = Pawn->GetActorLocation() + Pawn->GetActorForwardVector() * 50.f;
 		FRotator SpawnRotation = Pawn->GetActorRotation();
 
-		UInvenzayUtility::DropItem(GetWorld(), Pawn, DropData.ItemToDrop->GetItemRow(), DropData.DropAmount, SpawnLocation, SpawnRotation);
+		const FDataTableRowHandle ItemRow =
+			IObjectDataProvider::Execute_GetItemRow(DropData.ItemToDrop);
 
-		DropData.SourceInventory->HandleRemoveItem(DropData.ItemToDrop, DropData.DropAmount);
+		UInvenzayUtility::DropItem(
+			GetWorld(),
+			Pawn,
+			ItemRow,
+			DropData.DropAmount,
+			SpawnLocation,
+			SpawnRotation
+		);
+
+		DropData.SourceInventory->HandleRemoveItem(
+			DropData.ItemToDrop,
+			DropData.DropAmount
+		);
 	}
 }
 
-void UIInventoryManager::ItemDeleteRequest_Implementation(const FString& FromInventory, UItemBase* Item)
+void UIInventoryManager::ItemDeleteRequest_Implementation(const FString& FromInventory, UObject* Item)
 {
 	Server_OnItemDelete(FromInventory, Item);
 }
 
-void UIInventoryManager::Server_OnItemDelete_Implementation(const FString& FromInventory, UItemBase* Item)
+void UIInventoryManager::Server_OnItemDelete_Implementation(const FString& FromInventory, UObject* Item)
 {
+	if (!ItemCollectionRef)
+		return;
+	
 	ItemCollectionRef->RemoveItemFromAllContainers(Item);
+}
+
+void UIInventoryManager::ItemEquipRequest_Implementation(UObject* Item)
+{
+	if (!ItemCollectionRef)
+		return;
+	
+	if (!Item)
+		return;
+	
+	if (!EquipmentComponentRef)
+		return;
+	
+	auto GlobalSettings = UInvenzayUtility::GetInvenzaGlobalSettings(GetWorld());
+	
+	auto EquipmentInventories = ItemCollectionRef->GetAllInventoriesByTag(GlobalSettings->EquipmentInvTag);
+	if (EquipmentInventories.IsEmpty())
+		return;
+	
+	auto CurrentInv = ItemCollectionRef->FindMainInventoryForItem(Item);
+	if (CurrentInv == nullptr)
+		return;
+	
+	const FGameplayTag RequiredEquipmentSlot =
+	   IObjectDataProvider::Execute_GetItemRef(Item).ItemCategory;
+	UInventorySlotData* FirstSuitableSlot = nullptr;
+	UInventorySlotData* FirstFreeSuitableSlot = nullptr;
+	
+	UInventoryBase* TargetEquipmentInventory = nullptr;
+	
+	for (auto* EquipmentInventory : EquipmentInventories)
+	{
+		if (!EquipmentInventory)
+			continue;
+
+		const auto LinkedEquipmentSlots = EquipmentInventory->GetSlotsWithLinkedEquipment();
+
+		for (const FGuid& SlotID : LinkedEquipmentSlots)
+		{
+			UInventorySlotData* Slot = EquipmentInventory->GetSlotByGuid(SlotID);
+
+			if (!Slot)
+				continue;
+
+			const FGameplayTag& EquipmentSlotTag =
+				Slot->InventorySlotInfo.LinkedEquipmentSlot;
+
+			// The slot must be compatible with the item.
+			if (!EquipmentSlotTag.IsValid())
+				continue;
+
+			if (!RequiredEquipmentSlot.IsValid())
+				continue;
+
+			if (!EquipmentSlotTag.MatchesTagExact(RequiredEquipmentSlot))
+				continue;
+			
+			if (!EquipmentComponentRef->DoesSlotExist(EquipmentSlotTag))
+				continue;
+
+			// Remember the first suitable slot.
+			if (!FirstSuitableSlot)
+			{
+				FirstSuitableSlot = Slot;
+				TargetEquipmentInventory = EquipmentInventory;
+			}
+
+			// Check whether the slot is free.
+			const bool bIsFree =
+				EquipmentInventory->bIsSlotEmpty(
+					Slot,
+					TArray<UInventorySlotData*>()
+				);
+
+			if (bIsFree)
+			{
+				FirstFreeSuitableSlot = Slot;
+				TargetEquipmentInventory = EquipmentInventory;
+				break;
+			}
+		}
+
+		if (FirstFreeSuitableSlot)
+			break;
+	}
+	
+	// No compatible equipment slot exists.
+	if (!FirstSuitableSlot || !TargetEquipmentInventory)
+		return;
+
+	FItemMoveData MoveData;
+
+	MoveData.SourceInventory = CurrentInv;
+	MoveData.SourceItem = Item;
+	MoveData.TargetInventory = TargetEquipmentInventory;
+
+	// Prefer a free compatible slot.
+	if (FirstFreeSuitableSlot)
+	{
+		MoveData.TargetSlotID = FirstFreeSuitableSlot->InventorySlotInfo.SlotGuid;
+		Execute_ItemTransferRequest(this, MoveData);
+		return;
+	}
+	else
+	{
+		// No free slot. Use the first compatible slot
+		MoveData.TargetSlotID = FirstSuitableSlot->InventorySlotInfo.SlotGuid;
+		
+		auto ItemInTarSlot = ItemCollectionRef->GetItemFromSlot(FirstSuitableSlot->InventorySlotInfo.SlotGuid, TargetEquipmentInventory->GetInventoryContainerID());
+		
+		if (TargetEquipmentInventory->GetInventorySettings().bIsReferenceContainer)
+		{
+			const int32 Quantity = IObjectDataProvider::Execute_GetQuantity(ItemInTarSlot);
+
+			TargetEquipmentInventory->HandleRemoveItem(ItemInTarSlot, Quantity);
+			Execute_ItemTransferRequest(this, MoveData);
+			return;
+		}
+		else
+		{
+			const FDataTableRowHandle EquippedItemRow =	IObjectDataProvider::Execute_GetItemRow(ItemInTarSlot);
+			const int32 EquippedItemQuantity = IObjectDataProvider::Execute_GetQuantity(ItemInTarSlot);
+			
+			TargetEquipmentInventory->HandleRemoveItem(ItemInTarSlot, EquippedItemQuantity);
+			Execute_ItemTransferRequest(this, MoveData);
+			
+			FInitItemsEntry ReturnedItemEntry;
+			ReturnedItemEntry.Item = EquippedItemRow ;
+			ReturnedItemEntry.Amount = EquippedItemQuantity ;
+			UInvenzayUtility::AddItemQuantity(this, CurrentInv, ReturnedItemEntry);
+		}
+	}
 }
 
 void UIInventoryManager::RequestUseSlot_Implementation( const FString& InvID, FGuid SlotID)
@@ -808,7 +976,7 @@ void UIInventoryManager::Server_HandleInteract_Implementation(UInteractableCompo
 		
 	if (IPickupableass* PickupInterface = Cast<IPickupableass>(Target))
 	{
-		if (UItemBase* ItemToPick = PickupInterface->GetItemData())
+		if (UObject* ItemToPick = PickupInterface->GetItemData())
 		{
 			FItemMoveData Data;
 			Data.SourceItem = ItemToPick;
@@ -873,7 +1041,7 @@ void UIInventoryManager::HandleInteract(UInteractableComponent* TargetInteractab
 
 	if (IPickupableass* PickupInterface = Cast<IPickupableass>(TargetInteractableComponent))
 	{
-		if (UItemBase* ItemToPick = PickupInterface->GetItemData())
+		if (UObject* ItemToPick = PickupInterface->GetItemData())
 		{
 			FItemMoveData Data;
 			Data.SourceItem = ItemToPick;
@@ -1178,6 +1346,54 @@ void UIInventoryManager::BindInputActions()
 	}
 }
 
+void UIInventoryManager::ValidateInventoryContextActions()
+{
+	
+}
+
+void UIInventoryManager::CollectAccessibleInventoryActions()
+{
+	TMap<EObjectInteractionType, FModalActionConfig> Result;
+	
+	auto GlobalSettings = UInvenzayUtility::GetInvenzaGlobalSettings(this);
+	
+	for (const auto& Pair : GlobalSettings->InvContextModalActions)
+	{
+		const EObjectInteractionType Action = Pair.Key;
+		
+		bool bAllowed = true;
+		
+		switch (Action)
+		{
+		case EObjectInteractionType::Equip:
+			{
+				if (!EquipmentComponentRef || EquipmentComponentRef->IsItemEquipped(PendingContextItem))
+					bAllowed = false;
+				break;
+			}
+		case EObjectInteractionType::UnEquip:
+			{
+				if (!EquipmentComponentRef || !EquipmentComponentRef->IsItemEquipped(PendingContextItem))
+					bAllowed = false;
+				break;
+			}
+		/*case EObjectInteractionType::Sell:
+			{
+				ItemCollectionRef->IsItemOwnedByActor(PendingContextItem);
+				break;
+			}*/
+			
+		default:
+			break;
+		}
+		
+		if (bAllowed)
+		{
+			Result.Add(Pair);
+		}
+	}
+}
+
 void UIInventoryManager::OnInventoryModalResponse(FModalResult Result)
 {
 	if (!PendingContextItem || !PendingContextInv)
@@ -1196,7 +1412,9 @@ void UIInventoryManager::OnInventoryModalResponse(FModalResult Result)
 			FItemDropData Data;
 			Data.ItemToDrop = PendingContextItem;
 			Data.SourceInventory = PendingContextInv;
-			Data.DropAmount = PendingContextItem->GetQuantity();
+			
+			Data.DropAmount = IObjectDataProvider::Execute_GetQuantity(PendingContextItem);
+
 			Execute_ItemDropRequest(this, Data);
 			break;
 		}
@@ -1212,7 +1430,12 @@ void UIInventoryManager::OnInventoryModalResponse(FModalResult Result)
 			Execute_ItemSplitRequest(this, PendingContextInv, PendingContextItem, Result.HeaderResult.SelectedAmount);
 			break;
 		}
-	
+		
+	case EObjectInteractionType::Equip:
+		{
+			
+		}
+
 	default:
 		break;
 	}

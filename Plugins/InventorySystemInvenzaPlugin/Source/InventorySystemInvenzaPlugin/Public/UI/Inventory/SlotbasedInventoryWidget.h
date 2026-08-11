@@ -139,7 +139,7 @@ protected:
 
 	//
 	UFUNCTION(BlueprintCallable)
-	virtual void ResetItemVisual(UItemBase* ItemToReset);
+	virtual void ResetItemVisual(UObject* ItemToReset);
 
 	//
 	virtual UInventorySlot* GetSlotByPosition(FIntPoint SlotPosition);
@@ -149,11 +149,11 @@ protected:
 	FVector2D CalculateItemVisualPosition(FIntPoint SlotPosition) const;
 
 public:
-	virtual void AddItemToPanel(FItemMapping& ItemSlots, UItemBase* Item) override;
-	virtual void ReplaceItemInPanel(TArray<UInventorySlotData*> OldItemSlots, FItemMapping& NewItemSlots, UItemBase* Item) override;
-	virtual void UpdateItem(UItemBase* Item) override;
-	virtual void UpdateSlotInPanel(FItemMapping FromSlots, UItemBase* Item);
-	virtual void RemoveItemFromPanel(FItemMapping FromSlots, UItemBase* Item) override;
+	virtual void AddItemToPanel(FItemMapping& ItemSlots, UObject* Item) override;
+	virtual void ReplaceItemInPanel(TArray<UInventorySlotData*> OldItemSlots, FItemMapping& NewItemSlots, UObject* Item) override;
+	virtual void UpdateItem(UObject* Item) override;
+	virtual void UpdateSlotInPanel(FItemMapping FromSlots, UObject* Item);
+	virtual void RemoveItemFromPanel(FItemMapping FromSlots, UObject* Item) override;
 	
 protected:
 	UFUNCTION()

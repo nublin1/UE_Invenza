@@ -72,9 +72,9 @@ protected:
 	virtual void SearchTextChanged(const FText& NewText) override;
 
 	//
-	virtual void AddItemToPanel(FItemMapping& ItemSlots, UItemBase* Item) override;
-	virtual void RemoveItemFromPanel(FItemMapping FromSlots, UItemBase* Item) override;
-	virtual void UpdateItem(UItemBase* Item) override;
+	virtual void AddItemToPanel(FItemMapping& ItemSlots, UObject* Item) override;
+	virtual void RemoveItemFromPanel(FItemMapping FromSlots, UObject* Item) override;
+	virtual void UpdateItem(UObject* Item) override;
 	
 	virtual void UpdateWeightInfo(float InventoryTotalWeight) override;
 	virtual void UpdateMoneyInfo(int32 InventoryTotalMoney) override;

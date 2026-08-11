@@ -25,35 +25,6 @@ void UItemBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetim
 	DOREPLIFETIME(UItemBase, Quantity);
 }
 
-bool UItemBase::bIsSameItems(UItemBase* FirstItem, UItemBase* SecondItem)
-{
-	if (!FirstItem || !SecondItem)
-		return false;
-	
-	if (FirstItem->GetItemID() == SecondItem->GetItemID())
-		return true;
-
-	return false;
-}
-
-bool UItemBase::DoItemsHaveSameFootprint(UItemBase* FirstItem, UItemBase* SecondItem,
-	EItemOrientationType OrientationFirstItem, EItemOrientationType OrientationSecondItem, bool bIgnoreSize)
-{
-	if (!FirstItem || !SecondItem)
-		return false;
-
-	if (bIgnoreSize)
-		return true;
-
-	auto FirstSize = FirstItem->GetItemSize(OrientationFirstItem);
-	auto SecondSize = SecondItem->GetItemSize(OrientationSecondItem);
-	
-	if (FirstSize != SecondSize)
-		return false;
-
-	return true;
-}
-
 void UItemBase::InitItem(const FName ID, FItemData Data, int32 InQuantity)
 {
 	this->ItemID = ID;
@@ -80,6 +51,9 @@ bool UItemBase::CanPerformAction_Implementation(EObjectInteractionType Action,
 	{
 	case EObjectInteractionType::UseItem:
 		return ItemRef.ItemCategory == Settings->ConsumableGameplayTag;
+		
+	case EObjectInteractionType::Equip:
+		return true;
 
 	case EObjectInteractionType::Drop:
 		return ItemRef.bIsDroppable;
@@ -95,7 +69,7 @@ bool UItemBase::CanPerformAction_Implementation(EObjectInteractionType Action,
 	}
 }
 
-void UItemBase::UseItem()
+void UItemBase::UseItem_Implementation()
 {
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("UseItem was called!"));
 	
@@ -103,34 +77,38 @@ void UItemBase::UseItem()
 		OnUseItemDelegate.Broadcast(this);
 }
 
-UItemBase* UItemBase::DuplicateItem()
+UObject* UItemBase::DuplicateItem_Implementation()
 {
 	UItemBase* NewItem = NewObject<UItemBase>();
-	if (NewItem && this)
+
+	if (!NewItem)
 	{
-		NewItem->ItemID = this->ItemID;
-		NewItem->ItemRef = this->ItemRef;
-		NewItem->Quantity = this->Quantity;
-		NewItem->ItemRow = this->ItemRow;
+		return nullptr;
 	}
+
+	NewItem->ItemID = ItemID;
+	NewItem->ItemRef = ItemRef;
+	NewItem->Quantity = Quantity;
+	NewItem->ItemRow = ItemRow;
+
 	return NewItem;
 }
 
-EItemOrientationType UItemBase::GetInitialItemOrientation()
+EItemOrientationType UItemBase::GetInitialItemOrientation_Implementation()
 {
 	if (ItemRef.ItemNumeraticData.InventoryVerticalSlots > ItemRef.ItemNumeraticData.InventoryHorizontalSlots)
 		return EItemOrientationType::Vertical;
 	return EItemOrientationType::Horizontal;
 }
 
-FIntPoint UItemBase::GetItemSize(EItemOrientationType Orientation) 
+FIntPoint UItemBase::GetItemSize_Implementation(EItemOrientationType Orientation) 
 {
 	const int32 H = ItemRef.ItemNumeraticData.InventoryHorizontalSlots;
 	const int32 V = ItemRef.ItemNumeraticData.InventoryVerticalSlots;
 
-	EItemOrientationType Initial = GetInitialItemOrientation();
+	EItemOrientationType Initial = GetInitialItemOrientation_Implementation();
 
-	if (GetInitialItemOrientation() == EItemOrientationType::Horizontal)
+	if (GetInitialItemOrientation_Implementation() == EItemOrientationType::Horizontal)
 	{
 		if (Orientation == Initial)
 			return FIntPoint(H, V);
@@ -146,17 +124,17 @@ FIntPoint UItemBase::GetItemSize(EItemOrientationType Orientation)
 	return FIntPoint(V, H);
 }
 
-FString UItemBase::CategoryToString()
+FString UItemBase::CategoryToString_Implementation()
 {
 	return ItemRef.ItemCategory.ToString();
 }
 
-FString UItemBase::CategoryToShortString()
+FString UItemBase::CategoryToShortString_Implementation()
 {
 	return ItemRef.ItemCategory.GetTagName().GetPlainNameString();
 }
 
-int32 UItemBase::GetFreeAmount() const
+int32 UItemBase::GetFreeAmount_Implementation() const
 {
 	int32 ReservedSum = 0;
 	for (const auto& Pair : ReservedAmounts)
@@ -166,7 +144,7 @@ int32 UItemBase::GetFreeAmount() const
 	return FMath::Max(0, Quantity - ReservedSum);
 }
 
-bool UItemBase::ReserveAmount(AActor* Requestor, int32 AmountToReserve)
+bool UItemBase::ReserveAmount_Implementation(AActor* Requestor, int32 AmountToReserve)
 {
 	if (!Requestor || AmountToReserve <= 0) return false;
     
@@ -181,7 +159,7 @@ bool UItemBase::ReserveAmount(AActor* Requestor, int32 AmountToReserve)
 	return true;
 }
 
-void UItemBase::ReleaseReservation(AActor* Requestor, int32 AmountToRelease)
+void UItemBase::ReleaseReservation_Implementation(AActor* Requestor, int32 AmountToRelease)
 {
 	if (!Requestor || AmountToRelease <= 0) return;
 
@@ -196,7 +174,7 @@ void UItemBase::ReleaseReservation(AActor* Requestor, int32 AmountToRelease)
 		ReservedAmounts.Remove(Requestor);
 }
 
-UItemBase* UItemBase::ConsumeReserved(AActor* Requestor, int32 RequestedAmount)
+UObject* UItemBase::ConsumeReserved_Implementation(AActor* Requestor, int32 RequestedAmount)
 {
 	if (!Requestor || RequestedAmount <= 0) return nullptr;
     
@@ -210,9 +188,9 @@ UItemBase* UItemBase::ConsumeReserved(AActor* Requestor, int32 RequestedAmount)
 	auto NewRes = DuplicateItem();
 	if (!NewRes) return nullptr;
 
-	NewRes->OnAmountChangedDelegate.Clear();
+	//NewRes->OnAmountChangedDelegate.Clear();
 	
-	NewRes->SetQuantity(ToConsume);
+	//NewRes->SetQuantity(ToConsume);
 
 	auto OldAmount = Quantity;    
 

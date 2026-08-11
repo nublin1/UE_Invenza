@@ -6,7 +6,7 @@
 
 #include "Pickupableass.generated.h"
 
-class UItemBase;
+class UObject;
 // This class does not need to be modified.
 UINTERFACE()
 class UPickupableass : public UInterface
@@ -22,7 +22,7 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API IPickupableass
 	GENERATED_BODY()
 
 public:
-	virtual UItemBase* GetItemData() = 0;
+	virtual UObject* GetItemData() = 0;
 	
 	virtual void OnPickedUp() = 0;
 };

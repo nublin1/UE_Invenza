@@ -11,6 +11,7 @@
 #include "Engine/ActorChannel.h"
 #include "Factory/ItemFactory.h"
 #include "Net/UnrealNetwork.h"
+#include "Utility/InterfaceUtils.h"
 
 
 UPickupComponent::UPickupComponent(): InitialItem()
@@ -86,7 +87,7 @@ void UPickupComponent::InitializeDrop(FInitItemsEntry ItemToDrop)
 	UpdateInteractableData();
 }
 
-UItemBase* UPickupComponent::GetItemData()
+UObject* UPickupComponent::GetItemData()
 {
 	if (bIsPendingDestruction)
 		return nullptr;
@@ -108,7 +109,7 @@ void UPickupComponent::InitializePickupComponent()
 	if (InitialItem.Item.RowName.IsNone())
 		return;
     
-	UItemBase* NewItem = UItemFactory::CreateItemByHandle(this, InitialItem.Item, InitialItem.Amount);
+	UObject* NewItem = UItemFactory::CreateItemByHandle(this, InitialItem.Item, InitialItem.Amount);
 	if (!NewItem)
 	{
 		UE_LOG(LogTemp, Error, TEXT("Item creation failed for %s!"), *InitialItem.Item.RowName.ToString());
@@ -117,9 +118,11 @@ void UPickupComponent::InitializePickupComponent()
     
 	ItemBase = NewItem;
 
-	if (CachedMesh && ItemBase->GetItemRef().ItemAssetData.Mesh)
+	const FItemMetaData Meta = IObjectDataProvider::Execute_GetItemRef(ItemBase);
+
+	if (CachedMesh && Meta.ItemAssetData.Mesh)
 	{
-		CachedMesh->SetStaticMesh(ItemBase->GetItemRef().ItemAssetData.Mesh);
+		CachedMesh->SetStaticMesh(Meta.ItemAssetData.Mesh);
 	}
 }
 
@@ -134,10 +137,15 @@ void UPickupComponent::UpdateInteractableData()
 	InteractableData.DefaultInteractableType = EInteractableType::Pickup;
 	InteractableData.Action = FText::FromString(TEXT("Pickup"));
 
-	if (ItemBase)
+	if (ItemBase &&
+		UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(ItemBase, TEXT("UpdateInteractableData")))
 	{
-		InteractableData.Quantity = ItemBase->GetQuantity();
+		InteractableData.Quantity = IObjectDataProvider::Execute_GetQuantity(ItemBase);
+
 		if (InteractableData.Name.IsEmpty())
-			InteractableData.Name = ItemBase->GetItemRef().ItemTextData.DisplayName;
+		{
+			const FItemMetaData Meta = IObjectDataProvider::Execute_GetItemRef(ItemBase);
+			InteractableData.Name = Meta.ItemTextData.DisplayName;
+		}
 	}
 }

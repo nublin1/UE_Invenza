@@ -8,7 +8,7 @@
 #include "WorldDropZoneWidget.generated.h"
 
 struct FItemMoveData;
-class UItemBase;
+class UObject;
 class UBorder;
 /**
  * 

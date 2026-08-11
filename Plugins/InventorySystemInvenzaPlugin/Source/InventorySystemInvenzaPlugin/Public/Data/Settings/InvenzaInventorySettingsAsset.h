@@ -25,12 +25,19 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UInvenzaInventorySettingsAsset : public U
 	
 public:
 	// Inventory
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
+	FGameplayTag MainInvTag;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
+	FGameplayTag EquipmentInvTag;
+	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
 	TSubclassOf<AActor> PickupClass;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
 	FDataTableRowHandle CurrencyItemClass;
-
+ 
+	//
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
 	FGameplayTag CurrencyGameplayTag;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
@@ -55,6 +62,9 @@ public:
 	// Modal
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Modal|Config")
 	TMap<EObjectInteractionType, FModalActionConfig> InvItemsModalActions;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Modal|Config")
+	TMap<EObjectInteractionType, FModalActionConfig> InvContextModalActions;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Modal|Config")
 	TMap<EObjectInteractionType, FModalAction> ModalActions;

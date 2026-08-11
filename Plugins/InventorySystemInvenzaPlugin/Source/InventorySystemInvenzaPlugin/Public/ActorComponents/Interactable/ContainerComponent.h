@@ -82,5 +82,5 @@ protected:
 	void SetupStartingResources();
 		
 	UFUNCTION()
-	virtual void DestroyWhenEmpty(FItemMapping ItemSlots, UItemBase* Item);
+	virtual void DestroyWhenEmpty(FItemMapping ItemSlots, UObject* Item);
 };

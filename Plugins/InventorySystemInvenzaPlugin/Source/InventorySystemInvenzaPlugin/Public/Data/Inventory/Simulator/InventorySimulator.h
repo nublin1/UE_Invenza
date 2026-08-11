@@ -6,7 +6,7 @@
 #include "UObject/Object.h"
 #include "InventorySimulator.generated.h"
 
-class UItemBase;
+class UObject;
 struct FInventorySimulationOperation;
 struct FItemMoveData;
 class UItemCollection;
@@ -43,7 +43,7 @@ public:
 	void DuplicateInventoryForSimulation(UInventoryBase* InInventory);
 
 	UFUNCTION(BlueprintCallable, Category="Inventory|Simulation")
-	void TransferRequestSimulateQuantity(UItemBase* ItemSample, int32 ToatalQuantity);
+	void TransferRequestSimulateQuantity(UObject* ItemSample, int32 ToatalQuantity);
 	UFUNCTION(BlueprintCallable, Category="Inventory|Simulation")
 	void TransferRequestSimulate(FItemMoveData ItemMoveData);
 

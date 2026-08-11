@@ -27,3 +27,4 @@ bool UInterfaceUtils::IsFunctionOverridden(UObject* Target, FName FunctionName, 
 
 	return InterfaceFunction && TargetFunction != InterfaceFunction;
 }
+

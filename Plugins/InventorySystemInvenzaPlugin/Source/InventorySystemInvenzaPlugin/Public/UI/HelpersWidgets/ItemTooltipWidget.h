@@ -10,7 +10,7 @@
 class ULabelBaseText;
 class UInventoryBase;
 class UUInventoryBaseWidget;
-class UItemBase;
+class UObject;
 struct FItemMetaData;
 class UTextBlock;
 /**
@@ -52,7 +52,7 @@ public:
 	// FUNCTIONS
 	//====================================================================
 	UFUNCTION(BlueprintCallable, Category="Tooltip|Core")
-	virtual void SetTooltipData(UItemBase* InItem, UInventoryBase* InInventory = nullptr);
+	virtual void SetTooltipData(UObject* InItem, UInventoryBase* InInventory = nullptr);
 
 	UFUNCTION(BlueprintCallable, Category="Tooltip|Price")
 	virtual void UpdatePrice();
@@ -62,7 +62,7 @@ protected:
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Tooltip|Data")
-	TObjectPtr<UItemBase> Item;
+	TObjectPtr<UObject> Item;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Tooltip|Data")
 	TObjectPtr<UInventoryBase> Inventory;	
 

@@ -97,16 +97,16 @@ protected:
 
 	UFUNCTION(BlueprintCallable)
 	bool SimulateTrade(const FItemMoveData& TradeData,
-		int32 Price, bool bIsBuyingFromVendor, UItemBase* CurrencyItem, FTradeResult& OutResult);
+		int32 Price, bool bIsBuyingFromVendor, UObject* CurrencyItem, FTradeResult& OutResult);
 
 	UFUNCTION(BlueprintCallable)
 	FTradeTransaction ExecuteTrade(const FItemMoveData& TradeData, int32 Price,
-		bool bIsBuyingFromVendor, UInventoryBase* PlayerInventory, UItemBase* CurrencyItem);
+		bool bIsBuyingFromVendor, UInventoryBase* PlayerInventory, UObject* CurrencyItem);
 
 	UFUNCTION(BlueprintCallable)
-	float CalculateTotalBuyPrice(UItemBase* ItemToBuy);
+	float CalculateTotalBuyPrice(UObject* ItemToBuy);
 	UFUNCTION(BlueprintCallable)
-	float CalculateTotalSellPrice(UItemBase* ItemsToSell);
+	float CalculateTotalSellPrice(UObject* ItemsToSell);
 
 	UFUNCTION(BlueprintCallable)
 	UInventoryBase* ResolvePlayerInventory(const FItemMoveData& TradeData, bool bIsBuyingFromVendor) const;

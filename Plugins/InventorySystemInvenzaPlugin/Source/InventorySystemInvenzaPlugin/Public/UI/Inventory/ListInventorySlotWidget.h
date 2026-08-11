@@ -38,7 +38,7 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	virtual void UpdateVisualWithItemInfo(UItemBase* Item) override;
+	virtual void UpdateVisualWithItemInfo(UObject* Item) override;
 
 	UFUNCTION()
 	virtual void UpdatePriceText();

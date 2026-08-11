@@ -16,7 +16,7 @@ struct FInventoryEntry : public FFastArraySerializerItem
 	GENERATED_BODY()
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	TObjectPtr<UItemBase> Item = nullptr;
+	TObjectPtr<UObject> Item = nullptr;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	FItemMappingArrayWrapper Locations;

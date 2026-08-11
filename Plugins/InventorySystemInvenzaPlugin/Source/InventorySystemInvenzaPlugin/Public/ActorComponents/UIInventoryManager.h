@@ -86,7 +86,7 @@ public:
 	virtual void SetupAdditionalComponents();
 	
 	// ItemMenu
-	virtual void ItemContextMenuRequest_Implementation(const FString& FromInventory, FGuid SlotGuid, UItemBase* Item) override;
+	virtual void ItemContextMenuRequest_Implementation(const FString& FromInventory, FGuid SlotGuid, UObject* Item) override;
 
 	// Quick Transfer
 	virtual void OnQuickTransferItem_Implementation(FItemMoveData InData) override;
@@ -109,11 +109,11 @@ public:
 	void Handle_ItemTransferRequest(FItemMoveData ItemMoveData);
 
 	// Split
-	virtual void ItemSplitRequest_Implementation(UInventoryBase* TargetInventory, UItemBase* ItemToSplit, int32 SplitAmount) override;
+	virtual void ItemSplitRequest_Implementation(UInventoryBase* TargetInventory, UObject* ItemToSplit, int32 SplitAmount) override;
 	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Inventory|Transfer")
-	void Server_ItemSplitRequest(UInventoryBase* TargetInventory, UItemBase* ItemToSplit, int32 SplitAmount);
+	void Server_ItemSplitRequest(UInventoryBase* TargetInventory, UObject* ItemToSplit, int32 SplitAmount);
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Transfer")
-	void Handle_SplitItem(UInventoryBase* TargetInventory, UItemBase* ItemToSplit, int32 SplitAmount);
+	void Handle_SplitItem(UInventoryBase* TargetInventory, UObject* ItemToSplit, int32 SplitAmount);
 
 	// Drop
 	virtual void ItemDropRequest_Implementation(FItemDropData DropData) override;
@@ -123,9 +123,12 @@ public:
 	void HandleItemDrop(FItemDropData DropData );
 	
 	// Delete
-	virtual void ItemDeleteRequest_Implementation(const FString& FromInventory, UItemBase* Item) override;
+	virtual void ItemDeleteRequest_Implementation(const FString& FromInventory, UObject* Item) override;
 	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Inventory|Transfer")
-	void Server_OnItemDelete(const FString& FromInventory, UItemBase* Item);
+	void Server_OnItemDelete(const FString& FromInventory, UObject* Item);
+	
+	// Equip
+	virtual void ItemEquipRequest_Implementation(UObject* Item);
 	
 	// Use
 	virtual void RequestUseSlot_Implementation(const FString& InvID, FGuid SlotID) override;
@@ -182,6 +185,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Replicated)
 	TScriptInterface<IVendorProvider> VendorProviderCurrent;
 	
+	// Refs
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TObjectPtr<UInventoryBase> MainPawnInventory;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
@@ -193,9 +197,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TObjectPtr<UInteractionComponent> InteractionComponent;
 	
+	
 	//
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
-	TObjectPtr<UItemBase> PendingContextItem = nullptr;
+	TObjectPtr<UObject> PendingContextItem = nullptr;
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
 	TObjectPtr<UInventoryBase> PendingContextInv = nullptr;
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
@@ -205,9 +210,9 @@ protected:
 	// FUNCTIONS
 	//====================================================================
 	UFUNCTION()
-	void OnItemAddedToInventory(FItemMapping& ItemSlots, UItemBase* Item);
+	void OnItemAddedToInventory(FItemMapping& ItemSlots, UObject* Item);
 	UFUNCTION()
-	void OnItemRemovedFromInventory(FItemMapping ItemSlots, UItemBase* Item);
+	void OnItemRemovedFromInventory(FItemMapping ItemSlots, UObject* Item);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	UInventoryBase* ResolveTargetInventory(UInventoryBase* SourceInventory);	
@@ -272,7 +277,10 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Initialization")
 	void BindInputActions();
 	
-	
+	UFUNCTION(BlueprintCallable)
+	void ValidateInventoryContextActions();
+	UFUNCTION()
+	void CollectAccessibleInventoryActions();
 	UFUNCTION(BlueprintCallable)
 	void OnInventoryModalResponse(FModalResult Result);
 };

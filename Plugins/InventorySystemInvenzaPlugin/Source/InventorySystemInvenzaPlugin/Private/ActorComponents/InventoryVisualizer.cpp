@@ -6,6 +6,7 @@
 #include "Data/Inventory/InventoryBase.h"
 #include "Data/Items/ItemBase.h"
 #include "Net/UnrealNetwork.h"
+#include "Utility/InterfaceUtils.h"
 
 
 UInventoryVisualizer::UInventoryVisualizer()
@@ -111,12 +112,17 @@ void UInventoryVisualizer::RefreshVisuals()
 	}
 }
 
-void UInventoryVisualizer::AddItemVisual(FItemMapping& ItemSlots, UItemBase* Item)
+void UInventoryVisualizer::AddItemVisual(FItemMapping& ItemSlots, UObject* Item)
 {
-	if (GetNetMode() == NM_DedicatedServer || !Item) return;
-	
-	if (TrackedVisuals.Contains(Item)) return;
-	
+	if (GetNetMode() == NM_DedicatedServer || !Item)
+		return;
+
+	if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(Item, TEXT("AddItemVisual")))
+		return;
+
+	if (TrackedVisuals.Contains(Item))
+		return;
+
 	if (DisplayMode == EVisualizerMode::OccupancyMeshSwap)
 	{
 		UpdateOccupancyMesh();
@@ -127,27 +133,30 @@ void UInventoryVisualizer::AddItemVisual(FItemMapping& ItemSlots, UItemBase* Ite
 		return;
 
 	int32 FreeIndex = GetFirstFreeSocketIndex();
-	if (FreeIndex == INDEX_NONE) 
+	if (FreeIndex == INDEX_NONE)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Visualizer: No free sockets for item %s"), *Item->GetName());
 		return;
 	}
+	
+	UStaticMesh* SM_Item =
+		IObjectDataProvider::Execute_GetItemRef(Item).ItemAssetData.AlternativeMesh;
 
-	UStaticMesh* SM_Item = Item->GetItemRef().ItemAssetData.AlternativeMesh;
-	if (!SM_Item) return;
+	if (!SM_Item)
+		return;
 
 	UStaticMeshComponent* NewItemMesh = NewObject<UStaticMeshComponent>(GetOwner());
 	NewItemMesh->SetStaticMesh(SM_Item);
-	
+
 	NewItemMesh->SetupAttachment(ParentMeshPtr, CachedSlots[FreeIndex].SocketName);
 	NewItemMesh->SetRelativeTransform(FTransform::Identity);
 	NewItemMesh->RegisterComponent();
-	
+
 	TrackedVisuals.Add(Item, NewItemMesh);
 	OccupiedSocketIndices.Add(FreeIndex, Item);
 }
 
-void UInventoryVisualizer::RemoveItemVisual(FItemMapping ItemSlots, UItemBase* Item)
+void UInventoryVisualizer::RemoveItemVisual(FItemMapping ItemSlots, UObject* Item)
 {
 	if (!Item) return;
 
@@ -228,7 +237,7 @@ void UInventoryVisualizer::UpdateIndividualItems()
 {
 	if (CachedSlots.Num() == 0 || !ParentMeshPtr) return;
 	
-	TArray<UItemBase*> CurrentItems;
+	TArray<UObject*> CurrentItems;
 	for (auto Inv : TargetInventories)
 	{
 		if (Inv && Inv->GetItemCollectionLinked())
@@ -237,7 +246,7 @@ void UInventoryVisualizer::UpdateIndividualItems()
 		}
 	}
 	
-	TArray<UItemBase*> VisualsToRemove;
+	TArray<UObject*> VisualsToRemove;
 	for (auto& Pair : TrackedVisuals)
 	{
 		if (!CurrentItems.Contains(Pair.Key))
@@ -246,13 +255,13 @@ void UInventoryVisualizer::UpdateIndividualItems()
 		}
 	}
 
-	for (UItemBase* ItemToRemove : VisualsToRemove)
+	for (UObject* ItemToRemove : VisualsToRemove)
 	{
 		FItemMapping ItemSlots;
 		RemoveItemVisual(ItemSlots, ItemToRemove);
 	}
 	
-	for (UItemBase* Item : CurrentItems)
+	for (UObject* Item : CurrentItems)
 	{
 		FItemMapping ItemSlots;
 		AddItemVisual(ItemSlots, Item);

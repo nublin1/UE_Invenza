@@ -23,7 +23,7 @@ class UInventorySlot;
 class UItemTooltipWidget;
 struct FInventoryCheck;
 class UInventoryItemWidget;
-class UItemBase;
+class UObject;
 class UUInventoryBaseWidget;
 class UItemCollection;
 
@@ -142,7 +142,7 @@ struct FSlotReservationData
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	FItemPlacementData ItemPlacementData;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	TObjectPtr<UItemBase> Resource;
+	TObjectPtr<UObject> Resource;
 };
 
 USTRUCT(BlueprintType)
@@ -151,7 +151,7 @@ struct FItemDropData
 	GENERATED_BODY()
 	
 	UPROPERTY(BlueprintReadWrite)
-	TObjectPtr<UItemBase> ItemToDrop;
+	TObjectPtr<UObject> ItemToDrop;
 	UPROPERTY(BlueprintReadWrite)
 	TObjectPtr<UInventoryBase> SourceInventory;
 	UPROPERTY(BlueprintReadWrite)
@@ -163,7 +163,7 @@ struct FItemDropData
 	{
 	}
 	
-	FItemDropData(UItemBase* InItem, UInventoryBase* InInv, int32 InAmount)
+	FItemDropData(UObject* InItem, UInventoryBase* InInv, int32 InAmount)
 	{
 		ItemToDrop = InItem;
 		SourceInventory = InInv;
@@ -177,7 +177,7 @@ struct FItemMoveData
 	GENERATED_BODY()
 
 	UPROPERTY(BlueprintReadWrite)
-	TObjectPtr<UItemBase> SourceItem;
+	TObjectPtr<UObject> SourceItem;
 	UPROPERTY(BlueprintReadWrite)
 	TObjectPtr<UInventoryBase> SourceInventory;
 	UPROPERTY(BlueprintReadWrite)
@@ -185,7 +185,9 @@ struct FItemMoveData
 	UPROPERTY(BlueprintReadWrite)
 	TObjectPtr<UInventoryBase> TargetInventory;
 	UPROPERTY(BlueprintReadWrite)
-	FIntPoint TargetSlotCoordinate = FIntPoint(-1); // For SlotBased
+	FGuid TargetSlotID;
+	/*UPROPERTY(BlueprintReadWrite)
+	FIntPoint TargetSlotCoordinate = FIntPoint(-1); // For SlotBased*/
 	UPROPERTY(BlueprintReadWrite)
 	EItemOrientationType SavedOrientation = EItemOrientationType::Horizontal;
 	UPROPERTY(BlueprintReadWrite)
@@ -195,19 +197,20 @@ struct FItemMoveData
 	                  SourceInventory(nullptr),
 	                  TargetInventory(nullptr)
 	{
+		TargetSlotID.Invalidate();
 	}
 
-	FItemMoveData (UItemBase* _SourceItem,
+	FItemMoveData (UObject* _SourceItem,
 	               UInventoryBase* _SourceInventory,
 	               FIntPoint _SourceItemPivotSlotCoordinate,
 	               UInventoryBase* _TargetInventory,
-	               FIntPoint _TargetSlot = FIntPoint(-1))
+	               FGuid _TargetSlotID)
 	{
 		SourceItem = _SourceItem;
 		SourceInventory = _SourceInventory;
 		SourceItemPivotSlotCoordinate = _SourceItemPivotSlotCoordinate;
 		TargetInventory = _TargetInventory;
-		TargetSlotCoordinate = _TargetSlot;
+		TargetSlotID = _TargetSlotID;
 	}
 };
 
@@ -313,7 +316,7 @@ struct FInventorySettings
 	TArray<FName> AllowedItemCategories;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|Restrictions")
-	TArray<TSoftObjectPtr<UItemBase>> AllowedItems;*/
+	TArray<TSoftObjectPtr<UObject>> AllowedItems;*/
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|UI")
 	bool bCollectInvDataFromWidget = true;

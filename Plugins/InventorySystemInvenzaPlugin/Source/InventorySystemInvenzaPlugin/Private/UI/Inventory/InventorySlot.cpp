@@ -8,7 +8,7 @@ UInventorySlot::UInventorySlot()
 {
 }
 
-void UInventorySlot::UpdateVisualWithItemInfo(UItemBase* Item)
+void UInventorySlot::UpdateVisualWithItemInfo(UObject* Item)
 {
 }
 

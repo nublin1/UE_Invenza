@@ -5,6 +5,7 @@
 
 #include "Data/Items/itemBase.h"
 #include "DragDrop/ItemDragDropOperation.h"
+#include "Utility/InterfaceUtils.h"
 
 class UItemDragDropOperation;
 
@@ -15,19 +16,24 @@ UWorldDropZoneWidget::UWorldDropZoneWidget()
 bool UWorldDropZoneWidget::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent,
 	UDragDropOperation* InOperation)
 {
-	UItemDragDropOperation* ItemOperation =	Cast<UItemDragDropOperation>(InOperation);
+	UItemDragDropOperation* ItemOperation = Cast<UItemDragDropOperation>(InOperation);
 	if (!ItemOperation)
 		return false;
 
-	UItemBase* Item = ItemOperation->ItemMoveData.SourceItem.Get();
+	UObject* Item = ItemOperation->ItemMoveData.SourceItem.Get();
 	if (!Item)
-	{
 		return false;
-	}
-	
-	FItemDropData DropData(ItemOperation->ItemMoveData.SourceItem,
+
+	if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(Item, TEXT("NativeOnDrop")))
+		return false;
+
+	const int32 Quantity = IObjectDataProvider::Execute_GetQuantity(Item);
+
+	FItemDropData DropData(
+		ItemOperation->ItemMoveData.SourceItem,
 		ItemOperation->ItemMoveData.SourceInventory,
-		ItemOperation->ItemMoveData.SourceItem->GetQuantity());
+		Quantity
+	);
 
 	OnItemDroppedToWorld.Broadcast(DropData);
 

@@ -28,9 +28,6 @@ USTRUCT(Blueprintable)
 struct FUISettings
 {
 	GENERATED_BODY()
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
-	FGameplayTag MainInvTag;
 	
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Input")
     UInputMappingContext* InventoryMappingContext;

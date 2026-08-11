@@ -9,7 +9,7 @@
 #include "InventoryVisualizer.generated.h"
 
 struct FItemMapping;
-class UItemBase;
+class UObject;
 class UInventoryBase;
 
 UENUM(BlueprintType)
@@ -62,10 +62,10 @@ public:
 	void RefreshVisuals();
 
 	UFUNCTION(BlueprintCallable, Category = "Visualizer")
-	void AddItemVisual(FItemMapping& ItemSlots, UItemBase* Item);
+	void AddItemVisual(FItemMapping& ItemSlots, UObject* Item);
 
 	UFUNCTION(BlueprintCallable, Category = "Visualizer")
-	void RemoveItemVisual(FItemMapping ItemSlots, UItemBase* Item);
+	void RemoveItemVisual(FItemMapping ItemSlots, UObject* Item);
 
 	UFUNCTION(blueprintCallable, Category = "Visualizer")
 	float GetTotalOccupancy() const;
@@ -95,9 +95,9 @@ protected:
 	TMap<float, TObjectPtr<UStaticMesh>> OccupancyMeshes;
 
 	UPROPERTY()
-	TMap<TObjectPtr<UItemBase>, TObjectPtr<UStaticMeshComponent>> TrackedVisuals;
+	TMap<TObjectPtr<UObject>, TObjectPtr<UStaticMeshComponent>> TrackedVisuals;
 	UPROPERTY()
-	TMap<int32, TObjectPtr<UItemBase>> OccupiedSocketIndices;
+	TMap<int32, TObjectPtr<UObject>> OccupiedSocketIndices;
 
 	UPROPERTY()
 	TObjectPtr<UMeshComponent> ParentMeshPtr;

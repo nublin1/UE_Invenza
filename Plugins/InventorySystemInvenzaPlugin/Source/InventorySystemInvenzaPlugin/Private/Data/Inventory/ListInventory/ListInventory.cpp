@@ -8,6 +8,7 @@
 #include "Engine/ActorChannel.h"
 #include "Net/UnrealNetwork.h"
 #include "UI/Inventory/ListInventorySlotWidget.h"
+#include "Utility/InterfaceUtils.h"
 
 
 UListInventory::UListInventory()
@@ -54,14 +55,15 @@ void UListInventory::SortItemsInContainerByName()
 {
 	if (!ItemCollectionLinked)
 		return;
-	
+    
 	MergeStackableItems();
-	
-	auto SortByName = [](const UItemBase& A, const UItemBase& B)
+
+	auto SortByName = [](const UObject& A, const UObject& B)
 	{
-		return A.GetItemDisplayText().ToString() < B.GetItemDisplayText().ToString();
+		return IObjectDataProvider::Execute_GetItemDisplayText(&A).ToString()
+			 < IObjectDataProvider::Execute_GetItemDisplayText(&B).ToString();
 	};
-	
+
 	auto AllItems = ItemCollectionLinked->GetAllItemsByContainer(InventoryContainerID);
 	if (AllItems.IsEmpty())
 		return;
@@ -71,20 +73,21 @@ void UListInventory::SortItemsInContainerByName()
 	InvSlotsArray.Empty();
 	FilteredInvSlotsArray.Empty();
 
-	for (auto Item : AllItems)
+	for (UObject* Item : AllItems)
 	{
+		if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(Item, TEXT("UpdateInvSlotsArray")))
+			continue;
+
 		UInventoryListEntry* EntryObject = NewObject<UInventoryListEntry>(this, EntryClass);
 		EntryObject->Item = Item;
-		
+
 		auto IDs = ItemCollectionLinked->GetOccupatedSlotsIDByContainerName(InventoryContainerID, Item);
 		if (!IDs.IsEmpty())
-		{
 			EntryObject->SlotGuid = IDs[0];
-		}
-		
+
 		InvSlotsArray.Add(EntryObject);
 	}
-	
+
 	NotifyReDrawRequest();
 	OnRep_InventoryTotalWeight();
 	OnRep_InventoryTotalMoney();
@@ -125,92 +128,67 @@ UInventorySlotData* UListInventory::GetSlotByGuid(FGuid InGuid)
 	return nullptr;
 }
 
-void UListInventory::RequestSplitStack(UItemBase* ItemToSplit, int32 SplitAmount)
+void UListInventory::RequestSplitStack(UObject* ItemToSplit, int32 SplitAmount)
 {
 	if (!ItemToSplit || SplitAmount <= 0)
 		return;
 
-	if (ItemToSplit->GetQuantity() == 1 || ItemToSplit->GetQuantity() <= SplitAmount)
+	if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(ItemToSplit, TEXT("RequestSplitStack")))
+		return;
+
+	const int32 Quantity = IObjectDataProvider::Execute_GetQuantity(ItemToSplit);
+	if (Quantity == 1 || Quantity <= SplitAmount)
 		return;
 
 	if (InventorySettings.MaxStackCount > 0)
 	{
 		auto ResultMaxStack = ItemCollectionLinked->GetStackCountInContainer(InventoryContainerID);
-		if (ResultMaxStack + 1 >InventorySettings.MaxStackCount)
-			return ;
+		if (ResultMaxStack + 1 > InventorySettings.MaxStackCount)
+			return;
 	}
 
-	auto NewItem = ItemToSplit->DuplicateItem();
-	if (!NewItem) return ;
+	UObject* NewItem = IObjectDataProvider::Execute_DuplicateItem(ItemToSplit);
+	if (!NewItem)
+		return;
 
-	NewItem->SetQuantity(SplitAmount);
-	
+	IObjectDataProvider::Execute_SetQuantity(NewItem, SplitAmount);
+
 	FItemMoveData ItemMove;
 	ItemMove.SourceItem = NewItem;
 	ItemMove.TargetInventory = this;
-	ItemMove.SavedOrientation = ItemMove.SourceItem->GetInitialItemOrientation();
-	ItemMove.TargetOrientation = ItemMove.SourceItem->GetInitialItemOrientation();
+	ItemMove.SavedOrientation = IObjectDataProvider::Execute_GetInitialItemOrientation(NewItem);
+	ItemMove.TargetOrientation = ItemMove.SavedOrientation;
 
 	OnSplitDelegate.Broadcast(this, ItemToSplit, SplitAmount);
 }
 
 void UListInventory::HandleRemoveItemsByID(FName ItemID, int32 RequestedAmount)
 {
-	if (ItemID.IsNone() || RequestedAmount <= 0) return;
+	if (ItemID.IsNone() || RequestedAmount <= 0)
+		return;
 
 	int32 RemainingToRemove = RequestedAmount;
 	int32 RemovedTotal = 0;
-	TArray<UItemBase*> FoundItems = ItemCollectionLinked->GetAllSameItemsInContainerByID(InventoryContainerID, ItemID);
-	if (FoundItems.IsEmpty()) return;
 
-	for (UItemBase* Item : FoundItems)
-	{
-		if (!Item || RemainingToRemove <= 0)
-			break;
+	TArray<UObject*> FoundItems =
+		ItemCollectionLinked->GetAllSameItemsInContainerByID(InventoryContainerID, ItemID);
 
-		int32 Removed = TryRemoveFromStackItem(Item, RemainingToRemove);
-		RemainingToRemove -= Removed;
-		RemovedTotal += Removed;
-
-		if (Item->GetQuantity() <= 0)
-		{
-			auto IDs = ItemCollectionLinked->GetOccupatedSlotsIDByContainerName(InventoryContainerID, Item);
-			if (!IDs.IsEmpty())
-			{
-				const FGuid& SlotID = IDs[0];
-
-				InventorySlots.RemoveAll(
-					[&SlotID](const UInventorySlotData* Slot)
-					{
-						return Slot &&
-							   Slot->InventorySlotInfo.SlotGuid == SlotID;
-					});
-			}
-		}
-	}
-}
-
-void UListInventory::HandleRemoveItemsBySample(UItemBase* ItemSample, int32 RequestedAmount)
-{
-	if (!ItemSample || RequestedAmount <= 0) return;
-	
-	int32 RemainingToRemove = RequestedAmount;
-	int32 RemovedTotal = 0;
-	TArray<UItemBase*> FoundItems =	ItemCollectionLinked->GetAllSameItemsInContainerByItemSample(InventoryContainerID, ItemSample);
 	if (FoundItems.IsEmpty())
 		return;
 
-	for (UItemBase* Item : FoundItems)
+	for (UObject* Item : FoundItems)
 	{
 		if (!Item || RemainingToRemove <= 0)
 			break;
 
-		int32 Removed = TryRemoveFromStackItem(Item, RemainingToRemove);
+		if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(Item, TEXT("HandleRemoveItemsByID")))
+			continue;
 
+		int32 Removed = TryRemoveFromStackItem(Item, RemainingToRemove);
 		RemainingToRemove -= Removed;
 		RemovedTotal += Removed;
-		
-		if (Item->GetQuantity() <= 0)
+
+		if (IObjectDataProvider::Execute_GetQuantity(Item) <= 0)
 		{
 			auto IDs = ItemCollectionLinked->GetOccupatedSlotsIDByContainerName(InventoryContainerID, Item);
 			if (!IDs.IsEmpty())
@@ -228,13 +206,62 @@ void UListInventory::HandleRemoveItemsBySample(UItemBase* ItemSample, int32 Requ
 	}
 }
 
-void UListInventory::HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity)
+void UListInventory::HandleRemoveItemsBySample(UObject* ItemSample, int32 RequestedAmount)
 {
-	if (!Item) return;
+	if (!ItemSample || RequestedAmount <= 0)
+		return;
 
-	auto RemovedActual = TryRemoveFromStackItem(Item, RemoveQuantity);
+	if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(ItemSample, TEXT("HandleRemoveItemsBySample")))
+		return;
 
-	if (Item->GetQuantity() <= 0)
+	int32 RemainingToRemove = RequestedAmount;
+	int32 RemovedTotal = 0;
+
+	TArray<UObject*> FoundItems =
+		ItemCollectionLinked->GetAllSameItemsInContainerByItemSample(InventoryContainerID, ItemSample);
+
+	if (FoundItems.IsEmpty())
+		return;
+
+	for (UObject* Item : FoundItems)
+	{
+		if (!Item || RemainingToRemove <= 0)
+			break;
+
+		if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(Item, TEXT("HandleRemoveItemsBySample")))
+			continue;
+
+		int32 Removed = TryRemoveFromStackItem(Item, RemainingToRemove);
+		RemainingToRemove -= Removed;
+		RemovedTotal += Removed;
+
+		if (IObjectDataProvider::Execute_GetQuantity(Item) <= 0)
+		{
+			auto IDs = ItemCollectionLinked->GetOccupatedSlotsIDByContainerName(InventoryContainerID, Item);
+			if (!IDs.IsEmpty())
+			{
+				const FGuid& SlotID = IDs[0];
+
+				InventorySlots.RemoveAll(
+					[&SlotID](const UInventorySlotData* Slot)
+					{
+						return Slot &&
+							   Slot->InventorySlotInfo.SlotGuid == SlotID;
+					});
+			}
+		}
+	}
+}
+
+void UListInventory::HandleRemoveItem(UObject* Item, int32 RemoveQuantity)
+{
+	if (!Item ||
+		!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(Item, TEXT("HandleRemoveItem")))
+		return;
+
+	int32 RemovedActual = TryRemoveFromStackItem(Item, RemoveQuantity);
+
+	if (IObjectDataProvider::Execute_GetQuantity(Item) <= 0)
 	{
 		auto IDs = ItemCollectionLinked->GetOccupatedSlotsIDByContainerName(InventoryContainerID, Item);
 		if (!IDs.IsEmpty())
@@ -255,58 +282,57 @@ void UListInventory::HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity)
 
 FItemAddResult UListInventory::HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck)
 {
-	if (!ItemCollectionLinked)
-		return FItemAddResult::AddedNone(FText::FromString("ItemCollectionLinked is null"));
-	
-	if (!ItemMoveData.SourceItem)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Item is null. Nothing to add"));
-		return FItemAddResult::AddedNone(FText::FromString("Item is null. Nothing to add"));
-	}
+	 if (!ItemCollectionLinked)
+        return FItemAddResult::AddedNone(FText::FromString("ItemCollectionLinked is null"));
+    
+    if (!ItemMoveData.SourceItem ||
+        !UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(ItemMoveData.SourceItem, TEXT("HandleAddItem")))
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Item is null. Nothing to add"));
+        return FItemAddResult::AddedNone(FText::FromString("Item is null. Nothing to add"));
+    }
 
-	if (ItemMoveData.SourceInventory
-		&& ItemMoveData.SourceInventory->GetInventorySettings().bIsReferenceContainer
-		&& InventorySettings.bIsReferenceContainer
-		&& ItemMoveData.SourceInventory != ItemMoveData.TargetInventory)
-	{
-		return FItemAddResult::AddedNone(
-			FText::FromString("Moving items between reference containers is not allowed.")
-		);
-	}
+    if (ItemMoveData.SourceInventory &&
+        ItemMoveData.SourceInventory->GetInventorySettings().bIsReferenceContainer &&
+        InventorySettings.bIsReferenceContainer &&
+        ItemMoveData.SourceInventory != ItemMoveData.TargetInventory)
+    {
+        return FItemAddResult::AddedNone(
+            FText::FromString("Moving items between reference containers is not allowed."));
+    }
 
-	if (ItemMoveData.SourceInventory
-		&& ItemMoveData.SourceInventory != ItemMoveData.TargetInventory
-		&& !ItemMoveData.SourceInventory->GetInventorySettings().bAllowItemReferencing
-		&& InventorySettings.bIsReferenceContainer)
-	{
-		return FItemAddResult::AddedNone(
-		FText::Format(
-			FText::FromString("Item {0} cannot be added because the source inventory does not allow referencing."),
-			FText::FromName(ItemMoveData.SourceItem->GetItemID())));
-	}
+    if (ItemMoveData.SourceInventory &&
+        ItemMoveData.SourceInventory != ItemMoveData.TargetInventory &&
+        !ItemMoveData.SourceInventory->GetInventorySettings().bAllowItemReferencing &&
+        InventorySettings.bIsReferenceContainer)
+    {
+        return FItemAddResult::AddedNone(
+            FText::Format(
+                FText::FromString("Item {0} cannot be added because the source inventory does not allow referencing."),
+                FText::FromName(IObjectDataProvider::Execute_GetItemID(ItemMoveData.SourceItem))));
+    }
 
-	if (ItemMoveData.SourceInventory == this)
-	{
-		return FItemAddResult::AddedNone(
-			FText::Format( FText::FromString("Item {0} is already inside this inventory."),
-			FText::FromName(ItemMoveData.SourceItem->GetItemID())));
-	}
+    if (ItemMoveData.SourceInventory == this)
+    {
+        return FItemAddResult::AddedNone(
+            FText::Format(
+                FText::FromString("Item {0} is already inside this inventory."),
+                FText::FromName(IObjectDataProvider::Execute_GetItemID(ItemMoveData.SourceItem))));
+    }
 
-	if (InventorySettings.bIsReferenceContainer)
-		return HandleAddReferenceItem(ItemMoveData, bOnlyCheck);
+    if (InventorySettings.bIsReferenceContainer)
+        return HandleAddReferenceItem(ItemMoveData, bOnlyCheck);
 
-	if (!ItemMoveData.SourceItem->Execute_IsStackable(ItemMoveData.SourceItem))
-		return HandleNonStackableItems(ItemMoveData, bOnlyCheck);
-	
-	
-	if (ItemMoveData.SourceItem->Execute_IsStackable(ItemMoveData.SourceItem))
-	{
-		return TryAddStackableItem(ItemMoveData, bOnlyCheck);
-	}
-	
+    if (!IObjectDataProvider::Execute_IsStackable(ItemMoveData.SourceItem))
+        return HandleNonStackableItems(ItemMoveData, bOnlyCheck);
 
-	return FItemAddResult::AddedNone(FText::Format(FText::FromString("Couldn't add {0} to inventory."),
-	                                               ItemMoveData.SourceItem->GetItemRef().ItemTextData.DisplayName));
+    if (IObjectDataProvider::Execute_IsStackable(ItemMoveData.SourceItem))
+        return TryAddStackableItem(ItemMoveData, bOnlyCheck);
+
+    return FItemAddResult::AddedNone(
+        FText::Format(
+            FText::FromString("Couldn't add {0} to inventory."),
+            IObjectDataProvider::Execute_GetItemRef(ItemMoveData.SourceItem).ItemTextData.DisplayName));
 }
 
 void UListInventory::OnRep_InvSlotsArray()
@@ -316,9 +342,8 @@ void UListInventory::OnRep_InvSlotsArray()
 
 FItemAddResult UListInventory::HandleAddReferenceItem(FItemMoveData& ItemMoveData, bool bOnlyCheck)
 {
-	/*if (ItemMoveData.TargetSlot == nullptr)
-		return FItemAddResult::AddedNone(FText::Format(FText::FromString("Can't be added {0} of {1} to inventory"),
-		                                               1, FText::FromName(ItemMoveData.SourceItem->GetItemID())));*/
+	if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(ItemMoveData.SourceItem, TEXT("HandleAddReferenceItem")))
+		return FItemAddResult::AddedNone(FText::FromString("Invalid item"));
 
 	if (ItemMoveData.SourceInventory == this)
 	{
@@ -326,8 +351,7 @@ FItemAddResult UListInventory::HandleAddReferenceItem(FItemMoveData& ItemMoveDat
 			FText::Format(
 				FText::FromString("Cannot move {0} of {1} within the same inventory."),
 				1,
-				ItemMoveData.SourceItem->GetItemRef().ItemTextData.DisplayName
-			));
+				IObjectDataProvider::Execute_GetItemRef(ItemMoveData.SourceItem).ItemTextData.DisplayName));
 	}
 
 	UInventorySlotData* NewSlot = UInventorySlotData::Create(this);
@@ -338,29 +362,38 @@ FItemAddResult UListInventory::HandleAddReferenceItem(FItemMoveData& ItemMoveDat
 
 	if (!bOnlyCheck)
 	{
-		AddNewItem(ItemMoveData, Slots, ItemMoveData.SourceItem->GetQuantity());
+		AddNewItem(ItemMoveData, Slots, IObjectDataProvider::Execute_GetQuantity(ItemMoveData.SourceItem));
 		InventorySlots.Add(NewSlot);
 	}
 
 	TMap<UInventorySlotData*, FItemPlacementData> AffectedSlots;
 	AffectedSlots.Add(NewSlot, FItemPlacementData());
 
-	return FItemAddResult::AddedAll(1, true, FText::Format(
-		                                FText::FromString("Successfully added {0} to inventory as a reference"),
-		                                FText::FromName(ItemMoveData.SourceItem->GetItemID())), AffectedSlots);
+	return FItemAddResult::AddedAll(
+		1,
+		true,
+		FText::Format(
+			FText::FromString("Successfully added {0} to inventory as a reference"),
+			FText::FromName(IObjectDataProvider::Execute_GetItemID(ItemMoveData.SourceItem))),
+		AffectedSlots);
 }
 
 FItemAddResult UListInventory::HandleNonStackableItems(FItemMoveData ItemMoveData, bool bOnlyCheck)
 {
-	int32 ActualAmountToAdd = CalculateActualAmountToAdd(1, ItemMoveData.SourceItem->Execute_GetItemSingleWeight(ItemMoveData.SourceItem));
+	if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(ItemMoveData.SourceItem, TEXT("HandleNonStackableItems")))
+		return FItemAddResult::AddedNone(FText::FromString("Invalid item"));
+
+	int32 ActualAmountToAdd =
+		CalculateActualAmountToAdd(1, IObjectDataProvider::Execute_GetItemSingleWeight(ItemMoveData.SourceItem));
 
 	if (ActualAmountToAdd <= 0)
 	{
-		return FItemAddResult::AddedNone(FText::Format(
+		return FItemAddResult::AddedNone(
+			FText::Format(
 				FText::FromString("Item {0} would overflow limits"),
-				ItemMoveData.SourceItem->GetItemRef().ItemTextData.DisplayName));
+				IObjectDataProvider::Execute_GetItemRef(ItemMoveData.SourceItem).ItemTextData.DisplayName));
 	}
-	
+
 	UInventorySlotData* NewSlot = UInventorySlotData::Create(this);
 
 	if (!bOnlyCheck)
@@ -368,6 +401,7 @@ FItemAddResult UListInventory::HandleNonStackableItems(FItemMoveData ItemMoveDat
 		FItemMapping Slots;
 		Slots.InventoryID = InventoryContainerID;
 		Slots.OccupiedSlots.Add(NewSlot);
+
 		AddNewItem(ItemMoveData, Slots, 1);
 		InventorySlots.Add(NewSlot);
 	}
@@ -375,96 +409,138 @@ FItemAddResult UListInventory::HandleNonStackableItems(FItemMoveData ItemMoveDat
 	TMap<UInventorySlotData*, FItemPlacementData> AffectedSlots;
 	AffectedSlots.Add(NewSlot, FItemPlacementData());
 
-	return FItemAddResult::AddedAll(1, false, FText::Format(
-										FText::FromString("Successfully added {0} of {1} to inventory"),
-										1, ItemMoveData.SourceItem->GetItemRef().ItemTextData.DisplayName), AffectedSlots);
+	return FItemAddResult::AddedAll(
+		1,
+		false,
+		FText::Format(
+			FText::FromString("Successfully added {0} of {1} to inventory"),
+			1,
+			IObjectDataProvider::Execute_GetItemRef(ItemMoveData.SourceItem).ItemTextData.DisplayName),
+		AffectedSlots);
 }
 
 FItemAddResult UListInventory::TryAddStackableItem(FItemMoveData& ItemMoveData, bool bOnlyCheck)
 {
+	if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(ItemMoveData.SourceItem, TEXT("TryAddStackableItem")))
+		return FItemAddResult::AddedNone(FText::FromString("Invalid item"));
+
 	TMap<UInventorySlotData*, FItemPlacementData> AffectedSlots;
 
-	const int32 InitialRequestedAddAmount = ItemMoveData.SourceItem->GetQuantity();
-	const int32 StackableAmountAdded = HandleStackableItems(ItemMoveData, InitialRequestedAddAmount, bOnlyCheck, AffectedSlots);
-	
+	const int32 InitialRequestedAddAmount =
+		IObjectDataProvider::Execute_GetQuantity(ItemMoveData.SourceItem);
+
+	const int32 StackableAmountAdded =
+		HandleStackableItems(ItemMoveData, InitialRequestedAddAmount, bOnlyCheck, AffectedSlots);
+
 	if (StackableAmountAdded == InitialRequestedAddAmount)
 	{
-		return FItemAddResult::AddedAll(StackableAmountAdded, false, FText::Format(
-											FText::FromString("Successfully added {0} of {1} to inventory"),
-											InitialRequestedAddAmount,
-											ItemMoveData.SourceItem->GetItemRef().ItemTextData.DisplayName), AffectedSlots);
+		return FItemAddResult::AddedAll(
+			StackableAmountAdded,
+			false,
+			FText::Format(
+				FText::FromString("Successfully added {0} of {1} to inventory"),
+				InitialRequestedAddAmount,
+				IObjectDataProvider::Execute_GetItemRef(ItemMoveData.SourceItem).ItemTextData.DisplayName),
+			AffectedSlots);
 	}
 	else if (StackableAmountAdded < InitialRequestedAddAmount && StackableAmountAdded > 0)
 	{
-		return FItemAddResult::AddedPartial(StackableAmountAdded, false, FText::Format(
-												FText::FromString(
-													"Partial amount of {0} added to inventory. Number added: {1}"),
-												ItemMoveData.SourceItem->GetItemRef().ItemTextData.DisplayName,
-												StackableAmountAdded), AffectedSlots);
+		return FItemAddResult::AddedPartial(
+			StackableAmountAdded,
+			false,
+			FText::Format(
+				FText::FromString("Partial amount of {0} added to inventory. Number added: {1}"),
+				IObjectDataProvider::Execute_GetItemRef(ItemMoveData.SourceItem).ItemTextData.DisplayName,
+				StackableAmountAdded),
+			AffectedSlots);
 	}
-	
-	return FItemAddResult::AddedNone(FText::Format(FText::FromString("Couldn't add {0} to inventory."),
-												   ItemMoveData.SourceItem->GetItemRef().ItemTextData.DisplayName));
+
+	return FItemAddResult::AddedNone(
+		FText::Format(
+			FText::FromString("Couldn't add {0} to inventory."),
+			IObjectDataProvider::Execute_GetItemRef(ItemMoveData.SourceItem).ItemTextData.DisplayName));
 }
 
 int32 UListInventory::HandleStackableItems(FItemMoveData& ItemMoveData, int32 RequestedAddAmount, bool bOnlyCheck,
 	TMap<UInventorySlotData*, FItemPlacementData>& AffectedPivotSlots)
 {
+	if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(ItemMoveData.SourceItem, TEXT("HandleStackableItems")))
+		return 0;
+
 	int32 AmountToDistribute = RequestedAddAmount;
 	int32 TotalAddedAmount = 0;
 
-	auto SameItems = ItemCollectionLinked->GetAllSameItemsInContainerByItemSample(InventoryContainerID, ItemMoveData.SourceItem);
-	if (SameItems.Num()> 0)
+	auto SameItems =
+		ItemCollectionLinked->GetAllSameItemsInContainerByItemSample(InventoryContainerID, ItemMoveData.SourceItem);
+
+	for (UObject* SameItem : SameItems)
 	{
-		for (auto& SameItem : SameItems)
-		{
-			if(AmountToDistribute<=0)
-				break;
-			
-			int32 ActualAmountToAdd = TryInsertToStackItem(SameItem, AmountToDistribute, bOnlyCheck);
-			AmountToDistribute -= ActualAmountToAdd;
-			TotalAddedAmount += ActualAmountToAdd;
-		}
+		if (!SameItem ||
+			!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(SameItem, TEXT("HandleStackableItems")))
+			continue;
+
+		if (AmountToDistribute <= 0)
+			break;
+
+		int32 ActualAmountToAdd =
+			TryInsertToStackItem(SameItem, AmountToDistribute, bOnlyCheck);
+
+		AmountToDistribute -= ActualAmountToAdd;
+		TotalAddedAmount += ActualAmountToAdd;
 	}
 
-	if (AmountToDistribute<=0) return RequestedAddAmount;
-	const int32 AmountToAddToStack = FMath::Min(AmountToDistribute, ItemMoveData.SourceItem->GetQuantity());
-	int32 ActualAmountToAdd = CalculateActualAmountToAdd(AmountToAddToStack, ItemMoveData.SourceItem->Execute_GetItemSingleWeight(ItemMoveData.SourceItem));
-		
+	if (AmountToDistribute <= 0)
+		return RequestedAddAmount;
+
+	const int32 AmountToAddToStack =
+		FMath::Min(AmountToDistribute,
+				   IObjectDataProvider::Execute_GetQuantity(ItemMoveData.SourceItem));
+
+	int32 ActualAmountToAdd =
+		CalculateActualAmountToAdd(
+			AmountToAddToStack,
+			IObjectDataProvider::Execute_GetItemSingleWeight(ItemMoveData.SourceItem));
+
 	if (bOnlyCheck)
 		return RequestedAddAmount;
 
 	UInventorySlotData* NewSlot = UInventorySlotData::Create(this);
+
 	FItemMapping Slots;
 	Slots.InventoryID = InventoryContainerID;
 	Slots.OccupiedSlots.Add(NewSlot);
-			
+
 	AddNewItem(ItemMoveData, Slots, AmountToDistribute);
+
 	return ActualAmountToAdd + TotalAddedAmount;
 }
 
-UItemBase* UListInventory::AddNewItem(FItemMoveData& ItemMoveData, FItemMapping OccupiedSlots, int32 AddAmount)
+UObject* UListInventory::AddNewItem(FItemMoveData& ItemMoveData, FItemMapping OccupiedSlots, int32 AddAmount)
 {
-	TObjectPtr<UItemBase> FinalItem;
+	if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(ItemMoveData.SourceItem, TEXT("AddNewItem")))
+		return nullptr;
+
+	TObjectPtr<UObject> FinalItem;
+
 	if (InventorySettings.bIsReferenceContainer)
 	{
 		FinalItem = ItemMoveData.SourceItem;
 	}
 	else
 	{
-		FinalItem = ItemMoveData.SourceItem->DuplicateItem();
-		FinalItem->SetQuantity(AddAmount);
+		FinalItem = IObjectDataProvider::Execute_DuplicateItem(ItemMoveData.SourceItem);
+		IObjectDataProvider::Execute_SetQuantity(FinalItem, AddAmount);
 	}
 
-	// Add item
 	OccupiedSlots.InventoryID = InventoryContainerID;
 	OccupiedSlots.bIsReferenceContainer = InventorySettings.bIsReferenceContainer;
-	FItemMapping StoredMappingCopy = ItemCollectionLinked->AddItem(FinalItem, OccupiedSlots);
 
-	NotifyAddNewItem(StoredMappingCopy, FinalItem, ItemMoveData.SourceItem->GetQuantity());
+	FItemMapping StoredMappingCopy =
+		ItemCollectionLinked->AddItem(FinalItem, OccupiedSlots);
+
+	NotifyAddNewItem(StoredMappingCopy, FinalItem, IObjectDataProvider::Execute_GetQuantity(ItemMoveData.SourceItem));
 
 	UpdateInvSlotsArray();
-
 	UpdateMoneyInfo();
 	UpdateWeightInfo();
 

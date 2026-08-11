@@ -18,7 +18,7 @@ struct FEquipmentSlotRuntime
 	FGameplayTag AllowedCategory;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly)
-	TObjectPtr<UItemBase> EquippedItem = nullptr;
+	TObjectPtr<UObject> EquippedItem = nullptr;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly)
 	FName AttachSocket;

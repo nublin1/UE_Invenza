@@ -22,7 +22,7 @@ class UInventorySlot;
 class UInventoryItemWidget;
 class USlotbasedInventorySlot;
 class USlotbasedInventoryWidget;
-class UItemBase;
+class UObject;
 
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
@@ -71,6 +71,8 @@ public:
 	UFUNCTION(BlueprintCallable)
 	UInventoryBase* GetInventoryByTag(const FGameplayTag& Tag);
 	UFUNCTION(BlueprintCallable)
+	TArray<UInventoryBase*> GetAllInventoriesByTag(const FGameplayTag& Tag);
+	UFUNCTION(BlueprintCallable)
 	UInventoryBase* GetInventoryByID(FString ContainerID);
 
 	void AddPawnInventory_Internal(UInventoryBase* InInventory);
@@ -91,15 +93,15 @@ public:
 	
 	// Items
 	UFUNCTION(BlueprintCallable)
-	void MarkItemAsDirty(UItemBase* Item);
+	void MarkItemAsDirty(UObject* Item);
 	
 	UFUNCTION(BlueprintCallable, Category = "Item Collection")
 	float CalculateAvailableMoney();
 
 	UFUNCTION(BlueprintCallable, Category = "Item Collection")
-	void UpdateItemMapping(UItemBase* Item, const FString& InventoryID, const TArray<UInventorySlotData*>& NewSlots, EItemOrientationType NewOrientation);
+	void UpdateItemMapping(UObject* Item, const FString& InventoryID, const TArray<UInventorySlotData*>& NewSlots, EItemOrientationType NewOrientation);
 	UFUNCTION(BlueprintCallable, Category = "Item Collection")
-	void UpdateItemVisualLinks(UItemBase* Item, const FString& InventoryID, 
+	void UpdateItemVisualLinks(UObject* Item, const FString& InventoryID, 
 											UInventoryItemWidget* InWidget = nullptr, 
 											AStorageVisualRepresentation* InActor = nullptr);
 
@@ -108,29 +110,32 @@ public:
 	UFUNCTION(BlueprintCallable, meta = (ToolTip = "Returns a list of resources stored in this container, aggregating identical resources and summing their total amount."))
 	TArray<FItemIDEntry> CollectItemsAggregated(FString InvID);
 	int32 GetStackCountInContainer(FString InvID);
-	TArray<UItemBase*> GetAllItemsByContainer(FString InvID);
-	TArray<UItemBase*> GetAllSameItemsInContainerByItemSample(const FString& InvID, const UItemBase* ReferenceItem) const;
-	TArray<UItemBase*> GetAllSameItemsInContainerByID(const FString& InvID, FName ReferenceID) const;
+	TArray<UObject*> GetAllItemsByContainer(FString InvID);
+	TArray<UObject*> GetAllSameItemsInContainerByItemSample(const FString& InvID, const UObject* ReferenceItem) const;
+	TArray<UObject*> GetAllSameItemsInContainerByID(const FString& InvID, FName ReferenceID) const;
 	TArray<FItemMapping> GetAllMappingsByContainer(const FString& InvID);
-	TMap<UItemBase*, FItemMapping*> GetItemsWithMappingsByContainer(const FString& InvID);
-	TArray<UItemBase*> GetAllItemsByCategory(FGameplayTag ItemCategory);
-	UItemBase* GetItemFromSlot(UInventorySlotData* TargetSlotData, const FString& InventoryID);
+	TMap<UObject*, FItemMapping*> GetItemsWithMappingsByContainer(const FString& InvID);
+	TArray<UObject*> GetAllItemsByCategory(FGameplayTag ItemCategory);
+	UObject* GetItemFromSlot(FGuid TargetSlotID, const FString& InventoryID);
 	
 	
 	UFUNCTION(BlueprintCallable, Category = "Item Collection|Item Management")
-	FItemMapping AddItem(UItemBase* NewItem, const FItemMapping& ItemMapping);
+	FItemMapping AddItem(UObject* NewItem, const FItemMapping& ItemMapping);
 	UFUNCTION(BlueprintCallable, Category="Item Collection|Item Management")
-	void RemoveItem(UItemBase* Item, FString ContainerID);
+	void RemoveItem(UObject* Item, FString ContainerID);
 	UFUNCTION(BlueprintCallable, Category = "Item Collection|Item Management")
-	void RemoveItemFromAllContainers(UItemBase* Item);
+	void RemoveItemFromAllContainers(UObject* Item);
 	
-	TArray<FGuid> GetOccupatedSlotsIDByContainerName(FString InventoryID, UItemBase* Item);
-	FItemMapping* FindItemMappingByContainerName(UItemBase* Item, FString InventoryID);
-	TArray<FItemMapping> FindAllMappingsForItem(UItemBase* Item);
-	
+	TArray<FGuid> GetOccupatedSlotsIDByContainerName(FString InventoryID, UObject* Item);
+	FItemMapping* FindItemMappingByContainerName(UObject* Item, FString InventoryID);
+	TArray<FItemMapping> FindAllMappingsForItem(UObject* Item);
+	UInventoryBase* FindMainInventoryForItem(UObject* Item);
 
 	UFUNCTION(BlueprintCallable)
-	bool ItemHasInventory(UItemBase* Item, FString InventoryID);
+	bool ItemHasInventory(UObject* Item, FString InventoryID);
+	
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	bool IsItemOwnedByActor(UObject* Item);
 
 	//
 	UFUNCTION()
@@ -144,7 +149,7 @@ public:
 		const TMap<FString, FString>& IDMapping); // Key: Old ID, Value: New ID
 
 	UFUNCTION()
-	void NotifyUI_ItemChanged(UItemBase* Item, const FString& ContainerID, EInventoryActionType Action);
+	void NotifyUI_ItemChanged(UObject* Item, const FString& ContainerID, EInventoryActionType Action);
 
 	UFUNCTION()
 	void NotifyUI_ReDraw(const FString& ContainerID);
@@ -179,9 +184,9 @@ protected:
 	void OnRep_ActorInventories();
 
 	UFUNCTION()
-	void OnItemDataReplicated(UItemBase* Item);
+	void OnItemDataReplicated(UObject* Item);
 
-	virtual FItemMapping* GetMappingMutable(UItemBase* Item, const FString& InventoryID, FInventoryEntry*& OutEntry);
+	virtual FItemMapping* GetMappingMutable(UObject* Item, const FString& InventoryID, FInventoryEntry*& OutEntry);
 	
 	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 };

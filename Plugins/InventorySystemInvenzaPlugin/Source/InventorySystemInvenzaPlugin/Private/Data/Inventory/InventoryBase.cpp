@@ -4,11 +4,13 @@
 #include "Data/Inventory/InventoryBase.h"
 
 #include "ActorComponents/ItemCollection.h"
+#include "Data/Inventory/InventorySlotData.h"
 #include "Data/Items/ItemBase.h"
 #include "Data/Settings/InvenzaInventorySettingsAsset.h"
 #include "Factory/ItemFactory.h"
 #include "Net/UnrealNetwork.h"
 #include "Subsystems/InvenzaInventorySettingsSubsystem.h"
+#include "Utility/InterfaceUtils.h"
 
 UInventoryBase::UInventoryBase()
 {
@@ -95,7 +97,7 @@ void UInventoryBase::InitInventoryWithSettings(FInventorySettings NewInventorySe
 	InitInventory();
 }
 
-void UInventoryBase::RequestToResetItemVisual(UItemBase* Item)
+void UInventoryBase::RequestToResetItemVisual(UObject* Item)
 {
 	if (!Item) return;
 
@@ -108,21 +110,33 @@ void UInventoryBase::MergeStackableItems()
 	auto Items = ItemCollectionLinked->GetAllItemsByContainer(InventoryContainerID);
 	if (Items.IsEmpty()) return;
 
-	for (int i = Items.Num() - 1; i > 0; --i)
+	for (int32 i = Items.Num() - 1; i > 0; --i)
 	{
-		if (!Items[i] || !Items[i]->Execute_IsStackable(Items[i]))
-		{
+		UObject* ItemObj = Items[i];
+		if (!ItemObj)
 			continue;
-		}
+		
+		if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(ItemObj, TEXT("MergeStackableItems")))
+			continue;
+		
+		if (!IObjectDataProvider::Execute_IsStackable(ItemObj))
+			continue;
 
-		auto SameItems = ItemCollectionLinked->GetAllSameItemsInContainerByItemSample(InventoryContainerID, Items[i]);
-		if (SameItems.IsEmpty()) continue;
+		auto SameItems = ItemCollectionLinked->GetAllSameItemsInContainerByItemSample(InventoryContainerID, ItemObj);
+		if (SameItems.IsEmpty())
+			continue;
 
-		for (const auto& SameItem : SameItems)
+		const int32 Quantity = IObjectDataProvider::Execute_GetQuantity(ItemObj);
+
+		for (UObject* SameItemObj : SameItems)
 		{
-			if (SameItem == Items[i])
+			if (SameItemObj == ItemObj)
 				continue;
-			auto AddedQuantity = TryInsertToStackItem(SameItem, Items[i]->GetQuantity(), false);
+
+			if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(SameItemObj, TEXT("MergeStackableItems")))
+				continue;
+			
+			const int32 AddedQuantity = TryInsertToStackItem(SameItemObj, Quantity, false);
 		}
 	}
 }
@@ -132,10 +146,19 @@ void UInventoryBase::UseSlot(UInventorySlotData* UsedSlot)
 	if (!UsedSlot || !ItemCollectionLinked)
 		return;
 
-	auto ItemLinked = ItemCollectionLinked->GetItemFromSlot(UsedSlot, InventoryContainerID);
+	UObject* ItemObj = ItemCollectionLinked->GetItemFromSlot(
+		UsedSlot->InventorySlotInfo.SlotGuid,
+		InventoryContainerID
+	);
 
-	ItemLinked->UseItem();
+	if (!ItemObj)
+		return;
 
+	if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(ItemObj, TEXT("UseSlot")))
+		return;
+	
+	IObjectDataProvider::Execute_UseItem(ItemObj);
+	
 	NotifyUseSlot(UsedSlot);
 }
 
@@ -144,22 +167,42 @@ void UInventoryBase::UpdateWeightInfo()
 	if (!ItemCollectionLinked)
 		return;
 
-	InventoryTotalWeight = 0;
-	auto AllItems = ItemCollectionLinked->GetAllItemsByContainer(InventoryContainerID);
+	InventoryTotalWeight = 0.0f;
+
+	const TArray<UObject*> AllItems =
+		ItemCollectionLinked->GetAllItemsByContainer(InventoryContainerID);
+
 	if (AllItems.IsEmpty())
 	{
 		OnRep_InventoryTotalWeight();
+		return;
 	}
-	else
-	{
-		for (auto Item : AllItems)
-		{
-			InventoryTotalWeight += Item->GetQuantity() * Item->Execute_GetItemSingleWeight(Item);
-		}
 
-		InventoryTotalWeight = FMath::RoundToFloat(InventoryTotalWeight * 100.0f) / 100.0f;
-		OnRep_InventoryTotalWeight();
+	for (UObject* ItemObj : AllItems)
+	{
+		if (!ItemObj)
+			continue;
+		
+		if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(
+				ItemObj,
+				TEXT("UpdateWeightInfo")))
+		{
+			continue;
+		}
+		
+		const int32 Quantity =
+			IObjectDataProvider::Execute_GetQuantity(ItemObj);
+		
+		const float SingleWeight =
+			IObjectDataProvider::Execute_GetItemSingleWeight(ItemObj);
+
+		InventoryTotalWeight += Quantity * SingleWeight;
 	}
+	
+	InventoryTotalWeight =
+		FMath::RoundToFloat(InventoryTotalWeight * 100.0f) / 100.0f;
+
+	OnRep_InventoryTotalWeight();
 }
 
 void UInventoryBase::UpdateMoneyInfo()
@@ -172,25 +215,31 @@ void UInventoryBase::UpdateMoneyInfo()
 		return;
 
 	InventoryTotalMoney = 0;
-	
-	auto AllItems = ItemCollectionLinked->GetAllItemsByContainer(InventoryContainerID);
+
+	const auto AllItems = ItemCollectionLinked->GetAllItemsByContainer(InventoryContainerID);
 	if (AllItems.IsEmpty())
 	{
 		OnRep_InventoryTotalMoney();
+		return;
 	}
-	else
-	{
-		for (auto Item : AllItems)
-		{
-			if (Item->GetItemRef().ItemCategory == MySettings->CurrencyGameplayTag)
-				InventoryTotalMoney += Item->GetQuantity();
-		}
 
-		OnRep_InventoryTotalMoney();
+	for (UObject* ItemObj : AllItems)
+	{
+		if (!ItemObj)
+			continue;
+
+		if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(ItemObj, TEXT("UpdateMoneyInfo")))
+			continue;
+
+		const FItemMetaData Meta = IObjectDataProvider::Execute_GetItemRef(ItemObj);
+		if (Meta.ItemCategory == MySettings->CurrencyGameplayTag)
+			InventoryTotalMoney += IObjectDataProvider::Execute_GetQuantity(ItemObj);
 	}
+
+	OnRep_InventoryTotalMoney();
 }
 
-TArray<UInventorySlotData*> UInventoryBase::GetAvailableSlotForItem(UItemBase* Item,
+TArray<UInventorySlotData*> UInventoryBase::GetAvailableSlotForItem(UObject* Item,
 	EItemOrientationType& OutOrientation)
 {
 	TArray<UInventorySlotData*> ReturnSlots;
@@ -205,6 +254,12 @@ UInventorySlotData* UInventoryBase::GetSlotByPosition(FIntPoint CellPosition)
 UInventorySlotData* UInventoryBase::GetSlotByGuid(FGuid InGuid)
 {
 	return nullptr;
+}
+
+TArray<FGuid> UInventoryBase::GetSlotsWithLinkedEquipment()
+{
+	TArray<FGuid> ResultArray;
+	return ResultArray;
 }
 
 void UInventoryBase::SetTradeContext(FTradeContext InTradeContext)
@@ -236,51 +291,65 @@ int32 UInventoryBase::CalculateActualAmountToAdd(int32 InAmountToAdd, float Item
 	return InAmountToAdd;
 }
 
-int32 UInventoryBase::TryInsertToStackItem(UItemBase* ResourceToInsertInto,	int32 AmountToDistribute, bool bOnlyCheck)
+int32 UInventoryBase::TryInsertToStackItem(UObject* ResourceToInsertInto, int32 AmountToDistribute, bool bOnlyCheck)
 {
-	if (ResourceToInsertInto->IsFullItemStack())
+	if (!ResourceToInsertInto)
 		return 0;
 
-	int32 AmountToAddToStack = FMath::Min(AmountToDistribute,
-										  ResourceToInsertInto->GetItemRef().ItemNumeraticData.MaxStackSizeInCharacter -
-										  ResourceToInsertInto->GetQuantity());
-	
-	int32 ActualAmountToAdd = CalculateActualAmountToAdd(AmountToAddToStack, ResourceToInsertInto->Execute_GetItemSingleWeight(ResourceToInsertInto));
+	if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(ResourceToInsertInto, TEXT("TryInsertToStackItem")))
+		return 0;
+
+	if (IObjectDataProvider::Execute_IsFullItemStack(ResourceToInsertInto))
+		return 0;
+
+	const FItemMetaData Meta = IObjectDataProvider::Execute_GetItemRef(ResourceToInsertInto);
+	const int32 CurrentQuantity = IObjectDataProvider::Execute_GetQuantity(ResourceToInsertInto);
+	const int32 MaxStack = Meta.ItemNumeraticData.MaxStackSizeInCharacter;
+
+	const int32 AmountToAddToStack = FMath::Min(AmountToDistribute, MaxStack - CurrentQuantity);
+	const float SingleWeight = IObjectDataProvider::Execute_GetItemSingleWeight(ResourceToInsertInto);
+
+	const int32 ActualAmountToAdd = CalculateActualAmountToAdd(AmountToAddToStack, SingleWeight);
 
 	if (!bOnlyCheck)
 	{
-		int32 OldAmount = ResourceToInsertInto->GetQuantity();
-		//DeductResourceOnAddToInventory(ResourceToDeductFrom, ActualAmountToAdd);
-		ResourceToInsertInto->SetQuantity(OldAmount + ActualAmountToAdd);
+		const int32 NewQuantity = CurrentQuantity + ActualAmountToAdd;
+		IObjectDataProvider::Execute_SetQuantity(ResourceToInsertInto, NewQuantity);
+
 		NotifyAddItemToStack(ResourceToInsertInto);
 		UpdateMoneyInfo();
 		UpdateWeightInfo();
 	}
-	
+
 	return ActualAmountToAdd;
 }
 
-int32 UInventoryBase::TryRemoveFromStackItem(UItemBase* Item, int32 RequestedRemoveAmount)
+int32 UInventoryBase::TryRemoveFromStackItem(UObject* Item, int32 RequestedRemoveAmount)
 {
 	if (!Item || RequestedRemoveAmount <= 0)
 		return 0;
 
-	int32 AmountToRemove = FMath::Min(RequestedRemoveAmount, Item->GetQuantity());
+	if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(Item, TEXT("TryRemoveFromStackItem")))
+		return 0;
+
+	const int32 CurrentQuantity = IObjectDataProvider::Execute_GetQuantity(Item);
+	const int32 AmountToRemove = FMath::Min(RequestedRemoveAmount, CurrentQuantity);
+
 	if (AmountToRemove <= 0)
 	{
 		RemoveItemFromInventory(Item);
 		return 0;
-	}	
+	}
 
-	if (Item->GetQuantity() - AmountToRemove <= 0)
+	if (CurrentQuantity - AmountToRemove <= 0)
 	{
 		RemoveItemFromInventory(Item);
 	}
 	else
 	{
-		Item->SetQuantity(Item->GetQuantity() - AmountToRemove);
+		IObjectDataProvider::Execute_SetQuantity(Item, CurrentQuantity - AmountToRemove);
 	}
-	
+
 	NotifyRemoveItemFromStack(Item);
 	UpdateMoneyInfo();
 	UpdateWeightInfo();
@@ -288,7 +357,7 @@ int32 UInventoryBase::TryRemoveFromStackItem(UItemBase* Item, int32 RequestedRem
 	return AmountToRemove;
 }
 
-void UInventoryBase::RemoveItemFromInventory(UItemBase* Item)
+void UInventoryBase::RemoveItemFromInventory(UObject* Item)
 {
 	if (!Item)
 	{
@@ -308,37 +377,28 @@ void UInventoryBase::RemoveItemFromInventory(UItemBase* Item)
 	UpdateMoneyInfo();
 }
 
-/*void UInventoryBase::DeductResourceOnAddToInventory(UItemBase* Resource, int32 DeductAmount)
-{
-	Resource->SetQuantity(Resource->GetQuantity() - DeductAmount);
-	if (Resource->GetQuantity() <= 0)
-	{
-		ItemCollectionLinked->RemoveItem(Resource, InventoryContainerID);
-	}
-}*/
-
-void UInventoryBase::NotifyAddNewItem(FItemMapping& FromSlots, UItemBase* NewItem, int32 ChangeQuantity)
+void UInventoryBase::NotifyAddNewItem(FItemMapping& FromSlots, UObject* NewItem, int32 ChangeQuantity)
 {
 	OnAddItemDelegate.Broadcast(FromSlots, NewItem);
 }
 
-void UInventoryBase::NotifyAddItemToStack(UItemBase* Item)
+void UInventoryBase::NotifyAddItemToStack(UObject* Item)
 {
 	OnStackedItemDelegate.Broadcast(Item);
 }
 
-void UInventoryBase::NotifyRemoveItemFromStack(UItemBase* Item)
+void UInventoryBase::NotifyRemoveItemFromStack(UObject* Item)
 {
 	OnUnstackedItemDelegate.Broadcast(Item);
 }
 
-void UInventoryBase::NotifyFullyRemoveItem(FItemMapping FromSlots, UItemBase* Item)
+void UInventoryBase::NotifyFullyRemoveItem(FItemMapping FromSlots, UObject* Item)
 {
 	OnItemRemovedDelegate.Broadcast(FromSlots, Item);
 }
 
 void UInventoryBase::NotifyReplaceItem(TArray<UInventorySlotData*> OldItemSlots,
-	FItemMapping& NewItemSlots, UItemBase* Item)
+	FItemMapping& NewItemSlots, UObject* Item)
 {
 	OnItemReplaceDelegate.Broadcast(OldItemSlots, NewItemSlots, Item);
 }
@@ -368,7 +428,7 @@ void UInventoryBase::NotifyReDrawRequest()
 	OnInventoryRedrawRequested.Broadcast();
 }
 
-void UInventoryBase::NotifyRequestToResetItemVisual(UItemBase* Item)
+void UInventoryBase::NotifyRequestToResetItemVisual(UObject* Item)
 {
 	OnRequestToResetItemVisual.Broadcast(Item);
 }

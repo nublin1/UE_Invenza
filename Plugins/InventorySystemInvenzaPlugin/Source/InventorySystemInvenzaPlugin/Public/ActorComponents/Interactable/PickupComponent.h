@@ -11,7 +11,7 @@
 
 
 struct FInitItemsEntry;
-class UItemBase;
+class UObject;
 class UBoxComponent;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
@@ -48,7 +48,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Pickup | Getters")
 	FInitItemsEntry GetInitialItem() { return InitialItem; }
 	UFUNCTION(BlueprintCallable, Category = "Pickup | Getters")
-	virtual UItemBase* GetItemData() override;
+	virtual UObject* GetItemData() override;
 
 	UFUNCTION(BlueprintCallable, Category = "Pickup")
 	virtual void OnPickedUp() override;
@@ -63,7 +63,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Pickup | Item Initialization")
 	FInitItemsEntry InitialItem;
 	UPROPERTY(Replicated, ReplicatedUsing=OnRep_ItemBase, VisibleAnywhere, BlueprintReadOnly, Category = "Pickup | Item Reference")
-	TObjectPtr<UItemBase> ItemBase;
+	TObjectPtr<UObject> ItemBase;
 
 	bool bIsPendingDestruction = false;
 

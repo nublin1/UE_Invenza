@@ -47,10 +47,10 @@ public:
 	virtual UInventorySlotData* GetSlotByGuid(FGuid InGuid) override;
 
 	UFUNCTION(BlueprintCallable)
-	virtual void RequestSplitStack(UItemBase* ItemToSplit, int32 SplitAmount) override;
+	virtual void RequestSplitStack(UObject* ItemToSplit, int32 SplitAmount) override;
 	virtual void HandleRemoveItemsByID(FName ItemID, int32 RequestedAmount) override;
-	virtual void HandleRemoveItemsBySample(UItemBase* ItemSample, int32 RequestedAmount) override;
-	virtual void HandleRemoveItem(UItemBase* Item, int32 RemoveQuantity) override;
+	virtual void HandleRemoveItemsBySample(UObject* ItemSample, int32 RequestedAmount) override;
+	virtual void HandleRemoveItem(UObject* Item, int32 RemoveQuantity) override;
 	virtual FItemAddResult HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck = false) override;
 
 	virtual TSubclassOf<UInventoryListEntry> GetEntryClass() {return EntryClass;}
@@ -77,7 +77,7 @@ protected:
 	virtual int32 HandleStackableItems(FItemMoveData& ItemMoveData, int32 RequestedAddAmount, bool bOnlyCheck,
 									   TMap<UInventorySlotData*, FItemPlacementData>& AffectedPivotSlots) override;
 	
-	virtual UItemBase* AddNewItem(FItemMoveData& ItemMoveData, FItemMapping OccupiedSlots, int32 AddAmount) override;
+	virtual UObject* AddNewItem(FItemMoveData& ItemMoveData, FItemMapping OccupiedSlots, int32 AddAmount) override;
 
 	virtual void UpdateInvSlotsArray();
 	

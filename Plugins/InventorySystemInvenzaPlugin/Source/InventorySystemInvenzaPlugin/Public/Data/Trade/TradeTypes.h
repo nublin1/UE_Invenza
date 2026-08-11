@@ -141,7 +141,7 @@ struct FTradeEntry
 	TObjectPtr<UInventoryBase> Inventory = nullptr;
 
 	UPROPERTY(BlueprintReadOnly)
-	TObjectPtr<UItemBase> Item = nullptr;
+	TObjectPtr<UObject> Item = nullptr;
 
 	UPROPERTY(BlueprintReadOnly)
 	int32 QuantityDelta = 0;
@@ -151,7 +151,7 @@ struct FTradeEntry
 
 	FTradeEntry(){};
 
-	FTradeEntry(UInventoryBase* InInventory, UItemBase* InItem, int32 InQuantityDelta, bool bInIsCurrency)
+	FTradeEntry(UInventoryBase* InInventory, UObject* InItem, int32 InQuantityDelta, bool bInIsCurrency)
 		: Inventory(InInventory)
 		, Item(InItem)
 		, QuantityDelta(InQuantityDelta)

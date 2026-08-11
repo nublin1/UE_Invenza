@@ -10,6 +10,7 @@
 #include "Data/Inventory/Equipment/EquipmentSlotDefinition.h"
 #include "Engine/ActorChannel.h"
 #include "Net/UnrealNetwork.h"
+#include "Utility/InterfaceUtils.h"
 
 
 UEquipmentComponent::UEquipmentComponent()
@@ -64,13 +65,43 @@ void UEquipmentComponent::InitializeSlotsFromTable()
 	}
 }
 
-void UEquipmentComponent::Server_EquipItem_Implementation(UItemBase* Item)
+bool UEquipmentComponent::IsCategoryCompatibleWithSlot(FGameplayTag SlotTag, FGameplayTag ItemCategory) const
+{
+	const FEquipmentSlotRuntime* Slot = FindSlot(SlotTag);
+	return Slot && Slot->AllowedCategory == ItemCategory;
+}
+
+bool UEquipmentComponent::CanEquipItemToSlot(const UObject* Item, FGameplayTag SlotTag) const
+{
+	if (!Item || !SlotTag.IsValid()) return false;
+
+	if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(Item, TEXT("CanEquipItemToSlot")))
+	{
+		return false;
+	}
+
+	const FEquipmentSlotRuntime* Slot = FindSlot(SlotTag);
+	if (!Slot || Slot->EquippedItem) return false;
+
+	const FItemMetaData& ItemData = IObjectDataProvider::Execute_GetItemRef(const_cast<UObject*>(Item));
+
+	return IsCategoryCompatibleWithSlot(SlotTag, ItemData.ItemCategory);
+}
+
+void UEquipmentComponent::Server_EquipItem_Implementation(UObject* Item)
 {
 	if (!Item) return;
 
-	for (FEquipmentSlotRuntime& Slot : EquipmentSlotsArray)
+	if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(Item, TEXT("Server_EquipItem")))
 	{
-		if (Slot.EquippedItem == nullptr && Slot.AllowedCategory == Item->GetItemRef().ItemCategory)
+		return;
+	}
+
+	const FItemMetaData& ItemData = IObjectDataProvider::Execute_GetItemRef(Item);
+
+	for (const FEquipmentSlotRuntime& Slot : EquipmentSlotsArray)
+	{
+		if (Slot.EquippedItem == nullptr && IsCategoryCompatibleWithSlot(Slot.SlotTag, ItemData.ItemCategory))
 		{
 			Server_EquipItemToSlot(Slot.SlotTag, Item);
 			return;
@@ -78,22 +109,17 @@ void UEquipmentComponent::Server_EquipItem_Implementation(UItemBase* Item)
 	}
 }
 
-void UEquipmentComponent::Server_EquipItemToSlot_Implementation(FGameplayTag SlotTag, UItemBase* Item)
+void UEquipmentComponent::Server_EquipItemToSlot_Implementation(FGameplayTag SlotTag, UObject* Item)
 {
-	if (!Item || !SlotTag.IsValid()) return;
+	if (!CanEquipItemToSlot(Item, SlotTag)) return;
 
+	IObjectDataProvider* Provider = Cast<IObjectDataProvider>(Item);
 	FEquipmentSlotRuntime* Slot = FindSlot(SlotTag);
-	if (!Slot || Slot->EquippedItem || Slot->AllowedCategory != Item->GetItemRef().ItemCategory) return;
 
 	Slot->EquippedItem = Item;
-	Slot->EquippedItem->OnAmountChangedDelegate.AddDynamic(this, &UEquipmentComponent::ResourceAmountChanged);
-	
+	Provider->GetOnAmountChangedDelegate().AddDynamic(this, &UEquipmentComponent::ResourceAmountChanged);
+
 	OnEquippedItem.Broadcast(SlotTag, Item);
-	
-	/*if (GetNetMode() != NM_DedicatedServer)
-	{
-		
-	}*/
 }
 
 void UEquipmentComponent::Server_UnequipItemFromSlot_Implementation(FGameplayTag SlotTag)
@@ -101,25 +127,62 @@ void UEquipmentComponent::Server_UnequipItemFromSlot_Implementation(FGameplayTag
 	FEquipmentSlotRuntime* Slot = FindSlot(SlotTag);
 	if (!Slot || !Slot->EquippedItem) return;
 
-	UItemBase* RemovedItem = Slot->EquippedItem;
-	RemovedItem->OnAmountChangedDelegate.RemoveDynamic(this, &UEquipmentComponent::ResourceAmountChanged);
-    
+	UObject* RemovedItem = Slot->EquippedItem;
+	if (IObjectDataProvider* Provider = Cast<IObjectDataProvider>(RemovedItem))
+	{
+		Provider->GetOnAmountChangedDelegate().RemoveDynamic(this, &UEquipmentComponent::ResourceAmountChanged);
+	}
+
 	Slot->EquippedItem = nullptr;
-    
+
 	OnUnequippedItem.Broadcast(SlotTag, RemovedItem);
+}
+
+bool UEquipmentComponent::IsItemEquipped(const UObject* Item) const
+{
+	if (!Item) return false;
+
+	return EquipmentSlotsArray.ContainsByPredicate([Item](const FEquipmentSlotRuntime& Slot)
+	{
+		return Slot.EquippedItem == Item;
+	});
+}
+
+bool UEquipmentComponent::FindSlotByItem(const UObject* Item, FGameplayTag& OutSlotTag) const
+{
+	if (!Item) return false;
+
+	const FEquipmentSlotRuntime* FoundSlot = EquipmentSlotsArray.FindByPredicate(
+		[Item](const FEquipmentSlotRuntime& Slot)
+		{
+			return Slot.EquippedItem == Item;
+		});
+
+	if (FoundSlot)
+	{
+		OutSlotTag = FoundSlot->SlotTag;
+		return true;
+	}
+
+	return false;
+}
+
+bool UEquipmentComponent::DoesSlotExist(FGameplayTag SlotTag) const
+{
+	return SlotTag.IsValid() && FindSlot(SlotTag) != nullptr;
 }
 
 void UEquipmentComponent::OnRep_EquipmentSlots()
 {
 }
 
-void UEquipmentComponent::ResourceAmountChanged(int32 AmountChanged, UItemBase* Item)
+void UEquipmentComponent::ResourceAmountChanged(int32 AmountChanged, UObject* Item)
 {
 	if (!GetOwner()->HasAuthority() || !Item) return;
 
 	for (FEquipmentSlotRuntime& Slot : EquipmentSlotsArray)
 	{
-		if (Slot.EquippedItem == Item && Item->GetQuantity() <= 0)
+		if (Slot.EquippedItem == Item && IObjectDataProvider::Execute_GetQuantity(Item) <= 0)
 		{
 			Server_UnequipItemFromSlot(Slot.SlotTag);
 			return;
@@ -129,7 +192,16 @@ void UEquipmentComponent::ResourceAmountChanged(int32 AmountChanged, UItemBase* 
 
 FEquipmentSlotRuntime* UEquipmentComponent::FindSlot(FGameplayTag SlotTag)
 {
-	return EquipmentSlotsArray.FindByPredicate([&](const FEquipmentSlotRuntime& Slot) {
-		return Slot.SlotTag == SlotTag;
-	});
+	return EquipmentSlotsArray.FindByPredicate([SlotTag](const FEquipmentSlotRuntime& Slot)
+   {
+	   return Slot.SlotTag == SlotTag;
+   });
+}
+
+const FEquipmentSlotRuntime* UEquipmentComponent::FindSlot(FGameplayTag SlotTag) const
+{
+	return EquipmentSlotsArray.FindByPredicate([SlotTag](const FEquipmentSlotRuntime& Slot)
+   {
+	   return Slot.SlotTag == SlotTag;
+   });
 }

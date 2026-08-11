@@ -10,6 +10,72 @@
 #include "Factory/ItemFactory.h"
 #include "Interface/Inventory/InventoryInteractionHandler.h"
 #include "Subsystems/InvenzaInventorySettingsSubsystem.h"
+#include "Utility/InterfaceUtils.h"
+
+
+bool UInvenzayUtility::bIsSameItems(UObject* FirstItem, UObject* SecondItem)
+{
+	if (!FirstItem || !SecondItem)
+	{
+		return false;
+	}
+
+	if (!FirstItem->Implements<UObjectDataProvider>())
+	{
+		return false;
+	}
+
+	if (!SecondItem->Implements<UObjectDataProvider>())
+	{
+		return false;
+	}
+
+	const FName FirstItemID =
+		IObjectDataProvider::Execute_GetItemID(FirstItem);
+
+	const FName SecondItemID =
+		IObjectDataProvider::Execute_GetItemID(SecondItem);
+
+	return FirstItemID == SecondItemID;
+}
+
+bool UInvenzayUtility::DoItemsHaveSameFootprint(UObject* FirstItem, UObject* SecondItem,
+	EItemOrientationType OrientationFirstItem, EItemOrientationType OrientationSecondItem, bool bIgnoreSize)
+{
+	if (!FirstItem || !SecondItem)
+	{
+		return false;
+	}
+
+	if (!FirstItem->Implements<UObjectDataProvider>())
+	{
+		return false;
+	}
+
+	if (!SecondItem->Implements<UObjectDataProvider>())
+	{
+		return false;
+	}
+
+	if (bIgnoreSize)
+	{
+		return true;
+	}
+
+	const FIntPoint FirstSize =
+		IObjectDataProvider::Execute_GetItemSize(
+			FirstItem,
+			OrientationFirstItem
+		);
+
+	const FIntPoint SecondSize =
+		IObjectDataProvider::Execute_GetItemSize(
+			SecondItem,
+			OrientationSecondItem
+		);
+
+	return FirstSize == SecondSize;
+}
 
 void UInvenzayUtility::DropItem(UWorld* World, AActor* OwnerActor, const FDataTableRowHandle& ItemRow, int32 AmountToDrop,
 	const FVector& SpawnLocation, const FRotator& SpawnRotation)
@@ -55,29 +121,37 @@ bool UInvenzayUtility::AddItemQuantity(UObject* Outer, UInventoryBase* TargetInv
 	if (!TargetInventory || InitItemsEntry.Item.IsNull() || InitItemsEntry.Amount <= 0)
 		return false;
 
-	UItemBase* ItemForDuplicate = UItemFactory::CreateItemByHandle(Outer, InitItemsEntry.Item, InitItemsEntry.Amount);
+	UObject* ItemForDuplicate = UItemFactory::CreateItemByHandle(Outer, InitItemsEntry.Item, InitItemsEntry.Amount);
 	return AddItemQuantityInternal(TargetInventory, ItemForDuplicate, InitItemsEntry.Amount);
 }
 
-bool UInvenzayUtility::AddItemQuantityBySample(UObject* Outer, UInventoryBase* TargetInventory, UItemBase* ItemSample,
+bool UInvenzayUtility::AddItemQuantityBySample(UObject* Outer, UInventoryBase* TargetInventory, UObject* ItemSample,
                                                 int32 TotalQuantity)
 {
 	if (!TargetInventory || !ItemSample || TotalQuantity <= 0)
 		return false;
 
-	UItemBase* ItemForDuplicate = UItemFactory::CreateItemByHandle(Outer, ItemSample->GetItemRow(), TotalQuantity);
+	if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(ItemSample, TEXT("AddItemQuantityBySample")))
+		return false;
+
+	UObject* ItemForDuplicate =
+		UItemFactory::CreateItemByHandle(Outer,
+			IObjectDataProvider::Execute_GetItemRow(ItemSample),
+			TotalQuantity);
+
 	return AddItemQuantityInternal(TargetInventory, ItemForDuplicate, TotalQuantity);
 }
 
-FVector2D UInvenzayUtility::CalculateItemVisualSize(UItemBase* Item, EItemOrientationType Orientation,
+FVector2D UInvenzayUtility::CalculateItemVisualSize(UObject* Item, EItemOrientationType Orientation,
 	FVector2D SlotSize, FMargin SlotSpacing, bool bIgnoreSize)
 {
-	if (!Item)
+	if (!Item ||
+		!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(Item, TEXT("CalculateItemVisualSize")))
 		return FVector2D::ZeroVector;
 
 	FIntPoint ItemSize = bIgnoreSize
 		? FIntPoint(1, 1)
-		: Item->GetItemSize(Orientation);
+		: IObjectDataProvider::Execute_GetItemSize(Item, Orientation);
 
 	return FVector2D(
 		SlotSize.X * ItemSize.X + SlotSpacing.Left * (ItemSize.X - 1),
@@ -146,17 +220,22 @@ TScriptInterface<IInventoryInteractionHandler> UInvenzayUtility::FindInventoryHa
 	return Handler;
 }
 
-bool UInvenzayUtility::AddItemQuantityInternal(UInventoryBase* TargetInventory, UItemBase* ItemForDuplicate,
+bool UInvenzayUtility::AddItemQuantityInternal(UInventoryBase* TargetInventory, UObject* ItemForDuplicate,
 	int32 Remaining)
 {
-	if (!ItemForDuplicate) return false;
+	if (!ItemForDuplicate ||
+		!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(ItemForDuplicate, TEXT("AddItemQuantityInternal")))
+		return false;
 
 	while (Remaining > 0)
 	{
-		auto Item = ItemForDuplicate->DuplicateItem();
+		UObject* Item = IObjectDataProvider::Execute_DuplicateItem(ItemForDuplicate);
 
-		int32 AddAmount = FMath::Min(Remaining, Item->GetItemRef().ItemNumeraticData.MaxStackSizeInCharacter);
-		Item->SetQuantity(AddAmount);
+		const FItemMetaData Meta = IObjectDataProvider::Execute_GetItemRef(Item);
+		const int32 MaxStack = Meta.ItemNumeraticData.MaxStackSizeInCharacter;
+
+		int32 AddAmount = FMath::Min(Remaining, MaxStack);
+		IObjectDataProvider::Execute_SetQuantity(Item, AddAmount);
 
 		FItemMoveData MoveData;
 		MoveData.SourceItem = Item;

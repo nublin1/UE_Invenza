@@ -17,6 +17,7 @@
 #include "UI/HelpersWidgets/ItemTooltipWidget.h"
 #include "UI/Inventory/ListInventorySlotWidget.h"
 #include "UI/Item/InventoryItemWidget.h"
+#include "Utility/InterfaceUtils.h"
 
 class UListInventorySlotWidget;
 
@@ -78,25 +79,28 @@ void UListInventoryWidget::BindDelegated()
 void UListInventoryWidget::ReDrawAllItems()
 {
 	if (!ListInventoryRef || !ItemsList) return;
-	
+    
 	ItemsList->ClearListItems();
 	ListInventoryRef->FilteredInvSlotsArray.Reset();
-	
+    
 	for (UInventoryListEntry* InvSlot : ListInventoryRef->InvSlotsArray)
 	{
 		if (!IsValid(InvSlot) || !IsValid(InvSlot->Item))
 			continue;
-		
+
+		if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(InvSlot->Item, TEXT("ReDrawAllItems")))
+			continue;
+        
 		InvSlot->ParentInventoryWidget = this;
-		bool bPassesFilter = (ActiveFilters.Num() == 0) || 
-							 ActiveFilters.Contains(InvSlot->Item->GetItemRef().ItemCategory);
+
+		bool bPassesFilter =
+			(ActiveFilters.Num() == 0) ||
+			ActiveFilters.Contains(IObjectDataProvider::Execute_GetItemRef(InvSlot->Item).ItemCategory);
 
 		if (bPassesFilter)
-		{
 			ListInventoryRef->FilteredInvSlotsArray.Add(InvSlot);
-		}
 	}
-	
+    
 	if (ItemFiltersPanel)
 	{
 		if (auto SearchBox = ItemFiltersPanel->GetSearchText())
@@ -105,11 +109,11 @@ void UListInventoryWidget::ReDrawAllItems()
 			if (!SearchText.IsEmpty())
 			{
 				SearchTextChanged(SearchText);
-				return; 
+				return;
 			}
 		}
 	}
-	
+    
 	ItemsList->SetListItems(ListInventoryRef->FilteredInvSlotsArray);
 }
 
@@ -165,7 +169,11 @@ void UListInventoryWidget::RebuildFilteredSlots()
 	{
 		if (!InvSlot || !InvSlot->Item)
 			continue;
-		if (ActiveFilters.Contains(InvSlot->Item->GetItemRef().ItemCategory))
+
+		if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(InvSlot->Item, TEXT("RebuildFilteredSlots")))
+			continue;
+
+		if (ActiveFilters.Contains(IObjectDataProvider::Execute_GetItemRef(InvSlot->Item).ItemCategory))
 			ListInventoryRef->FilteredInvSlotsArray.Add(InvSlot);
 	}
 }
@@ -191,25 +199,34 @@ void UListInventoryWidget::RefreshFilteredItemsList()
 
 void UListInventoryWidget::SearchTextChanged(const FText& NewText)
 {
-	const TArray<TObjectPtr<UInventoryListEntry>>& SourceArray = ItemFiltersPanel->IsSearchInFilteredSlots() ? ListInventoryRef->FilteredInvSlotsArray : ListInventoryRef->InvSlotsArray;
+	const TArray<TObjectPtr<UInventoryListEntry>>& SourceArray =
+		ItemFiltersPanel->IsSearchInFilteredSlots()
+		? ListInventoryRef->FilteredInvSlotsArray
+		: ListInventoryRef->InvSlotsArray;
 
 	ItemsList->ClearListItems();
+
 	if (NewText.IsEmpty())
 	{
 		for (auto InvSlot : SourceArray)
-		{
 			ItemsList->AddItem(InvSlot);
-		}
+
 		return;
 	}
-	
+    
 	for (auto InvSlot : SourceArray)
 	{
-		FString StringName = InvSlot->Item->GetItemRef().ItemTextData.DisplayName.ToString();
+		if (!InvSlot || !InvSlot->Item)
+			continue;
+
+		if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(InvSlot->Item, TEXT("SearchTextChanged")))
+			continue;
+
+		FString StringName =
+			IObjectDataProvider::Execute_GetItemRef(InvSlot->Item).ItemTextData.DisplayName.ToString();
+
 		if (StringName.Contains(NewText.ToString(), ESearchCase::IgnoreCase))
-		{
 			ItemsList->AddItem(InvSlot);
-		}
 	}
 }
 
@@ -222,11 +239,16 @@ void UListInventoryWidget::SetInventoryBaseRef(UInventoryBase* NewInventoryRef)
 	}
 }
 
-void UListInventoryWidget::AddItemToPanel(FItemMapping& ItemSlots, UItemBase* Item)
+void UListInventoryWidget::AddItemToPanel(FItemMapping& ItemSlots, UObject* Item)
 {
-	if (!Item || !ListInventoryRef) return;
+	if (!Item || !ListInventoryRef)
+		return;
+
+	if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(Item, TEXT("AddItemToPanel")))
+		return;
 
 	UInventoryListEntry* TargetEntry = nullptr;
+
 	for (UInventoryListEntry* InvSlot : ListInventoryRef->InvSlotsArray)
 	{
 		if (InvSlot && InvSlot->Item == Item)
@@ -235,6 +257,7 @@ void UListInventoryWidget::AddItemToPanel(FItemMapping& ItemSlots, UItemBase* It
 			break;
 		}
 	}
+
 	if (!TargetEntry)
 	{
 		GetWorld()->GetTimerManager().SetTimerForNextTick(this, &UListInventoryWidget::ReDrawAllItems);
@@ -242,22 +265,22 @@ void UListInventoryWidget::AddItemToPanel(FItemMapping& ItemSlots, UItemBase* It
 	}
 
 	TargetEntry->ParentInventoryWidget = this;
-	bool bPassesFilter = (ActiveFilters.Num() == 0) || 
-						 ActiveFilters.Contains(Item->GetItemRef().ItemCategory);
+
+	bool bPassesFilter =
+		(ActiveFilters.Num() == 0) ||
+		ActiveFilters.Contains(IObjectDataProvider::Execute_GetItemRef(Item).ItemCategory);
     
 	if (bPassesFilter)
 	{
 		ListInventoryRef->FilteredInvSlotsArray.AddUnique(TargetEntry);
 		ItemsList->AddItem(TargetEntry);
-		
+        
 		if (ItemFiltersPanel && ItemFiltersPanel->GetSearchText())
-		{
 			SearchTextChanged(ItemFiltersPanel->GetSearchText()->GetText());
-		}
 	}
 }
 
-void UListInventoryWidget::RemoveItemFromPanel(FItemMapping FromSlots, UItemBase* Item)
+void UListInventoryWidget::RemoveItemFromPanel(FItemMapping FromSlots, UObject* Item)
 {
 	if (!Item) return;
 
@@ -278,7 +301,7 @@ void UListInventoryWidget::RemoveItemFromPanel(FItemMapping FromSlots, UItemBase
 	}
 }
 
-void UListInventoryWidget::UpdateItem(UItemBase* Item)
+void UListInventoryWidget::UpdateItem(UObject* Item)
 {
 	if (!Item) return;
 
@@ -363,7 +386,6 @@ bool UListInventoryWidget::NativeOnDrop(const FGeometry& InGeometry, const FDrag
 
 	auto DragOp = Cast<UItemDragDropOperation>(InOperation);
 	DragOp->ItemMoveData.TargetInventory = InventoryRef;
-	DragOp->ItemMoveData.TargetSlotCoordinate = FIntPoint(-1);
 
 	if (OnItemDroppedDelegate.IsBound())
 			OnItemDroppedDelegate.Broadcast(DragOp->ItemMoveData);
