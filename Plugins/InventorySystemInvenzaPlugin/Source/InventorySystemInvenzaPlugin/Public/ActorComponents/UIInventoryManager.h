@@ -9,6 +9,7 @@
 #include "Interface/Inventory/InventoryInteractionHandler.h"
 #include "UIInventoryManager.generated.h"
 
+class UInvenzaInventorySettingsAsset;
 struct FModalResult;
 enum class EObjectInteractionType : uint8;
 struct FModalActionConfig;
@@ -107,6 +108,11 @@ public:
 	void Server_ItemTransferRequest(FItemMoveData ItemMoveData);
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Transfer")
 	void Handle_ItemTransferRequest(FItemMoveData ItemMoveData);
+	
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Transfer")
+	EInventoryContextActionResult ValidateAndEquipTransferredItem(FItemMoveData& ItemMoveData);
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Transfer")	
+	void UnequipItemIfNeeded(UInventoryBase* SourceInventory, FGuid SourceSlotID);
 
 	// Split
 	virtual void ItemSplitRequest_Implementation(UInventoryBase* TargetInventory, UObject* ItemToSplit, int32 SplitAmount) override;
@@ -129,6 +135,8 @@ public:
 	
 	// Equip
 	virtual void ItemEquipRequest_Implementation(UObject* Item);
+	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Inventory|Transfer")
+	void Server_ItemEquipRequest(UObject* Item);
 	
 	// Use
 	virtual void RequestUseSlot_Implementation(const FString& InvID, FGuid SlotID) override;
@@ -187,7 +195,7 @@ protected:
 	
 	// Refs
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	TObjectPtr<UInventoryBase> MainPawnInventory;
+	TObjectPtr<UInventoryBase> MainPawnInventoryRef;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TObjectPtr<UEquipmentComponent> EquipmentComponentRef;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
@@ -196,6 +204,9 @@ protected:
 	TObjectPtr<UItemCollection> ItemCollectionRef;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TObjectPtr<UInteractionComponent> InteractionComponent;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TObjectPtr<UInvenzaInventorySettingsAsset> GlobalSettings;
 	
 	
 	//
@@ -209,13 +220,12 @@ protected:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UFUNCTION()
-	void OnItemAddedToInventory(FItemMapping& ItemSlots, UObject* Item);
-	UFUNCTION()
-	void OnItemRemovedFromInventory(FItemMapping ItemSlots, UObject* Item);
-
+	
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	UInventoryBase* ResolveTargetInventory(UInventoryBase* SourceInventory);	
+	UInventoryBase* ResolveTargetInventory(UInventoryBase* SourceInventory);
+	
+	UFUNCTION(BlueprintCallable)
+	bool FindSuitableEquipmentSlot(UObject* Item,UInventoryBase*& OutEquipmentInventory,UInventorySlotData*& OutSuitableSlot,UInventorySlotData*& OutFreeSlot);
 	
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Trade")
 	virtual void VendorRequest(FItemMoveData ItemMoveData);
@@ -279,8 +289,8 @@ protected:
 	
 	UFUNCTION(BlueprintCallable)
 	void ValidateInventoryContextActions();
-	UFUNCTION()
-	void CollectAccessibleInventoryActions();
+	UFUNCTION(BlueprintCallable)
+	TMap<EObjectInteractionType, FModalActionConfig> CollectAccessibleInventoryActions();
 	UFUNCTION(BlueprintCallable)
 	void OnInventoryModalResponse(FModalResult Result);
 };

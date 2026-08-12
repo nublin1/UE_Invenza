@@ -169,6 +169,7 @@ FSlotBasedInventoryWidgetInitData USlotbasedInventoryWidget::CollectInitSlotsDat
 			SlotInfo.CellPosition = SlotPosit;
 			SlotInfo.UseAction = nullptr;
 			SlotInfo.AllowedCategory = NewInvSlots[i]->AllowedSlotCategory;
+			SlotInfo.LinkedEquipmentSlot = NewInvSlots[i]->LinkedEquipmentSlotTag;
 			
 			Result.SlotLayout.Add(SlotInfo);
 		}
@@ -833,7 +834,7 @@ FReply USlotbasedInventoryWidget::NativeOnMouseButtonDown(const FGeometry& InGeo
     {
         FItemMoveData ItemMoveData;
         ItemMoveData.SourceInventory = SlotBasedInventoryRef;
-        ItemMoveData.SourceItemPivotSlotCoordinate = SlotUnderMouse->GetSlotData()->InventorySlotInfo.CellPosition;
+        ItemMoveData.SourceSlotID = SlotUnderMouse->GetSlotData()->InventorySlotInfo.SlotGuid;
         ItemMoveData.SourceItem = ItemInSlot;
 
         FInventoryModifierState Modifiers =
@@ -978,7 +979,7 @@ void USlotbasedInventoryWidget::NativeOnDragDetected(const FGeometry& InGeometry
     DragOp->Pivot = EDragPivot::TopLeft;
     DragOp->ItemMoveData.SourceItem = Item;
     DragOp->ItemMoveData.SourceInventory = SlotBasedInventoryRef;
-    DragOp->ItemMoveData.SourceItemPivotSlotCoordinate = SlotUnderMouse->GetSlotData()->InventorySlotInfo.CellPosition;
+    DragOp->ItemMoveData.SourceSlotID = SlotUnderMouse->GetSlotData()->InventorySlotInfo.SlotGuid;
     DragOp->ItemMoveData.SavedOrientation = ItemMap->ItemOrientation;
     DragOp->ItemMoveData.TargetOrientation = ItemMap->ItemOrientation;
 

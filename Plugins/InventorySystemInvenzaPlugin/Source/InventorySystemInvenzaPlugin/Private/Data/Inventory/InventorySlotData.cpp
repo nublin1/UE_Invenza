@@ -21,16 +21,16 @@ UInventorySlotData* UInventorySlotData::Create(UObject* Outer)
 	return NewObject<UInventorySlotData>(Outer);
 }
 
-UInventorySlotData* UInventorySlotData::CreateWithData(UObject* Outer, FName Name, FIntPoint Position,
-	UInputAction* Action, FGameplayTag Category)
+UInventorySlotData* UInventorySlotData::CreateWithData(UObject* Outer, FInventorySlotInfo SlotData)
 {
 	UInventorySlotData* Slot = NewObject<UInventorySlotData>(Outer);
 	if (!Slot) return nullptr;
-
-	Slot->InventorySlotInfo.AllowedCategory = Category;
-	Slot->InventorySlotInfo.SlotName = Name;
-	Slot->InventorySlotInfo.CellPosition = Position;
-	Slot->InventorySlotInfo.UseAction = TSoftObjectPtr<UInputAction>(Action);
+	
+	Slot->InventorySlotInfo.SlotName = SlotData.SlotName;
+	Slot->InventorySlotInfo.CellPosition = SlotData.CellPosition;
+	Slot->InventorySlotInfo.UseAction = TSoftObjectPtr<UInputAction>(SlotData.UseAction);
+	Slot->InventorySlotInfo.AllowedCategory = SlotData.AllowedCategory;
+	Slot->InventorySlotInfo.LinkedEquipmentSlot = SlotData.LinkedEquipmentSlot;
 
 	return Slot;
 }

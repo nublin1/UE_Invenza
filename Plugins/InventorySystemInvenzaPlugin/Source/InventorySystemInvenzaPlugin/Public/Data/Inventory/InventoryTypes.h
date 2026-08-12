@@ -181,13 +181,13 @@ struct FItemMoveData
 	UPROPERTY(BlueprintReadWrite)
 	TObjectPtr<UInventoryBase> SourceInventory;
 	UPROPERTY(BlueprintReadWrite)
-	FIntPoint SourceItemPivotSlotCoordinate = FIntPoint(-1);
+	FGuid SourceSlotID;
+	//UPROPERTY(BlueprintReadWrite)
+	//FIntPoint SourceItemPivotSlotCoordinate = FIntPoint(-1);
 	UPROPERTY(BlueprintReadWrite)
 	TObjectPtr<UInventoryBase> TargetInventory;
 	UPROPERTY(BlueprintReadWrite)
 	FGuid TargetSlotID;
-	/*UPROPERTY(BlueprintReadWrite)
-	FIntPoint TargetSlotCoordinate = FIntPoint(-1); // For SlotBased*/
 	UPROPERTY(BlueprintReadWrite)
 	EItemOrientationType SavedOrientation = EItemOrientationType::Horizontal;
 	UPROPERTY(BlueprintReadWrite)
@@ -202,13 +202,13 @@ struct FItemMoveData
 
 	FItemMoveData (UObject* _SourceItem,
 	               UInventoryBase* _SourceInventory,
-	               FIntPoint _SourceItemPivotSlotCoordinate,
+	               FGuid _SourceSlotID,
 	               UInventoryBase* _TargetInventory,
 	               FGuid _TargetSlotID)
 	{
 		SourceItem = _SourceItem;
 		SourceInventory = _SourceInventory;
-		SourceItemPivotSlotCoordinate = _SourceItemPivotSlotCoordinate;
+		SourceSlotID = _SourceSlotID;
 		TargetInventory = _TargetInventory;
 		TargetSlotID = _TargetSlotID;
 	}
@@ -470,4 +470,16 @@ struct FItemMappingArrayWrapper
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
 	TArray<FItemMapping> Mappings;
+};
+
+UENUM(BlueprintType)
+enum class EInventoryContextActionResult : uint8
+{
+	NotApplicable,
+	Success,
+	IncompatibleSlot,
+	SlotOccupied,
+	ItemAlreadyEquipped,
+	InvalidSlot,
+	EquipmentSlotNotFound
 };

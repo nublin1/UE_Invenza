@@ -185,7 +185,7 @@ TMap<EObjectInteractionType, FModalActionConfig> UInvenzayUtility::CollectAccess
 	return AllowedActions;
 }
 
-const UInvenzaInventorySettingsAsset* UInvenzayUtility::GetInvenzaGlobalSettings(const UObject* WorldContext)
+UInvenzaInventorySettingsAsset* UInvenzayUtility::GetInvenzaGlobalSettings(const UObject* WorldContext)
 {
 	if (!WorldContext) return nullptr;
 

@@ -47,7 +47,7 @@ public:
 
 	//
 	UFUNCTION(BlueprintPure, meta = (WorldContext = "WorldContextObject"),Category = "InventorySystemInvenza")
-	static const UInvenzaInventorySettingsAsset* GetInvenzaGlobalSettings(	const UObject* WorldContextObject);
+	static UInvenzaInventorySettingsAsset* GetInvenzaGlobalSettings( const UObject* WorldContextObject);
 
 	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
 	static TScriptInterface<IInventoryInteractionHandler> FindInventoryHandler(AActor* Actor);

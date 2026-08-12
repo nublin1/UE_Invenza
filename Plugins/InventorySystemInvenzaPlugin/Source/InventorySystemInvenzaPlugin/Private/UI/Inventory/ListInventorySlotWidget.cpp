@@ -168,7 +168,7 @@ FReply UListInventorySlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeom
         ItemMoveData.SourceInventory = CachedEntry->ParentInventoryWidget->GetInventoryRef();
 
         if (this->GetSlotData())
-            ItemMoveData.SourceItemPivotSlotCoordinate = this->GetSlotData()->InventorySlotInfo.CellPosition;
+            ItemMoveData.SourceSlotID = this->GetSlotData()->InventorySlotInfo.SlotGuid;
 
         ItemMoveData.SourceItem = Item;
 
@@ -297,8 +297,7 @@ void UListInventorySlotWidget::NativeOnDragDetected(const FGeometry& InGeometry,
 
     DragItemDragDropOperation->ItemMoveData.SourceItem = Item;
     DragItemDragDropOperation->ItemMoveData.SourceInventory = Inv;
-    DragItemDragDropOperation->ItemMoveData.SourceItemPivotSlotCoordinate =
-        this->GetSlotData()->InventorySlotInfo.CellPosition;
+    DragItemDragDropOperation->ItemMoveData.SourceSlotID = this->GetSlotData()->InventorySlotInfo.SlotGuid;
 
     DragItemDragDropOperation->ItemMoveData.SavedOrientation = InitialItemOrientation;
     DragItemDragDropOperation->ItemMoveData.TargetOrientation = InitialItemOrientation;

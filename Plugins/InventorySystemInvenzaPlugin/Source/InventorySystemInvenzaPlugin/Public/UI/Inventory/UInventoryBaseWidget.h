@@ -45,7 +45,7 @@ public:
 	// FUNCTIONS
 	//====================================================================
 	UFUNCTION(Category="Inventory")
-	virtual void InitializeInventoryWidget(){} /*PURE_VIRTUAL(UUInventoryBaseWidget::InitializeInventory,)*/;
+	virtual void InitializeInventoryWidget(){}
 	UFUNCTION(Category="Inventory")
 	virtual void InitializeInventoryWidgetWithSettings();
 

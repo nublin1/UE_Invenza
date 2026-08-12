@@ -65,6 +65,25 @@ void UEquipmentComponent::InitializeSlotsFromTable()
 	}
 }
 
+bool UEquipmentComponent::HasSlotForCategory(const FGameplayTag& AllowedCategory) const
+{
+	if (!AllowedCategory.IsValid())
+	{
+		return false;
+	}
+
+	for (const FEquipmentSlotRuntime& Slot : EquipmentSlotsArray)
+	{
+		if (Slot.AllowedCategory.IsValid()
+			&& Slot.AllowedCategory.MatchesTagExact(AllowedCategory))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 bool UEquipmentComponent::IsCategoryCompatibleWithSlot(FGameplayTag SlotTag, FGameplayTag ItemCategory) const
 {
 	const FEquipmentSlotRuntime* Slot = FindSlot(SlotTag);
@@ -86,6 +105,26 @@ bool UEquipmentComponent::CanEquipItemToSlot(const UObject* Item, FGameplayTag S
 	const FItemMetaData& ItemData = IObjectDataProvider::Execute_GetItemRef(const_cast<UObject*>(Item));
 
 	return IsCategoryCompatibleWithSlot(SlotTag, ItemData.ItemCategory);
+}
+
+bool UEquipmentComponent::IsItemEquippedInSlot(const UObject* Item, FGameplayTag SlotTag) const
+{
+	if (!Item || !SlotTag.IsValid())
+		return false;
+
+	const FEquipmentSlotRuntime* Slot = FindSlot(SlotTag);
+
+	return Slot && Slot->EquippedItem == Item;
+}
+
+bool UEquipmentComponent::IsSlotOccupied(FGameplayTag SlotTag) const
+{
+	if (!SlotTag.IsValid())
+		return false;
+
+	const FEquipmentSlotRuntime* Slot = FindSlot(SlotTag);
+
+	return Slot && Slot->EquippedItem != nullptr;
 }
 
 void UEquipmentComponent::Server_EquipItem_Implementation(UObject* Item)

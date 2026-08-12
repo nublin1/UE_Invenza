@@ -19,7 +19,7 @@ public:
 
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 
-	const UInvenzaInventorySettingsAsset* GetSettings() const { return Settings; }
+	UInvenzaInventorySettingsAsset* GetSettings() const { return Settings; }
 
 	static const UInvenzaInventorySettingsAsset* GetSettingsStatic(const UObject* WorldContextObject);
 

@@ -42,10 +42,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	static UInventorySlotData* CreateWithData(
 		UObject* Outer,
-		FName Name,
-		FIntPoint Position,
-		UInputAction* Action,
-		FGameplayTag Category
+		FInventorySlotInfo SlotData
 	);
 
 	UFUNCTION(BlueprintCallable)

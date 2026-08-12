@@ -1348,11 +1348,7 @@ void USlotbasedInventory::GenerateInventorySlots()
 		for (const FInventorySlotInfo& SlotInfo : WidgetSlotInitData)
 		{
 			UInventorySlotData* NewSlot = UInventorySlotData::CreateWithData(
-				this->InventoryOwnerActor,
-				SlotInfo.SlotName,
-				SlotInfo.CellPosition,
-				SlotInfo.UseAction.Get(),
-				SlotInfo.AllowedCategory);
+				this->InventoryOwnerActor,SlotInfo);
 
 			if (NewSlot)
 				ResultSlots.Add(NewSlot);
@@ -1367,12 +1363,12 @@ void USlotbasedInventory::GenerateInventorySlots()
 		{
 			for (int32 Y = 0; Y < InvSize.Y; Y++)
 			{
+				FInventorySlotInfo NewSlotData;
+				NewSlotData.CellPosition = FIntPoint(X, Y),
+				NewSlotData.AllowedCategory = MySettings->AnyCategoryGameplayTag;
+				
 				UInventorySlotData* NewSlot = UInventorySlotData::CreateWithData(
-					this->InventoryOwnerActor,
-					NAME_None,
-					FIntPoint(X, Y),
-					nullptr,
-					MySettings->AnyCategoryGameplayTag);
+					this->InventoryOwnerActor,NewSlotData);
 
 				if (NewSlot)
 					ResultSlots.Add(NewSlot);

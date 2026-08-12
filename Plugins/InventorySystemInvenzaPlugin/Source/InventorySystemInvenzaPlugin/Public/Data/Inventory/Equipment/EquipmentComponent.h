@@ -6,7 +6,6 @@
 #include "GameFramework/Actor.h"
 #include "Engine/DataTable.h"
 #include "Components/ActorComponent.h"
-#include "Data/Inventory/InventoryBase.h"
 #include "Data/Inventory/Equipment/EquipmentSlotDefinition.h"
 #include "EquipmentComponent.generated.h"
 
@@ -53,6 +52,9 @@ public:
 	//====================================================================
 	UFUNCTION(Category = "Equipment|Initialization")
 	virtual void InitializeSlotsFromTable();
+	
+	UFUNCTION(BlueprintCallable, Category = "Equipment")
+	bool HasSlotForCategory(const FGameplayTag& AllowedCategory) const;
 
 	/**
 	 * Checks whether the item category is compatible with the specified slot.
@@ -67,6 +69,10 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Equipment")
 	bool CanEquipItemToSlot(const UObject* Item, FGameplayTag SlotTag) const;
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Equipment")
+	bool IsItemEquippedInSlot(const UObject* Item, FGameplayTag SlotTag) const;
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Equipment")
+	bool IsSlotOccupied(FGameplayTag SlotTag) const;
 
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Equipment|Management")
 	void Server_EquipItem(UObject* Item);
@@ -82,6 +88,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Equipment")
 	bool DoesSlotExist(FGameplayTag SlotTag) const;
+	
+	UFUNCTION()
+	TArray<FEquipmentSlotRuntime> GetEquipmentSlotsArray() const {return EquipmentSlotsArray;}
 
 protected:
 	//====================================================================
