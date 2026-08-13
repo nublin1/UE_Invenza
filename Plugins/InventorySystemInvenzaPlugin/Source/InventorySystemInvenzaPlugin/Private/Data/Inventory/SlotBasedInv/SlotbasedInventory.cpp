@@ -1022,8 +1022,7 @@ int32 USlotbasedInventory::DistributeToExistingStacks(TArray<UObject*>& SameItem
 	return TotalAdded;
 }
 
-UObject* USlotbasedInventory::AddNewItem(FItemMoveData& ItemMoveData, FItemMapping OccupiedSlots,
-                                           int32 AddAmount)
+UObject* USlotbasedInventory::AddNewItem(FItemMoveData& ItemMoveData, FItemMapping OccupiedSlots, int32 AddAmount)
 {
 	if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(ItemMoveData.SourceItem, TEXT("AddNewItem")))
 		return nullptr;
@@ -1036,7 +1035,8 @@ UObject* USlotbasedInventory::AddNewItem(FItemMoveData& ItemMoveData, FItemMappi
 	}
 	else
 	{
-		FinalItem = IObjectDataProvider::Execute_DuplicateItem(ItemMoveData.SourceItem);
+		FinalItem = ItemMoveData.SourceItem;
+		//FinalItem = IObjectDataProvider::Execute_DuplicateItem(ItemMoveData.SourceItem);
 		IObjectDataProvider::Execute_SetQuantity(FinalItem, AddAmount);
 	}
 

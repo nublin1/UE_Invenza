@@ -443,28 +443,14 @@ bool UIInventoryManager::FindSuitableEquipmentSlot(UObject* Item, UInventoryBase
 	OutSuitableSlot = nullptr;
 	OutFreeSlot = nullptr;
 
-	if (!ItemCollectionRef)
+	if (!ItemCollectionRef || !Item || !EquipmentComponentRef || !GlobalSettings)
 		return false;
 
-	if (!Item)
-		return false;
-
-	if (!EquipmentComponentRef)
-		return false;
-
-	if (!GlobalSettings)
-		return false;
-
-	const auto EquipmentInventories =
-		ItemCollectionRef->GetAllInventoriesByTag(
-			GlobalSettings->EquipmentInvTag);
-
+	const auto EquipmentInventories = ItemCollectionRef->GetAllInventoriesByTag(GlobalSettings->EquipmentInvTag);
 	if (EquipmentInventories.IsEmpty())
 		return false;
 
-	const FGameplayTag RequiredAllowedCategoryTag =
-		IObjectDataProvider::Execute_GetItemRef(Item).ItemCategory;
-
+	const FGameplayTag RequiredAllowedCategoryTag =	IObjectDataProvider::Execute_GetItemRef(Item).ItemCategory;
 	if (!RequiredAllowedCategoryTag.IsValid())
 		return false;
 
@@ -473,44 +459,29 @@ bool UIInventoryManager::FindSuitableEquipmentSlot(UObject* Item, UInventoryBase
 		if (!EquipmentInventory)
 			continue;
 
-		const auto LinkedEquipmentSlots =
-			EquipmentInventory->GetSlotsWithLinkedEquipment();
-
+		const auto LinkedEquipmentSlots = EquipmentInventory->GetSlotsWithLinkedEquipment();
 		for (const FGuid& SlotID : LinkedEquipmentSlots)
 		{
-			UInventorySlotData* Slot =
-				EquipmentInventory->GetSlotByGuid(SlotID);
-
+			UInventorySlotData* Slot = EquipmentInventory->GetSlotByGuid(SlotID);
 			if (!Slot)
 				continue;
 
-			const FGameplayTag& EquipmentAllowedCategoryTag =
-				Slot->InventorySlotInfo.AllowedCategory;
-
-			const FGameplayTag& EquipmentSlotTag =
-				Slot->InventorySlotInfo.LinkedEquipmentSlot;
-
-			if (!EquipmentAllowedCategoryTag.IsValid())
+			const FGameplayTag& EquipmentAllowedCategoryTag = Slot->InventorySlotInfo.AllowedCategory;
+			const FGameplayTag& EquipmentSlotTag = Slot->InventorySlotInfo.LinkedEquipmentSlot;
+			if (!EquipmentAllowedCategoryTag.IsValid() || !EquipmentSlotTag.IsValid())
 				continue;
 
-			if (!EquipmentSlotTag.IsValid())
-				continue;
-
-			if (!EquipmentAllowedCategoryTag.MatchesTagExact(
-				RequiredAllowedCategoryTag))
+			if (!EquipmentAllowedCategoryTag.MatchesTagExact(RequiredAllowedCategoryTag))
 			{
 				continue;
 			}
 
-			if (!EquipmentComponentRef->DoesSlotExist(
-				EquipmentSlotTag))
+			if (!EquipmentComponentRef->DoesSlotExist(EquipmentSlotTag))
 			{
 				continue;
 			}
 
-			if (!EquipmentComponentRef->CanEquipItemToSlot(
-				Item,
-				EquipmentSlotTag))
+			if (!EquipmentComponentRef->CanEquipItemToSlot(Item, EquipmentSlotTag))
 			{
 				continue;
 			}
@@ -522,11 +493,7 @@ bool UIInventoryManager::FindSuitableEquipmentSlot(UObject* Item, UInventoryBase
 				OutEquipmentInventory = EquipmentInventory;
 			}
 
-			const bool bIsFree =
-				EquipmentInventory->bIsSlotEmpty(
-					Slot,
-					TArray<UInventorySlotData*>());
-
+			const bool bIsFree = EquipmentInventory->bIsSlotEmpty(Slot,	TArray<UInventorySlotData*>());
 			if (bIsFree)
 			{
 				OutFreeSlot = Slot;

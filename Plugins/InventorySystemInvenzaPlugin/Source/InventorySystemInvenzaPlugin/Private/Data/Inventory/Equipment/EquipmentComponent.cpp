@@ -179,12 +179,22 @@ void UEquipmentComponent::Server_UnequipItemFromSlot_Implementation(FGameplayTag
 
 bool UEquipmentComponent::IsItemEquipped(const UObject* Item) const
 {
-	if (!Item) return false;
+	if (!Item)
+	{
+		UE_LOG(LogTemp, Log, TEXT("UEquipmentComponent::IsItemEquipped - Item is null, returning false"));
+		return false;
+	}
 
-	return EquipmentSlotsArray.ContainsByPredicate([Item](const FEquipmentSlotRuntime& Slot)
+	const bool bIsEquipped = EquipmentSlotsArray.ContainsByPredicate([Item](const FEquipmentSlotRuntime& Slot)
 	{
 		return Slot.EquippedItem == Item;
 	});
+
+	UE_LOG(LogTemp, Log, TEXT("UEquipmentComponent::IsItemEquipped - Item: %s, IsEquipped: %s"),
+		*Item->GetName(),
+		bIsEquipped ? TEXT("true") : TEXT("false"));
+
+	return bIsEquipped;
 }
 
 bool UEquipmentComponent::FindSlotByItem(const UObject* Item, FGameplayTag& OutSlotTag) const
