@@ -128,8 +128,8 @@ public:
 	
 	TArray<FGuid> GetOccupatedSlotsIDByContainerName(FString InventoryID, UObject* Item);
 	FItemMapping* FindItemMappingByContainerName(UObject* Item, FString InventoryID);
-	TArray<FItemMapping> FindAllMappingsForItem(UObject* Item);
-	UInventoryBase* FindMainInventoryForItem(UObject* Item);
+	TArray<FItemMapping*> FindAllMappingsForItem(UObject* Item);
+	FItemMapping* FindMainInventoryMappingForItem(UObject* Item);
 
 	UFUNCTION(BlueprintCallable)
 	bool ItemHasInventory(UObject* Item, FString InventoryID);

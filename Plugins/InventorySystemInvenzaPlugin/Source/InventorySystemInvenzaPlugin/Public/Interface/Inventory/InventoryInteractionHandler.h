@@ -48,6 +48,8 @@ public:
 	
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Inventory")
 	void ItemEquipRequest(UObject* Item);
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Inventory")
+	void ItemUnequipRequest(UObject* Item);
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Inventory")
 	void RequestUseSlot(const FString& InvID, FGuid SlotID);

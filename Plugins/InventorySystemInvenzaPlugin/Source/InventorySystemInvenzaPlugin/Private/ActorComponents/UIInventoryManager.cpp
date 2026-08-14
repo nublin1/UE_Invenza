@@ -446,59 +446,43 @@ bool UIInventoryManager::FindSuitableEquipmentSlot(UObject* Item, UInventoryBase
 	if (!ItemCollectionRef || !Item || !EquipmentComponentRef || !GlobalSettings)
 		return false;
 
-	const auto EquipmentInventories = ItemCollectionRef->GetAllInventoriesByTag(GlobalSettings->EquipmentInvTag);
-	if (EquipmentInventories.IsEmpty())
+	const FGameplayTag RequiredCategory = IObjectDataProvider::Execute_GetItemRef(Item).ItemCategory;
+	if (!RequiredCategory.IsValid())
 		return false;
 
-	const FGameplayTag RequiredAllowedCategoryTag =	IObjectDataProvider::Execute_GetItemRef(Item).ItemCategory;
-	if (!RequiredAllowedCategoryTag.IsValid())
-		return false;
-
-	for (UInventoryBase* EquipmentInventory : EquipmentInventories)
+	for (UInventoryBase* EquipmentInventory : ItemCollectionRef->GetAllInventoriesByTag(GlobalSettings->EquipmentInvTag))
 	{
 		if (!EquipmentInventory)
 			continue;
 
-		const auto LinkedEquipmentSlots = EquipmentInventory->GetSlotsWithLinkedEquipment();
-		for (const FGuid& SlotID : LinkedEquipmentSlots)
+		for (const FGuid& SlotID : EquipmentInventory->GetSlotsWithLinkedEquipment())
 		{
 			UInventorySlotData* Slot = EquipmentInventory->GetSlotByGuid(SlotID);
 			if (!Slot)
 				continue;
 
-			const FGameplayTag& EquipmentAllowedCategoryTag = Slot->InventorySlotInfo.AllowedCategory;
+			const FGameplayTag& AllowedCategory = Slot->InventorySlotInfo.AllowedCategory;
 			const FGameplayTag& EquipmentSlotTag = Slot->InventorySlotInfo.LinkedEquipmentSlot;
-			if (!EquipmentAllowedCategoryTag.IsValid() || !EquipmentSlotTag.IsValid())
-				continue;
 
-			if (!EquipmentAllowedCategoryTag.MatchesTagExact(RequiredAllowedCategoryTag))
+			if (!AllowedCategory.IsValid()
+				|| !EquipmentSlotTag.IsValid()
+				|| !AllowedCategory.MatchesTagExact(RequiredCategory)
+				|| !EquipmentComponentRef->DoesSlotExist(EquipmentSlotTag)
+				|| !EquipmentComponentRef->CanEquipItemToSlot(Item, EquipmentSlotTag))
 			{
 				continue;
 			}
 
-			if (!EquipmentComponentRef->DoesSlotExist(EquipmentSlotTag))
-			{
-				continue;
-			}
-
-			if (!EquipmentComponentRef->CanEquipItemToSlot(Item, EquipmentSlotTag))
-			{
-				continue;
-			}
-
-			// First suitable slot.
 			if (!OutSuitableSlot)
 			{
 				OutSuitableSlot = Slot;
 				OutEquipmentInventory = EquipmentInventory;
 			}
 
-			const bool bIsFree = EquipmentInventory->bIsSlotEmpty(Slot,	TArray<UInventorySlotData*>());
-			if (bIsFree)
+			if (EquipmentInventory->bIsSlotEmpty(Slot, TArray<UInventorySlotData*>()))
 			{
 				OutFreeSlot = Slot;
 				OutEquipmentInventory = EquipmentInventory;
-
 				return true;
 			}
 		}
@@ -940,13 +924,7 @@ void UIInventoryManager::Server_OnItemDelete_Implementation(const FString& FromI
 
 void UIInventoryManager::ItemEquipRequest_Implementation(UObject* Item)
 {
-	if (!ItemCollectionRef)
-		return;
-	
-	if (!Item)
-		return;
-	
-	if (!EquipmentComponentRef)
+	if (!ItemCollectionRef || !Item || !EquipmentComponentRef)
 		return;
 	
 	Server_ItemEquipRequest(Item);
@@ -954,9 +932,11 @@ void UIInventoryManager::ItemEquipRequest_Implementation(UObject* Item)
 
 void UIInventoryManager::Server_ItemEquipRequest_Implementation(UObject* Item)
 {
-	UInventoryBase* CurrentInv =
-		ItemCollectionRef->FindMainInventoryForItem(Item);
-
+	auto MapData = ItemCollectionRef->FindMainInventoryMappingForItem(Item);
+	if (!MapData)
+		return;
+	
+	UInventoryBase* CurrentInv = ItemCollectionRef->GetInventoryByID(MapData->InventoryID);
 	if (!CurrentInv)
 		return;
 
@@ -964,34 +944,22 @@ void UIInventoryManager::Server_ItemEquipRequest_Implementation(UObject* Item)
 	UInventorySlotData* FirstSuitableSlot = nullptr;
 	UInventorySlotData* FirstFreeSuitableSlot = nullptr;
 
-	if (!FindSuitableEquipmentSlot(
-		Item,
-		TargetEquipmentInventory,
-		FirstSuitableSlot,
-		FirstFreeSuitableSlot))
+	if (!FindSuitableEquipmentSlot(	Item,TargetEquipmentInventory,FirstSuitableSlot,FirstFreeSuitableSlot))
 	{
 		return;
 	}
 
-	UInventorySlotData* TargetSlot =
-		FirstFreeSuitableSlot
-			? FirstFreeSuitableSlot
-			: FirstSuitableSlot;
-
+	UInventorySlotData* TargetSlot = FirstFreeSuitableSlot ? FirstFreeSuitableSlot : FirstSuitableSlot;
 	if (!TargetSlot)
 		return;
 
-	const FGuid TargetSlotID =
-		TargetSlot->InventorySlotInfo.SlotGuid;
-
-	const FGameplayTag EquipmentSlotTag =
-		TargetSlot->InventorySlotInfo.LinkedEquipmentSlot;
+	const FGuid TargetSlotID = TargetSlot->InventorySlotInfo.SlotGuid;
+	const FGameplayTag EquipmentSlotTag = TargetSlot->InventorySlotInfo.LinkedEquipmentSlot;
 
 	if (!EquipmentSlotTag.IsValid())
 		return;
 
 	FItemMoveData MoveData;
-
 	MoveData.SourceInventory = CurrentInv;
 	MoveData.SourceItem = Item;
 	MoveData.TargetInventory = TargetEquipmentInventory;
@@ -1011,9 +979,7 @@ void UIInventoryManager::Server_ItemEquipRequest_Implementation(UObject* Item)
 	if (!ItemInTargetSlot)
 		return;
 
-	const int32 EquippedItemQuantity =
-		IObjectDataProvider::Execute_GetQuantity(ItemInTargetSlot);
-
+	const int32 EquippedItemQuantity = IObjectDataProvider::Execute_GetQuantity(ItemInTargetSlot);
 	if (TargetEquipmentInventory->GetInventorySettings().bIsReferenceContainer)
 	{
 		TargetEquipmentInventory->HandleRemoveItem(
@@ -1025,12 +991,8 @@ void UIInventoryManager::Server_ItemEquipRequest_Implementation(UObject* Item)
 		return;
 	}
 
-	const FDataTableRowHandle EquippedItemRow =
-		IObjectDataProvider::Execute_GetItemRow(ItemInTargetSlot);
-
-	TargetEquipmentInventory->HandleRemoveItem(
-		ItemInTargetSlot,
-		EquippedItemQuantity);
+	const FDataTableRowHandle EquippedItemRow =	IObjectDataProvider::Execute_GetItemRow(ItemInTargetSlot);
+	TargetEquipmentInventory->HandleRemoveItem(ItemInTargetSlot, EquippedItemQuantity);
 
 	Execute_ItemTransferRequest(this, MoveData);
 
@@ -1042,6 +1004,40 @@ void UIInventoryManager::Server_ItemEquipRequest_Implementation(UObject* Item)
 		this,
 		CurrentInv,
 		ReturnedItemEntry);
+}
+
+void UIInventoryManager::ItemUnequipRequest_Implementation(UObject* Item)
+{
+	if (!ItemCollectionRef || !Item || !EquipmentComponentRef)
+		return;
+	
+	Server_ItemUnequipRequest(Item);
+}
+
+void UIInventoryManager::Server_ItemUnequipRequest_Implementation(UObject* Item)
+{
+	if (!Item)
+		return;
+	
+	if (!MainPawnInventoryRef)
+		return;
+	
+	auto MapData = ItemCollectionRef->FindMainInventoryMappingForItem(Item);
+	if (!MapData)
+		return;
+	
+	UInventoryBase* CurrentInv = ItemCollectionRef->GetInventoryByID(MapData->InventoryID);
+	if (!CurrentInv)
+		return;
+	
+	FItemMoveData MoveData;
+
+	MoveData.SourceInventory = CurrentInv;
+	MoveData.SourceItem = Item;
+	MoveData.SourceSlotID = MapData->OccupiedSlots[0]->InventorySlotInfo.SlotGuid;
+	MoveData.TargetInventory = MainPawnInventoryRef;
+	
+	Execute_ItemTransferRequest(this, MoveData);
 }
 
 void UIInventoryManager::RequestUseSlot_Implementation( const FString& InvID, FGuid SlotID)
@@ -1578,6 +1574,12 @@ void UIInventoryManager::OnInventoryModalResponse(FModalResult Result)
 	case EObjectInteractionType::Equip:
 		{
 			Execute_ItemEquipRequest(this, PendingContextItem);
+			break;
+		}
+		
+	case EObjectInteractionType::UnEquip:
+		{
+			Execute_ItemUnequipRequest(this, PendingContextItem);
 		}
 
 	default:

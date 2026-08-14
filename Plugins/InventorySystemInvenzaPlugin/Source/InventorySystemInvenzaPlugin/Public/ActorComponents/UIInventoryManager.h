@@ -138,6 +138,10 @@ public:
 	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Inventory|Transfer")
 	void Server_ItemEquipRequest(UObject* Item);
 	
+	virtual void ItemUnequipRequest_Implementation(UObject* Item);
+	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Inventory|Transfer")
+	void Server_ItemUnequipRequest(UObject* Item);
+	
 	// Use
 	virtual void RequestUseSlot_Implementation(const FString& InvID, FGuid SlotID) override;
 	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Inventory|Transfer")

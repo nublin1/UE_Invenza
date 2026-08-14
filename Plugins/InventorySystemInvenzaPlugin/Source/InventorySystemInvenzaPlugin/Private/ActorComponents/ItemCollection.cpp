@@ -611,30 +611,35 @@ FItemMapping* UItemCollection::FindItemMappingByContainerName(UObject* Item, FSt
 	return ResultMapping;
 }
 
-TArray<FItemMapping> UItemCollection::FindAllMappingsForItem(UObject* Item)
+TArray<FItemMapping*> UItemCollection::FindAllMappingsForItem(UObject* Item)
 {
-	TArray<FItemMapping> Results;
-	if (auto* FoundEntry = InventoryArray.Items.FindByPredicate([Item](const FInventoryEntry& E) { return E.Item == Item; }))
+	TArray<FItemMapping*> Results;
+
+	auto* FoundEntry = InventoryArray.Items.FindByPredicate(
+		[Item](const FInventoryEntry& E) { return E.Item == Item; });
+
+	if (!FoundEntry)
+		return Results;
+
+	Results.Reserve(FoundEntry->Locations.Mappings.Num());
+	for (FItemMapping& Mapping : FoundEntry->Locations.Mappings)
 	{
-		Results = FoundEntry->Locations.Mappings;
+		Results.Add(&Mapping);
 	}
+
 	return Results;
 }
 
-UInventoryBase* UItemCollection::FindMainInventoryForItem(UObject* Item)
+FItemMapping* UItemCollection::FindMainInventoryMappingForItem(UObject* Item)
 {
-	auto ResultMaps = FindAllMappingsForItem(Item);
-	if (ResultMaps.IsEmpty())
-		return nullptr;
-
-	for (auto ResultMap : ResultMaps)
+	for (FItemMapping* ResultMap : FindAllMappingsForItem(Item))
 	{
-		if (ResultMap.bIsReferenceContainer == false)
+		if (ResultMap && ResultMap->bIsReferenceContainer == false)
 		{
-			return GetInventoryByID(ResultMap.InventoryID);
+			return ResultMap;
 		}
 	}
-	
+
 	return nullptr;
 }
 
@@ -891,12 +896,12 @@ void UItemCollection::OnItemDataReplicated(UObject* Item)
 {
 	if (!Item) return;
 
-	const TArray<FItemMapping>& Mappings = FindAllMappingsForItem(Item);
+	TArray<FItemMapping*> Mappings = FindAllMappingsForItem(Item);
 
-	for (const FItemMapping& Mapping : Mappings)
+	for (auto Mapping : Mappings)
 	{
-		auto Container = GetInventoryByID(Mapping.InventoryID);
-		OnInventoryItemsChanged.Broadcast(Mapping.InventoryID);
+		auto Container = GetInventoryByID(Mapping->InventoryID);
+		OnInventoryItemsChanged.Broadcast(Mapping->InventoryID);
 		if (auto ContainerWidget = InventoryContainerWidgetMap.FindRef(Container))
 		{
 			if (auto TargetWidget = ContainerWidget->GetInventoryWidgetFromContainerSlot())
