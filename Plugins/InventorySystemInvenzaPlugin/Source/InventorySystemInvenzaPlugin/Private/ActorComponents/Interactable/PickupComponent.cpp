@@ -2,8 +2,6 @@
 
 #include "ActorComponents/Interactable/PickupComponent.h"
 
-#include "ActorComponents/InteractionComponent.h"
-#include "ActorComponents/UIInventoryManager.h"
 #include "Data/Items/itemBase.h"
 #include "Engine/StaticMesh.h"
 #include "TimerManager.h"

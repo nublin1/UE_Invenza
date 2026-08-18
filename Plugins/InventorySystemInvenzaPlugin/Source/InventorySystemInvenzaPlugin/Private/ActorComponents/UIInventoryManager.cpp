@@ -52,6 +52,8 @@ void UIInventoryManager::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	OwnerPawnRef = Cast<APawn>(GetOwner());
+	
 	GlobalSettings = UInvenzayUtility::GetInvenzaGlobalSettings(GetWorld());
 	
 	InitializeInventoryManager();
@@ -99,9 +101,8 @@ void UIInventoryManager::InitializeInventoryManager()
 	}
 
 	CreateInventories();
-
-	APawn* OwnerPawn = Cast<APawn>(GetOwner());
-	if (OwnerPawn && OwnerPawn->IsLocallyControlled())
+	
+	if (OwnerPawnRef && OwnerPawnRef->IsLocallyControlled())
 	{
 		InitInvWidgets();
 		InitCraftWidgets();
@@ -169,8 +170,7 @@ bool UIInventoryManager::CreateWidget(UInventoryBase* InvToLink)
 	if (!InvToLink)
 		return false;
 	
-	APawn* OwnerPawn = Cast<APawn>(GetOwner());
-	if (!OwnerPawn || !OwnerPawn->IsLocallyControlled()) return false;
+	if (!OwnerPawnRef || !OwnerPawnRef->IsLocallyControlled()) return false;
 	
 	if (!UIInvProvider)
 	{
@@ -180,7 +180,7 @@ bool UIInventoryManager::CreateWidget(UInventoryBase* InvToLink)
 
 	auto InvSettings = InvToLink->GetInventorySettings();
 
-	APlayerController* PC = Cast<APlayerController>(OwnerPawn->GetController());
+	APlayerController* PC = Cast<APlayerController>(OwnerPawnRef->GetController());
 	if (!PC) return false;
 	
 	auto InvContainer =  UInvenzaWidgetFactory::CreateInventoryWidget(
@@ -280,9 +280,8 @@ void UIInventoryManager::InitCraftWidgets()
 {
 	if (!CraftingComponentRef || !UIInvProvider)
 		return;
-
-	APawn* OwnerPawn = Cast<APawn>(GetOwner());
-	APlayerController* PC = Cast<APlayerController>(OwnerPawn->GetController());
+	
+	APlayerController* PC = Cast<APlayerController>(OwnerPawnRef->GetController());
 	if (!PC) return;
 
 	if (UISettings.bCreateCraftWidgetsDynamically)
@@ -563,7 +562,35 @@ void UIInventoryManager::VendorRequest(FItemMoveData ItemMoveData )
 		return;
 	
 	FTradeResult TradeResult = VendorProviderCurrent->ProcessTradeRequest(ItemMoveData);
-		
+	const UEnum* TradeResultEnum = StaticEnum<ETradeResult>();
+	const FString OperationResultName = TradeResultEnum
+		? TradeResultEnum->GetNameStringByValue(static_cast<int64>(TradeResult.OperationResult))
+		: TEXT("Unknown");
+
+	UE_LOG(LogTemp, Log,
+		TEXT("=== Trade Result ===\n")
+		TEXT("ItemsTraded: %d\n")
+		TEXT("MoneySpent: %d\n")
+		TEXT("MoneyReceived: %d\n")
+		TEXT("OperationResult: %s\n")
+		TEXT("ResultMessage: %s"),
+		TradeResult.ItemsTraded,
+		TradeResult.MoneySpent,
+		TradeResult.MoneyReceived,
+		*OperationResultName,
+		*TradeResult.ResultMessage.ToString()
+	);	
+	
+	if (ItemMoveData.SourceInventory)
+	{
+		ItemMoveData.SourceInventory->UpdateMoneyInfo();
+		ItemMoveData.SourceInventory->UpdateWeightInfo();
+	}
+	if (ItemMoveData.TargetInventory)
+	{
+		ItemMoveData.TargetInventory->UpdateMoneyInfo();
+		ItemMoveData.TargetInventory->UpdateWeightInfo();
+	}
 }
 
 void UIInventoryManager::ItemTransferRequest_Implementation(FItemMoveData ItemMoveData)
@@ -1094,9 +1121,8 @@ void UIInventoryManager::HandleRebuildInventory(const FString& InvID)
 void UIInventoryManager::InteractRequest(UInteractableComponent* TargetInteractableComponent)
 {
 	if (!TargetInteractableComponent) return;
-
-	APawn* OwnerPawn = Cast<APawn>(GetOwner());
-	if (OwnerPawn && OwnerPawn->IsLocallyControlled())
+	
+	if (OwnerPawnRef && OwnerPawnRef->IsLocallyControlled())
 	{
 		Server_HandleInteract(TargetInteractableComponent);
 	}
@@ -1108,160 +1134,140 @@ void UIInventoryManager::Server_HandleInteract_Implementation(UInteractableCompo
 	{
 		return;
 	}
-		
-	if (IPickupableass* PickupInterface = Cast<IPickupableass>(Target))
+	
+	auto InteractableData = Target->GetInteractableData();
+	switch (InteractableData.DefaultInteractableType)
 	{
-		if (UObject* ItemToPick = PickupInterface->GetItemData())
+	case EInteractableType::Pickup:
 		{
-			FItemMoveData Data;
-			Data.SourceItem = ItemToPick;
-			Data.TargetInventory = MainPawnInventoryRef;
-			Data.SourceInventory = nullptr;
-			
-			Execute_ItemTransferRequest(this, Data);
+			HandlePickupInteraction(Target);
+			break;
 		}
-		PickupInterface->OnPickedUp();
-		return;
-	}
-
-	if (ILootContainerProvider* LootProvider = Cast<ILootContainerProvider>(Target))
-	{
-		if (auto InventoryToDisplay = LootProvider->GetMainLootContainer())
+	case EInteractableType::Container:
 		{
-			ItemCollectionRef->SetExternalInventory(InventoryToDisplay);
+			HandleContainerInteraction(Target);
+			break;
 		}
-		if (GetOwner()->HasAuthority())
+	case EInteractableType::Vendor:
 		{
-			HandleInteract(Target);
+			HandleTradeInteraction(Target);
+			break;
 		}
-		return;
-	}
-
-	if (IVendorProvider* VendorProvider = Cast<IVendorProvider>(Target))
-	{
-		if (auto InventoryToDisplay = VendorProvider->GetVendorLootContainer())
-		{
-			ItemCollectionRef->SetVendorInventory(InventoryToDisplay);
-
-			VendorProviderCurrent.SetObject(Target);
-			VendorProviderCurrent.SetInterface(VendorProvider);
-			
-			FTradeContext TradeContext;
-			TradeContext.TradeSettings = VendorProviderCurrent->GetTradeSettings();
-			TradeContext.Vendor = Cast<AActor>(VendorProviderCurrent.GetObject());
-			TradeContext.Buyer = this->GetOwner();
-
-			ItemCollectionRef->GetLinkedInventories().VendorInventory->SetTradeContext(TradeContext);
-			
-			VendorProviderCurrent->SetTradePartnerInventory(MainPawnInventoryRef);
-			VendorProviderCurrent->SetTradePartnerItemCollection(ItemCollectionRef);
-		}
-		if (GetOwner()->HasAuthority())
-		{
-			HandleInteract(Target);
-		}
-		return;
+	default: 
+		break;
 	}
 }
 
-void UIInventoryManager::HandleInteract(UInteractableComponent* TargetInteractableComponent)
+void UIInventoryManager::HandlePickupInteraction(UInteractableComponent* Target)
 {
-	APawn* OwnerPawn = Cast<APawn>(GetOwner());
-	bool bIsPlayer = OwnerPawn && OwnerPawn->IsLocallyControlled();
-
-	if (!bIsPlayer)
+	IPickupableass* PickupInterface = Cast<IPickupableass>(Target);
+	if (!PickupInterface)
 	{
 		return;
 	}
-
-	if (IPickupableass* PickupInterface = Cast<IPickupableass>(TargetInteractableComponent))
-	{
-		if (UObject* ItemToPick = PickupInterface->GetItemData())
-		{
-			FItemMoveData Data;
-			Data.SourceItem = ItemToPick;
-			Data.TargetInventory = MainPawnInventoryRef;
-			Data.SourceInventory = nullptr;
 	
-			ItemTransferRequest(Data);
-		}
-		PickupInterface->OnPickedUp();
+	if (UObject* ItemToPick = PickupInterface->GetItemData())
+	{
+		FItemMoveData Data;
+		Data.SourceItem = ItemToPick;
+		Data.TargetInventory = MainPawnInventoryRef;
+		Data.SourceInventory = nullptr;
+	
+		ItemTransferRequest(Data);
+	}
+	PickupInterface->OnPickedUp();
+}
 
+void UIInventoryManager::HandleContainerInteraction(UInteractableComponent* Target)
+{
+	ILootContainerProvider* LootProvider = Cast<ILootContainerProvider>(Target);
+	if (!LootProvider)
+	{
 		return;
 	}
 
-	if (ILootContainerProvider* LootProvider = Cast<ILootContainerProvider>(TargetInteractableComponent))
+	UInventoryBase* InventoryToDisplay =	LootProvider->GetMainLootContainer();
+	if (!InventoryToDisplay)
 	{
-		if (auto InventoryToDisplay = LootProvider->GetMainLootContainer())
-		{
-			LootContainerProvider.SetObject(TargetInteractableComponent);
-			LootContainerProvider.SetInterface(LootProvider);
-			OpenExternalInventory(InventoryToDisplay);
-		}
-
 		return;
 	}
+	
+	ItemCollectionRef->SetExternalInventory(InventoryToDisplay);
 
-	if (IVendorProvider* VendorProvider = Cast<IVendorProvider>(TargetInteractableComponent))
+	LootContainerProvider.SetObject(Target->GetOwner());
+	LootContainerProvider.SetInterface(LootProvider);
+
+	OpenExternalInventory(InventoryToDisplay);
+}
+
+void UIInventoryManager::HandleTradeInteraction(UInteractableComponent* Target)
+{
+	IVendorProvider* VendorProvider = Cast<IVendorProvider>(Target);
+	if (!VendorProvider)
 	{
-		if (auto InventoryToDisplay = VendorProviderCurrent->GetVendorLootContainer())
-		{
-			OpenVendorInventory(InventoryToDisplay);
-		}
+		return;
 	}
+	
+	auto InventoryToDisplay = VendorProvider->GetVendorLootContainer();
+	if (!InventoryToDisplay)
+	{
+		return;
+	}
+	
+	ItemCollectionRef->SetVendorInventory(InventoryToDisplay);
+
+	VendorProviderCurrent.SetObject(Target);
+	VendorProviderCurrent.SetInterface(VendorProvider);
+			
+	FTradeContext TradeContext;
+	TradeContext.TradeSettings = VendorProviderCurrent->GetTradeSettings();
+	TradeContext.Vendor = Cast<AActor>(VendorProviderCurrent.GetObject());
+	TradeContext.Buyer = this->GetOwner();
+
+	ItemCollectionRef->GetLinkedInventories().VendorInventory->SetTradeContext(TradeContext);
+			
+	VendorProviderCurrent->SetTradePartnerInventory(MainPawnInventoryRef);
+	VendorProviderCurrent->SetTradePartnerItemCollection(ItemCollectionRef);
+		
+	OpenVendorInventory(InventoryToDisplay);
 }
 
 void UIInventoryManager::InteractClearRequest(UInteractableComponent* TargetInteractableComponent)
 {
 	if (!TargetInteractableComponent) return;
-
-	APawn* OwnerPawn = Cast<APawn>(GetOwner());
 	if (GetOwner()->HasAuthority())
 	{
-		HandleClearInteraction(TargetInteractableComponent);
+		Server_HandleClearInteract_Implementation(TargetInteractableComponent);
 	}
-	else {
+	else
+	{
 		Server_HandleClearInteract(TargetInteractableComponent);
 	}
 }
 
 void UIInventoryManager::Server_HandleClearInteract_Implementation(UInteractableComponent* Target)
 {
-	if (!ItemCollectionRef) return;
-	
-	if (ItemCollectionRef->GetLinkedInventories().ExternalInventory)
-	{
-		ItemCollectionRef->SetExternalInventory(nullptr);
-	}
-	
-	if (ItemCollectionRef->GetLinkedInventories().VendorInventory)
-	{
-		ItemCollectionRef->SetVendorInventory(nullptr);
-	}
+	HandleClearInteraction(Target);
 }
 
 void UIInventoryManager::HandleClearInteraction(UInteractableComponent* TargetInteractableComponent)
 {
-	if (ItemCollectionRef->GetLinkedInventories().ExternalInventory)
+	if (!ItemCollectionRef)
 	{
-		auto FindResult = ItemCollectionRef->GetContainerWidget(ItemCollectionRef->GetLinkedInventories().ExternalInventory);
-		if (!FindResult)
-			return;
-		
-		CloseExternalInventory(ItemCollectionRef->GetLinkedInventories().ExternalInventory);
 		return;
 	}
-	
-	if (auto VendorProvider = Cast<IVendorProvider>(TargetInteractableComponent))
+
+	auto LinkedInventories = ItemCollectionRef->GetLinkedInventories();
+	if (LinkedInventories.VendorInventory)
 	{
-		auto FindResult = ItemCollectionRef->GetContainerWidget(ItemCollectionRef->GetLinkedInventories().VendorInventory);
-		if (!FindResult)
-			return;
-		
-		UIInvProvider->RemovePawnInvContainer(FindResult);
-		CloseExternalInventory(ItemCollectionRef->GetLinkedInventories().VendorInventory);
-		
-		VendorProviderCurrent = nullptr;
+		CloseVendorInventory(LinkedInventories.VendorInventory);
+		return;
+	}
+
+	if (LinkedInventories.ExternalInventory)
+	{
+		CloseExternalInventory(LinkedInventories.ExternalInventory);
+		return;
 	}
 }
 
@@ -1273,13 +1279,18 @@ void UIInventoryManager::OpenVendorInventory(UInventoryBase* Inv)
 
 void UIInventoryManager::CloseVendorInventory(UInventoryBase* Inv)
 {
-	auto FindResult = ItemCollectionRef->GetContainerWidget(Inv);
-	if (!FindResult)
+	if (!Inv || !ItemCollectionRef)
+	{
 		return;
-
-	UIInvProvider->RemovePawnInvContainer(FindResult);
+	}
 	
-	ItemCollectionRef->UnregisterContainerWidget(Inv);
+	auto FindResult = ItemCollectionRef->GetContainerWidget(Inv);
+	if (FindResult)
+	{
+		UIInvProvider->RemovePawnInvContainer(FindResult);
+		ItemCollectionRef->UnregisterContainerWidget(Inv);
+	}
+	
 	ItemCollectionRef->SetVendorInventory(nullptr);
 	HandleToggleInventory();
 	VendorProviderCurrent = nullptr;
@@ -1293,13 +1304,18 @@ void UIInventoryManager::OpenExternalInventory(UInventoryBase* Inv)
 
 void UIInventoryManager::CloseExternalInventory(UInventoryBase* Inv)
 {
-	auto FindResult = ItemCollectionRef->GetContainerWidget(Inv);
-	if (!FindResult)
+	if (!Inv || !ItemCollectionRef)
+	{
 		return;
-
-	UIInvProvider->RemovePawnInvContainer(FindResult);
+	}
 	
-	ItemCollectionRef->UnregisterContainerWidget(Inv);
+	auto FindResult = ItemCollectionRef->GetContainerWidget(Inv);
+	if (FindResult)
+	{
+		UIInvProvider->RemovePawnInvContainer(FindResult);
+		ItemCollectionRef->UnregisterContainerWidget(Inv);
+	}
+	
 	ItemCollectionRef->SetExternalInventory(nullptr);
 	HandleToggleInventory();
 
@@ -1309,10 +1325,7 @@ void UIInventoryManager::CloseExternalInventory(UInventoryBase* Inv)
 
 void UIInventoryManager::BindInteractionWidget()
 {
-	if (!InteractionComponent)
-		return;
-
-	if (!InteractionUIProvider)
+	if (!InteractionComponent || !InteractionUIProvider)
 		return;
 
 	UInteractionWidget* InteractionWidget = InteractionUIProvider->GetPawnInteractionWidget();

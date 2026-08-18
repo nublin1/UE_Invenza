@@ -3,12 +3,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "UObject/Interface.h"
 #include "InteractableData.generated.h"
 
 class UInteractionComponent;
 
-UENUM()
+UENUM(BlueprintType)
 enum class EInteractableType: uint8 
 {
 	None		UMETA(DisplayName = "None"),
@@ -45,5 +46,8 @@ struct FInteractableData
 	float InteractableDuration;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interactable")
 	bool bHoldToInteract = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Interactable")
+	FGameplayTag ActionTag;
+
 };
 

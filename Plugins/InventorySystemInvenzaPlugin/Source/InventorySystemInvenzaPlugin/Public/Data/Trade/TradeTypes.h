@@ -10,6 +10,55 @@
 class UInventoryBase;
 class UItemBase;
 
+USTRUCT(BlueprintType)
+struct FTradeEntry
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly)
+	TObjectPtr<UInventoryBase> Inventory = nullptr;
+
+	UPROPERTY(BlueprintReadOnly)
+	TObjectPtr<UObject> Item = nullptr;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 QuantityDelta = 0;
+
+	UPROPERTY(BlueprintReadOnly)
+	bool bIsCurrency = false;
+
+	FTradeEntry(){};
+
+	FTradeEntry(UInventoryBase* InInventory, UObject* InItem, int32 InQuantityDelta, bool bInIsCurrency)
+		: Inventory(InInventory)
+		, Item(InItem)
+		, QuantityDelta(InQuantityDelta)
+		, bIsCurrency(bInIsCurrency)
+	{}
+};
+
+USTRUCT(BlueprintType)
+struct FTradeTransaction
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly)
+	bool bSuccess = false;
+
+	UPROPERTY(BlueprintReadOnly)
+	bool bIsBuyingFromVendor = false;
+
+	UPROPERTY(BlueprintReadOnly)
+	float TotalPrice = 0;
+
+	UPROPERTY(BlueprintReadOnly)
+	TArray<FTradeEntry> Entries;
+
+	UPROPERTY(BlueprintReadOnly)
+	FText Message;
+};
+
+
 UENUM(BlueprintType)
 enum class ETradeResult : uint8
 {
@@ -63,7 +112,9 @@ struct FTradeResult
 		MoneySpent(0),
 		MoneyReceived(0),
 		OperationResult(ETradeResult::TR_Failed),
-		ResultMessage(FText::GetEmpty())
+		ResultMessage(FText::GetEmpty()),
+		bWasBuyingFromVendor(false),
+		TradedItem(nullptr)
 	{
 	}
 
@@ -86,9 +137,18 @@ struct FTradeResult
 	// Describes the result
 	UPROPERTY(BlueprintReadOnly, Category="Trade Result")
 	FText ResultMessage;
+	
+	UPROPERTY(BlueprintReadOnly, Category="Trade Result")
+	bool bWasBuyingFromVendor;
+	
+	UPROPERTY(BlueprintReadOnly, Category="Trade Result")
+	TObjectPtr<UObject> TradedItem;
+	
+	UPROPERTY(BlueprintReadOnly, Category="Trade Result")
+	FTradeTransaction Transaction;
 
 	static FTradeResult Success(const int32 InItemsTraded, const int32 InMoneySpent, const int32 InMoneyReceived,
-	                            const FText& Message)
+								const FText& Message)
 	{
 		FTradeResult Result;
 		Result.ItemsTraded = InItemsTraded;
@@ -132,50 +192,5 @@ struct FTradeResult
 	}
 };
 
-USTRUCT(BlueprintType)
-struct FTradeEntry
-{
-	GENERATED_BODY()
 
-	UPROPERTY(BlueprintReadOnly)
-	TObjectPtr<UInventoryBase> Inventory = nullptr;
 
-	UPROPERTY(BlueprintReadOnly)
-	TObjectPtr<UObject> Item = nullptr;
-
-	UPROPERTY(BlueprintReadOnly)
-	int32 QuantityDelta = 0;
-
-	UPROPERTY(BlueprintReadOnly)
-	bool bIsCurrency = false;
-
-	FTradeEntry(){};
-
-	FTradeEntry(UInventoryBase* InInventory, UObject* InItem, int32 InQuantityDelta, bool bInIsCurrency)
-		: Inventory(InInventory)
-		, Item(InItem)
-		, QuantityDelta(InQuantityDelta)
-		, bIsCurrency(bInIsCurrency)
-	{}
-};
-
-USTRUCT(BlueprintType)
-struct FTradeTransaction
-{
-	GENERATED_BODY()
-
-	UPROPERTY(BlueprintReadOnly)
-	bool bSuccess = false;
-
-	UPROPERTY(BlueprintReadOnly)
-	bool bIsBuyingFromVendor = false;
-
-	UPROPERTY(BlueprintReadOnly)
-	float TotalPrice = 0;
-
-	UPROPERTY(BlueprintReadOnly)
-	TArray<FTradeEntry> Entries;
-
-	UPROPERTY(BlueprintReadOnly)
-	FText Message;
-};

@@ -101,7 +101,7 @@ public:
 		AActor* OwnerActor, UItemCollection* InItemCollection);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	UInventoryBase* DuplicateInventory(UObject* Outer);
+	virtual UInventoryBase* DuplicateInventory(UObject* Outer);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	virtual void InitInventory();

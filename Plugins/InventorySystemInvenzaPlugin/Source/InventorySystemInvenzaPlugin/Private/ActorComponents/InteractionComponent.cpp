@@ -45,7 +45,7 @@ void UInteractionComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	if (TargetInteractableComponent && GetWorld()->GetTimerManager().IsTimerActive(TimerHandle_Interaction))
 	{
 		float Elapsed = GetWorld()->GetTimeSeconds() - InteractionStartTime;
-		float Progress = FMath::Clamp(Elapsed / TargetInteractableComponent->InteractableData.InteractableDuration, 0.0f, 1.0f);
+		float Progress = FMath::Clamp(Elapsed / TargetInteractableComponent->GetInteractableData().InteractableDuration, 0.0f, 1.0f);
 		if(OnInteractionProgress.IsBound())
 			OnInteractionProgress.Broadcast(Progress);
 	}
@@ -81,8 +81,6 @@ void UInteractionComponent::InitInteractionComponent()
 	
 	Input->BindAction(InteractAction, ETriggerEvent::Started, this, &UInteractionComponent::BeginInteract);
 	Input->BindAction(InteractAction, ETriggerEvent::Completed, this, &UInteractionComponent::EndInteract);
-	
-	Input->BindAction(InteractionMenuAction, ETriggerEvent::Started, this, &UInteractionComponent::OpenInteractionMenu);
 }
 
 void UInteractionComponent::PerformInteractionCheck()
@@ -148,7 +146,7 @@ void UInteractionComponent::FoundInteractable(AActor* NewInteractable, UInteract
 	TargetInteractableComponent->BeginFocus();
 	if (OnBeginFocus.IsBound())
 	{
-		OnBeginFocus.Broadcast(TargetInteractableComponent->InteractableData);
+		OnBeginFocus.Broadcast(TargetInteractableComponent->GetInteractableData());
 	}
 }
 
@@ -165,7 +163,7 @@ void UInteractionComponent::NotFoundInteractable()
 
 		if (OnEndFocus.IsBound() && InteractionData.CurrentInteractable)
 		{
-			OnEndFocus.Broadcast(InteractionData.CurrentInteractable->InteractableData);
+			OnEndFocus.Broadcast(InteractionData.CurrentInteractable->GetInteractableData());
 		}
 		InteractionData.CurrentInteractable = nullptr;		
 		
@@ -203,7 +201,7 @@ void UInteractionComponent::BeginInteract()
 	TargetInteractableComponent->BeginInteract(this);
 
 	if (FMath::IsNearlyZero(
-		TargetInteractableComponent->InteractableData.InteractableDuration, 0.1f))
+		TargetInteractableComponent->GetInteractableData().InteractableDuration, 0.1f))
 	{
 		Interact();
 	}
@@ -215,14 +213,14 @@ void UInteractionComponent::BeginInteract()
 			TimerHandle_Interaction,
 			this,
 			&UInteractionComponent::Interact,
-			TargetInteractableComponent->InteractableData.InteractableDuration,
+			TargetInteractableComponent->GetInteractableData().InteractableDuration,
 			false);
 	}
 }
 
 void UInteractionComponent::EndInteract()
 {
-	if (IsValid(TargetInteractableComponent) && TargetInteractableComponent->InteractableData.bHoldToInteract)
+	if (IsValid(TargetInteractableComponent) && TargetInteractableComponent->GetInteractableData().bHoldToInteract)
 	{
 		GetWorld()->GetTimerManager().ClearTimer(TimerHandle_Interaction);	
 		
@@ -249,12 +247,6 @@ void UInteractionComponent::Interact()
 	}
 }
 
-void UInteractionComponent::OpenInteractionMenu()
-{
-	if (!InteractionData.CurrentInteractable)
-		return;
-}
-
 void UInteractionComponent::StopInteract()
 {
 	if (!CurrentInteractableComponent)
@@ -279,4 +271,47 @@ void UInteractionComponent::EndInteractNotify()
 void UInteractionComponent::BusyNotify()
 {
 	OnInteractableBusy.Broadcast();
+}
+
+void UInteractionComponent::CollectInteractionActions()
+{
+	AvailableInteractions.Reset();
+	DefaultInteractionData = FInteractableData();
+	
+	if (!CurrentInteractableComponent)
+	{
+		return;
+	}
+
+	AActor* TargetActor = CurrentInteractableComponent->GetOwner();
+
+	if (!TargetActor)
+	{
+		return;
+	}
+
+	TArray<UActorComponent*> Components;
+	TargetActor->GetComponents(Components);
+
+	for (UActorComponent* Component : Components)
+	{
+		if (!Component)
+		{
+			continue;
+		}
+
+		UInteractableComponent* InteractableComponent =	Cast<UInteractableComponent>(Component);
+		if (!InteractableComponent)
+		{
+			continue;
+		}
+
+		auto Data = InteractableComponent->GetInteractableData();
+		AvailableInteractions.Add(Data);
+	}
+
+	if (AvailableInteractions.Num() > 0)
+	{
+		DefaultInteractionData = AvailableInteractions[0];
+	}
 }

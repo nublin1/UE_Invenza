@@ -60,7 +60,7 @@ void USlotbasedInventoryWidget::InitializeInventoryWidget()
 
 void USlotbasedInventoryWidget::InitializeInventoryWidgetWithSettings()
 {
-	ApplyInventorySettings();
+	ApplyInventorySettings();	
 	BuildInventorySlots();
 	CreateTooltipWidget();
 }
@@ -202,6 +202,7 @@ void USlotbasedInventoryWidget::SetInventoryBaseRef(UInventoryBase* NewInventory
 	{
 		InventoryRef = NewInventoryRef;
 		SlotBasedInventoryRef = SlotInventory;
+		
 		BindDelegated();
 	}
 }
@@ -235,7 +236,7 @@ void USlotbasedInventoryWidget::ApplyInventorySettings()
 
 void USlotbasedInventoryWidget::BuildInventorySlots()
 {
-	if (!SlotsGridPanel)
+	if (!SlotsGridPanel || !SlotBasedInventoryRef)
 	{
 		return;
 	}
@@ -243,50 +244,90 @@ void USlotbasedInventoryWidget::BuildInventorySlots()
 	SlotsGridPanel->ClearChildren();
 	InventorySlots.Empty();
 
-	TArray<UInventorySlotData*> ExistingSlots;
-	ExistingSlots = SlotBasedInventoryRef->GetInventorySlots();
-	
-	auto InvSettings = SlotBasedInventoryRef->GetInventorySettings();
+	const auto InvSettings = SlotBasedInventoryRef->GetInventorySettings();
+	const auto ExistingSlots = SlotBasedInventoryRef->GetInventorySlots();
+
+	if (!InvSettings.InventorySlotBasedSettings.SlotbasedInventorySlotClass)
+	{
+		return;
+	}
+
+	/*UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT("\n\n========== BUILD INVENTORY SLOTS ==========\n")
+		TEXT("Inventory: %s\n")
+		TEXT("Inventory Slot Count: %d\n")
+		TEXT("Grid Size: %d x %d"),
+		*InvSettings.InventoryTag.ToString(),
+		ExistingSlots.Num(),
+		NumberRows,
+		NumColumns
+	);*/
+
+	for (int32 Index = 0; Index < ExistingSlots.Num(); ++Index)
+	{
+		UInventorySlotData* SlotData = ExistingSlots[Index];
+
+		if (!SlotData)
+		{
+			continue;
+		}
+	}
+
+	TMap<FIntPoint, UInventorySlotData*> SlotsByPosition;
+
+	for (UInventorySlotData* SlotData : ExistingSlots)
+	{
+		if (!SlotData)
+		{
+			continue;
+		}
+
+		const FIntPoint Position = SlotData->InventorySlotInfo.CellPosition;
+		SlotsByPosition.Add(Position, SlotData);
+	}
 
 	for (int32 Row = 0; Row < NumberRows; ++Row)
 	{
 		for (int32 Col = 0; Col < NumColumns; ++Col)
 		{
-			USlotbasedInventorySlot* NewSlot = CreateWidget<USlotbasedInventorySlot>(
-				GetOwningPlayer(),
-				InvSettings.InventorySlotBasedSettings.SlotbasedInventorySlotClass
-			);
+			const FIntPoint SlotPosition(Row, Col);
+
+			UInventorySlotData** FoundSlot = SlotsByPosition.Find(SlotPosition);
+
+			if (!FoundSlot || !*FoundSlot)
+			{
+				continue;
+			}
+
+			UInventorySlotData* SlotData = *FoundSlot;
+			USlotbasedInventorySlot* NewSlot = CreateWidget<USlotbasedInventorySlot>(GetOwningPlayer(),
+					InvSettings.InventorySlotBasedSettings.SlotbasedInventorySlotClass
+				);
 
 			if (!NewSlot)
+			{
 				continue;
+			}
 
 			if (!NewSlot->GetDefaultCellImage() && DefaultCellImage)
 			{
 				NewSlot->UpdateVisualWithTexture(DefaultCellImage);
 			}
 
-			FIntPoint SlotPosit(Row, Col);
-
-			UInventorySlotData* SlotData = nullptr;
-			for (UInventorySlotData* ExistingSlot : ExistingSlots)
-			{
-				if (ExistingSlot && ExistingSlot->InventorySlotInfo.CellPosition == SlotPosit)
-				{
-					SlotData = ExistingSlot;
-					break;
-				}
-			}
-			
-			if (!SlotData)
-				continue;
-
 			NewSlot->SetSlotData(SlotData);
-			NewSlot->SetSlotPosition(SlotPosit);
-
-			UUniformGridSlot* GridSlot = SlotsGridPanel->AddChildToUniformGrid(NewSlot, Row, Col);
+			NewSlot->SetSlotPosition(SlotPosition);
+			SlotsGridPanel->AddChildToUniformGrid(NewSlot,Row,Col);
 
 			InventorySlots.Add(NewSlot);
 		}
+	}
+
+	for (int32 Index = 0; Index < InventorySlots.Num(); ++Index)
+	{
+		auto WidgetSlot =InventorySlots[Index];
+		UInventorySlotData* SlotData =	WidgetSlot->GetSlotData();
 	}
 }
 

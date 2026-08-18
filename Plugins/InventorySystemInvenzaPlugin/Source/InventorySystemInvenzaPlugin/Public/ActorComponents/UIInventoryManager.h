@@ -199,6 +199,9 @@ protected:
 	
 	// Refs
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	TObjectPtr<APawn> OwnerPawnRef; 
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TObjectPtr<UInventoryBase> MainPawnInventoryRef;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TObjectPtr<UEquipmentComponent> EquipmentComponentRef;
@@ -238,8 +241,13 @@ protected:
 	void InteractRequest(UInteractableComponent* TargetInteractableComponent);
 	UFUNCTION(Server, Reliable, Category = "Inventory|Interaction")
 	void Server_HandleInteract(UInteractableComponent* Target);
+	
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
-	void HandleInteract(UInteractableComponent* TargetInteractableComponent);
+	void HandlePickupInteraction(UInteractableComponent* Target);
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
+	void HandleContainerInteraction(UInteractableComponent* Target);
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
+	void HandleTradeInteraction(UInteractableComponent* Target);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
 	void InteractClearRequest(UInteractableComponent* TargetInteractableComponent);

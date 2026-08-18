@@ -162,9 +162,22 @@ FTradeResult UVendorComponent::HandleProcessTrade(const FItemMoveData& TradeData
 
 	// FINAL TRADE EXECUTION
 	UInventoryBase* PlayerInventory = ResolvePlayerInventory(TradeData, bIsBuyingFromVendor);
-	ExecuteTrade(TradeData, Price, bIsBuyingFromVendor, PlayerInventory, CurrencyItem);
+	FTradeTransaction Transaction = ExecuteTrade(TradeData, Price, bIsBuyingFromVendor, PlayerInventory, CurrencyItem);
+	
+	const int32 Quantity = IObjectDataProvider::Execute_GetQuantity(TradeData.SourceItem);
+	Result = FTradeResult::Success(
+			Quantity,
+			bIsBuyingFromVendor ? Price : 0,   // MoneySpent 
+			bIsBuyingFromVendor ? 0 : Price,   // MoneyReceived
+			FText::Format(
+				NSLOCTEXT("Vendor", "TradeSuccess", "Traded {0}x item for {1}"),
+				FText::AsNumber(Quantity),
+				FText::AsNumber(Price))
+		);
 
-	Result.OperationResult = ETradeResult::TR_Success;
+	Result.Transaction = Transaction;
+	Result.bWasBuyingFromVendor = bIsBuyingFromVendor;
+	Result.TradedItem = TradeData.SourceItem;
 	return Result;
 }
 
@@ -342,6 +355,16 @@ FTradeTransaction UVendorComponent::ExecuteTrade(const FItemMoveData& TradeData,
             +Price,
             true
         });
+    	
+    	// VENDOR PAYS
+    	MainVendorLootInventory->HandleRemoveItemsBySample(CurrencyItem, Price);
+
+    	Transaction.Entries.Add({
+			MainVendorLootInventory,
+			CurrencyItem,
+			-Price,
+			true
+		});
 
     	// VENDOR RECEIVES ITEM
     	if (TradeSettings.bAddPurchasedItemsToVendorDisplay)

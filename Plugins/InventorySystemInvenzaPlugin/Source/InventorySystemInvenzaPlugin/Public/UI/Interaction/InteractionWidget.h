@@ -49,12 +49,12 @@ public:
 	// FUNCTIONS
 	//====================================================================
 	UFUNCTION(BlueprintNativeEvent, Category = "Interaction Logic")
-	void OnFoundInteractable(FInteractableData& NewInteractableData);
-	virtual void OnFoundInteractable_Implementation( FInteractableData& NewInteractableData);
+	void OnFoundInteractable(FInteractableData NewInteractableData);
+	virtual void OnFoundInteractable_Implementation( FInteractableData NewInteractableData);
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Interaction Logic")
-	void OnLostInteractable(FInteractableData& NewInteractableData);
-	virtual void OnLostInteractable_Implementation(FInteractableData& NewInteractableData);
+	void OnLostInteractable(FInteractableData NewInteractableData);
+	virtual void OnLostInteractable_Implementation(FInteractableData NewInteractableData);
 
 	UFUNCTION(BlueprintCallable, Category = "UI Updates")
 	void UpdateProgressBar(float Progress);

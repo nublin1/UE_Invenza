@@ -21,12 +21,14 @@ public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Interactable|Data")
-	FInteractableData InteractableData;
+
 	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+	UFUNCTION()
+	virtual const FInteractableData& GetInteractableData() const {return InteractableData;}
+	
 	UFUNCTION(BlueprintCallable, Category="Interactable|Focus")
 	virtual void BeginFocus();
 	UFUNCTION(BlueprintCallable, Category="Interactable|Focus")
@@ -53,6 +55,10 @@ protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Interactable|Data")
+	FInteractableData InteractableData;
+	
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Replicated, Category="Interactable")
 	bool bIsInteracting = false;
 
@@ -66,4 +72,5 @@ protected:
 	virtual void InitializeInteractionComponent();
 	UFUNCTION(BlueprintCallable, Category="Interactable|Internal")
 	virtual void UpdateInteractableData();
+	
 };

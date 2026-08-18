@@ -11,13 +11,13 @@ UInteractionWidget::UInteractionWidget()
 {
 }
 
-void UInteractionWidget::OnFoundInteractable_Implementation( FInteractableData& NewInteractableData)
+void UInteractionWidget::OnFoundInteractable_Implementation( FInteractableData NewInteractableData)
 {
 	UpdateText(NewInteractableData);
 	SetVisibility(ESlateVisibility::Visible);
 }
 
-void UInteractionWidget::OnLostInteractable_Implementation( FInteractableData& NewInteractableData)
+void UInteractionWidget::OnLostInteractable_Implementation( FInteractableData NewInteractableData)
 {
 	SetVisibility(ESlateVisibility::Collapsed);
 }

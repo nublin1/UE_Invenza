@@ -26,7 +26,7 @@ void UInventorySimulator::DuplicateInventoryForSimulation(UInventoryBase* InInve
 	SimulationCollection = NewObject<UItemCollection>(this);
 	SimulationInventory->SetItemCollectionLink(SimulationCollection);
 	
-	SimulationInventory->InitInventory();
+	//SimulationInventory->InitInventory();
 
 	TArray<FItemSaveEntry> SavedData;
 	TArray<FString> InventoryFilter;

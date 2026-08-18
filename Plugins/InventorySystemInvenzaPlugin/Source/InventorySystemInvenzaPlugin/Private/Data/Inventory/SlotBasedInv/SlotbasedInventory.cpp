@@ -62,6 +62,14 @@ void USlotbasedInventory::RebuildInventory()
 	GenerateInventorySlots();
 }
 
+UInventoryBase* USlotbasedInventory::DuplicateInventory(UObject* Outer)
+{
+	auto NewInv = Cast<USlotbasedInventory>(Super::DuplicateInventory(Outer));
+	NewInv->SetInventorySlots(GetInventorySlots());
+	
+	return NewInv;
+}
+
 void USlotbasedInventory::SortItemsInContainerByName()
 {
 	if (!ItemCollectionLinked)
@@ -360,14 +368,11 @@ TArray<UInventorySlotData*> USlotbasedInventory::GetAvailableSlotForItem(
 	const EItemOrientationType First  = bPreferVertical ? EItemOrientationType::Vertical   : EItemOrientationType::Horizontal;
 	const EItemOrientationType Second = bPreferVertical ? EItemOrientationType::Horizontal : EItemOrientationType::Vertical;
 
-	const FGameplayTag ItemCategory =
-		IObjectDataProvider::Execute_GetItemRef(Item).ItemCategory;
+	const FGameplayTag ItemCategory = IObjectDataProvider::Execute_GetItemRef(Item).ItemCategory;
 
-	const FIntPoint SizeFirst =
-		IObjectDataProvider::Execute_GetItemSize(Item, First);
+	const FIntPoint SizeFirst =	IObjectDataProvider::Execute_GetItemSize(Item, First);
 
-	const FIntPoint SizeSecond =
-		IObjectDataProvider::Execute_GetItemSize(Item, Second);
+	const FIntPoint SizeSecond = IObjectDataProvider::Execute_GetItemSize(Item, Second);
 
 	for (int32 i = 0; i < InvSize.X; i++)
 	{
@@ -678,7 +683,16 @@ FItemAddResult USlotbasedInventory::HandleNonStackableItems(FItemMoveData ItemMo
 
     FIntPoint TarSlotPos(-1);
     if (ItemMoveData.TargetSlotID.IsValid())
-        TarSlotPos = GetSlotByGuid(ItemMoveData.TargetSlotID)->InventorySlotInfo.CellPosition;
+    {
+	    auto TarSlot = GetSlotByGuid(ItemMoveData.TargetSlotID);
+    	if (!TarSlot)
+    	{
+    		return FItemAddResult::AddedNone(FText::FromString("Invalid Target slot"));
+    	}
+    	
+    	TarSlotPos = TarSlot->InventorySlotInfo.CellPosition;
+    }
+        
 
     const FGameplayTag ItemCategory = IObjectDataProvider::Execute_GetItemRef(ItemMoveData.SourceItem).ItemCategory;
     const FIntPoint ItemSize = IObjectDataProvider::Execute_GetItemSize(ItemMoveData.SourceItem, FinalOrientation);

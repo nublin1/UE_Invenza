@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Data/Interaction/InteractionData.h"
+#include "Interactable/InteractableData.h"
 #include "Settings/InvenzaSettings.h"
 #include "InteractionComponent.generated.h"
 
@@ -22,9 +23,9 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UInteractionComponent : public UActorComp
 	GENERATED_BODY()
 
 #pragma region delegates
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBeginFocus, FInteractableData&, InteractableData);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBeginFocus, FInteractableData, InteractableData);
 
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEndFocus, FInteractableData&, InteractableData);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEndFocus, FInteractableData, InteractableData);
 
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInteract, UInteractableComponent*, TargetInteractableComponent);
 
@@ -71,6 +72,9 @@ public:
 	//====================================================================
 	UFUNCTION()
 	void InitInteractionComponent();
+	
+	UFUNCTION()
+	FInteractableData GetDefaultInteractionData() { return DefaultInteractionData; };
 
 protected:
 	//====================================================================
@@ -96,20 +100,23 @@ protected:
 	//
 	UPROPERTY()
 	FTimerHandle TimerHandle_Interaction;
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 	float InteractionStartTime = 0.0f;
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 	FInteractionData InteractionData;
 	UPROPERTY(VisibleAnywhere, Category = "Interaction|State")
 	UInteractableComponent* TargetInteractableComponent;
 	UPROPERTY(VisibleAnywhere, Category = "Interaction|State")
 	UInteractableComponent* CurrentInteractableComponent;
+	
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category="Interaction")
+	TArray<FInteractableData> AvailableInteractions;
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category="Interaction")
+	FInteractableData DefaultInteractionData;
 
 	//Refs
-	UPROPERTY()
-	TObjectPtr<UCameraComponent> CameraComponent;
-	UPROPERTY()
-	TObjectPtr<UIInventoryManager> InventoryManager;
+	UPROPERTY(BlueprintReadWrite)
+	TObjectPtr<UCameraComponent> CameraComponent;	
 
 	//====================================================================
 	// FUNCTIONS
@@ -147,9 +154,7 @@ protected:
  	*/
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
 	void Interact();
-	
-	UFUNCTION()
-	void OpenInteractionMenu();
+
 
 public:
 	/**
@@ -170,4 +175,7 @@ protected:
 
 	UFUNCTION()
 	void BusyNotify();
+	
+	UFUNCTION(BlueprintCallable)
+	void CollectInteractionActions();
 };

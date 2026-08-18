@@ -45,6 +45,8 @@ public:
 
 	virtual void RebuildInventory() override;
 	
+	virtual UInventoryBase* DuplicateInventory(UObject* Outer) override;
+	
 	//
 	virtual void SortItemsInContainerByName() override;
 	
@@ -75,6 +77,7 @@ public:
 	FVector2D GetInvCellSize() const {return InvCellSize;}
 
 	TArray<UInventorySlotData*> GetInventorySlots() const {return InventorySlotData;}
+	void SetInventorySlots(TArray<UInventorySlotData*> NewSlotData) {InventorySlotData = NewSlotData;}
 	
 	UFUNCTION(BlueprintCallable, meta = (ToolTip = "Returns a list of resources stored in this container, aggregating identical resources and summing their total amount."))
 	TArray<FItemIDEntry> CollectItemsAggregated() const;

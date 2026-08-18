@@ -72,8 +72,7 @@ UInventoryBase* UInventoryBase::CreateInventoryAdvanced(UObject* Outer, FInvento
 
 UInventoryBase* UInventoryBase::DuplicateInventory(UObject* Outer)
 {
-	UInventoryBase* Inventory =
-			NewObject<UInventoryBase>(Outer, this->GetClass());
+	UInventoryBase* Inventory =	NewObject<UInventoryBase>(Outer, this->GetClass());
 
 	if (!Inventory)
 		return nullptr;
