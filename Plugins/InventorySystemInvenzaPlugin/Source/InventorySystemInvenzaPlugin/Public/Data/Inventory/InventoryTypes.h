@@ -8,6 +8,7 @@
 #include "InventoryTypes.generated.h"
 
 
+class UOperationPanelWidget;
 class USlotbasedInventorySlot;
 class UInventoryListEntry;
 class UInventoryBase;
@@ -298,6 +299,9 @@ struct FInventorySettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory",
 		meta=(ToolTip="Maximum number of unique items allowed. -1 means infinite"))
 	int32 MaxStackCount = -1;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory")
+	bool bIsAlwaysVisible = false;
 
 	// Reference system
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory|Reference", meta=(ToolTip="If true this container acts as a reference source."))
@@ -311,13 +315,6 @@ struct FInventorySettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|UI")
 	bool bShowItemTooltips = true;
 
-	/*// Restrictions
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|Restrictions")
-	TArray<FName> AllowedItemCategories;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|Restrictions")
-	TArray<TSoftObjectPtr<UObject>> AllowedItems;*/
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|UI")
 	bool bCollectInvDataFromWidget = true;
 
@@ -328,6 +325,8 @@ struct FInventorySettings
 	TSubclassOf<UInventoryContainerWidget> ContainerWidgetClass;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|UI")
 	TSubclassOf<UUInventoryBaseWidget> InventoryWidgetClass;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|UI")
+	TSubclassOf<UOperationPanelWidget> OperationPanelWidgetClass;
 
 	// Slot-based inventory settings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|UI")

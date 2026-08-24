@@ -1,4 +1,4 @@
-//  Nublin Studio 2025 All Rights Reserved.
+//  Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -7,6 +7,7 @@
 #include "UI/Inrefaces/UDraggableWidgetInterface.h"
 #include "MovableTitleBar.generated.h"
 
+class UCanvasPanelSlot;
 class UUIButton;
 class UInvContainerDragDropOperation;
 class UDragContainerWidget;
@@ -34,6 +35,8 @@ public:
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	//Widgets
+	UPROPERTY(BlueprintReadWrite, Category = "TitleBar", meta = (BindWidgetOptional))
+	TObjectPtr<UPanelWidget> HeaderCanvasPanel;
 	UPROPERTY(BlueprintReadWrite, Category = "TitleBar", meta = (BindWidget))
 	TObjectPtr<ULabelBaseText> TitleName;
 	UPROPERTY(BlueprintReadWrite, Category = "TitleBar", meta = (BindWidgetOptional))
@@ -42,8 +45,8 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="TitleBar|Drag")
-	void OnDragFinished(bool bSuccess, UDragDropOperation* InOperation);
+	
+	void OnDragFinished_Implementation(bool bSuccess, UDragDropOperation* InOperation);
 	
 protected:
 	//====================================================================
@@ -56,9 +59,21 @@ protected:
 	UPROPERTY(Transient)
 	TObjectPtr<UDragContainerWidget> DragContainer_Temp = nullptr;
 	
+	// Runtime
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "TitleBar|Runtime")
+	FAnchors SavedAnchors;
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "TitleBar|Runtime")
+	FVector2D SavedAlignment;
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "TitleBar|Runtime")
+	bool bAnchorsSaved = false;
+	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+	
+	UFUNCTION(BlueprintCallable)
+	void ConvertSlotToTopLeftAnchors(UCanvasPanelSlot* CanvasSlot);
+	
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	virtual void NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation) override;
 };

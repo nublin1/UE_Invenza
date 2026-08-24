@@ -7,26 +7,28 @@
 #include "Components/SizeBox.h"
 #include "UI/Core/Image/ImageBaseWidget.h"
 
-UCoreCellWidget::UCoreCellWidget(): DefaultTintColor(), DefaultColorAndOpacity(), DefaultBorderColor(),
-                                    CurrentSlotSize()
+UCoreCellWidget::UCoreCellWidget(): DefaultTintColor(), DefaultColorAndOpacity(), DefaultBorderColor()
 {
 }
 
 void UCoreCellWidget::NativePreConstruct()
 {
 	Super::NativePreConstruct();
-
-	if (SizeBox)
-	{
-		SizeBox->SetWidthOverride(DefaultSlotSize.X);
-		SizeBox->SetHeightOverride(DefaultSlotSize.Y);
-
-		CurrentSlotSize = DefaultSlotSize;
-	}
 	
 	ResetBorderColor();
 	
 	ApplyDefaultContentImageStyle();
+	
+	if (SizeBox)
+	{
+		float W = SizeBox->WidthOverride;
+		float H = SizeBox->HeightOverride;
+
+		if (SizeBox->bOverride_WidthOverride && SizeBox->bOverride_HeightOverride)
+		{
+			CurrentSlotSize = FVector2D(W, H);
+		}
+	}
 }
 
 void UCoreCellWidget::ResetBorderColor()
@@ -39,6 +41,24 @@ void UCoreCellWidget::ResetBorderColor()
 	BottomBorder->SetBrushColor(DefaultBorderColor);
 }
 
+FVector2D UCoreCellWidget::GetCurrentSlotSize() const
+{
+	return CurrentSlotSize;
+}
+
+void UCoreCellWidget::SetSlotSize(const FVector2D& NewSize)
+{
+	if (!SizeBox)
+	{
+		return;
+	}
+
+	SizeBox->SetWidthOverride(NewSize.X);
+	SizeBox->SetHeightOverride(NewSize.Y);
+
+	CurrentSlotSize = NewSize;
+}
+
 void UCoreCellWidget::SetContentImage(UTexture2D* NewTexture)
 {
 	if (!Content_Image || !NewTexture) return;
@@ -47,7 +67,7 @@ void UCoreCellWidget::SetContentImage(UTexture2D* NewTexture)
 	Content_Image->SetColorAndOpacity(DefaultColorAndOpacity);
 }
 
-void UCoreCellWidget::SetImageRotationAngle(float Angle)
+void UCoreCellWidget::SetImageRotationAngle(const float Angle)
 {
 	if (!Content_Image) return;
 	

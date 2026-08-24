@@ -28,7 +28,7 @@ public:
 	// FUNCTIONS
 	//====================================================================
 	UFUNCTION(blueprintCallable, Category = "InvenzaWidgetFactory")
-	static UInventoryContainerWidget* CreateInventoryWidget(APlayerController* OwningPlayer,
+	static UInventoryContainerWidget* CreateConteinerInventoryWidget(APlayerController* OwningPlayer,
 		TSubclassOf<UInventoryContainerWidget> ContainerWidgetClass,
 		TSubclassOf<UUInventoryBaseWidget> InventoryWidgetClass,
 		TSubclassOf<UOperationPanelWidget> OperationPanelClass);

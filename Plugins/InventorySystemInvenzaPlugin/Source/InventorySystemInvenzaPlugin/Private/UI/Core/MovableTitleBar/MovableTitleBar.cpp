@@ -1,4 +1,4 @@
-//  Nublin Studio 2025 All Rights Reserved.
+//  Nublin Studio 2026 All Rights Reserved.
 
 
 #include "UI/Core/MovableTitleBar/MovableTitleBar.h"
@@ -14,6 +14,7 @@
 #include "Framework/Application/SlateApplication.h"
 #include "UI/Core/CoreCellWidget.h"
 #include "Blueprint/SlateBlueprintLibrary.h"
+#include "Components/CanvasPanel.h"
 #include "UI/Drag/DragContainerWidget.h"
 #include "Utility/InvenzayUtility.h"
 
@@ -69,6 +70,33 @@ void UMovableTitleBar::OnDragFinished_Implementation(bool bSuccess, UDragDropOpe
 	}
 }
 
+void UMovableTitleBar::ConvertSlotToTopLeftAnchors(UCanvasPanelSlot* CanvasSlot)
+{
+	if (!CanvasSlot) return;
+
+	UCanvasPanel* ParentCanvas = Cast<UCanvasPanel>(CanvasSlot->Parent);
+	if (!ParentCanvas) return;
+
+	const FVector2D ParentSize = ParentCanvas->GetCachedGeometry().GetLocalSize();
+	const FGeometry WidgetGeom = ParentWidget->GetCachedGeometry();
+	const FVector2D WidgetSize = WidgetGeom.GetLocalSize();
+	
+	const FVector2D AnchorPoint = FVector2D(
+		ParentSize.X * CanvasSlot->GetAnchors().Minimum.X,
+		ParentSize.Y * CanvasSlot->GetAnchors().Minimum.Y
+	);
+	const FVector2D AlignmentOffset = FVector2D(
+		WidgetSize.X * CanvasSlot->GetAlignment().X,
+		WidgetSize.Y * CanvasSlot->GetAlignment().Y
+	);
+
+	const FVector2D AbsoluteTopLeft = AnchorPoint + CanvasSlot->GetPosition() - AlignmentOffset;
+
+	CanvasSlot->SetAnchors(FAnchors(0.f, 0.f, 0.f, 0.f));
+	CanvasSlot->SetAlignment(FVector2D(0.f, 0.f));
+	CanvasSlot->SetPosition(AbsoluteTopLeft);
+}
+
 FReply UMovableTitleBar::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
 	if (InMouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton))
@@ -84,6 +112,15 @@ FReply UMovableTitleBar::NativeOnMouseButtonDown(const FGeometry& InGeometry, co
 void UMovableTitleBar::NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent,
 	UDragDropOperation*& OutOperation)
 {
+	if (auto* CanvasSlot = Cast<UCanvasPanelSlot>(ParentWidget->Slot))
+	{
+		SavedAnchors = CanvasSlot->GetAnchors();
+		SavedAlignment = CanvasSlot->GetAlignment();
+		bAnchorsSaved = true;
+
+		ConvertSlotToTopLeftAnchors(CanvasSlot);
+	}
+	
 	auto* Settings = UInvenzayUtility::GetInvenzaGlobalSettings(GetWorld());
 	auto DragContainerclass = Settings->DragContainerWidgetClass;
 	

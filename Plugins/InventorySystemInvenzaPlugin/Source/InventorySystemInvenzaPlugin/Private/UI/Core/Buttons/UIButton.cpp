@@ -62,9 +62,12 @@ void UUIButton::NativeDestruct()
 {
 	if (ClickActionHandle != 0)
 	{
-		if (UEnhancedInputComponent* Input = Cast<UEnhancedInputComponent>(GetOwningPlayer()->InputComponent))
+		if (APlayerController* PC = GetOwningPlayer())
 		{
-			UInputUtility::RemoveBinding(Input, ClickActionHandle);
+			if (UEnhancedInputComponent* Input = Cast<UEnhancedInputComponent>(PC->InputComponent))
+			{
+				UInputUtility::RemoveBinding(Input, ClickActionHandle);
+			}
 		}
 	}
 }

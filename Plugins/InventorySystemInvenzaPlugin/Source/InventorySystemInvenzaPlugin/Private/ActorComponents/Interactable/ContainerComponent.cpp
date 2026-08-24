@@ -5,13 +5,10 @@
 #include "ActorComponents/InteractionComponent.h"
 #include "ActorComponents/ItemCollection.h"
 #include "ActorComponents/UIInventoryManager.h"
-#include "Blueprint/UserWidget.h"
 #include "GameFramework/Actor.h"
 #include "Engine/StaticMesh.h"
 #include "Components/StaticMeshComponent.h"
-#include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Data/Inventory/InventoryBase.h"
-#include "Factory/ItemFactory.h"
 #include "Utility/InvenzayUtility.h"
 
 
@@ -109,59 +106,49 @@ void UContainerComponent::UpdateInteractableData()
 void UContainerComponent::InitializeInventoryStartupData()
 {
 	if (!GetOwner()->HasAuthority())
+	{
 		return;
-	
+	}
+
 	if (!MainLootContainerInvTag.IsValid())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("MainLootContainerInvTag is not set!"));
 		return;
 	}
 
-	UInventoryBase* Inventory =	UInventoryBase::CreateInventoryAdvanced(GetOwner(), InventoryStartupData, GetOwner(), ItemCollectionRef);
-	if (!Inventory)
-		return;
-
-	StartingItems.Add(Inventory, InventoryStartupData.StartItems);
-	
-	ItemCollectionRef->AddPawnInventory_Internal(Inventory);
-
-	if (InventoryStartupData.Settings.InventoryTag == MainLootContainerInvTag)
+	for (auto Element : StartupInventories)
 	{
-		MainLootInventory = Inventory;
+		UInventoryBase* Inventory = UInvenzayUtility::CreateStartupInventory(
+		this,
+		ItemCollectionRef,
+		Element,
+		StartingItems);
+
+		if (!Inventory)
+		{
+			return;
+		}
+
+		if (Element.Settings.InventoryTag == MainLootContainerInvTag)
+		{
+			MainLootInventory = Inventory;
+		}
 	}
-	
-	Inventory->OnItemRemovedDelegate.AddDynamic(this, &UContainerComponent::DestroyWhenEmpty);
+
+	if (MainLootInventory)
+	{
+		MainLootInventory->OnItemRemovedDelegate.AddDynamic(this, &UContainerComponent::DestroyWhenEmpty);
+	}
 }
 
 void UContainerComponent::SetupStartingResources()
 {
 	if (!GetOwner()->HasAuthority())
-		return;
-
-	if (StartingItems.IsEmpty())
-		return;
-	
-	for (auto& [TargetInventory, InitItems] : StartingItems)
 	{
-		if (!TargetInventory 
-			|| TargetInventory->GetInventoryContainerID().IsEmpty() 
-			|| InitItems.IsEmpty() 
-			|| !TargetInventory->GetItemCollectionLinked())
-		{
-			continue;
-		}
-
-		for (const auto& InitResource : InitItems)
-		{
-			if (InitResource.Item.RowName.IsNone()) continue;
-
-			UObject* NewItemSample = UItemFactory::CreateItemByHandle(this, InitResource.Item, 1);
-
-			UInvenzayUtility::AddItemQuantityBySample(this, TargetInventory, NewItemSample, InitResource.Amount);
-		}
+		return;
 	}
 
-	StartingItems.Empty();
+	UInvenzayUtility::SetupStartingResources(this,StartingItems);
 }
 
 void UContainerComponent::DestroyWhenEmpty(FItemMapping ItemSlots, UObject* Item)

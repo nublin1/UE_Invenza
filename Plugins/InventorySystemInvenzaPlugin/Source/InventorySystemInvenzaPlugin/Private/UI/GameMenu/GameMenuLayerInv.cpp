@@ -63,8 +63,9 @@ UPanelSlot* UGameMenuLayerInv::AddPawnInvContainerWidget(UInventoryContainerWidg
 	UPanelSlot* InvContainerSlot = PawnInventories->AddChild(InvContainerWidgetToAdd);
 
 	auto InvWidget = InvContainerWidgetToAdd->GetInventoryWidgetFromContainerSlot();
+	auto InvSettings = InvWidget->GetInventoryRef()->GetInventorySettings();
 	InvWidget->ReDrawAllItems();
-	EInventoryType Type = InvWidget->GetInventoryRef()->GetInventorySettings().InventoryType;
+	EInventoryType Type = InvSettings.InventoryType;
 
 	if (InventoryDefaultPositions.Contains(Type))
 	{
@@ -86,7 +87,10 @@ UPanelSlot* UGameMenuLayerInv::AddPawnInvContainerWidget(UInventoryContainerWidg
 		}
 	}
 
-	InvContainerWidgetToAdd->SetVisibility(ESlateVisibility::Collapsed);
+	if (InvSettings.bIsAlwaysVisible)
+		InvContainerWidgetToAdd->SetVisibility(ESlateVisibility::Visible);
+	else
+		InvContainerWidgetToAdd->SetVisibility(ESlateVisibility::Collapsed);
 	
 	return InvContainerSlot;
 }
@@ -116,8 +120,8 @@ void UGameMenuLayerInv::ToggleInventoryLayout()
 	if (Containers.IsEmpty())
 		return;
 	
-	const ESlateVisibility NewVisibility =
-		bInventoryOpen ? ESlateVisibility::Visible : ESlateVisibility::Collapsed;
+	const ESlateVisibility NewVisibility = bInventoryOpen ? ESlateVisibility::Visible : ESlateVisibility::Collapsed;
+	bool bAnyToggleableVisible = bInventoryOpen;
 
 	if (WorldDropZone)
 	{
@@ -126,10 +130,17 @@ void UGameMenuLayerInv::ToggleInventoryLayout()
 	
 	for (auto* Container : Containers)
 	{
-		if (Container)
+		if (!Container)
+			continue;
+		
+		auto InvWidget = Container->GetInventoryWidgetFromContainerSlot();
+		if (InvWidget && InvWidget->GetInventoryRef() && InvWidget->GetInventoryRef()->GetInventorySettings().bIsAlwaysVisible)
 		{
-			Container->SetVisibility(NewVisibility);
+			Container->SetVisibility(ESlateVisibility::Visible);
+			continue;
 		}
+
+		Container->SetVisibility(NewVisibility);
 	}
 	
 	UpdateInputMode();
@@ -171,16 +182,16 @@ UPanelSlot* UGameMenuLayerInv::AddPawnCraftDashboardWidget(UInvenzaBaseWidget* W
 {
 	if (!WidgetToAdd || !PawnCraftWidgetsPanel) return nullptr;
 
-	UPanelSlot* CrafSlot = PawnCraftWidgetsPanel->AddChild(WidgetToAdd);
+	UPanelSlot* CraftSlot = PawnCraftWidgetsPanel->AddChild(WidgetToAdd);
 	WidgetToAdd->SetVisibility(ESlateVisibility::Collapsed);
 
-	if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(CrafSlot))
+	if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(CraftSlot))
 	{
 		CanvasSlot->SetAutoSize(true);
 		CanvasSlot->SetSize(FVector2D(0,0));
 	}
 
-	return CrafSlot;
+	return CraftSlot;
 }
 
 UPanelSlot* UGameMenuLayerInv::AddPawnCraftChooseWidget(UInvenzaBaseWidget* WidgetToAdd)
@@ -195,8 +206,7 @@ void UGameMenuLayerInv::ToggleCraftMenuLayout()
 
 	bCraftMenuOpen = !bCraftMenuOpen;
 	
-	const ESlateVisibility NewVisibility =
-		bCraftMenuOpen ? ESlateVisibility::Visible : ESlateVisibility::Collapsed;
+	const ESlateVisibility NewVisibility = bCraftMenuOpen ? ESlateVisibility::Visible : ESlateVisibility::Collapsed;
 
 	if (WorldDropZone)
 	{

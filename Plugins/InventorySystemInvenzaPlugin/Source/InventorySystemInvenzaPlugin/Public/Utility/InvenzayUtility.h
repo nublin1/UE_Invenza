@@ -3,9 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Data/Inventory/InventoryTypes.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "InvenzayUtility.generated.h"
 
+class UItemCollection;
 struct FModalActionConfig;
 enum class EObjectInteractionType : uint8;
 struct FInitItemsEntry;
@@ -23,20 +25,29 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UInvenzayUtility : public UBlueprintFunct
 	GENERATED_BODY()
 
 public:
-	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
-	static bool bIsSameItems(UObject* FirstItem, UObject* SecondItem);
-	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
-	static bool DoItemsHaveSameFootprint(UObject* FirstItem, UObject* SecondItem, EItemOrientationType OrientationFirstItem,
-	                              EItemOrientationType OrientationSecondItem, bool bIgnoreSize);
 	
-	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
-	static void DropItem(UWorld* World, AActor* OwnerActor,
-		const FDataTableRowHandle& ItemRow, int32 AmountToDrop,	const FVector& SpawnLocation, const FRotator& SpawnRotation);
+	// Inventory
+	static UInventoryBase* CreateStartupInventory(UObject* WorldContextObject, UItemCollection* ItemCollection,
+		const FInventoryStartupData& StartupData,
+	TMap<TObjectPtr<UInventoryBase>, FInitItemsList>& StartingItems);
+
+	static void SetupStartingResources(UObject* WorldContextObject, TMap<TObjectPtr<UInventoryBase>, FInitItemsList>& StartingItems);
 
 	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
 	static bool AddItemQuantity(UObject* Outer, UInventoryBase* TargetInventory, FInitItemsEntry InitItemsEntry );
 	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
 	static bool AddItemQuantityBySample(UObject* Outer, UInventoryBase* TargetInventory, UObject* ItemSample, int32 TotalQuantity);
+
+	// Items
+	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
+	static bool bIsSameItems(UObject* FirstItem, UObject* SecondItem);
+	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
+	static bool DoItemsHaveSameFootprint(UObject* FirstItem, UObject* SecondItem, EItemOrientationType OrientationFirstItem,
+								  EItemOrientationType OrientationSecondItem, bool bIgnoreSize);
+	
+	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
+	static void DropItem(UWorld* World, AActor* OwnerActor,
+		const FDataTableRowHandle& ItemRow, int32 AmountToDrop,	const FVector& SpawnLocation, const FRotator& SpawnRotation);
 
 	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
 	static FVector2D CalculateItemVisualSize(UObject* Item, EItemOrientationType Orientation, FVector2D SlotSize, FMargin SlotSpacing, bool bIgnoreSize);

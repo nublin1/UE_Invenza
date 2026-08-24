@@ -35,6 +35,7 @@ void UCraftingComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	DOREPLIFETIME(UCraftingComponent, CurrentCraftingRecipe);
 	DOREPLIFETIME(UCraftingComponent, InputInventory);
 	DOREPLIFETIME(UCraftingComponent, OutputInventory);
+	DOREPLIFETIME(UCraftingComponent, FuelInventory);
 	DOREPLIFETIME(UCraftingComponent, CachedRecipeResults);
 	DOREPLIFETIME(UCraftingComponent, AvailableRecipes);
 }

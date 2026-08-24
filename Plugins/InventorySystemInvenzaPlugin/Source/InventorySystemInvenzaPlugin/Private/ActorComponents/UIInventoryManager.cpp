@@ -56,7 +56,12 @@ void UIInventoryManager::BeginPlay()
 	
 	GlobalSettings = UInvenzayUtility::GetInvenzaGlobalSettings(GetWorld());
 	
-	InitializeInventoryManager();
+	FTimerHandle InitTimerHandle;
+
+	GetWorld()->GetTimerManager().SetTimer(InitTimerHandle, FTimerDelegate::CreateLambda([this]()
+	{
+		InitializeInventoryManager();
+	}), 0.2f, false);
 }
 
 void UIInventoryManager::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -126,13 +131,17 @@ void UIInventoryManager::CreateInventories()
 	
 	for (FInventoryStartupData& StartupData : StartupInventories)
 	{
-		UInventoryBase* Inventory =	UInventoryBase::CreateInventoryAdvanced(GetOwner(), StartupData, GetOwner(), ItemCollectionRef);
-		if (!Inventory)
-			continue;
-		
-		StartingItems.Add(Inventory, StartupData.StartItems);
+		UInventoryBase* Inventory = UInvenzayUtility::CreateStartupInventory(
+			this,
+			ItemCollectionRef,
+			StartupData,
+			StartingItems);
 
-		ItemCollectionRef->AddPawnInventory_Internal(Inventory);
+		if (!Inventory)
+		{
+			continue;
+		}
+
 		BindInventoryEvents(Inventory);
 
 		if (StartupData.Settings.InventoryTag == GlobalSettings->MainInvTag)
@@ -160,12 +169,12 @@ void UIInventoryManager::CreateWidgetsForInventories()
 			continue;
 		}
 
-		if (!CreateWidget(Inventory))
+		if (!CreateInventoryWidget(Inventory))
 			continue;
 	}
 }
 
-bool UIInventoryManager::CreateWidget(UInventoryBase* InvToLink)
+bool UIInventoryManager::CreateInventoryWidget(UInventoryBase* InvToLink)
 {
 	if (!InvToLink)
 		return false;
@@ -183,11 +192,11 @@ bool UIInventoryManager::CreateWidget(UInventoryBase* InvToLink)
 	APlayerController* PC = Cast<APlayerController>(OwnerPawnRef->GetController());
 	if (!PC) return false;
 	
-	auto InvContainer =  UInvenzaWidgetFactory::CreateInventoryWidget(
+	auto InvContainer = UInvenzaWidgetFactory::CreateConteinerInventoryWidget(
 		PC,
 		InvSettings.ContainerWidgetClass,
 		InvSettings.InventoryWidgetClass,
-		nullptr);
+		InvSettings.OperationPanelWidgetClass);
 
 	if (!InvContainer || !InvToLink)
 		return false;
@@ -319,29 +328,7 @@ void UIInventoryManager::SetupStartingResources()
 	if (!GetOwner()->HasAuthority())
 		return;
 
-	if (StartingItems.IsEmpty())
-		return;
-	
-	for (auto& [TargetInventory, InitItems] : StartingItems)
-	{
-		if (!TargetInventory 
-			|| TargetInventory->GetInventoryContainerID().IsEmpty() 
-			|| InitItems.IsEmpty() 
-			|| !TargetInventory->GetItemCollectionLinked())
-		{
-			continue;
-		}
-
-		for (const auto& InitResource : InitItems)
-		{
-			if (InitResource.Item.RowName.IsNone()) continue;
-			//UObject* NewItemSample = UItemFactory::CreateItemByHandle(this, InitResource.Item, 1);
-
-			UInvenzayUtility::AddItemQuantity(this, TargetInventory,InitResource);
-		}
-	}
-
-	StartingItems.Empty();
+	UInvenzayUtility::SetupStartingResources(this, StartingItems);
 }
 
 void UIInventoryManager::SetupAdditionalComponents()
@@ -556,6 +543,34 @@ void UIInventoryManager::Handle_QuickTransferAllSameItems_Internal(FItemMoveData
 	}
 }
 
+void UIInventoryManager::TransferItemArray_Implementation(UInventoryBase* SourceInventory,
+	UInventoryBase* TargetInventory)
+{
+	if (!SourceInventory || !TargetInventory)
+		return;
+
+	const FString SourceContainerID = SourceInventory->GetInventoryContainerID();
+	TArray<UObject*> Items = SourceInventory->GetItemCollectionLinked()->GetAllItemsByContainer(SourceContainerID);
+
+	if (Items.IsEmpty())
+		return;
+
+	for (UObject* Item : Items)
+	{
+		if (!Item)
+			continue;
+
+		FItemMoveData MoveData;
+
+		MoveData.SourceItem = Item;
+		MoveData.SourceInventory = SourceInventory;
+		MoveData.TargetInventory = TargetInventory;
+
+		Execute_ItemTransferRequest(this,MoveData);
+	}
+	
+}
+
 void UIInventoryManager::VendorRequest(FItemMoveData ItemMoveData )
 {
 	if (ItemMoveData.SourceInventory == ItemMoveData.TargetInventory)
@@ -749,8 +764,7 @@ EInventoryContextActionResult UIInventoryManager::ValidateAndEquipTransferredIte
 	if (!TargetSlot)
 		return EInventoryContextActionResult::InvalidSlot;
 
-	const FGameplayTag EquipmentSlotTag =
-		TargetSlot->InventorySlotInfo.LinkedEquipmentSlot;
+	const FGameplayTag EquipmentSlotTag = TargetSlot->InventorySlotInfo.LinkedEquipmentSlot;
 
 	if (!EquipmentSlotTag.IsValid())
 		return EInventoryContextActionResult::InvalidSlot;
@@ -796,11 +810,7 @@ void UIInventoryManager::UnequipItemIfNeeded(UInventoryBase* SourceInventory, FG
 {
 	if (!SourceInventory || !SourceSlotID.IsValid())
 		return;
-	if (!EquipmentComponentRef)
-		return;
-	if (!ItemCollectionRef)
-		return;
-	if (!GlobalSettings)
+	if (!EquipmentComponentRef || !ItemCollectionRef || !GlobalSettings)
 		return;
 
 	const auto EquipmentInventories =	ItemCollectionRef->GetAllInventoriesByTag(GlobalSettings->EquipmentInvTag);
@@ -917,8 +927,7 @@ void UIInventoryManager::HandleItemDrop(FItemDropData DropData)
 		FVector SpawnLocation = Pawn->GetActorLocation() + Pawn->GetActorForwardVector() * 50.f;
 		FRotator SpawnRotation = Pawn->GetActorRotation();
 
-		const FDataTableRowHandle ItemRow =
-			IObjectDataProvider::Execute_GetItemRow(DropData.ItemToDrop);
+		const FDataTableRowHandle ItemRow =	IObjectDataProvider::Execute_GetItemRow(DropData.ItemToDrop);
 
 		UInvenzayUtility::DropItem(
 			GetWorld(),
@@ -928,11 +937,8 @@ void UIInventoryManager::HandleItemDrop(FItemDropData DropData)
 			SpawnLocation,
 			SpawnRotation
 		);
-
-		DropData.SourceInventory->HandleRemoveItem(
-			DropData.ItemToDrop,
-			DropData.DropAmount
-		);
+		
+		ItemDeleteRequest_Implementation(DropData.SourceInventory->GetInventoryContainerID(), DropData.ItemToDrop);
 	}
 }
 
@@ -998,10 +1004,9 @@ void UIInventoryManager::Server_ItemEquipRequest_Implementation(UObject* Item)
 		return;
 	}
 
-	UObject* ItemInTargetSlot =
-		ItemCollectionRef->GetItemFromSlot(
-			TargetSlotID,
-			TargetEquipmentInventory->GetInventoryContainerID());
+	UObject* ItemInTargetSlot = ItemCollectionRef->GetItemFromSlot(
+		TargetSlotID,
+		TargetEquipmentInventory->GetInventoryContainerID());
 
 	if (!ItemInTargetSlot)
 		return;
@@ -1173,7 +1178,7 @@ void UIInventoryManager::HandlePickupInteraction(UInteractableComponent* Target)
 		Data.TargetInventory = MainPawnInventoryRef;
 		Data.SourceInventory = nullptr;
 	
-		ItemTransferRequest(Data);
+		Execute_ItemTransferRequest(this, Data);
 	}
 	PickupInterface->OnPickedUp();
 }
@@ -1273,7 +1278,7 @@ void UIInventoryManager::HandleClearInteraction(UInteractableComponent* TargetIn
 
 void UIInventoryManager::OpenVendorInventory(UInventoryBase* Inv)
 {
-	CreateWidget(Inv);
+	CreateInventoryWidget(Inv);
 	HandleToggleInventory();
 }
 
@@ -1298,7 +1303,7 @@ void UIInventoryManager::CloseVendorInventory(UInventoryBase* Inv)
 
 void UIInventoryManager::OpenExternalInventory(UInventoryBase* Inv)
 {
-	CreateWidget(Inv);
+	CreateInventoryWidget(Inv);
 	HandleToggleInventory();
 }
 
@@ -1426,6 +1431,8 @@ void UIInventoryManager::InitializeBindings()
 	if (UISettings.ToggleInventoryAction)
 	{
 		Input->BindAction(UISettings.ToggleInventoryAction, ETriggerEvent::Started, this, &UIInventoryManager::HandleToggleInventory);
+		HandleToggleInventory();
+		HandleToggleInventory();
 	}
 	if (UISettings.ToggleCraftAction)
 	{

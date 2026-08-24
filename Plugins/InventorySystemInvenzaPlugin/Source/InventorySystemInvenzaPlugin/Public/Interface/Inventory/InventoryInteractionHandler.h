@@ -33,7 +33,10 @@ public:
 	
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Inventory")
 	void ItemContextMenuRequest(const FString& FromInventory, FGuid SlotGuid, UObject* Item);
-
+	
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Inventory")
+	void TransferItemArray(UInventoryBase* SourceInventory, UInventoryBase* TargetInventory);
+	
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Inventory")
 	void ItemTransferRequest(FItemMoveData ItemMoveData);
 

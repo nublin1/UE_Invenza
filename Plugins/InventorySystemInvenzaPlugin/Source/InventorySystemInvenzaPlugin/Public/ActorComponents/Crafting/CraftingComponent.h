@@ -3,8 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "CraftingEnums.h"
-#include "CraftingStructs.h"
+#include "Data/CraftSystem/CraftingEnums.h"
+#include "Data/CraftSystem/CraftingStructs.h"
 #include "Components/ActorComponent.h"
 #include "CraftingComponent.generated.h"
 
@@ -138,6 +138,9 @@ protected:
 	UPROPERTY(ReplicatedUsing=OnRep_InventoryUpdated, VisibleInstanceOnly, BlueprintReadWrite, Category="Crafting|Ref")
 	TObjectPtr<UInventoryBase> OutputInventory;
 	
+	UPROPERTY(ReplicatedUsing=OnRep_InventoryUpdated, VisibleInstanceOnly, BlueprintReadWrite, Category="Crafting|Ref")
+	TObjectPtr<UInventoryBase> FuelInventory;
+	
 	// Config
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Crafting|Config")
 	FCraftingComponentConfig Config;
@@ -166,7 +169,7 @@ protected:
 	ECraftingResourceConsumePolicy ConsumePolicy =
 		ECraftingResourceConsumePolicy::OnCraftStart;
 
-	// Data
+	// Runtime
 	UPROPERTY()
 	FTimerHandle CraftTimerHandle;
 

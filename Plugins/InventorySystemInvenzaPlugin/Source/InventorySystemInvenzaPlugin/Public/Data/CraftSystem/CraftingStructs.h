@@ -21,6 +21,9 @@ struct FCraftingComponentConfig
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Crafting")
 	FGameplayTag OutputInventoryTag;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Crafting")
+	FGameplayTag FuelInventoryTag;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Crafting")
 	TArray<FDataTableRowHandle> StartingRecipes;

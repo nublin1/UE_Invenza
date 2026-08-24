@@ -574,7 +574,7 @@ FItemAddResult USlotbasedInventory::HandleAddReferenceItem(FItemMoveData& ItemMo
 	if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(ItemMoveData.SourceItem, TEXT("HandleAddReferenceItem")))
         return FItemAddResult::AddedNone(FText::FromString("Invalid item"));
 
-    if (ItemMoveData.TargetSlotID.IsValid())
+    if (!ItemMoveData.TargetSlotID.IsValid())
         return FItemAddResult::AddedNone(
             FText::Format(FText::FromString("Can't be added {0} of {1} to inventory"),
             1, FText::FromName(IObjectDataProvider::Execute_GetItemID(ItemMoveData.SourceItem))));

@@ -15,6 +15,7 @@ enum class EInteractableType: uint8
 	None		UMETA(DisplayName = "None"),
 	Pickup		UMETA(DisplayName = "Pickup"),
 	NPC			UMETA(DisplayName = "NPC"),
+	Craft		UMETA(DisplayName = "Craft"),
 	Toggle		UMETA(DisplayName = "Toggle"),
 	Container	UMETA(DisplayName = "Container"),
 	InfoOnly    UMETA(DisplayName = "Informational"),

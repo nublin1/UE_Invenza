@@ -52,7 +52,9 @@ public:
 	virtual void ResetBorderColor();
 
 	UFUNCTION()
-	FVector2D GetCurrentSlotSize() const {return CurrentSlotSize;}
+	FVector2D GetCurrentSlotSize() const;
+	UFUNCTION()
+	virtual void SetSlotSize(const FVector2D& NewSize);
 
 	UFUNCTION()
 	virtual void SetContentImage(UTexture2D* NewTexture);
@@ -64,8 +66,7 @@ protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category = "Cell UI|Config")
-	FVector2D DefaultSlotSize = FVector2d(64.0f);
+	
 	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category = "Cell UI|Config")
 	TObjectPtr<UTexture2D> DefaultContent_Image;
 	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category = "Cell UI|Config")

@@ -36,6 +36,15 @@ struct FInitItemsEntry
 };
 
 USTRUCT(BlueprintType)
+struct FInitItemsList
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<FInitItemsEntry> Items;
+};
+
+USTRUCT(BlueprintType)
 struct FItemIDEntry
 {
 	GENERATED_BODY()

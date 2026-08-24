@@ -9,7 +9,7 @@
 #include "UI/Inventory/UInventoryBaseWidget.h"
 #include "UI/Inventory/Container/InventoryContainerWidget.h"
 
-UInventoryContainerWidget* UInvenzaWidgetFactory::CreateInventoryWidget(APlayerController* OwningPlayer,
+UInventoryContainerWidget* UInvenzaWidgetFactory::CreateConteinerInventoryWidget(APlayerController* OwningPlayer,
                                                                       TSubclassOf<UInventoryContainerWidget> ContainerWidgetClass, TSubclassOf<UUInventoryBaseWidget> InventoryWidgetClass,
                                                                       TSubclassOf<UOperationPanelWidget> OperationPanelClass)
 {
@@ -20,7 +20,7 @@ UInventoryContainerWidget* UInvenzaWidgetFactory::CreateInventoryWidget(APlayerC
 	if (!InvContWidget)
 		return nullptr;
 
-	auto InvWidget = CreateWidget<UUInventoryBaseWidget>(OwningPlayer, InventoryWidgetClass);
+	auto InvWidget = CreateWidget<UInvenzaBaseWidget>(OwningPlayer, InventoryWidgetClass);
 	if (!InvWidget)
 		return nullptr;
 
@@ -29,7 +29,7 @@ UInventoryContainerWidget* UInvenzaWidgetFactory::CreateInventoryWidget(APlayerC
 	if (!OperationPanelClass)
 		return InvContWidget;
 
-	auto PanelWidget = CreateWidget<UUInventoryBaseWidget>(OwningPlayer, OperationPanelClass);
+	auto PanelWidget = CreateWidget<UOperationPanelWidget>(OwningPlayer, OperationPanelClass);
 	if (!PanelWidget)
 		return nullptr;
 

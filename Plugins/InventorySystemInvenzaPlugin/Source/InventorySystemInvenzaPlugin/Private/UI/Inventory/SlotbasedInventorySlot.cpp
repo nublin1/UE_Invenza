@@ -13,6 +13,7 @@
 
 USlotbasedInventorySlot::USlotbasedInventorySlot()
 {
+	bIsVolatile = true;
 }
 
 void USlotbasedInventorySlot::NativePreConstruct()
@@ -72,6 +73,16 @@ void USlotbasedInventorySlot::ClearVisual()
 FVector2D USlotbasedInventorySlot::GetSlotSize()
 {
 	return CoreCellWidget->GetCurrentSlotSize();
+}
+
+void USlotbasedInventorySlot::SetSlotSize(const FVector2D& NewSize)
+{
+	if (!CoreCellWidget)
+	{
+		return;
+	}
+
+	CoreCellWidget->SetSlotSize(NewSize);
 }
 
 void USlotbasedInventorySlot::SetSlotNameText(FString SlotNameText)

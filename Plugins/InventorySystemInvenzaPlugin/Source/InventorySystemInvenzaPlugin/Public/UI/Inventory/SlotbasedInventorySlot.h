@@ -49,6 +49,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="Inventory")
 	virtual FVector2D GetSlotSize();
+	UFUNCTION(BlueprintCallable, Category="Inventory")
+	virtual void SetSlotSize(const FVector2D& NewSize);
 
 	virtual void SetSlotNameText(FString InUseKeyText) override;
 

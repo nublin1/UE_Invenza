@@ -30,7 +30,7 @@ void UInventoryContainerWidget::NativePreConstruct()
 	{
 		TitleBar->TitleName->UpdateText(Title);
 		
-		if (!bIsShowCloseButton && TitleBar->Button_Close)
+		if (!bIsShowCloseButton && TitleBar->HeaderCanvasPanel)
 			TitleBar->Button_Close->SetVisibility(ESlateVisibility::Collapsed);
 	}
 
@@ -48,7 +48,7 @@ void UInventoryContainerWidget::NativePreConstruct()
 	
 	if (!bIsShowTotalMoney && InvMoney)
 		InvMoney->SetVisibility(ESlateVisibility::Collapsed);
-	if (!bIsShowWeight)
+	if (!bIsShowWeight && InvWeight)
 		InvWeight->SetVisibility(ESlateVisibility::Collapsed);
 }
 
@@ -179,64 +179,36 @@ void UInventoryContainerWidget::UpdateMoneyInfo(int32 TotalMoney)
 
 void UInventoryContainerWidget::TakeAll()
 {
-	/*UIInventoryManager* InventoryManager = GetOwningPlayerPawn()->FindComponentByClass<UIInventoryManager>();
-	if (!InventoryManager || !InventoryManager->GetCoreHUDWidget())
+	UIInventoryManager* InventoryManager = GetOwningPlayerPawn()->FindComponentByClass<UIInventoryManager>();
+	if (!InventoryManager)
 		return;
-    
-	auto TargetInv = InventoryManager->GetMainInventory();
-	if (!TargetInv)
+
+	UInventoryBase* SourceInventory = GetInventoryWidgetFromContainerSlot()->GetInventoryRef();
+	if (!SourceInventory)
 		return;
-    
-	TransferAllItems(this, TargetInv);*/
+
+	UInventoryBase* TargetInventory = InventoryManager->GetPawnMainInventory();
+	if (!TargetInventory)
+		return;
+
+	InventoryManager->Execute_TransferItemArray(InventoryManager, SourceInventory, TargetInventory);
 }
 
 void UInventoryContainerWidget::PlaceAll()
 {
-	/*UIInventoryManager* InventoryManager = GetOwningPlayerPawn()->FindComponentByClass<UIInventoryManager>();
-	if (!InventoryManager || !InventoryManager->GetCoreHUDWidget())
+	UIInventoryManager* InventoryManager = GetOwningPlayerPawn()->FindComponentByClass<UIInventoryManager>();
+	if (!InventoryManager)
 		return;
 
-	auto SourceInv = InventoryManager->GetCoreHUDWidget()->GetMainInvWidget();
-	if (!SourceInv)
+	UInventoryBase* TargetInventory = GetInventoryWidgetFromContainerSlot()->GetInventoryRef();
+	if (!TargetInventory)
 		return;
-    
-	TransferAllItems(SourceInv, this);*/
-}
 
-void UInventoryContainerWidget::TransferAllItems(UInventoryContainerWidget* SourceContainer,
-                                               UInventoryContainerWidget* TargetContainer)
-{
-	/*if (!SourceContainer || !TargetContainer) return;
+	UInventoryBase* SourceInventory = InventoryManager->GetPawnMainInventory();
+	if (!SourceInventory)
+		return;
 
-	auto SourceInv = SourceContainer->GetInventoryFromContainerSlot();
-	auto TargetInv = TargetContainer->GetInventoryFromContainerSlot();
-	
-	UItemCollection* SourceCollection = SourceInv->GetInventoryData().ItemCollectionLink;
-	if (!SourceCollection)
-	{
-		return;
-	}
-    
-	TArray<UItemBase*> AllItems = SourceCollection->GetAllItemsByContainer(SourceContainer);
-	if (AllItems.IsEmpty())
-	{
-		return;
-	}
-	
-	for (UItemBase* Item : AllItems)
-	{
-		FItemMoveData MoveData;
-		MoveData.SourceItem = Item;
-		MoveData.SourceInventory = SourceInv;
-		MoveData.TargetInventory = TargetInv;
-		
-		FItemAddResult Result = TargetInv->HandleAddItem(MoveData, false);
-		if (Result.OperationResult == EItemAddResult::IAR_AllItemAdded || 
-			Result.OperationResult == EItemAddResult::IAR_PartialAmountItemAdded)
-		{
-			SourceInv->HandleRemoveItem(Item, Item->GetQuantity());
-		}
-	}*/
+	InventoryManager->Execute_TransferItemArray(InventoryManager, SourceInventory, TargetInventory);
 }
 
 void UInventoryContainerWidget::SortItems()

@@ -2,6 +2,7 @@
 
 #include "Utility/InvenzayUtility.h"
 
+#include "ActorComponents/ItemCollection.h"
 #include "ActorComponents/Interactable/PickupComponent.h"
 #include "Data/Inventory/InventoryBase.h"
 #include "Data/Inventory/InventoryTypes.h"
@@ -12,6 +13,100 @@
 #include "Subsystems/InvenzaInventorySettingsSubsystem.h"
 #include "Utility/InterfaceUtils.h"
 
+
+UInventoryBase* UInvenzayUtility::CreateStartupInventory(UObject* WorldContextObject, UItemCollection* ItemCollection,
+	const FInventoryStartupData& StartupData, TMap<TObjectPtr<UInventoryBase>, FInitItemsList>& StartingItems)
+{
+	if (!WorldContextObject || !ItemCollection)
+	{
+		return nullptr;
+	}
+
+	AActor* Owner = WorldContextObject->GetTypedOuter<AActor>();
+	if (!Owner || !Owner->HasAuthority())
+	{
+		return nullptr;
+	}
+
+	UInventoryBase* Inventory = UInventoryBase::CreateInventoryAdvanced(Owner,StartupData, Owner, ItemCollection);
+	if (!Inventory)
+	{
+		return nullptr;
+	}
+
+	FInitItemsList InitItemsList;
+	InitItemsList.Items = StartupData.StartItems;
+
+	StartingItems.Add(Inventory, InitItemsList);
+
+	ItemCollection->AddPawnInventory_Internal(Inventory);
+
+	return Inventory;
+}
+
+void UInvenzayUtility::SetupStartingResources(UObject* WorldContextObject,
+                                              TMap<TObjectPtr<UInventoryBase>, FInitItemsList>& StartingItems)
+{
+	if (StartingItems.IsEmpty())
+	{
+		return;
+	}
+
+	for (auto& [Inventory, InitItems] : StartingItems)
+	{
+		if (!Inventory ||
+			Inventory->GetInventoryContainerID().IsEmpty() ||
+			InitItems.Items.IsEmpty() ||
+			!Inventory->GetItemCollectionLinked())
+		{
+			continue;
+		}
+
+		for (const FInitItemsEntry& InitItemEntry : InitItems.Items)
+		{
+			if (InitItemEntry.Item.RowName.IsNone())
+			{
+				continue;
+			}
+
+			UObject* ItemSample = UItemFactory::CreateItemByHandle(WorldContextObject, InitItemEntry.Item, 1);
+			if (!ItemSample)
+			{
+				continue;
+			}
+
+			AddItemQuantityBySample(WorldContextObject, Inventory, ItemSample, InitItemEntry.Amount);
+		}
+	}
+
+	StartingItems.Empty();
+}
+
+bool UInvenzayUtility::AddItemQuantity(UObject* Outer, UInventoryBase* TargetInventory, const FInitItemsEntry InitItemsEntry)
+{
+	if (!TargetInventory || InitItemsEntry.Item.IsNull() || InitItemsEntry.Amount <= 0)
+		return false;
+
+	UObject* ItemForDuplicate = UItemFactory::CreateItemByHandle(Outer, InitItemsEntry.Item, InitItemsEntry.Amount);
+	return AddItemQuantityInternal(TargetInventory, ItemForDuplicate, InitItemsEntry.Amount);
+}
+
+bool UInvenzayUtility::AddItemQuantityBySample(UObject* Outer, UInventoryBase* TargetInventory, UObject* ItemSample,
+                                                int32 TotalQuantity)
+{
+	if (!TargetInventory || !ItemSample || TotalQuantity <= 0)
+		return false;
+
+	if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(ItemSample, TEXT("AddItemQuantityBySample")))
+		return false;
+
+	UObject* ItemForDuplicate =
+		UItemFactory::CreateItemByHandle(Outer,
+			IObjectDataProvider::Execute_GetItemRow(ItemSample),
+			TotalQuantity);
+
+	return AddItemQuantityInternal(TargetInventory, ItemForDuplicate, TotalQuantity);
+}
 
 bool UInvenzayUtility::bIsSameItems(UObject* FirstItem, UObject* SecondItem)
 {
@@ -114,32 +209,6 @@ void UInvenzayUtility::DropItem(UWorld* World, AActor* OwnerActor, const FDataTa
 		
 		PickupComponent->InitializeDrop(ItemDrop);
 	}
-}
-
-bool UInvenzayUtility::AddItemQuantity(UObject* Outer, UInventoryBase* TargetInventory, const FInitItemsEntry InitItemsEntry)
-{
-	if (!TargetInventory || InitItemsEntry.Item.IsNull() || InitItemsEntry.Amount <= 0)
-		return false;
-
-	UObject* ItemForDuplicate = UItemFactory::CreateItemByHandle(Outer, InitItemsEntry.Item, InitItemsEntry.Amount);
-	return AddItemQuantityInternal(TargetInventory, ItemForDuplicate, InitItemsEntry.Amount);
-}
-
-bool UInvenzayUtility::AddItemQuantityBySample(UObject* Outer, UInventoryBase* TargetInventory, UObject* ItemSample,
-                                                int32 TotalQuantity)
-{
-	if (!TargetInventory || !ItemSample || TotalQuantity <= 0)
-		return false;
-
-	if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(ItemSample, TEXT("AddItemQuantityBySample")))
-		return false;
-
-	UObject* ItemForDuplicate =
-		UItemFactory::CreateItemByHandle(Outer,
-			IObjectDataProvider::Execute_GetItemRow(ItemSample),
-			TotalQuantity);
-
-	return AddItemQuantityInternal(TargetInventory, ItemForDuplicate, TotalQuantity);
 }
 
 FVector2D UInvenzayUtility::CalculateItemVisualSize(UObject* Item, EItemOrientationType Orientation,

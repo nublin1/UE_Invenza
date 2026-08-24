@@ -70,7 +70,7 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void CreateWidgetsForInventories(); 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	bool CreateWidget(UInventoryBase* InvToLink);
+	bool CreateInventoryWidget(UInventoryBase* InvToLink);
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void InitInvWidgets();
 
@@ -103,6 +103,8 @@ public:
 	void Handle_QuickTransferAllSameItems_Internal(FItemMoveData InData);
 
 	// Transfer
+	virtual void TransferItemArray_Implementation(UInventoryBase* SourceInventory, UInventoryBase* TargetInventory) override;
+	
 	virtual void ItemTransferRequest_Implementation(FItemMoveData ItemMoveData) override;
 	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Inventory|Transfer")
 	void Server_ItemTransferRequest(FItemMoveData ItemMoveData);
@@ -157,6 +159,9 @@ public:
 	void HandleRebuildInventory(const FString& InvID);
 	
 	//	
+	UFUNCTION()
+	UInventoryBase* GetPawnMainInventory() const{ return MainPawnInventoryRef;}
+	
 	UFUNCTION(BlueprintPure, Category = "Inventory|Settings")
 	FUISettings GetUISettings() const { return UISettings; }
 
@@ -176,7 +181,8 @@ protected:
 	UPROPERTY(EditAnywhere, Category="Inventory")
 	TArray<FInventoryStartupData> StartupInventories;
 	
-	TMap<UInventoryBase*, TArray<FInitItemsEntry>> StartingItems;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
+	TMap<TObjectPtr<UInventoryBase>, FInitItemsList> StartingItems;
 
 	UPROPERTY(BlueprintReadOnly, Replicated, Category="Inventory")
 	TArray<UInventoryBase*> InventoryWidgetInitMap;

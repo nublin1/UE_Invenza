@@ -31,6 +31,7 @@ public:
 
 protected:
 	virtual void NativeConstruct() override;
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
 public:
 	//====================================================================
@@ -44,6 +45,8 @@ public:
 	virtual void InitializeInventoryWidget() override;
 	virtual void InitializeInventoryWidgetWithSettings() override;
 	virtual void BindDelegated() override;
+	UFUNCTION()
+	virtual void UpdateViewportSize();
 	UFUNCTION()
 	virtual void ReDrawInvSlots();
 	virtual void ReDrawAllItems() override;
@@ -64,6 +67,8 @@ protected:
 	UPROPERTY(meta=(BindWidgetOptional))
 	TObjectPtr<UFiltersPanel> ItemFiltersPanel;
 	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<USizeBox> GridSizeBox;
+	UPROPERTY(meta=(BindWidgetOptional))
 	TObjectPtr<UScrollBox> ScrollBox;
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UUniformGridPanel> SlotsGridPanel;
@@ -83,6 +88,11 @@ protected:
 	TObjectPtr<USlotbasedInventory> SlotBasedInventoryRef;
 
 	// Settings
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|Viewport")
+	FVector2D ViewportMaxSize = FVector2D(400.f, 400.f);
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|Viewport")
+	FIntPoint VisibleRowsColumns = FIntPoint(4, 10);
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
 	bool bHasSlotSpacing = false;
 	
@@ -114,10 +124,15 @@ protected:
 	UPROPERTY()
 	FMargin SlotSpacing;
 	UPROPERTY()
-	FVector2D InvCellSize = FVector2D(64.0f, 64.0f);
+	mutable FVector2D InvCellSize = FVector2D(64.0f, 64.0f);
 
-	UPROPERTY()
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly)
 	TArray<TObjectPtr<UInventorySlot>> InventorySlots;
+	
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<USlotbasedInventorySlot>> CachedInvSlots;
+	
+	mutable bool bCellSizeCollected = false;
 
 	UPROPERTY()
 	bool bIsNeedToReDrawItems = false;
@@ -156,6 +171,9 @@ public:
 	virtual void RemoveItemFromPanel(FItemMapping FromSlots, UObject* Item) override;
 	
 protected:
+	UFUNCTION(BlueprintCallable)
+	bool TryCollectCellSizeFromSlate(FVector2D& OutCellSize) const;
+	
 	UFUNCTION()
 	virtual void UsedItemInPanel(UInventorySlotData* UsedSlot);
 	
@@ -170,6 +188,7 @@ protected:
 	
 	UFUNCTION()
 	virtual FIntPoint CalculateGridPosition(const FGeometry& Geometry, const FVector2D& ScreenCursorPos) const;
+	
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	virtual FReply NativeOnMouseButtonDoubleClick(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	virtual FReply NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;

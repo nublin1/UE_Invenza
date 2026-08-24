@@ -125,8 +125,7 @@ void UInventoryBase::MergeStackableItems()
 		if (SameItems.IsEmpty())
 			continue;
 
-		const int32 Quantity = IObjectDataProvider::Execute_GetQuantity(ItemObj);
-
+		int32 RemainingQuantity = IObjectDataProvider::Execute_GetQuantity(ItemObj);
 		for (UObject* SameItemObj : SameItems)
 		{
 			if (SameItemObj == ItemObj)
@@ -135,9 +134,22 @@ void UInventoryBase::MergeStackableItems()
 			if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(SameItemObj, TEXT("MergeStackableItems")))
 				continue;
 			
-			const int32 AddedQuantity = TryInsertToStackItem(SameItemObj, Quantity, false);
+			const int32 AddedQuantity = TryInsertToStackItem(SameItemObj, RemainingQuantity, false);
+			RemainingQuantity -= AddedQuantity;
+		}
+		
+		if (RemainingQuantity <= 0)
+		{
+			HandleRemoveItem(ItemObj, IObjectDataProvider::Execute_GetQuantity(ItemObj));
+		}
+		else
+		{
+			IObjectDataProvider::Execute_SetQuantity(ItemObj, RemainingQuantity);
 		}
 	}
+	
+	OnRep_InventoryTotalWeight();
+	OnRep_InventoryTotalMoney();
 }
 
 void UInventoryBase::UseSlot(UInventorySlotData* UsedSlot)

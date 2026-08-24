@@ -10,6 +10,7 @@
 #include "Components/CanvasPanelSlot.h"
 #include "Components/EditableText.h"
 #include "Components/ScrollBox.h"
+#include "Components/SizeBox.h"
 #include "Components/UniformGridPanel.h"
 #include "Components/UniformGridSlot.h"
 #include "Data/Inventory/InventoryBase.h"
@@ -53,6 +54,25 @@ void USlotbasedInventoryWidget::NativeConstruct()
 	}
 }
 
+void USlotbasedInventoryWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry, InDeltaTime);
+
+	if (bCellSizeCollected || !SlotBasedInventoryRef || !SlotBasedInventoryRef->GetInventorySettings().bCollectInvDataFromWidget)
+		return;
+
+	FVector2D CollectedSize;
+	if (TryCollectCellSizeFromSlate(CollectedSize))
+	{
+		bCellSizeCollected = true;
+		InvCellSize = CollectedSize;
+		
+		auto CurrentSettings = SlotBasedInventoryRef->GetInventorySettings();
+		CurrentSettings.InventorySlotBasedSettings.InvCellSize = InvCellSize;
+		SlotBasedInventoryRef->SetInventorySettings(CurrentSettings);
+	}
+}
+
 void USlotbasedInventoryWidget::InitializeInventoryWidget()
 {
 	CreateTooltipWidget();
@@ -88,6 +108,26 @@ void USlotbasedInventoryWidget::BindDelegated()
 	SlotBasedInventoryRef->OnInventorySlotDataUpdated.AddDynamic(this, &USlotbasedInventoryWidget::ReDrawInvSlots);
 }
 
+void USlotbasedInventoryWidget::UpdateViewportSize()
+{
+	if (!GridSizeBox || !SlotBasedInventoryRef)
+	{
+		return;
+	}
+
+	const auto InvSettings = SlotBasedInventoryRef->GetInventorySettings();
+	const FVector2D& CellSize = InvSettings.InventorySlotBasedSettings.InvCellSize;
+
+	const float MaxWidth = VisibleRowsColumns.Y * CellSize.X;
+	const float MaxHeight = VisibleRowsColumns.X * CellSize.Y;
+
+	GridSizeBox->SetMaxDesiredWidth(MaxWidth);
+	GridSizeBox->SetMaxDesiredHeight(MaxHeight);
+	
+	//GridSizeBox->SetMaxDesiredWidth(ViewportMaxSize.X);
+	//GridSizeBox->SetMaxDesiredHeight(ViewportMaxSize.Y);
+}
+
 void USlotbasedInventoryWidget::ReDrawInvSlots()
 {
 	InitializeInventoryWidgetWithSettings();
@@ -120,65 +160,67 @@ void USlotbasedInventoryWidget::ReDrawAllItems()
 FSlotBasedInventoryWidgetInitData USlotbasedInventoryWidget::CollectInitSlotsDataFromWidget()
 {
 	FSlotBasedInventoryWidgetInitData Result;
-	
-	if (!SlotsGridPanel)
-		return Result;
+    
+    if (!SlotsGridPanel || !SlotBasedInventoryRef)
+       return Result;
+    
+    TArray<TObjectPtr<USlotbasedInventorySlot>> NewInvSlots;
+    const int32 NumChildren = SlotsGridPanel->GetChildrenCount();
 
-	if (!SlotBasedInventoryRef)
-		return Result;
-	
-	TArray<TObjectPtr<USlotbasedInventorySlot>> NewInvSlots;
-	const int32 NumChildren = SlotsGridPanel->GetChildrenCount();
+    // 1. Собираем только валидные слоты
+    for (int32 i = 0; i < NumChildren; ++i)
+    {
+       if (UWidget* ChildWidget = SlotsGridPanel->GetChildAt(i))
+       {
+          if (auto InventorySlot = Cast<USlotbasedInventorySlot>(ChildWidget))
+          {
+             if (!InventorySlot->GetDefaultCellImage() && DefaultCellImage)
+             {
+                InventorySlot->UpdateVisualWithTexture(DefaultCellImage);
+             }
+             NewInvSlots.Add(InventorySlot);
+          }
+       }
+    }
 
-	for (int32 i = 0; i < NumChildren; ++i)
-	{
-		if (UWidget* ChildWidget = SlotsGridPanel->GetChildAt(i))
-		{
-			auto WClass = ChildWidget->GetClass();
-			if (WClass->IsChildOf(USlotbasedInventorySlot::StaticClass()))
-			{
-				if (auto InventorySlot = Cast<USlotbasedInventorySlot>(ChildWidget))
-				{
-					if (NewInvSlots.Num() == 0)
-					{
-						Result.InvCellSize = InventorySlot->GetSlotSize();
-					}
-					
-					if (!InventorySlot->GetDefaultCellImage() && DefaultCellImage)
-						InventorySlot->UpdateVisualWithTexture(DefaultCellImage);
-					NewInvSlots.Add(InventorySlot);
-				}
-			}
-		}
-	}
+    // Reset глобальных счетчиков сетки перед пересчетом
+    NumberRows = 0;
+    NumColumns = 0;
 
-	for (int32 i = 0; i < NewInvSlots.Num(); ++i)
-	{
-		if (const UWidget* ChildWidget = SlotsGridPanel->GetChildAt(i))
-		{
-			const UUniformGridSlot* UniSlot = Cast<UUniformGridSlot>(ChildWidget->Slot);
-			if (UniSlot->GetRow() >= NumberRows)
-				NumberRows = UniSlot->GetRow() + 1;
-			if (UniSlot->GetColumn() >= NumColumns)
-				NumColumns = UniSlot->GetColumn() + 1;
+    // 2. Настраиваем Layout строго по собранным слотам
+    for (USlotbasedInventorySlot* SlotWidget : NewInvSlots)
+    {
+       if (!SlotWidget) continue;
 
-			auto SlotPosit = FIntPoint(UniSlot->GetRow(),  UniSlot->GetColumn());
+       // Берём Slot напрямую у виджета слота!
+       const UUniformGridSlot* UniSlot = Cast<UUniformGridSlot>(SlotWidget->Slot);
+       if (!UniSlot)
+       {
+          UE_LOG(LogTemp, Error, TEXT("Slot %s is NOT placed inside a UniformGridPanel!"), *SlotWidget->GetName());
+          continue;
+       }
 
-			FInventorySlotInfo SlotInfo;
-			SlotInfo.SlotName = NAME_None,
-			SlotInfo.CellPosition = SlotPosit;
-			SlotInfo.UseAction = nullptr;
-			SlotInfo.AllowedCategory = NewInvSlots[i]->AllowedSlotCategory;
-			SlotInfo.LinkedEquipmentSlot = NewInvSlots[i]->LinkedEquipmentSlotTag;
-			
-			Result.SlotLayout.Add(SlotInfo);
-		}
-	}
+       if (UniSlot->GetRow() >= NumberRows)
+          NumberRows = UniSlot->GetRow() + 1;
+       if (UniSlot->GetColumn() >= NumColumns)
+          NumColumns = UniSlot->GetColumn() + 1;
 
-	Result.SlotSpacing = SlotsGridPanel->GetSlotPadding();
-	Result.InventorySize = GetNumberRowsAndColumns();
-	
-	return Result;
+       FInventorySlotInfo SlotInfo;
+       SlotInfo.SlotName = NAME_None;
+       SlotInfo.CellPosition = FIntPoint(UniSlot->GetRow(), UniSlot->GetColumn());
+       SlotInfo.UseAction = nullptr;
+       SlotInfo.AllowedCategory = SlotWidget->AllowedSlotCategory;
+       SlotInfo.LinkedEquipmentSlot = SlotWidget->LinkedEquipmentSlotTag;
+       
+       Result.SlotLayout.Add(SlotInfo);
+    }
+    
+    CachedInvSlots = NewInvSlots;
+
+    Result.SlotSpacing = SlotsGridPanel->GetSlotPadding();
+    Result.InventorySize = GetNumberRowsAndColumns();
+    
+    return Result;
 }
 
 TArray<UInventorySlotData*> USlotbasedInventoryWidget::GetSlotData()
@@ -246,6 +288,14 @@ void USlotbasedInventoryWidget::BuildInventorySlots()
 
 	const auto InvSettings = SlotBasedInventoryRef->GetInventorySettings();
 	const auto ExistingSlots = SlotBasedInventoryRef->GetInventorySlots();
+	const FVector2D& CellSize = InvSettings.InventorySlotBasedSettings.InvCellSize;
+	
+	if (SlotsGridPanel)
+	{
+	
+		SlotsGridPanel->SetMinDesiredSlotWidth(CellSize.X);
+		SlotsGridPanel->SetMinDesiredSlotHeight(CellSize.Y);
+	}
 
 	if (!InvSettings.InventorySlotBasedSettings.SlotbasedInventorySlotClass)
 	{
@@ -303,8 +353,9 @@ void USlotbasedInventoryWidget::BuildInventorySlots()
 
 			UInventorySlotData* SlotData = *FoundSlot;
 			USlotbasedInventorySlot* NewSlot = CreateWidget<USlotbasedInventorySlot>(GetOwningPlayer(),
-					InvSettings.InventorySlotBasedSettings.SlotbasedInventorySlotClass
-				);
+					InvSettings.InventorySlotBasedSettings.SlotbasedInventorySlotClass);
+			
+			NewSlot->SetSlotSize(CellSize);
 
 			if (!NewSlot)
 			{
@@ -329,6 +380,8 @@ void USlotbasedInventoryWidget::BuildInventorySlots()
 		auto WidgetSlot =InventorySlots[Index];
 		UInventorySlotData* SlotData =	WidgetSlot->GetSlotData();
 	}
+	
+	UpdateViewportSize();
 }
 
 void USlotbasedInventoryWidget::ClearFilters()
@@ -744,6 +797,46 @@ void USlotbasedInventoryWidget::RemoveItemFromPanel(FItemMapping FromSlots, UObj
 			ItemSlot->ResetVisual();
 		}
 	}
+}
+
+bool USlotbasedInventoryWidget::TryCollectCellSizeFromSlate(FVector2D& OutCellSize) const
+{
+	OutCellSize = FVector2D::ZeroVector;
+	if (!SlotsGridPanel || SlotsGridPanel->GetChildrenCount() == 0)
+	{
+		return false;
+	}
+	
+	UWidget* FirstSlotWidget = SlotsGridPanel->GetChildAt(0);
+	if (!FirstSlotWidget)
+	{
+		return false;
+	}
+	
+	TSharedPtr<SWidget> SlateWidget = FirstSlotWidget->GetCachedWidget();
+	if (!SlateWidget.IsValid())
+	{
+		SlateWidget = FirstSlotWidget->TakeWidget();
+	}
+
+	if (!SlateWidget.IsValid())
+	{
+		return false;
+	}
+	
+	FVector2D DetectedSize = SlateWidget->GetTickSpaceGeometry().GetLocalSize();
+	if (DetectedSize.IsZero())
+	{
+		DetectedSize = SlateWidget->GetDesiredSize();
+	}
+
+	if (!DetectedSize.IsZero())
+	{
+		OutCellSize = DetectedSize;
+		return true;
+	}
+
+	return false;
 }
 
 void USlotbasedInventoryWidget::UsedItemInPanel(UInventorySlotData* UsedSlot)
