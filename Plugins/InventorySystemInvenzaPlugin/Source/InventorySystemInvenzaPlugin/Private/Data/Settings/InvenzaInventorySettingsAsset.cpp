@@ -3,6 +3,7 @@
 
 #include "Data/Settings/InvenzaInventorySettingsAsset.h"
 
+#include "Data/CraftSystem/CraftingStructs.h"
 #include "UI/Core/Modal/ModalTypes.h"
 
 const FBlockReasonData* UInvenzaInventorySettingsAsset::FindBlockReason(const FGameplayTag& Tag) const

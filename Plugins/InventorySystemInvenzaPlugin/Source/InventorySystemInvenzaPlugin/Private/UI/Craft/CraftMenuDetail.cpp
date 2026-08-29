@@ -1,10 +1,7 @@
 ﻿// Nublin Studio 2026 All Rights Reserved.
 
 #include "UI/Craft/CraftMenuDetail.h"
-
-#include "ActorComponents/Crafting/CraftingStructs.h"
 #include "Components/ListView.h"
-#include "Components/MultiLineEditableTextBox.h"
 #include "Components/WidgetSwitcher.h"
 #include "Data/CraftSystem/ItemRecipe.h"
 #include "Data/CraftSystem/Entries/RecipeRequiredIListEntryObject.h"

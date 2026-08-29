@@ -3,7 +3,10 @@
 
 #include "ActorComponents/Interactable/CraftingStationComponent.h"
 
+#include "ActorComponents/InteractionComponent.h"
 #include "ActorComponents/Crafting/CraftingComponent.h"
+#include "Data/Settings/InvenzaInventorySettingsAsset.h"
+#include "Utility/InvenzayUtility.h"
 
 
 UCraftingStationComponent::UCraftingStationComponent()
@@ -15,16 +18,28 @@ void UCraftingStationComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	InitializeInteractionComponent();
 }
-
 
 void UCraftingStationComponent::Interact(UInteractionComponent* InteractionComponent)
 {
+	if (!InteractionComponent)
+		return;
+	
 	Super::Interact(InteractionComponent);
-
-	CurrentInteractionComponent = InteractionComponent;	
+	
+	CurrentInteractionComponent = InteractionComponent;
 	if (bIsInteracting == false)
 	{
+		if (bUseInteractorInventory)
+		{
+			AActor* InteractorActor = InteractionComponent->GetOwner();
+			InitializeCraftingStation(InteractorActor);
+			CurrentInteractionComponent = nullptr;
+			return;
+			
+		}
+
 		SetInteracting(true);
 	}
 	else
@@ -39,33 +54,68 @@ void UCraftingStationComponent::StopInteract(UInteractionComponent* InteractionC
 	
 	SetInteracting(false);
 	CurrentInteractionComponent = nullptr;
+	if (bUseInteractorInventory)
+	{
+		CraftingComponentRef = nullptr;
+		ItemCollectionRef = nullptr;
+	}
 }
 
-bool UCraftingStationComponent::InitializeCraftingStation()
+void UCraftingStationComponent::InitializeCraftingStation(AActor* ContextActor)
 {
-	CraftingComponent = nullptr;
+	CraftingComponentRef = nullptr;
+	ItemCollectionRef = nullptr;
 
-	AActor* OwnerActor = GetOwner();
-	if (!OwnerActor)
+	if (!IsValid(ContextActor))
 	{
-		return false;
+		UE_LOG(LogTemp, Error,
+			TEXT("[%s] Failed to initialize crafting station: ContextActor is invalid."),
+			*GetName());
+
+		return;
 	}
 
-	CraftingComponent =	OwnerActor->FindComponentByClass<UCraftingComponent>();
-	if (!CraftingComponent)
+	CraftingComponentRef = ContextActor->FindComponentByClass<UCraftingComponent>();
+	if (!CraftingComponentRef)
 	{
 		UE_LOG(LogTemp,	Error, TEXT("[%s] Actor '%s' has UCraftingStationComponent, but no UCraftingComponent was found."),
-			*GetName(),	*OwnerActor->GetName());
-
-		return false;
+			*GetName(),	*ContextActor->GetName());
+		return;
 	}
 
-	return true;
+	if (bUseInteractorInventory == false)
+	{
+		ItemCollectionRef = ContextActor->FindComponentByClass<UItemCollection>();
+		if (!ItemCollectionRef)
+		{
+			UE_LOG(LogTemp,	Error, TEXT("[%s] ItemCollectionRef no was found '%s"),
+				*GetName(),	*ContextActor->GetName());
+		}
+		
+		auto GSettings = UInvenzayUtility::GetInvenzaGlobalSettings(GetWorld());
+		
+		const auto InputInventoryTag = GSettings->InputInvTagByDefault;
+		const auto OutputInventoryTag = GSettings->OutputInvTagByDefault;
+		const auto FuelInventoryTag = GSettings->FuelInvTagByDefault;
+		
+		UInventoryBase* InputInventory = ItemCollectionRef->GetInventoryByTag(InputInventoryTag);
+		UInventoryBase* OutputInventory = ItemCollectionRef->GetInventoryByTag(OutputInventoryTag);
+		UInventoryBase* FuelInventory = ItemCollectionRef->GetInventoryByTag(FuelInventoryTag);
+		if (!InputInventory || !OutputInventory || !FuelInventory)
+		{
+			return;
+		}
+		
+		CraftingComponentRef->SetInputInventory(InputInventory);
+		CraftingComponentRef->SetOutputInventory(OutputInventory);
+		CraftingComponentRef->SetFuelInventory(FuelInventory);
+		
+	}
 }
 
 void UCraftingStationComponent::InitializeInteractionComponent()
 {
-	InitializeCraftingStation();
+	InitializeCraftingStation(GetOwner());
 }
 
 void UCraftingStationComponent::UpdateInteractableData()

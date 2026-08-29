@@ -70,11 +70,13 @@ public:
 	void Server_InitCraftingComponent();
 	UFUNCTION(BlueprintCallable, Category = "Crafting")
 	void HandleInitCraftingComponent();
-
+	
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Crafting")
 	void SetInputInventory(UInventoryBase* NewInputInventory);
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Crafting")
 	void SetOutputInventory(UInventoryBase* NewOutputInventory);
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Crafting")
+	void SetFuelInventory(UInventoryBase* NewFuelInventory);
 
 	UFUNCTION(BlueprintCallable, Category = "Crafting")
 	void RequestRecalculateAvailableRecipes();

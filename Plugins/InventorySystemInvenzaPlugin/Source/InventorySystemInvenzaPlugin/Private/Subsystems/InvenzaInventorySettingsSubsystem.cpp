@@ -2,6 +2,8 @@
 
 
 #include "Subsystems/InvenzaInventorySettingsSubsystem.h"
+
+#include "Data/CraftSystem/CraftingStructs.h"
 #include "Data/Settings/InvenzaInventorySettingsAsset.h"
 #include "Settings/InvenzaInventoryDeveloperSettings.h"
 #include "UI/Drag/DragContainerWidget.h"

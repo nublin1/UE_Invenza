@@ -309,20 +309,6 @@ void UIInventoryManager::InitCraftWidgets()
 	UIInvProvider->BindCraftWidgets();
 }
 
-void UIInventoryManager::BindWorldDropZoneEvents()
-{
-	if (!UIInvProvider)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("UIInventoryManager::InitInvWidgets: UIProvider is not set!"));
-		return;
-	}
-
-	if (auto DropwWidget = UIInvProvider->GetWorldDropWidget())
-	{
-		DropwWidget->OnItemDroppedToWorld.AddDynamic(this, &UIInventoryManager::ItemDropRequest);
-	}
-}
-
 void UIInventoryManager::SetupStartingResources()
 {
 	if (!GetOwner()->HasAuthority())
@@ -1360,6 +1346,20 @@ void UIInventoryManager::BindInventoryEvents(UInventoryBase* Inventory)
 
 	Inventory->OnSplitDelegate.RemoveDynamic(this, &UIInventoryManager::ItemSplitRequest);
 	Inventory->OnSplitDelegate.AddDynamic(this, &UIInventoryManager::ItemSplitRequest);
+}
+
+void UIInventoryManager::BindWorldDropZoneEvents()
+{
+	if (!UIInvProvider)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UIInventoryManager::InitInvWidgets: UIProvider is not set!"));
+		return;
+	}
+
+	if (auto DropwWidget = UIInvProvider->GetWorldDropWidget())
+	{
+		DropwWidget->OnItemDroppedToWorld.AddDynamic(this, &UIInventoryManager::ItemDropRequest);
+	}
 }
 
 void UIInventoryManager::OnQuickGrabPressed(const FInputActionInstance& Instance)

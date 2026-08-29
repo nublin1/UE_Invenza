@@ -77,8 +77,7 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void InitCraftWidgets();
 	
-	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	void BindWorldDropZoneEvents();
+
 	
 public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Initialization")
@@ -282,6 +281,8 @@ public:
 	void BindEvents();
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
 	void BindInventoryEvents(UInventoryBase* Inventory);
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	void BindWorldDropZoneEvents();
 	
 protected:
 	UFUNCTION()

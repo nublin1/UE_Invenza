@@ -5,11 +5,11 @@
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "GameplayTagContainer.h"
-#include "ActorComponents/Crafting/CraftingStructs.h"
 #include "UI/Core/Modal/ModalTypes.h"
 #include "InvenzaInventorySettingsAsset.generated.h"
 
 
+struct FBlockReasonData;
 class UModalDialogBase;
 class USimpleUserObjectListEntry;
 class USimpleUserObjectList;
@@ -51,6 +51,15 @@ public:
 	TSubclassOf<UDragContainerWidget> DragContainerWidgetClass;
 	
 	// Craft System
+	// Config
+	UPROPERTY(EditDefaultsOnly, Category="Crafting|Config")
+	FGameplayTag InputInvTagByDefault;
+	UPROPERTY(EditDefaultsOnly, Category="Crafting|Config")
+	FGameplayTag OutputInvTagByDefault;
+	UPROPERTY(EditDefaultsOnly, Category="Crafting|Config")
+	FGameplayTag FuelInvTagByDefault;
+	
+	//
 	UPROPERTY(EditDefaultsOnly, Category="Crafting")
 	TArray<FBlockReasonData> AvailableBlockReasons;
 	

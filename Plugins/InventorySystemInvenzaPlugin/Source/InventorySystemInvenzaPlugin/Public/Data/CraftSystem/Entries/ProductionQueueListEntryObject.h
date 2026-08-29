@@ -3,8 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "ActorComponents/Crafting/CraftingStructs.h"
-#include "Data/CraftSystem/ItemRecipe.h"
+#include "Data/CraftSystem/CraftingStructs.h"
 #include "UObject/Object.h"
 #include "ProductionQueueListEntryObject.generated.h"
 

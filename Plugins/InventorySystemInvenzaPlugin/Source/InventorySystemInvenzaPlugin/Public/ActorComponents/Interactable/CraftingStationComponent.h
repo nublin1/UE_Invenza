@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "InteractableComponent.h"
+#include "ActorComponents/ItemCollection.h"
 #include "CraftingStationComponent.generated.h"
 
 
@@ -24,11 +25,7 @@ public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Crafting")
-	bool bUseInteractorInventory = false;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UCraftingComponent> CraftingComponent = nullptr;
+	
 	
 	//====================================================================
 	// FUNCTIONS
@@ -41,12 +38,22 @@ protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Crafting")
+	bool bUseInteractorInventory = false;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UCraftingComponent> CraftingComponentRef = nullptr;
+	
+	UPROPERTY(Transient)
+	TObjectPtr<UItemCollection> ItemCollectionRef = nullptr;
 
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+	
 	UFUNCTION(BlueprintCallable, Category="Crafting")
-	bool InitializeCraftingStation();
+	void InitializeCraftingStation(AActor* ContextActor);
 	
 	virtual void InitializeInteractionComponent() override;
 	virtual void UpdateInteractableData() override;

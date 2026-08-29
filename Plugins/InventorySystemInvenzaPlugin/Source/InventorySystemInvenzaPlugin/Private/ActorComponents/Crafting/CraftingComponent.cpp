@@ -111,6 +111,17 @@ void UCraftingComponent::SetOutputInventory_Implementation(UInventoryBase* NewOu
 	}
 }
 
+void UCraftingComponent::SetFuelInventory_Implementation(UInventoryBase* NewFuelInventory)
+{
+	if (!GetOwner()) return;
+
+	if (FuelInventory != NewFuelInventory)
+	{
+		FuelInventory = NewFuelInventory;
+		OnRep_InventoryUpdated();
+	}
+}
+
 void UCraftingComponent::RequestRecalculateAvailableRecipes()
 {
 	if (GetOwner() && GetOwner()->HasAuthority())
