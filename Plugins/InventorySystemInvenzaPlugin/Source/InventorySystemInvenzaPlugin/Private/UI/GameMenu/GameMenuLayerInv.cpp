@@ -3,7 +3,6 @@
 
 #include "UI/GameMenu/GameMenuLayerInv.h"
 
-#include "Blueprint/WidgetLayoutLibrary.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Components/NamedSlot.h"
 #include "Components/PanelWidget.h"
@@ -14,6 +13,7 @@
 #include "UI/Craft/CraftControlPanel.h"
 #include "UI/Craft/CraftDashboard.h"
 #include "UI/Craft/CraftMenuChoose.h"
+#include "UI/Inventory/Container/DualInventoryWidget.h"
 
 UGameMenuLayerInv::UGameMenuLayerInv()
 {
@@ -107,6 +107,62 @@ void UGameMenuLayerInv::RemovePawnInvContainer(UInventoryContainerWidget* InvCon
 			break;
 		}
 	}
+}
+
+void UGameMenuLayerInv::OpenDualInventoryView(UInventoryContainerWidget* ExternalContainerWidget,
+	UInventoryContainerWidget* PlayerInventoryToShow)
+{
+	if (!DualInventoryWidget || !ExternalContainerWidget ||! PlayerInventoryToShow) return;
+	
+	BorrowedPlayerContainer = PlayerInventoryToShow;
+	DualInventoryWidget->SetRightInventoryContainer(PlayerInventoryToShow);
+	
+	CurrentExternalContainer = ExternalContainerWidget;
+	DualInventoryWidget->SetLeftInventoryContainer(ExternalContainerWidget);
+	
+	DualInventoryWidget->ApplyCornerAlignment();
+	
+	DualInventoryWidget->SetVisibility(ESlateVisibility::Visible);
+	if (WorldDropZone) WorldDropZone->SetVisibility(ESlateVisibility::Visible);
+
+	bInventoryOpen = true;
+	UpdateInputMode();
+}
+
+void UGameMenuLayerInv::CloseDualInventoryView()
+{
+	if (!DualInventoryWidget) return;
+	
+	if (BorrowedPlayerContainer)
+	{
+		AddPawnInvContainerWidget(BorrowedPlayerContainer); 
+		BorrowedPlayerContainer = nullptr;
+	}
+	
+	if (CurrentExternalContainer)
+	{
+		CurrentExternalContainer->RemoveFromParent();
+		CurrentExternalContainer = nullptr;
+	}
+
+	DualInventoryWidget->ClearAll();
+	DualInventoryWidget->SetVisibility(ESlateVisibility::Collapsed);
+
+	bInventoryOpen = false;
+	UpdateInputMode();
+}
+
+void UGameMenuLayerInv::OpenNestedInventory(UObject* Key, UInventoryContainerWidget* ContainerWidget,
+	FVector2D ScreenPosition)
+{
+	if (!DualInventoryWidget || !ContainerWidget) return;
+	DualInventoryWidget->AddFloatingInventory(Key, ContainerWidget, ScreenPosition);
+}
+
+void UGameMenuLayerInv::CloseNestedInventory(UObject* Key)
+{
+	if (!DualInventoryWidget) return;
+	DualInventoryWidget->RemoveFloatingInventory(Key);
 }
 
 void UGameMenuLayerInv::ToggleInventoryLayout()
@@ -311,44 +367,3 @@ bool UGameMenuLayerInv::NativeOnDrop(const FGeometry& InGeometry, const FDragDro
 
 	return false;
 }
-
-/*
-FVector2D UGameMenuLayerInv::CalculateNextInventoryPosition(UCanvasPanelSlot* ParentSlot, FVector2D WindowSize) const
-{
-	const float OffsetX = 40.f;
-	const float OffsetY = -20.f;
-
-	FVector2D Position;
-	if (ParentSlot)
-	{
-		FVector2D ParentPos = ParentSlot->GetPosition();
-		FVector2D ParentSize = ParentSlot->GetSize();
-		
-		Position = ParentPos + FVector2D(ParentSize.X + OffsetX, OffsetY);
-	}
-	else
-	{
-		const int32 Index = PawnInventories ? PawnInventories->GetChildrenCount() : 0;
-		Position.X = 500.f + Index * OffsetX;
-		Position.Y = 200.f + Index * OffsetY;
-	}
-
-	if (UWorld* World = GetWorld())
-	{
-		// Получаем размер вьюпорта (уже в Slate Units, адаптированный под DPI!)
-		FVector2D ViewportSize = UWidgetLayoutLibrary::GetViewportSize(World);
-		float DPIScale = UWidgetLayoutLibrary::GetViewportScale(World);
-        
-		// Переводим пиксели в единицы интерфейса (если GetViewportSize вернул сырые пиксели)
-		// В зависимости от версии UE, GetViewportSize может отдавать нескалированные значения.
-		// Чтобы железно работало везде, делим размер вьюпорта на DPI Scale:
-		FVector2D ScaledViewportSize = ViewportSize / DPIScale;
-
-		// Теперь Clamp работает в одной системе координат!
-		Position.X = FMath::Clamp(Position.X, 0.f, ScaledViewportSize.X - WindowSize.X);
-		Position.Y = FMath::Clamp(Position.Y, 0.f, ScaledViewportSize.Y - WindowSize.Y);
-	}
-
-	return Position;
-}
-*/

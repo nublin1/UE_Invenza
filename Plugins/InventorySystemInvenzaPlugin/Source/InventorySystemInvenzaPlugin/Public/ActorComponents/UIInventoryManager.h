@@ -70,7 +70,7 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void CreateWidgetsForInventories(); 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	bool CreateInventoryWidget(UInventoryBase* InvToLink);
+	UInventoryContainerWidget* CreateInventoryWidget(UInventoryBase* InvToLink);
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void InitInvWidgets();
 

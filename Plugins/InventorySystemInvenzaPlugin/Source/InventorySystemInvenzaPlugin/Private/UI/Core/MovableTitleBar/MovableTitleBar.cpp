@@ -50,15 +50,7 @@ void UMovableTitleBar::OnDragFinished_Implementation(bool bSuccess, UDragDropOpe
 
 			if (auto* CanvasSlot = Cast<UCanvasPanelSlot>(ParentWidget->Slot))
 			{
-		
-				if (DragOp)
-				{
-					CanvasSlot->SetPosition(ViewportPos - DragOp->DragOffset);
-				}
-				else
-				{
-					CanvasSlot->SetPosition(ViewportPos);
-				}
+				CanvasSlot->SetPosition(ViewportPos);
 			}
 		}
 

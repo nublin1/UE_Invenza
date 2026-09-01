@@ -66,6 +66,9 @@ public:
 	
 	UFUNCTION(BlueprintPure, Category = "Container|Inventory")
 	virtual UUInventoryBaseWidget* GetInventoryWidgetFromContainerSlot();
+	
+	UFUNCTION(BlueprintCallable, Category = "Container|Inventory")
+	virtual void ReDrawRequest();
 
 protected:
 	//====================================================================
@@ -83,8 +86,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Container|Config")
 	FText Title;
 
+	//
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Container|Runtime")
 	TObjectPtr<UInventoryBase> InventoryRef;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Container|Runtime")
+	TObjectPtr<UUInventoryBaseWidget> InventoryWidgetRef;
 	
 	//====================================================================
 	// FUNCTIONS

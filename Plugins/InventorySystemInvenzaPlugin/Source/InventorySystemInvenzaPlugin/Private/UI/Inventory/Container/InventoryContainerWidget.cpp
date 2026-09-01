@@ -105,6 +105,8 @@ void UInventoryContainerWidget::InitializeInventoryBindings()
 					this, &UInventoryContainerWidget::SortItems);
 		}
 	}
+	
+	InventoryWidgetRef = InventoryWidget;
 
 	Inventory->OnMoneyUpdatedDelegate.AddDynamic(this, &UInventoryContainerWidget::UpdateMoneyInfo);
 	Inventory->UpdateMoneyInfo();
@@ -122,6 +124,8 @@ void UInventoryContainerWidget::ChangeInventoryInContainerSlot(TSubclassOf<UInve
 
 	ContainerSlot->ClearChildren();
 	ContainerSlot->AddChild(NewInvWidget);
+	
+	InventoryWidgetRef = NewInvWidget;
 }
 
 void UInventoryContainerWidget::CloseButtonClicked(UUIButton* Btn)
@@ -142,6 +146,16 @@ UUInventoryBaseWidget* UInventoryContainerWidget::GetInventoryWidgetFromContaine
 	}
 
 	return nullptr;
+}
+
+void UInventoryContainerWidget::ReDrawRequest()
+{
+	if (!InventoryRef || !InventoryWidgetRef)
+	{
+		return;
+	}
+	
+	InventoryWidgetRef->ReDrawAllItems();
 }
 
 void UInventoryContainerWidget::UpdateWeightInfo(float InventoryTotalWeight)

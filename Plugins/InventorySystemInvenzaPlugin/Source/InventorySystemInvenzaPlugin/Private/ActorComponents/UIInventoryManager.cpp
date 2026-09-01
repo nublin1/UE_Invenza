@@ -168,29 +168,28 @@ void UIInventoryManager::CreateWidgetsForInventories()
 			UE_LOG(LogTemp, Warning, TEXT("Widget for inventory %s already exists"), *GetNameSafe(Inventory));
 			continue;
 		}
-
-		if (!CreateInventoryWidget(Inventory))
+		
+		auto InventoryWidget = CreateInventoryWidget(Inventory);
+		if (!InventoryWidget)
 			continue;
+		
+		UIInvProvider->AddPawnInvContainerWidget(InventoryWidget);
 	}
 }
 
-bool UIInventoryManager::CreateInventoryWidget(UInventoryBase* InvToLink)
+UInventoryContainerWidget* UIInventoryManager::CreateInventoryWidget(UInventoryBase* InvToLink)
 {
-	if (!InvToLink)
-		return false;
-	
-	if (!OwnerPawnRef || !OwnerPawnRef->IsLocallyControlled()) return false;
-	
+	if (!InvToLink || !OwnerPawnRef || !OwnerPawnRef->IsLocallyControlled()) return nullptr;
 	if (!UIInvProvider)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("UIInventoryManager::InitInvWidgets: UIProvider is not set!"));
-		return false;
+		return nullptr;
 	}
 
 	auto InvSettings = InvToLink->GetInventorySettings();
 
 	APlayerController* PC = Cast<APlayerController>(OwnerPawnRef->GetController());
-	if (!PC) return false;
+	if (!PC) return nullptr;
 	
 	auto InvContainer = UInvenzaWidgetFactory::CreateConteinerInventoryWidget(
 		PC,
@@ -198,8 +197,8 @@ bool UIInventoryManager::CreateInventoryWidget(UInventoryBase* InvToLink)
 		InvSettings.InventoryWidgetClass,
 		InvSettings.OperationPanelWidgetClass);
 
-	if (!InvContainer || !InvToLink)
-		return false;
+	if (!InvContainer)
+		return nullptr;
 	
 	auto InvWidget = InvContainer->GetInventoryWidgetFromContainerSlot();
 	InvWidget->SetInventoryBaseRef(InvToLink);
@@ -210,11 +209,9 @@ bool UIInventoryManager::CreateInventoryWidget(UInventoryBase* InvToLink)
 
 	InvWidget->OnItemDroppedDelegate.AddDynamic(this, &UIInventoryManager::ItemTransferRequest);
 
-	UIInvProvider->AddPawnInvContainerWidget(InvContainer);
-
 	ItemCollectionRef->RegisterContainerWidget(InvToLink, InvContainer);
 	
-	return true;
+	return InvContainer;
 }
 
 void UIInventoryManager::InitInvWidgets()
@@ -1264,52 +1261,42 @@ void UIInventoryManager::HandleClearInteraction(UInteractableComponent* TargetIn
 
 void UIInventoryManager::OpenVendorInventory(UInventoryBase* Inv)
 {
-	CreateInventoryWidget(Inv);
-	HandleToggleInventory();
+	UInventoryContainerWidget* VendorWidget = CreateInventoryWidget(Inv);
+	UInventoryContainerWidget* PawnMainWidget = CreateInventoryWidget(MainPawnInventoryRef);
+	if (!VendorWidget || !UIInvProvider) return;
+
+	UIInvProvider->OpenDualInventoryView(VendorWidget, PawnMainWidget);
 }
 
 void UIInventoryManager::CloseVendorInventory(UInventoryBase* Inv)
 {
-	if (!Inv || !ItemCollectionRef)
-	{
-		return;
-	}
-	
-	auto FindResult = ItemCollectionRef->GetContainerWidget(Inv);
-	if (FindResult)
-	{
-		UIInvProvider->RemovePawnInvContainer(FindResult);
-		ItemCollectionRef->UnregisterContainerWidget(Inv);
-	}
-	
+	if (!Inv || !ItemCollectionRef || !UIInvProvider) return;
+
+	ItemCollectionRef->UnregisterContainerWidget(Inv);
+	UIInvProvider->CloseDualInventoryView();
+
 	ItemCollectionRef->SetVendorInventory(nullptr);
-	HandleToggleInventory();
 	VendorProviderCurrent = nullptr;
 }
 
 void UIInventoryManager::OpenExternalInventory(UInventoryBase* Inv)
 {
-	CreateInventoryWidget(Inv);
-	HandleToggleInventory();
+	UInventoryContainerWidget* ExternalWidget = CreateInventoryWidget(Inv);
+	
+	UInventoryContainerWidget* PawnMainWidget = CreateInventoryWidget(MainPawnInventoryRef);
+	if (!ExternalWidget || !UIInvProvider) return;
+
+	UIInvProvider->OpenDualInventoryView(ExternalWidget, PawnMainWidget);
 }
 
 void UIInventoryManager::CloseExternalInventory(UInventoryBase* Inv)
 {
-	if (!Inv || !ItemCollectionRef)
-	{
-		return;
-	}
-	
-	auto FindResult = ItemCollectionRef->GetContainerWidget(Inv);
-	if (FindResult)
-	{
-		UIInvProvider->RemovePawnInvContainer(FindResult);
-		ItemCollectionRef->UnregisterContainerWidget(Inv);
-	}
-	
-	ItemCollectionRef->SetExternalInventory(nullptr);
-	HandleToggleInventory();
+	if (!Inv || !ItemCollectionRef || !UIInvProvider) return;
 
+	ItemCollectionRef->UnregisterContainerWidget(Inv);
+	UIInvProvider->CloseDualInventoryView();
+
+	ItemCollectionRef->SetExternalInventory(nullptr);
 	LootContainerProvider.SetObject(nullptr);
 	LootContainerProvider.SetInterface(nullptr);
 }

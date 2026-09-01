@@ -47,6 +47,9 @@ public:
 	virtual void RemovePawnInvContainer(UInventoryContainerWidget* InvContainerToRemove) const
 	PURE_VIRTUAL(IInvUIProvider::RemovePawnInvContainer,;);
 	
+	virtual void OpenDualInventoryView(UInventoryContainerWidget* ExternalContainerWidget, UInventoryContainerWidget* PlayerInventoryToShow) = 0;
+	virtual void CloseDualInventoryView() = 0;
+	
 	virtual void ToggleInventoryLayout(){};
 
 	// Craft

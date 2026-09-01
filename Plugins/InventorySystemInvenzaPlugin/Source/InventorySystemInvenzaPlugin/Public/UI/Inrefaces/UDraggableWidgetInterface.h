@@ -7,6 +7,7 @@
 #include "Input/DragAndDrop.h"
 #include "UDraggableWidgetInterface.generated.h"
 
+class UWidget;
 class UDragDropOperation;
 // This class does not need to be modified.
 UINTERFACE(MinimalAPI, Blueprintable)
@@ -26,5 +27,8 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API IUDraggableWidgetInterface
 public:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "DragDrop")
 	void OnDragFinished(bool bSuccess, UDragDropOperation* Operation);
+	
+	UFUNCTION(BlueprintNativeEvent,BlueprintCallable, Category = "UI|Floating")
+	bool RequestFloatingReposition(UWidget* Content, FVector2D ScreenPosition);
 	
 };

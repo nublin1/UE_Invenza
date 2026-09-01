@@ -8,6 +8,7 @@
 #include "UI/Layout/UILayer.h"
 #include "GameMenuLayerInv.generated.h"
 
+class UDualInventoryWidget;
 class UWorldDropZoneWidget;
 /**
  * 
@@ -34,6 +35,9 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta=(BindWidgetOptional))
 	TObjectPtr<UWorldDropZoneWidget> WorldDropZone;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta = (BindWidget))
+	TObjectPtr<UDualInventoryWidget> DualInventoryWidget;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta=(BindWidgetOptional))
 	TObjectPtr<UPanelWidget> PawnCraftWidgetsPanel;
@@ -55,6 +59,17 @@ public:
 	virtual UPanelSlot* AddPawnInvContainerWidget(UInventoryContainerWidget* InvContainerWidgetToAdd) const override;
 	UFUNCTION(BlueprintCallable, Category = "Inventory|UI")
 	virtual void RemovePawnInvContainer(UInventoryContainerWidget* InvContainerToRemove) const override;
+	
+	UFUNCTION(BlueprintCallable, Category = "Inventory|UI")
+	virtual void OpenDualInventoryView(UInventoryContainerWidget* ExternalContainerWidget, UInventoryContainerWidget* PlayerInventoryToShow) override;
+	UFUNCTION(BlueprintCallable, Category = "Inventory|UI")
+	virtual void CloseDualInventoryView() override;
+
+	// Для вложенных инвентарей (сумка внутри сундука и т.п.) — прокидываем во floating-слой
+	UFUNCTION(BlueprintCallable, Category = "Inventory|UI")
+	virtual void OpenNestedInventory(UObject* Key, UInventoryContainerWidget* ContainerWidget, FVector2D ScreenPosition);
+	UFUNCTION(BlueprintCallable, Category = "Inventory|UI")
+	virtual void CloseNestedInventory(UObject* Key);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|UI")
 	virtual void ToggleInventoryLayout() override;
@@ -90,6 +105,13 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Craft UI")
 	ECraftMenuState CraftMenuState = ECraftMenuState::Dashboard;
+	
+	// Runtime	
+	UPROPERTY()
+	TObjectPtr<UInventoryContainerWidget> BorrowedPlayerContainer;
+
+	UPROPERTY()
+	TObjectPtr<UInventoryContainerWidget> CurrentExternalContainer;
 	
 	//====================================================================
 	// FUNCTIONS
