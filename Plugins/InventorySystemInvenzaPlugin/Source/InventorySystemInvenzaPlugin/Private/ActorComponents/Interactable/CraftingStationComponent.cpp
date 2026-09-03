@@ -68,8 +68,7 @@ void UCraftingStationComponent::InitializeCraftingStation(AActor* ContextActor)
 
 	if (!IsValid(ContextActor))
 	{
-		UE_LOG(LogTemp, Error,
-			TEXT("[%s] Failed to initialize crafting station: ContextActor is invalid."),
+		UE_LOG(LogTemp, Error, TEXT("[%s] Failed to initialize crafting station: ContextActor is invalid."),
 			*GetName());
 
 		return;

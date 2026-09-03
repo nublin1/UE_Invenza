@@ -43,18 +43,10 @@ void UInteractableComponent::StopInteract(UInteractionComponent* InteractionComp
 
 void UInteractableComponent::SetInteracting(bool NewState)
 {
-	if (GetOwner()->HasAuthority())
+	if (!GetOwner() || !GetOwner()->HasAuthority())
 	{
-		bIsInteracting = NewState;
+		return;
 	}
-	else
-	{
-		ServerSetInteracting(NewState);
-	}
-}
-
-void UInteractableComponent::ServerSetInteracting_Implementation(bool NewState)
-{
 	bIsInteracting = NewState;
 }
 

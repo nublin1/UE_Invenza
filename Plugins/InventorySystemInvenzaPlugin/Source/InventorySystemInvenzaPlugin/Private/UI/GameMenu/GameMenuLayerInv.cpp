@@ -3,6 +3,7 @@
 
 #include "UI/GameMenu/GameMenuLayerInv.h"
 
+#include "ActorComponents/UIInventoryManager.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Components/NamedSlot.h"
 #include "Components/PanelWidget.h"
@@ -19,12 +20,35 @@ UGameMenuLayerInv::UGameMenuLayerInv()
 {
 }
 
-void UGameMenuLayerInv::NativePreConstruct()
+void UGameMenuLayerInv::NativeOnInitialized()
 {
-}
+	Super::NativeOnInitialized();
 
-void UGameMenuLayerInv::NativeConstruct()
-{
+	APawn* OwnerPawn = GetOwningPlayerPawn();
+	if (!OwnerPawn)
+	{
+		UE_LOG(LogTemp, Error, TEXT("OwnerPawn is null in NativeOnInitialized"));
+		return;
+	}
+	
+	UIInventoryManager* InvManager = OwnerPawn->FindComponentByClass<UIInventoryManager>();
+	if (!InvManager)
+	{
+		UE_LOG(LogTemp, Error, TEXT("UIInventoryManager not found on OwnerPawn"));
+		return;
+	}
+	
+	if (!GetClass()->ImplementsInterface(UInvUIProvider::StaticClass()))
+	{
+		UE_LOG(LogTemp, Error, TEXT("UGameMenuLayerInv does not implement IInvUIProvider"));
+		return;
+	}
+	
+	TScriptInterface<IInvUIProvider> ProviderInterface;
+	ProviderInterface.SetObject(this);
+	ProviderInterface.SetInterface(Cast<IInvUIProvider>(this));
+	
+	InvManager->SetUIProvider(ProviderInterface);
 }
 
 TArray<UUInventoryBaseWidget*> UGameMenuLayerInv::GetAllPawnInventories() const

@@ -183,8 +183,6 @@ struct FItemMoveData
 	TObjectPtr<UInventoryBase> SourceInventory;
 	UPROPERTY(BlueprintReadWrite)
 	FGuid SourceSlotID;
-	//UPROPERTY(BlueprintReadWrite)
-	//FIntPoint SourceItemPivotSlotCoordinate = FIntPoint(-1);
 	UPROPERTY(BlueprintReadWrite)
 	TObjectPtr<UInventoryBase> TargetInventory;
 	UPROPERTY(BlueprintReadWrite)

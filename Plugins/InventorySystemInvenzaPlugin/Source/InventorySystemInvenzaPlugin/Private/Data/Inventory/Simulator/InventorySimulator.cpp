@@ -15,18 +15,19 @@ UInventorySimulator::UInventorySimulator()
 void UInventorySimulator::DuplicateInventoryForSimulation(UInventoryBase* InInventory)
 {
 	SourceInventory = InInventory;
-
-	auto NewInv = SourceInventory->DuplicateInventory(this);
+	
+	auto NewInv = SourceInventory->DuplicateInventory(GetOuter());
 	if (!NewInv)
 		return;
 
 	SimulationInventory = NewInv;
+	SimulationInventory->SetFlags(RF_Transient);
+	SimulationInventory->ClearFlags(RF_Transactional);
+	
 	SimulationInventory->SetInventoryContainerID(InInventory->GetInventoryContainerID() + "_Sim");
 
-	SimulationCollection = NewObject<UItemCollection>(this);
+	SimulationCollection = NewObject<UItemCollection>(GetOuter());
 	SimulationInventory->SetItemCollectionLink(SimulationCollection);
-	
-	//SimulationInventory->InitInventory();
 
 	TArray<FItemSaveEntry> SavedData;
 	TArray<FString> InventoryFilter;
@@ -49,7 +50,6 @@ void UInventorySimulator::TransferRequestSimulateQuantity(UObject* ItemSample, i
 
 	while (Remaining > 0)
 	{
-		// Получаем row через интерфейс
 		auto ItemRow = IObjectDataProvider::Execute_GetItemRow(ItemSample);
 
 		UObject* Item = UItemFactory::CreateItemByHandle(this, ItemRow, Remaining);
@@ -119,10 +119,10 @@ bool UInventorySimulator::WasLastOperationSuccessful()
 	
 	if (LastOpResult == EItemAddResult::IAR_NoItemAdded || LastOpResult == EItemAddResult::IAR_PartialAmountItemAdded)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("WasLastOperationSuccessful: FAILED"));
+		//UE_LOG(LogTemp, Warning, TEXT("WasLastOperationSuccessful: FAILED"));
 		return false;
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("WasLastOperationSuccessful: SUCCESS"));
+	//UE_LOG(LogTemp, Warning, TEXT("WasLastOperationSuccessful: SUCCESS"));
 	return true;
 }

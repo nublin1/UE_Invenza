@@ -24,6 +24,15 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UInvenzaInventorySettingsAsset : public U
 	GENERATED_BODY()
 	
 public:
+	
+	/* Filters */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Filters|Config", meta = (ToolTip = "Enable filter color override"))
+	bool bUseFilterColor = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Filters|Config", meta = (ToolTip = "Only for Grid inventory", EditCondition = "bUseFilterColor"))
+	FLinearColor ItemFilterBorderColor = FLinearColor::Green;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Filters|Config", meta=(ToolTip="Only for Grid inventory"))
+	float FilterOpacity = 0.15f;
+	
 	// Inventory
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")

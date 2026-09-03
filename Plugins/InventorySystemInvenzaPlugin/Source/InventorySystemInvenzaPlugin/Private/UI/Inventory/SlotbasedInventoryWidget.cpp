@@ -1,7 +1,6 @@
 //  Nublin Studio 2026 All Rights Reserved.
 
 #include "UI/Inventory/SlotbasedInventoryWidget.h"
-
 #include "ActorComponents/ItemCollection.h"
 #include "ActorComponents/UIInventoryManager.h"
 #include "Data/Items/itemBase.h"
@@ -17,7 +16,6 @@
 #include "Data/Inventory/SlotBasedInv/SlotbasedInventory.h"
 #include "DragDrop/ItemDragDropOperation.h"
 #include "UI/Core/CoreCellWidget.h"
-#include "UI/Core/Buttons/FilterTagButton.h"
 #include "UI/Core/Buttons/UIButton.h"
 #include "UI/Core/Image/ImageBaseWidget.h"
 #include "UI/Core/ItemFiltersPanel/FiltersPanel.h"
@@ -407,12 +405,11 @@ void USlotbasedInventoryWidget::ClearFilters()
 
 void USlotbasedInventoryWidget::OnFilterStatusChanged(UUIButton* ItemCategoryButton)
 {
-	auto CastedCategoryButton = Cast<UFilterTagButton>(ItemCategoryButton);
-	if (!CastedCategoryButton)
+	if (!ItemCategoryButton)
 		return;
 
-	const FGameplayTag Category = CastedCategoryButton->GetFilterTag();
-	if (CastedCategoryButton->GetToggleStatus())
+	const FGameplayTag Category = ItemCategoryButton->GetBtnTag();
+	if (ItemCategoryButton->GetToggleStatus())
 	{
 		ActiveFilters.Add(Category);
 	}
@@ -461,16 +458,16 @@ void USlotbasedInventoryWidget::RefreshFilteredItemsList()
 
 		if (bPassFilter)
 		{
-			if (ItemFiltersPanel->bUseFilterColor)
+			if (GlobalSettings->bUseFilterColor)
 			{
-				Visual->ChangeBorderColor(ItemFiltersPanel->ItemFilterBorderColor);
+				Visual->ChangeBorderColor(GlobalSettings->ItemFilterBorderColor);
 			}
 
 			Visual->ChangeOpacity(1.0f);
 		}
 		else
 		{
-			Visual->ChangeOpacity(ItemFiltersPanel->FilterOpacity);
+			Visual->ChangeOpacity(GlobalSettings->FilterOpacity);
 
 			if (Visual->CoreCellWidget)
 				Visual->CoreCellWidget->ResetBorderColor();
@@ -515,18 +512,17 @@ void USlotbasedInventoryWidget::SearchTextChanged(const FText& NewText)
                 if (!ItemMapping)
                     continue;
 
-                FString StringName =
-                    IObjectDataProvider::Execute_GetItemRef(Item).ItemTextData.DisplayName.ToString();
+                FString StringName = IObjectDataProvider::Execute_GetItemRef(Item).ItemTextData.DisplayName.ToString();
 
                 if (StringName.Contains(NewText.ToString(), ESearchCase::IgnoreCase))
                 {
-                    ItemMapping->ItemVisualLinked->ChangeBorderColor(ItemFiltersPanel->ItemFilterBorderColor);
+                    ItemMapping->ItemVisualLinked->ChangeBorderColor(GlobalSettings->ItemFilterBorderColor);
                     ItemMapping->ItemVisualLinked->ChangeOpacity(1.0f);
                 }
                 else
                 {
                     ItemMapping->ItemVisualLinked->CoreCellWidget->ResetBorderColor();
-                    ItemMapping->ItemVisualLinked->ChangeOpacity(ItemFiltersPanel->FilterOpacity);
+                    ItemMapping->ItemVisualLinked->ChangeOpacity(GlobalSettings->FilterOpacity);
                 }
             }
         }
@@ -548,13 +544,13 @@ void USlotbasedInventoryWidget::SearchTextChanged(const FText& NewText)
 
     	if (StringName.Contains(NewText.ToString(), ESearchCase::IgnoreCase))
     	{
-    		ItemMapping->ItemVisualLinked->ChangeBorderColor(ItemFiltersPanel->ItemFilterBorderColor);
+    		ItemMapping->ItemVisualLinked->ChangeBorderColor(GlobalSettings->ItemFilterBorderColor);
     		ItemMapping->ItemVisualLinked->ChangeOpacity(1.0f);
     	}
     	else
     	{
     		ItemMapping->ItemVisualLinked->CoreCellWidget->ResetBorderColor();
-    		ItemMapping->ItemVisualLinked->ChangeOpacity(ItemFiltersPanel->FilterOpacity);
+    		ItemMapping->ItemVisualLinked->ChangeOpacity(GlobalSettings->FilterOpacity);
     	}
     } 
 }

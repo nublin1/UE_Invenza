@@ -2,6 +2,7 @@
 
 #include "ActorComponents/ItemCollection.h"
 
+#include "ActorComponents/InteractionComponent.h"
 #include "ActorComponents/UIInventoryManager.h"
 #include "Data//Items/itemBase.h"
 #include "ActorComponents/SaveLoad/SaveLoadStructs.h"
@@ -59,8 +60,20 @@ void UItemCollection::InitItemCollection()
 	bWasInit = true;
 }
 
+void UItemCollection::SetVendorInventory(UInventoryBase* InVendorInv)
+{
+	LinkedInventories.SetVendor(InVendorInv);
+	OnRep_LinkedInventories();
+}
+
+void UItemCollection::SetExternalInventory(UInventoryBase* InExternalInventory)
+{
+	LinkedInventories.SetExternal(InExternalInventory);
+	OnRep_LinkedInventories();
+}
+
 void UItemCollection::Server_SetSlotBasedInventoryWidgetInitData_Implementation(const FString& ContainerID,
-	FSlotBasedInventoryWidgetInitData InitData)
+                                                                                FSlotBasedInventoryWidgetInitData InitData)
 {
 	if (ContainerID.IsEmpty())
 		return;
@@ -848,31 +861,23 @@ void UItemCollection::NotifyUI_ReDraw(const FString& ContainerID)
 
 void UItemCollection::OnRep_LinkedInventories()
 {
-	if (LinkedInventories.ExternalInventory)
+	UIInventoryManager* Manager = InventoryArray.OwningManager;
+	if (!Manager) return;
+
+	auto HandleLinkedSlot = [Manager](UInventoryBase* Current, UInventoryBase* Prev, EInteractableType InteractableType)
 	{
-		InventoryArray.OwningManager->OpenExternalInventory(
-			LinkedInventories.ExternalInventory
-		);
-	}
-	else if (LinkedInventories.PrevExternalInventory)
-	{
-		InventoryArray.OwningManager->CloseExternalInventory(
-			LinkedInventories.PrevExternalInventory
-		);
-	}
-	
-	if (LinkedInventories.VendorInventory)
-	{
-		InventoryArray.OwningManager->OpenVendorInventory(
-			LinkedInventories.VendorInventory
-		);
-	}
-	else if (LinkedInventories.PrevVendorInventory)
-	{
-		InventoryArray.OwningManager->CloseVendorInventory(
-			LinkedInventories.PrevVendorInventory
-		);
-	}
+		if (Current)
+		{
+			Manager->OpenSecondaryInventory(Current, InteractableType);
+		}
+		else if (Prev)
+		{
+			Manager->CloseSecondaryInventory(InteractableType);
+		}
+	};
+
+	HandleLinkedSlot(LinkedInventories.ExternalInventory, LinkedInventories.PrevExternalInventory, EInteractableType::Container);
+	HandleLinkedSlot(LinkedInventories.VendorInventory, LinkedInventories.PrevVendorInventory, EInteractableType::Vendor);
 }
 
 void UItemCollection::OnRep_ActorInventories()

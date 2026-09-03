@@ -29,7 +29,7 @@ void UInteractionComponent::BeginPlay()
 	GetWorld()->GetTimerManager().SetTimer(InitTimerHandle, [this]
 	{
 		InitInteractionComponent();
-	}, 0.5f, false);
+	}, 1.5f, false);
 }
 
 void UInteractionComponent::TickComponent(float DeltaTime, ELevelTick TickType,
@@ -237,7 +237,7 @@ void UInteractionComponent::Interact()
 	
 	if (IsValid(TargetInteractableComponent))
 	{
-		TargetInteractableComponent->Interact(this);
+		//TargetInteractableComponent->Interact(this);
 		InteractNotify();
 	}
 

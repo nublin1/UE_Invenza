@@ -22,12 +22,6 @@ UContainerComponent::UContainerComponent()
 void UContainerComponent::OnRegister()
 {
 	Super::OnRegister();
-
-	if (AActor* Owner = GetOwner())
-	{
-		Owner->SetReplicates(true);
-		Owner->SetReplicateMovement(true);
-	}
 }
 
 void UContainerComponent::BeginPlay()
@@ -62,15 +56,8 @@ void UContainerComponent::Interact(UInteractionComponent* InteractionComponent)
 
 	if (!ItemCollectionRef) return;
 
-	CurrentInteractionComponent = InteractionComponent;	
-	if (bIsInteracting == false)
-	{
-		SetInteracting(true);
-	}
-	else
-	{
-		SetInteracting(false);
-	}
+	CurrentInteractionComponent = InteractionComponent;
+	SetInteracting(!bIsInteracting);
 }
 
 void UContainerComponent::StopInteract(UInteractionComponent* InteractionComponent)

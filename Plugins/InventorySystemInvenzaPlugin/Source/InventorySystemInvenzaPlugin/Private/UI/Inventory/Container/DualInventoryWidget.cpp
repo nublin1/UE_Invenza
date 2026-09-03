@@ -11,6 +11,8 @@
 void UDualInventoryWidget::SetInventoriesContainers(UInventoryContainerWidget* FirstInventoryContainerWidget,
                                                     UInventoryContainerWidget* SecondInventoryContainerWidget)
 {
+	SetLeftInventoryContainer(FirstInventoryContainerWidget);
+	SetRightInventoryContainer(SecondInventoryContainerWidget);
 }
 
 void UDualInventoryWidget::SetLeftInventoryContainer(UInventoryContainerWidget* InContainer)

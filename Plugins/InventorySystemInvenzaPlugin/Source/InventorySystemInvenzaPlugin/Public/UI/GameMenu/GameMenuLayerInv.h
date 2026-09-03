@@ -22,8 +22,7 @@ public:
 	UGameMenuLayerInv();
 
 protected:
-	virtual void NativePreConstruct() override;
-	virtual void NativeConstruct() override;
+	virtual void NativeOnInitialized() override;
 
 public:
 	//====================================================================

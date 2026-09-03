@@ -61,7 +61,7 @@ void UIInventoryManager::BeginPlay()
 	GetWorld()->GetTimerManager().SetTimer(InitTimerHandle, FTimerDelegate::CreateLambda([this]()
 	{
 		InitializeInventoryManager();
-	}), 0.2f, false);
+	}), 0.1f, false);
 }
 
 void UIInventoryManager::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -72,7 +72,7 @@ void UIInventoryManager::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(UIInventoryManager, InventoryWidgetInitMap);
-	DOREPLIFETIME(UIInventoryManager, LootContainerProvider);
+	DOREPLIFETIME(UIInventoryManager, MainPawnInventoryRef);
 	DOREPLIFETIME(UIInventoryManager, VendorProviderCurrent);
 }
 
@@ -99,12 +99,7 @@ void UIInventoryManager::InitializeInventoryManager()
 	{
 		InteractionComponent = InteractionComp;
 	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("InitializeInventoryManager: InteractionComponent NOT FOUND on %s"),
-		   *GetOwner()->GetName());
-	}
-
+	
 	CreateInventories();
 	
 	if (OwnerPawnRef && OwnerPawnRef->IsLocallyControlled())
@@ -561,7 +556,7 @@ void UIInventoryManager::VendorRequest(FItemMoveData ItemMoveData )
 	
 	FTradeResult TradeResult = VendorProviderCurrent->ProcessTradeRequest(ItemMoveData);
 	const UEnum* TradeResultEnum = StaticEnum<ETradeResult>();
-	const FString OperationResultName = TradeResultEnum
+	/*const FString OperationResultName = TradeResultEnum
 		? TradeResultEnum->GetNameStringByValue(static_cast<int64>(TradeResult.OperationResult))
 		: TEXT("Unknown");
 
@@ -577,7 +572,7 @@ void UIInventoryManager::VendorRequest(FItemMoveData ItemMoveData )
 		TradeResult.MoneyReceived,
 		*OperationResultName,
 		*TradeResult.ResultMessage.ToString()
-	);	
+	);	*/
 	
 	if (ItemMoveData.SourceInventory)
 	{
@@ -617,115 +612,97 @@ void UIInventoryManager::Handle_ItemTransferRequest(FItemMoveData ItemMoveData)
 			VendorRequest(ItemMoveData);
 		return;
 	}
-	
-	FItemAddResult Result = ItemMoveData.TargetInventory->HandleAddItem(ItemMoveData, false);
-	auto ActualAmountAdded = Result.ActualAmountAdded;
-	//UE_LOG(LogTemp, Log, TEXT("InventoryManager::ItemTransferRequest. Is ResultMessage: %s"), *Result.ResultMessage.ToString());
 
-	bool bIsSourceInvExist = false;
+	ApplyItemMove(ItemMoveData);
+}
 
-	if (ItemMoveData.SourceInventory)
-	{
-		bIsSourceInvExist = true;
-		ItemMoveData.SourceInventory->RequestToResetItemVisual(ItemMoveData.SourceItem);
-	}
+void UIInventoryManager::ApplyItemMove(FItemMoveData ItemMoveData)
+{
+	 FItemAddResult Result = ItemMoveData.TargetInventory->HandleAddItem(ItemMoveData, false);
+    auto ActualAmountAdded = Result.ActualAmountAdded;
 
-	const bool bNeedUIUpdate = GetNetMode() != NM_DedicatedServer;
-	
-	switch (Result.OperationResult)
-	{
-	case EItemAddResult::IAR_AllItemAdded:
-		{
-			if (ItemMoveData.SourceInventory && ItemMoveData.SourceInventory->GetItemCollectionLinked())
-			{
-				if (!ItemMoveData.TargetInventory->GetInventorySettings().bIsReferenceContainer)
-				{
-					ItemMoveData.SourceInventory->HandleRemoveItem(ItemMoveData.SourceItem, ActualAmountAdded);
-				}
-			}
-			// EQUIPMENT INVENTORY
-			UnequipItemIfNeeded(ItemMoveData.SourceInventory, ItemMoveData.SourceSlotID);
-			
-			const EInventoryContextActionResult ContextResult =	ValidateAndEquipTransferredItem(ItemMoveData);
-			if (ContextResult == EInventoryContextActionResult::EquipmentSlotNotFound)
-			{
-				// Equipment validation failed.
-				// The item has already been transferred, so move it back to the source inventory
+    bool bIsSourceInvExist = false;
 
-				ItemMoveData.TargetInventory->HandleRemoveItem(ItemMoveData.SourceItem, ActualAmountAdded);
-				
-				FItemMoveData ReverseMoveData;
-				ReverseMoveData.SourceInventory = ItemMoveData.TargetInventory;
-				ReverseMoveData.SourceItem = ItemMoveData.SourceItem;
-				ReverseMoveData.TargetInventory = ItemMoveData.SourceInventory;
+    if (ItemMoveData.SourceInventory)
+    {
+        bIsSourceInvExist = true;
+        ItemMoveData.SourceInventory->RequestToResetItemVisual(ItemMoveData.SourceItem);
+    }
 
-				Execute_ItemTransferRequest(this,ReverseMoveData);
-				
-			}
-		
-			/*if (bNeedUIUpdate)
-			{
-				ItemCollectionRef->NotifyUI_ItemChanged(
-					ItemMoveData.SourceItem,
-					ItemMoveData.TargetInventory->GetInventoryContainerID(),
-					EInventoryActionType::Added);
-	
-				if (bIsSourceInvExist)
-				{
-					ItemCollectionRef->NotifyUI_ItemChanged(
-					ItemMoveData.SourceItem,
-					ItemMoveData.SourceInventory->GetInventoryContainerID(),
-					EInventoryActionType::Removed);
-				}
-			}*/
-		}
-		break;
-	case EItemAddResult::IAR_NoItemAdded:
-		if (ItemMoveData.SourceInventory == nullptr)
-		{
-			const int32 Quantity =
-				IObjectDataProvider::Execute_GetQuantity(ItemMoveData.SourceItem);
+    const bool bNeedUIUpdate = GetNetMode() != NM_DedicatedServer;
 
-			FItemDropData DropData(
-				ItemMoveData.SourceItem,
-				ItemMoveData.SourceInventory,
-				Quantity
-			);
+    switch (Result.OperationResult)
+    {
+    case EItemAddResult::IAR_AllItemAdded:
+        {
+            if (ItemMoveData.SourceInventory && ItemMoveData.SourceInventory->GetItemCollectionLinked())
+            {
+                if (!ItemMoveData.TargetInventory->GetInventorySettings().bIsReferenceContainer)
+                {
+                    ItemMoveData.SourceInventory->HandleRemoveItem(ItemMoveData.SourceItem, ActualAmountAdded);
+                }
+            }
+            UnequipItemIfNeeded(ItemMoveData.SourceInventory, ItemMoveData.SourceSlotID);
 
-			ItemDropRequest(DropData);
-		}
-		break;
-	case EItemAddResult::IAR_PartialAmountItemAdded:
-		if (Result.bIsUsedReferences)
-		{
-			break;
-		}
-		if (ItemMoveData.SourceInventory)
-		{			
-			ItemMoveData.SourceInventory->HandleRemoveItem(ItemMoveData.SourceItem, ActualAmountAdded);
-			break;
-		}
-		break;
-	case EItemAddResult::IAR_ItemSwapped:
-		if (!Result.bIsUsedReferences
-			&& ItemMoveData.SourceInventory->GetInventorySettings().bAllowItemReferencing
-			&& ItemMoveData.SourceInventory != ItemMoveData.TargetInventory)
-		{
-			ItemMoveData.SourceInventory->HandleRemoveItem(ItemMoveData.SourceItem, ActualAmountAdded);
-		}
-		break;
-	}
+            const EInventoryContextActionResult ContextResult = ValidateAndEquipTransferredItem(ItemMoveData);
+            if (ContextResult == EInventoryContextActionResult::EquipmentSlotNotFound)
+            {
+                ItemMoveData.TargetInventory->HandleRemoveItem(ItemMoveData.SourceItem, ActualAmountAdded);
 
-	if (ItemMoveData.SourceInventory)
-	{
-		ItemMoveData.SourceInventory->UpdateMoneyInfo();
-		ItemMoveData.SourceInventory->UpdateWeightInfo();
-	}
-	if (ItemMoveData.TargetInventory)
-	{
-		ItemMoveData.TargetInventory->UpdateMoneyInfo();
-		ItemMoveData.TargetInventory->UpdateWeightInfo();
-	}
+                FItemMoveData ReverseMoveData;
+                ReverseMoveData.SourceInventory = ItemMoveData.TargetInventory;
+                ReverseMoveData.SourceItem = ItemMoveData.SourceItem;
+                ReverseMoveData.TargetInventory = ItemMoveData.SourceInventory;
+
+                Execute_ItemTransferRequest(this, ReverseMoveData);
+            }
+        }
+        break;
+    case EItemAddResult::IAR_NoItemAdded:
+        if (ItemMoveData.SourceInventory == nullptr)
+        {
+            const int32 Quantity = IObjectDataProvider::Execute_GetQuantity(ItemMoveData.SourceItem);
+
+            FItemDropData DropData(
+                ItemMoveData.SourceItem,
+                ItemMoveData.SourceInventory,
+                Quantity
+            );
+
+            ItemDropRequest(DropData);
+        }
+        break;
+    case EItemAddResult::IAR_PartialAmountItemAdded:
+        if (Result.bIsUsedReferences)
+        {
+            break;
+        }
+        if (ItemMoveData.SourceInventory)
+        {
+            ItemMoveData.SourceInventory->HandleRemoveItem(ItemMoveData.SourceItem, ActualAmountAdded);
+            break;
+        }
+        break;
+    case EItemAddResult::IAR_ItemSwapped:
+        if (!Result.bIsUsedReferences
+            && ItemMoveData.SourceInventory->GetInventorySettings().bAllowItemReferencing
+            && ItemMoveData.SourceInventory != ItemMoveData.TargetInventory)
+        {
+            ItemMoveData.SourceInventory->HandleRemoveItem(ItemMoveData.SourceItem, ActualAmountAdded);
+        }
+        break;
+    }
+
+    if (ItemMoveData.SourceInventory)
+    {
+        ItemMoveData.SourceInventory->UpdateMoneyInfo();
+        ItemMoveData.SourceInventory->UpdateWeightInfo();
+    }
+    if (ItemMoveData.TargetInventory)
+    {
+        ItemMoveData.TargetInventory->UpdateMoneyInfo();
+        ItemMoveData.TargetInventory->UpdateWeightInfo();
+    }
 }
 
 EInventoryContextActionResult UIInventoryManager::ValidateAndEquipTransferredItem(FItemMoveData& ItemMoveData)
@@ -1169,55 +1146,40 @@ void UIInventoryManager::HandlePickupInteraction(UInteractableComponent* Target)
 void UIInventoryManager::HandleContainerInteraction(UInteractableComponent* Target)
 {
 	ILootContainerProvider* LootProvider = Cast<ILootContainerProvider>(Target);
-	if (!LootProvider)
-	{
-		return;
-	}
+	if (!LootProvider) return;
 
-	UInventoryBase* InventoryToDisplay =	LootProvider->GetMainLootContainer();
-	if (!InventoryToDisplay)
-	{
-		return;
-	}
+	UInventoryBase* InventoryToDisplay = LootProvider->GetMainLootContainer();
+	if (!InventoryToDisplay) return;
 	
-	ItemCollectionRef->SetExternalInventory(InventoryToDisplay);
+	Target->SetInteracting(true); 
 
 	LootContainerProvider.SetObject(Target->GetOwner());
 	LootContainerProvider.SetInterface(LootProvider);
 
-	OpenExternalInventory(InventoryToDisplay);
+	ItemCollectionRef->SetExternalInventory(InventoryToDisplay);
 }
 
 void UIInventoryManager::HandleTradeInteraction(UInteractableComponent* Target)
 {
 	IVendorProvider* VendorProvider = Cast<IVendorProvider>(Target);
-	if (!VendorProvider)
-	{
-		return;
-	}
-	
+	if (!VendorProvider) return;
+
 	auto InventoryToDisplay = VendorProvider->GetVendorLootContainer();
-	if (!InventoryToDisplay)
-	{
-		return;
-	}
-	
-	ItemCollectionRef->SetVendorInventory(InventoryToDisplay);
+	if (!InventoryToDisplay) return;
 
 	VendorProviderCurrent.SetObject(Target);
 	VendorProviderCurrent.SetInterface(VendorProvider);
-			
+	
 	FTradeContext TradeContext;
 	TradeContext.TradeSettings = VendorProviderCurrent->GetTradeSettings();
 	TradeContext.Vendor = Cast<AActor>(VendorProviderCurrent.GetObject());
-	TradeContext.Buyer = this->GetOwner();
-
+	TradeContext.Buyer = GetOwner();
+	
+	ItemCollectionRef->SetVendorInventory(InventoryToDisplay);
 	ItemCollectionRef->GetLinkedInventories().VendorInventory->SetTradeContext(TradeContext);
-			
+
 	VendorProviderCurrent->SetTradePartnerInventory(MainPawnInventoryRef);
 	VendorProviderCurrent->SetTradePartnerItemCollection(ItemCollectionRef);
-		
-	OpenVendorInventory(InventoryToDisplay);
 }
 
 void UIInventoryManager::InteractClearRequest(UInteractableComponent* TargetInteractableComponent)
@@ -1240,65 +1202,51 @@ void UIInventoryManager::Server_HandleClearInteract_Implementation(UInteractable
 
 void UIInventoryManager::HandleClearInteraction(UInteractableComponent* TargetInteractableComponent)
 {
-	if (!ItemCollectionRef)
+	if (TargetInteractableComponent)
 	{
-		return;
+		TargetInteractableComponent->SetInteracting(false);
 	}
-
-	auto LinkedInventories = ItemCollectionRef->GetLinkedInventories();
-	if (LinkedInventories.VendorInventory)
-	{
-		CloseVendorInventory(LinkedInventories.VendorInventory);
-		return;
-	}
-
-	if (LinkedInventories.ExternalInventory)
-	{
-		CloseExternalInventory(LinkedInventories.ExternalInventory);
-		return;
-	}
-}
-
-void UIInventoryManager::OpenVendorInventory(UInventoryBase* Inv)
-{
-	UInventoryContainerWidget* VendorWidget = CreateInventoryWidget(Inv);
-	UInventoryContainerWidget* PawnMainWidget = CreateInventoryWidget(MainPawnInventoryRef);
-	if (!VendorWidget || !UIInvProvider) return;
-
-	UIInvProvider->OpenDualInventoryView(VendorWidget, PawnMainWidget);
-}
-
-void UIInventoryManager::CloseVendorInventory(UInventoryBase* Inv)
-{
-	if (!Inv || !ItemCollectionRef || !UIInvProvider) return;
-
-	ItemCollectionRef->UnregisterContainerWidget(Inv);
-	UIInvProvider->CloseDualInventoryView();
-
-	ItemCollectionRef->SetVendorInventory(nullptr);
-	VendorProviderCurrent = nullptr;
-}
-
-void UIInventoryManager::OpenExternalInventory(UInventoryBase* Inv)
-{
-	UInventoryContainerWidget* ExternalWidget = CreateInventoryWidget(Inv);
 	
-	UInventoryContainerWidget* PawnMainWidget = CreateInventoryWidget(MainPawnInventoryRef);
-	if (!ExternalWidget || !UIInvProvider) return;
-
-	UIInvProvider->OpenDualInventoryView(ExternalWidget, PawnMainWidget);
+	if (ItemCollectionRef)
+	{
+		auto Linked = ItemCollectionRef->GetLinkedInventories();
+		if (Linked.VendorInventory)   ItemCollectionRef->SetVendorInventory(nullptr);
+		if (Linked.ExternalInventory) ItemCollectionRef->SetExternalInventory(nullptr);
+	}
 }
 
-void UIInventoryManager::CloseExternalInventory(UInventoryBase* Inv)
+void UIInventoryManager::OpenSecondaryInventory(UInventoryBase* Inv, EInteractableType InteractableType)
 {
-	if (!Inv || !ItemCollectionRef || !UIInvProvider) return;
+	if (!Inv || !UIInvProvider || !ItemCollectionRef) return;
 
-	ItemCollectionRef->UnregisterContainerWidget(Inv);
+	UInventoryContainerWidget* SecondaryWidget = CreateInventoryWidget(Inv);
+	UInventoryContainerWidget* PawnMainWidget  = CreateInventoryWidget(MainPawnInventoryRef);
+	if (!SecondaryWidget || !PawnMainWidget) return;
+
+	UIInvProvider->OpenDualInventoryView(SecondaryWidget, PawnMainWidget);
+}
+
+void UIInventoryManager::CloseSecondaryInventory(EInteractableType InteractableType)
+{
+	if ( !ItemCollectionRef || !UIInvProvider)
+	{
+		return;
+	}
+	
 	UIInvProvider->CloseDualInventoryView();
 
-	ItemCollectionRef->SetExternalInventory(nullptr);
-	LootContainerProvider.SetObject(nullptr);
-	LootContainerProvider.SetInterface(nullptr);
+	switch (InteractableType)
+	{
+	case EInteractableType::Container:
+		LootContainerProvider.SetObject(nullptr);
+		LootContainerProvider.SetInterface(nullptr);
+		break;
+	case EInteractableType::Vendor:
+		VendorProviderCurrent = nullptr;
+		break;
+	default:
+		break;
+	}
 }
 
 void UIInventoryManager::BindInteractionWidget()

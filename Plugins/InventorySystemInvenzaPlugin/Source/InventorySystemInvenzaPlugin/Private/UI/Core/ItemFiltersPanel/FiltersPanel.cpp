@@ -7,7 +7,7 @@
 #include "Components/EditableText.h"
 #include "Components/HorizontalBox.h"
 #include "Components/VerticalBox.h"
-#include "UI/Core/Buttons/FilterTagButton.h"
+#include "UI/Core/Buttons/UIButton.h"
 
 void UFiltersPanel::NativePreConstruct()
 {
@@ -33,7 +33,7 @@ void UFiltersPanel::NativeConstruct()
 		if (!Container) return;
 		for (int32 i = 0; i < Container->GetChildrenCount(); ++i)
 		{
-			if (auto TagButton = Cast<UFilterTagButton>(Container->GetChildAt(i)))
+			if (auto TagButton = Cast<UUIButton>(Container->GetChildAt(i)))
 			{
 				CategoryButtonList.Add(TagButton);
 			}
@@ -58,7 +58,7 @@ FGameplayTagContainer UFiltersPanel::GetActiveFilterTags() const
 	{
 		if (Button && Button->GetToggleStatus()) 
 		{
-			ActiveTags.AddTag(Button->GetFilterTag());
+			ActiveTags.AddTag(Button->GetBtnTag());
 		}
 	}
 	return ActiveTags;

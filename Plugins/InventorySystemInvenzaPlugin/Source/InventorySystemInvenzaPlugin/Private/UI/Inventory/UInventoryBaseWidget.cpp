@@ -5,14 +5,18 @@
 
 #include "Data/Inventory/InventoryBase.h"
 #include "UI/HelpersWidgets/ItemTooltipWidget.h"
+#include "Utility/InvenzayUtility.h"
 
 
 UUInventoryBaseWidget::UUInventoryBaseWidget()
 {
 }
 
-void UUInventoryBaseWidget::InitializeInventoryWidgetWithSettings()
+void UUInventoryBaseWidget::NativeOnInitialized()
 {
+	Super::NativeOnInitialized();
+	
+	GlobalSettings = UInvenzayUtility::GetInvenzaGlobalSettings(GetWorld());
 }
 
 void UUInventoryBaseWidget::CreateTooltipWidget()

@@ -48,8 +48,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="Interactable|State")
 	virtual void SetInteracting(bool NewState);
-	UFUNCTION(Server, Reliable, Category="Interactable|Network")
-	virtual void ServerSetInteracting(bool NewState);
+	
 
 protected:
 	//====================================================================

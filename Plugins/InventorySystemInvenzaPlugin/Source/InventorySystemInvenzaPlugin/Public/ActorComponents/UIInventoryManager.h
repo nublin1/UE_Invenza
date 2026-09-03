@@ -111,6 +111,9 @@ public:
 	void Handle_ItemTransferRequest(FItemMoveData ItemMoveData);
 	
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Transfer")
+	void ApplyItemMove(FItemMoveData ItemMoveData);
+	
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Transfer")
 	EInventoryContextActionResult ValidateAndEquipTransferredItem(FItemMoveData& ItemMoveData);
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Transfer")	
 	void UnequipItemIfNeeded(UInventoryBase* SourceInventory, FGuid SourceSlotID);
@@ -197,7 +200,7 @@ protected:
 	TScriptInterface<IInvUIProvider> UIInvProvider;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TScriptInterface<IInteractionUIProvider> InteractionUIProvider;
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Replicated)
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TScriptInterface<ILootContainerProvider> LootContainerProvider;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Replicated)
 	TScriptInterface<IVendorProvider> VendorProviderCurrent;
@@ -206,7 +209,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TObjectPtr<APawn> OwnerPawnRef; 
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Replicated)
 	TObjectPtr<UInventoryBase> MainPawnInventoryRef;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TObjectPtr<UEquipmentComponent> EquipmentComponentRef;
@@ -263,14 +266,9 @@ protected:
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	void OpenVendorInventory(UInventoryBase* Inv);
+	void OpenSecondaryInventory(UInventoryBase* Inv, EInteractableType InteractableType);
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	void CloseVendorInventory(UInventoryBase* Inv);
-
-	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	void OpenExternalInventory(UInventoryBase* Inv);
-	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	void CloseExternalInventory(UInventoryBase* Inv);
+	void CloseSecondaryInventory(EInteractableType InteractableType);
 
 protected:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")

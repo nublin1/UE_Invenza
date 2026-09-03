@@ -9,7 +9,6 @@
 
 class UEditableText;
 class UUIButton;
-class UFilterTagButton;
 class UVerticalBox;
 class UHorizontalBox;
 /**
@@ -20,19 +19,15 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UFiltersPanel : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
 
-public:
+protected:
 	virtual void NativePreConstruct() override;
 	virtual void NativeConstruct() override;
-	
+
+public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Filters|Settings", meta = (ToolTip = "Enable filter color override"))
-	bool bUseFilterColor = false;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Filters|Settings", meta = (ToolTip = "Only for Grid inventory", EditCondition = "bUseFilterColor"))
-	FLinearColor ItemFilterBorderColor = FLinearColor::Green;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Filters|Settings", meta=(ToolTip="Only for Grid inventory"))
-	float FilterOpacity = 0.15f;
+	
 
 	//====================================================================
 	// FUNCTIONS
@@ -41,7 +36,7 @@ public:
 	
 	UUIButton* GetClearFiltersButton() const {return ClearFiltersButton; }
 	UUIButton* GetClearSearchTextButton() const {return ClearSearchTextButton; }
-	TArray<TObjectPtr<UFilterTagButton>> GetFilteredCategores() const {return CategoryButtonList;}
+	TArray<TObjectPtr<UUIButton>> GetFilteredCategores() const {return CategoryButtonList;}
 	UEditableText* GetSearchText() const {return SearchText; }
 
 	UFUNCTION(BlueprintCallable, Category = "Filters")
@@ -74,7 +69,7 @@ protected:
 	UPROPERTY(Category = "Filters|Settings",EditAnywhere, BlueprintReadWrite)
 	bool bIsShowSearchField = true;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Filters")
-	TArray<TObjectPtr<UFilterTagButton>> CategoryButtonList;
+	TArray<TObjectPtr<UUIButton>> CategoryButtonList;
 	
 	/** Whether to search in filtered inventory slots instead of the full inventory slots array */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Filters", meta=(ToolTip="If true, search will be performed in the filtered inventory slots"))

@@ -62,8 +62,8 @@ public:
 	
 	FLinkedInventories GetLinkedInventories() {return LinkedInventories;}
 	
-	void SetVendorInventory(UInventoryBase* InVendorInv) {LinkedInventories.SetVendor(InVendorInv);}
-	void SetExternalInventory(UInventoryBase* InExternalInventory) {LinkedInventories.SetExternal(InExternalInventory);}
+	void SetVendorInventory(UInventoryBase* InVendorInv);
+	void SetExternalInventory(UInventoryBase* InExternalInventory);
 
 	UFUNCTION(Server, Reliable)
 	void Server_SetSlotBasedInventoryWidgetInitData(const FString& ContainerID, FSlotBasedInventoryWidgetInitData InitData);

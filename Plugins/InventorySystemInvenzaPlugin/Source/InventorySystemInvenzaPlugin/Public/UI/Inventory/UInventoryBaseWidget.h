@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Data/Inventory/InventoryTypes.h"
+#include "Data/Settings/InvenzaInventorySettingsAsset.h"
 #include "Data/Trade/TradeTypes.h"
 #include "Settings/InvenzaSettings.h"
 #include "UI/InvenzaBaseWidget.h"
@@ -30,6 +31,11 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UUInventoryBaseWidget : public UInvenzaBa
 public:
 	UUInventoryBaseWidget();
 	
+protected:
+	virtual void NativeOnInitialized() override;
+	
+public:
+	
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
@@ -47,7 +53,7 @@ public:
 	UFUNCTION(Category="Inventory")
 	virtual void InitializeInventoryWidget(){}
 	UFUNCTION(Category="Inventory")
-	virtual void InitializeInventoryWidgetWithSettings();
+	virtual void InitializeInventoryWidgetWithSettings(){};
 
 	UFUNCTION(Category="Inventory")
 	virtual void BindDelegated() PURE_VIRTUAL(UUInventoryWidgetBase::BindDelegated,);
@@ -79,6 +85,9 @@ protected:
 	//====================================================================
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category="Inventory|Settings")
 	FUISettings UISettings;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TObjectPtr<UInvenzaInventorySettingsAsset> GlobalSettings;
 
 	// Refs
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="InventoryWidget")

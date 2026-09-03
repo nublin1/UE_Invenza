@@ -32,6 +32,8 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UInventorySimulator : public UObject
 public:
 	UInventorySimulator();
 	
+	virtual bool IsSupportedForNetworking() const override { return true; }
+	
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
