@@ -9,6 +9,7 @@
 #include "Interface/Inventory/InventoryInteractionHandler.h"
 #include "UIInventoryManager.generated.h"
 
+class ICraftProvider;
 class UInvenzaInventorySettingsAsset;
 struct FModalResult;
 enum class EObjectInteractionType : uint8;
@@ -78,7 +79,6 @@ protected:
 	void InitCraftWidgets();
 	
 
-	
 public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Initialization")
 	virtual void SetupStartingResources();
@@ -203,24 +203,28 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TScriptInterface<ILootContainerProvider> LootContainerProvider;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Replicated)
+	TScriptInterface<ICraftProvider> CraftProvider;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Replicated)
 	TScriptInterface<IVendorProvider> VendorProviderCurrent;
 	
 	// Refs
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TObjectPtr<APawn> OwnerPawnRef; 
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Replicated)
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Replicated)
 	TObjectPtr<UInventoryBase> MainPawnInventoryRef;
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
 	TObjectPtr<UEquipmentComponent> EquipmentComponentRef;
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	TObjectPtr<UCraftingComponent> CraftingComponentRef;
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
+	TObjectPtr<UCraftingComponent> PawnCraftingComponentRef;
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, ReplicatedUsing = OnRep_ActiveCraftComponentRef)
+	TObjectPtr<UCraftingComponent> ActiveCraftComponentRef;
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
 	TObjectPtr<UItemCollection> ItemCollectionRef;
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
 	TObjectPtr<UInteractionComponent> InteractionComponent;
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly)
 	TObjectPtr<UInvenzaInventorySettingsAsset> GlobalSettings;
 	
 	
@@ -256,7 +260,10 @@ protected:
 	void HandleContainerInteraction(UInteractableComponent* Target);
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
 	void HandleTradeInteraction(UInteractableComponent* Target);
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
+	void HandleCraftStationInteraction(UInteractableComponent* Target);
 
+	
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
 	void InteractClearRequest(UInteractableComponent* TargetInteractableComponent);
 	UFUNCTION(Server, Reliable, Category = "Inventory|Interaction")
@@ -271,8 +278,14 @@ public:
 	void CloseSecondaryInventory(EInteractableType InteractableType);
 
 protected:
+	UFUNCTION()
+	void OnRep_ActiveCraftComponentRef(UCraftingComponent* PreviousComponent);
+	
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
 	void BindInteractionWidget();
+	
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Craft")
+	void BindCraftComponentToWidgets(UCraftingComponent* Component);
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
@@ -304,8 +317,9 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Initialization")
 	void BindInputActions();
 	
-	UFUNCTION(BlueprintCallable)
-	void ValidateInventoryContextActions();
+	UFUNCTION()
+	void SetInteractionOwnership(AActor* TargetActor, bool bTake);
+	
 	UFUNCTION(BlueprintCallable)
 	TMap<EObjectInteractionType, FModalActionConfig> CollectAccessibleInventoryActions();
 	UFUNCTION(BlueprintCallable)

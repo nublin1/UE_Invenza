@@ -85,8 +85,13 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|UI")
 	virtual void ToggleCraftMenuLayout() override;
-
-	//
+	UFUNCTION(BlueprintCallable, Category = "Inventory|UI")
+	virtual bool IsCraftMenuOpen() const override { return bCraftMenuOpen; }
+	UFUNCTION(BlueprintCallable, Category = "Inventory|UI")
+	virtual void OpenCraftDashboard() override;
+	UFUNCTION(BlueprintCallable, Category = "Inventory|UI")
+	virtual void CloseCraftMenu() override;
+	
 	virtual void BindCraftWidgets() override;
 
 protected:

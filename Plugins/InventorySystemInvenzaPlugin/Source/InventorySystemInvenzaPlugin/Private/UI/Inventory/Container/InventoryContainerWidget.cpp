@@ -230,5 +230,5 @@ void UInventoryContainerWidget::SortItems()
 	if (!InventoryRef)
 		return;
 
-	InventoryRef->SortItemsInContainerByName();
+	InventoryRef->GetItemCollectionLinked()->RequestSortInventory(InventoryRef->GetInventoryContainerID(), EInventorySortCriteria::ByName);
 }

@@ -4,14 +4,12 @@
 #include "UI/Craft/CraftDashboard.h"
 
 #include "Components/ListView.h"
-#include "Data/CraftSystem/Entries/ProductionQueueListEntryObject.h"
 #include "Data/Settings/InvenzaInventorySettingsAsset.h"
 #include "Subsystems/InvenzaInventorySettingsSubsystem.h"
 #include "UI/Core/Buttons/UIButton.h"
 #include "UI/Craft/CraftControlPanel.h"
 #include "UI/Craft/CraftMenuChoose.h"
 #include "UI/Craft/Lists/QueueCraftList.h"
-#include "Utility/InvenzayUtility.h"
 
 UCraftDashboard::UCraftDashboard()
 {
@@ -56,17 +54,26 @@ void UCraftDashboard::InitializeCraftComponentBindings()
 
 void UCraftDashboard::SetCraftComponentPtr(UCraftingComponent* NewCraftingComponent)
 {
-	if (!NewCraftingComponent)
-		return;
-	
 	if (CraftComponentPtr)
 	{
-		CraftComponentPtr->OnAvailableRecipesChanged.RemoveAll(this);
+		CraftComponentPtr->OnCurrentCraftDataChanged.RemoveAll(this);
+		CraftComponentPtr->OnCraftQueueChanged.RemoveAll(this);
 	}
 
 	CraftComponentPtr = NewCraftingComponent;
 
-	InitializeCraftComponentBindings();
+	if (CraftComponentPtr)
+	{
+		InitializeCraftComponentBindings();
+		
+		UpdateQueueCraftList(CraftComponentPtr->GetQueueItems());
+		UpdateCurrentCraftProgress(CraftComponentPtr->GetCurrentCraftingRecipe());
+	}
+	else
+	{
+		UpdateQueueCraftList(TArray<FQueuedRecipe>());
+		UpdateCurrentCraftProgress(FQueuedRecipe());
+	}
 }
 
 void UCraftDashboard::AddTaskBtnPressed(UUIButton* Btn)

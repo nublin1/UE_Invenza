@@ -42,14 +42,13 @@ UInventoryBase* UInventoryBase::CreateInventory(UObject* Outer, FInventoryStartu
 		return nullptr;
 	}
 	
-	UInventoryBase* Inventory =
-			NewObject<UInventoryBase>(Outer, StartupData.Settings.InventoryClass);
+	UInventoryBase* Inventory =	NewObject<UInventoryBase>(Outer, StartupData.Settings.InventoryClass);
 
 	if (!Inventory)
 		return nullptr;
 
-	if (!StartupData.Settings.InventoryID.IsEmpty())
-		Inventory->SetInventoryContainerID(StartupData.Settings.InventoryID);
+	if (!StartupData.Settings.CustomInventoryID.IsEmpty())
+		Inventory->SetInventoryContainerID(StartupData.Settings.CustomInventoryID);
 		
 	Inventory->SetInventorySettings(StartupData.Settings);
 
@@ -102,6 +101,20 @@ void UInventoryBase::RequestToResetItemVisual(UObject* Item)
 
 	if (ItemCollectionLinked->ItemHasInventory(Item, InventoryContainerID))
 		NotifyRequestToResetItemVisual(Item);
+}
+
+void UInventoryBase::HandleSortItems(EInventorySortCriteria Criteria)
+{
+	switch (Criteria)
+	{
+	case EInventorySortCriteria::ByName:
+		SortItemsInContainerByName();
+		break;
+	
+	default:
+		UE_LOG(LogTemp, Warning, TEXT("[UInventoryBase::HandleSortItems] Unhandled sort criteria: %d"), static_cast<uint8>(Criteria));
+		break;
+	}
 }
 
 void UInventoryBase::MergeStackableItems()

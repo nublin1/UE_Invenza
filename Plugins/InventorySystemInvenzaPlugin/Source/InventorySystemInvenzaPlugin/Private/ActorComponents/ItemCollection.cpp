@@ -143,7 +143,7 @@ UInventoryBase* UItemCollection::GetInventoryByID(FString ContainerID)
 
 	for (auto Element : ActorInventories)
 	{
-		if (Element->GetInventorySettings().InventoryID == ContainerID)
+		if (Element->GetInventoryContainerID() == ContainerID)
 			return Element;
 	}
 
@@ -495,7 +495,6 @@ FItemMapping UItemCollection::AddItem(UObject* NewItem, const FItemMapping& Item
 		return Entry.Item == NewItem;
 	});
 	
-
 	if (FoundEntry)
 	{
 		int32 Index = FoundEntry->Locations.Mappings.Add(ItemMapping);
@@ -693,6 +692,29 @@ bool UItemCollection::IsItemOwnedByActor(UObject* Item)
 	}
 
 	return false;
+}
+
+void UItemCollection::RequestSortInventory(const FString& ContainerID, EInventorySortCriteria Criteria)
+{
+	if (GetOwner() && GetOwner()->HasAuthority())
+	{
+		if (UInventoryBase* Inventory = GetInventoryByID(ContainerID))
+		{
+			Inventory->HandleSortItems(Criteria);
+		}
+	}
+	else
+	{
+		Server_SortItems(ContainerID, Criteria);
+	}
+}
+
+void UItemCollection::Server_SortItems_Implementation(const FString& ContainerID, EInventorySortCriteria Criteria)
+{
+	if (UInventoryBase* Inventory = GetInventoryByID(ContainerID))
+	{
+		Inventory->HandleSortItems(Criteria);
+	}
 }
 
 void UItemCollection::SerializeForSave(TArray<FItemSaveEntry>& OutData, const TArray<FString>& InventoryFilter)

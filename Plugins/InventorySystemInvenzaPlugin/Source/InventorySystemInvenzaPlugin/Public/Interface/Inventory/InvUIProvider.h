@@ -60,7 +60,11 @@ public:
 	virtual UPanelSlot* AddPawnCraftDashboardWidget(UInvenzaBaseWidget* WidgetToAdd){return nullptr;}
 	virtual UPanelSlot* AddPawnCraftChooseWidget(UInvenzaBaseWidget* WidgetToAdd){return nullptr;}
 	
+	virtual bool IsCraftMenuOpen() const {return false;}
 	virtual void ToggleCraftMenuLayout(){};
+	virtual void OpenCraftDashboard(){}
+	virtual void CloseCraftMenu(){}
+
 
 	virtual void BindCraftWidgets(){};
 	

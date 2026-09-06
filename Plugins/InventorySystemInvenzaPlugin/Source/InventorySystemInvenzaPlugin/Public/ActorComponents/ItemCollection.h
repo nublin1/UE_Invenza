@@ -64,6 +64,9 @@ public:
 	
 	void SetVendorInventory(UInventoryBase* InVendorInv);
 	void SetExternalInventory(UInventoryBase* InExternalInventory);
+	
+	UFUNCTION()
+	void SetInvManager(UIInventoryManager* NewManager) {InventoryArray.OwningManager = NewManager;}
 
 	UFUNCTION(Server, Reliable)
 	void Server_SetSlotBasedInventoryWidgetInitData(const FString& ContainerID, FSlotBasedInventoryWidgetInitData InitData);
@@ -138,8 +141,12 @@ public:
 	bool IsItemOwnedByActor(UObject* Item);
 
 	//
-	UFUNCTION()
-	void SetInvManager(UIInventoryManager* NewManager) {InventoryArray.OwningManager = NewManager;}
+	
+	
+	UFUNCTION(BlueprintCallable)
+	void RequestSortInventory(const FString& ContainerID, EInventorySortCriteria Criteria);
+	UFUNCTION(Server, Reliable)
+	virtual void Server_SortItems(const FString& ContainerID, EInventorySortCriteria Criteria);
 
 	UFUNCTION(BlueprintCallable)
 	void SerializeForSave(TArray<FItemSaveEntry>& OutData, const TArray<FString>& InventoryFilter);

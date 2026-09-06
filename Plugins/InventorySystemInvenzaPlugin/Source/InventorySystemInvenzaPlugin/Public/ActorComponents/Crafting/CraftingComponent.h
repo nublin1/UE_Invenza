@@ -71,6 +71,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Crafting")
 	void HandleInitCraftingComponent();
 	
+	UFUNCTION(BlueprintCallable, Category="Crafting")
+	void AddOperator();
+	UFUNCTION(BlueprintCallable, Category="Crafting")
+	void RemoveOperator();
+	
+	UFUNCTION(BlueprintCallable, Category="Crafting")
+	bool HasFuelAvailable() const;
+	
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Crafting")
 	void SetInputInventory(UInventoryBase* NewInputInventory);
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Crafting")
@@ -96,10 +104,13 @@ public:
 	void SetNoResourcesRequest(bool bNewValue);
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Crafting")
-	FCraftingComponentConfig GetConfig() const { return Config; }
+	FCraftingInventoryOverrides GetConfig() const { return Config; }
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Crafting")
 	TArray<FItemRecipeRow> GetAvailableRecipes() const { return AvailableRecipes; }
-
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="Crafting")
+	TArray<FQueuedRecipe> GetQueueItems() const { return RecipeQueue.Items; }
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="Crafting")
+	FQueuedRecipe GetCurrentCraftingRecipe() const { return CurrentCraftingRecipe; }
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Crafting")
 	TArray<FCachedRecipeResult> GetCachedRecipeResults() const { return CachedRecipeResults; }
 	
@@ -145,7 +156,16 @@ protected:
 	
 	// Config
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Crafting|Config")
-	FCraftingComponentConfig Config;
+	FCraftingInventoryOverrides Config;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Crafting|Config")
+	bool bAllowAutomaticCrafting = true;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Crafting|Config")
+	bool bRequiresFuel = false;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Crafting|Config")
+	TArray<FDataTableRowHandle> StartingRecipes;
 
 	// Runtime
 	UPROPERTY(ReplicatedUsing=OnRep_AvailableRecipes, VisibleInstanceOnly, BlueprintReadOnly, Category="Crafting|Runtime")
@@ -156,6 +176,9 @@ protected:
 	
 	UPROPERTY(ReplicatedUsing=OnRep_Blocks, VisibleInstanceOnly, BlueprintReadWrite, Category="Crafting|Runtime")
 	TArray<FBlockReasonData> ActiveBlocksReasons;
+	
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category="Crafting|Runtime")
+	int32 OperatorCount = 0;
 	
 
 	// Settings
@@ -168,8 +191,7 @@ protected:
 	float ProcessCraftTickTime = 0.25f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Crafting")
-	ECraftingResourceConsumePolicy ConsumePolicy =
-		ECraftingResourceConsumePolicy::OnCraftStart;
+	ECraftingResourceConsumePolicy ConsumePolicy = ECraftingResourceConsumePolicy::OnCraftStart;
 
 	// Runtime
 	UPROPERTY()
@@ -183,6 +205,13 @@ protected:
 	
 	UPROPERTY(ReplicatedUsing=OnRep_CurrentRecipe, VisibleInstanceOnly, BlueprintReadOnly, Category="Crafting")
 	FQueuedRecipe CurrentCraftingRecipe;
+	
+	UPROPERTY(Transient)
+	float FuelAccumulatedTime = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	float FuelUnitsPerMinute = 1.f;
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly)
+	float SecondsPerFuelUnit = 60.f / FuelUnitsPerMinute;
 	
 	//====================================================================
 	// FUNCTIONS
@@ -203,6 +232,7 @@ protected:
 	void TryStartNext();
 	void StartCurrentRecipe(FQueuedRecipe& Item);
 	void FinishCurrentRecipe();
+	bool ConsumeFuelUnit();
 	bool ConsumeResourcesForRecipe(FQueuedRecipe& Item, int32 Count, FCraftAdditionalData& AddData);
 	void RefundResourcesForRecipe(const FQueuedRecipe& Item, int32 Count, FCraftAdditionalData& AddData);
 	void GiveCraftedItemToInventory(FItemRecipeRow CraftedRow);
@@ -246,5 +276,9 @@ protected:
 	void LogQueueState(const FString& Context) const;
 	
 	void RecalculateSortOrders();
+	
+	void UpdateOperatorBlockState();
+	
+	void UpdateFuelBlockState();
 	
 };

@@ -45,10 +45,10 @@ void UFiltersPanel::NativeConstruct()
 	CollectButtons(VerticalContentBox);
 
 	if (ClearFiltersButton)
-		ClearFiltersButton->MainButton->OnPressed.AddDynamic(this, &UFiltersPanel::OnClearFiltersButtonPressed);
+		ClearFiltersButton->MainButton->OnPressed.AddUniqueDynamic(this, &UFiltersPanel::OnClearFiltersButtonPressed);
 
 	if (ClearSearchTextButton)
-		ClearSearchTextButton->MainButton->OnPressed.AddDynamic(this, &UFiltersPanel::OnClearSearchTextButtonPressed);
+		ClearSearchTextButton->MainButton->OnPressed.AddUniqueDynamic(this, &UFiltersPanel::OnClearSearchTextButtonPressed);
 }
 
 FGameplayTagContainer UFiltersPanel::GetActiveFilterTags() const

@@ -293,13 +293,39 @@ void UGameMenuLayerInv::ToggleCraftMenuLayout()
 		WorldDropZone->SetVisibility(NewVisibility);
 	}
 
-	auto CraftMenu = GetCraftMenuDashboard();
-	if (CraftMenu)
+	if (bCraftMenuOpen)
 	{
-		CraftMenu->SetVisibility(NewVisibility);
+		SetCraftMenuState(CraftMenuState);
 	}
-	
+	else
+	{
+		if (auto Dashboard = GetCraftMenuDashboard())
+			Dashboard->SetVisibility(ESlateVisibility::Collapsed);
+
+		if (auto Choose = GetCraftChoose())
+			Choose->SetVisibility(ESlateVisibility::Collapsed);
+	}
+    
 	UpdateInputMode();
+}
+
+void UGameMenuLayerInv::OpenCraftDashboard()
+{
+	SetCraftMenuState(ECraftMenuState::Dashboard);
+	if (!bCraftMenuOpen)
+	{
+		ToggleCraftMenuLayout();
+	}
+}
+
+void UGameMenuLayerInv::CloseCraftMenu()
+{
+	if (bCraftMenuOpen)
+	{
+		ToggleCraftMenuLayout();
+	}
+
+	CraftMenuState = ECraftMenuState::Dashboard;
 }
 
 void UGameMenuLayerInv::BindCraftWidgets()

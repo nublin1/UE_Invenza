@@ -50,7 +50,10 @@ void UUIButton::NativeConstruct()
 	Super::NativeConstruct();
 
 	if (MainButton)
+	{
+		MainButton->OnPressed.RemoveDynamic(this, &UUIButton::OnMainButtonClicked);
 		MainButton->OnPressed.AddDynamic(this, &UUIButton::OnMainButtonClicked);
+	}
 
 	if (ClickAction)
 	{

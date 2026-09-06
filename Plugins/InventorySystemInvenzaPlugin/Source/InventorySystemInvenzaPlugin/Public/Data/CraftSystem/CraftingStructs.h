@@ -9,24 +9,27 @@
 #include "CraftingStructs.generated.h"
 
 USTRUCT(BlueprintType)
-struct FCraftingComponentConfig
+struct FCraftingInventoryOverrides
 {
 	GENERATED_BODY()
 
-	// Inventory tags used for automatic inventory discovery.
-	// The Inventory Manager searches for inventories with these tags and,
-	// when found, automatically assigns them to InputInventory and OutputInventory.
+	// Optional override for the global default input inventory tag.
+	// When specified, the Inventory Manager prioritizes this tag when
+	// automatically discovering and assigning the InputInventory.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Crafting")
 	FGameplayTag InputInventoryTag;
 
+	// Optional override for the global default output inventory tag.
+	// When specified, the Inventory Manager prioritizes this tag when
+	// automatically discovering and assigning the OutputInventory.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Crafting")
 	FGameplayTag OutputInventoryTag;
-	
+
+	// Optional override for the global default fuel inventory tag.
+	// When specified, the Inventory Manager prioritizes this tag when
+	// automatically discovering and assigning the FuelInventory.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Crafting")
 	FGameplayTag FuelInventoryTag;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Crafting")
-	TArray<FDataTableRowHandle> StartingRecipes;
 };
 
 USTRUCT(BlueprintType)

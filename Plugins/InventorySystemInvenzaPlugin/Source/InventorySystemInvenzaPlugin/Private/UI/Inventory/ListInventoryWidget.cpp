@@ -61,6 +61,7 @@ void UListInventoryWidget::InitializeInventoryWidget()
 void UListInventoryWidget::InitializeInventoryWidgetWithSettings()
 {
 	InitializeInventoryWidget();
+	ApplyInventorySettings();	
 }
 
 void UListInventoryWidget::BindDelegated()
@@ -114,6 +115,19 @@ void UListInventoryWidget::ReDrawAllItems()
 	}
     
 	ItemsList->SetListItems(ListInventoryRef->FilteredInvSlotsArray);
+}
+
+void UListInventoryWidget::ApplyInventorySettings()
+{
+	if (!ListInventoryRef)
+		return;
+	
+	auto InvSettings = ListInventoryRef->GetInventorySettings();
+	
+	if (!InvSettings.bShowFilterPanel && ItemFiltersPanel)
+	{
+		ItemFiltersPanel->SetVisibility(ESlateVisibility::Collapsed);
+	}
 }
 
 void UListInventoryWidget::ClearFilters()

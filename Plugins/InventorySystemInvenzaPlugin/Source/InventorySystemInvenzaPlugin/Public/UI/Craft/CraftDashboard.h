@@ -59,7 +59,6 @@ protected:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category = "UI|Refs")
 	TObjectPtr<UCraftingComponent> CraftComponentPtr;
 	
-	
 	// Config
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="UI|Config")
 	FGameplayTag AddTaskBtnTag;

@@ -34,6 +34,7 @@
 #include "Net/UnrealNetwork.h"
 #include "UI/Core/Zones/WorldDropZoneWidget.h"
 #include "Data/Settings/InvenzaInventorySettingsAsset.h"
+#include "Interface/Interaction/CraftProvider.h"
 #include "Subsystems/ModalWindowManager.h"
 #include "UI/Craft/CraftDashboard.h"
 #include "UI/Craft/CraftMenuChoose.h"
@@ -74,6 +75,9 @@ void UIInventoryManager::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	DOREPLIFETIME(UIInventoryManager, InventoryWidgetInitMap);
 	DOREPLIFETIME(UIInventoryManager, MainPawnInventoryRef);
 	DOREPLIFETIME(UIInventoryManager, VendorProviderCurrent);
+	
+	DOREPLIFETIME_CONDITION(UIInventoryManager, CraftProvider, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(UIInventoryManager, ActiveCraftComponentRef, COND_OwnerOnly);
 }
 
 void UIInventoryManager::InitializeInventoryManager()
@@ -91,8 +95,7 @@ void UIInventoryManager::InitializeInventoryManager()
 
 	if (auto CraftingComponent = GetOwner()->FindComponentByClass<UCraftingComponent>())
 	{
-		CraftingComponentRef = CraftingComponent;
-		
+		PawnCraftingComponentRef = CraftingComponent;
 	}
 
 	if (UInteractionComponent* InteractionComp = GetOwner()->FindComponentByClass<UInteractionComponent>())
@@ -113,7 +116,7 @@ void UIInventoryManager::InitializeInventoryManager()
 	}
 	
 	SetupStartingResources();
-
+	
 	SetupAdditionalComponents();
 
 	OnInitializationCompleteDelegate.Broadcast();
@@ -279,7 +282,7 @@ void UIInventoryManager::InitInvWidgets()
 
 void UIInventoryManager::InitCraftWidgets()
 {
-	if (!CraftingComponentRef || !UIInvProvider)
+	if (!PawnCraftingComponentRef || !UIInvProvider)
 		return;
 	
 	APlayerController* PC = Cast<APlayerController>(OwnerPawnRef->GetController());
@@ -311,23 +314,31 @@ void UIInventoryManager::SetupStartingResources()
 
 void UIInventoryManager::SetupAdditionalComponents()
 {
-	if (!CraftingComponentRef || !UIInvProvider)
+	if (!PawnCraftingComponentRef || !UIInvProvider)
 		return;
-	
-	CraftingComponentRef->SetInputInventory(ItemCollectionRef->GetInventoryByTag(CraftingComponentRef->GetConfig().InputInventoryTag));
-	CraftingComponentRef->SetOutputInventory(ItemCollectionRef->GetInventoryByTag(CraftingComponentRef->GetConfig().OutputInventoryTag));
-	
-	CraftingComponentRef->RequestInitCraftingComponent();
-	
-	if (auto CraftMenuDashboard = Cast<UCraftDashboard>(UIInvProvider->GetCraftMenuDashboard()))
+    
+	auto FindInventory = [this](const FGameplayTag& OverrideTag, const FGameplayTag& DefaultTag) -> UInventoryBase*
 	{
-		CraftMenuDashboard->SetCraftComponentPtr(CraftingComponentRef);
-	}
+		if (OverrideTag.IsValid())
+			if (UInventoryBase* Inventory = ItemCollectionRef->GetInventoryByTag(OverrideTag))
+				return Inventory;
+		if (DefaultTag.IsValid())
+			if (UInventoryBase* Inventory = ItemCollectionRef->GetInventoryByTag(DefaultTag))
+				return Inventory;
+		return nullptr;
+	};
 
-	if (auto CraftMenuChoose = Cast<UCraftMenuChoose>(UIInvProvider->GetCraftChoose()))
-	{
-		CraftMenuChoose->SetCraftComponentPtr(CraftingComponentRef);
-	}
+	const FCraftingInventoryOverrides& Overrides = PawnCraftingComponentRef->GetConfig();
+
+	UInventoryBase* InputInventory  = FindInventory(Overrides.InputInventoryTag,  GlobalSettings->InputInvTagByDefault);
+	UInventoryBase* OutputInventory = FindInventory(Overrides.OutputInventoryTag, GlobalSettings->OutputInvTagByDefault);
+	UInventoryBase* FuelInventory   = FindInventory(Overrides.FuelInventoryTag,   GlobalSettings->FuelInvTagByDefault);
+
+	if (IsValid(InputInventory))  PawnCraftingComponentRef->SetInputInventory(InputInventory);
+	if (IsValid(OutputInventory)) PawnCraftingComponentRef->SetOutputInventory(OutputInventory);
+	if (IsValid(FuelInventory))   PawnCraftingComponentRef->SetFuelInventory(FuelInventory);
+
+	PawnCraftingComponentRef->RequestInitCraftingComponent();
 }
 
 void UIInventoryManager::ItemContextMenuRequest_Implementation(const FString& FromInventory, FGuid SlotGuid, UObject* Item)
@@ -1118,6 +1129,11 @@ void UIInventoryManager::Server_HandleInteract_Implementation(UInteractableCompo
 			HandleTradeInteraction(Target);
 			break;
 		}
+	case EInteractableType::Craft:
+		{
+			HandleCraftStationInteraction(Target);
+			break;
+		}
 	default: 
 		break;
 	}
@@ -1152,6 +1168,8 @@ void UIInventoryManager::HandleContainerInteraction(UInteractableComponent* Targ
 	if (!InventoryToDisplay) return;
 	
 	Target->SetInteracting(true); 
+	
+	SetInteractionOwnership(Target->GetOwner(), true);
 
 	LootContainerProvider.SetObject(Target->GetOwner());
 	LootContainerProvider.SetInterface(LootProvider);
@@ -1180,6 +1198,30 @@ void UIInventoryManager::HandleTradeInteraction(UInteractableComponent* Target)
 
 	VendorProviderCurrent->SetTradePartnerInventory(MainPawnInventoryRef);
 	VendorProviderCurrent->SetTradePartnerItemCollection(ItemCollectionRef);
+}
+
+void UIInventoryManager::HandleCraftStationInteraction(UInteractableComponent* Target)
+{
+	if (!Target) return;
+	
+	ICraftProvider* StationProvider = Cast<ICraftProvider>(Target);
+	if (!StationProvider) return;
+	
+	UCraftingComponent* StationCraft = StationProvider->GetCraftingComponent();
+	if (!StationCraft) return;
+	
+	SetInteractionOwnership(Target->GetOwner(), true);
+	
+	UCraftingComponent* Previous = ActiveCraftComponentRef;	
+	CraftProvider.SetObject(Target);
+	CraftProvider.SetInterface(StationProvider);
+	ActiveCraftComponentRef = StationCraft;
+	
+	if (OwnerPawnRef && OwnerPawnRef->IsLocallyControlled())
+	{
+		OnRep_ActiveCraftComponentRef(Previous);
+		ActiveCraftComponentRef->AddOperator();
+	}
 }
 
 void UIInventoryManager::InteractClearRequest(UInteractableComponent* TargetInteractableComponent)
@@ -1213,6 +1255,23 @@ void UIInventoryManager::HandleClearInteraction(UInteractableComponent* TargetIn
 		if (Linked.VendorInventory)   ItemCollectionRef->SetVendorInventory(nullptr);
 		if (Linked.ExternalInventory) ItemCollectionRef->SetExternalInventory(nullptr);
 	}
+	
+	if (CraftProvider.GetObject() )
+	{
+		ActiveCraftComponentRef->RemoveOperator();
+		
+		SetInteractionOwnership(Cast<AActor>(CraftProvider.GetObject()), false);
+		
+		CraftProvider.SetObject(nullptr);
+		CraftProvider.SetInterface(nullptr);
+		
+		ActiveCraftComponentRef = nullptr;
+		
+		if (OwnerPawnRef && OwnerPawnRef->IsLocallyControlled())
+		{
+			OnRep_ActiveCraftComponentRef(ActiveCraftComponentRef);
+		}
+	}
 }
 
 void UIInventoryManager::OpenSecondaryInventory(UInventoryBase* Inv, EInteractableType InteractableType)
@@ -1238,6 +1297,7 @@ void UIInventoryManager::CloseSecondaryInventory(EInteractableType InteractableT
 	switch (InteractableType)
 	{
 	case EInteractableType::Container:
+		SetInteractionOwnership(Cast<AActor>(LootContainerProvider.GetObject()), false);
 		LootContainerProvider.SetObject(nullptr);
 		LootContainerProvider.SetInterface(nullptr);
 		break;
@@ -1246,6 +1306,22 @@ void UIInventoryManager::CloseSecondaryInventory(EInteractableType InteractableT
 		break;
 	default:
 		break;
+	}
+}
+
+void UIInventoryManager::OnRep_ActiveCraftComponentRef(UCraftingComponent* PreviousComponent)
+{
+	if (!UIInvProvider) return;
+
+	if (ActiveCraftComponentRef)
+	{
+		BindCraftComponentToWidgets(ActiveCraftComponentRef);
+		UIInvProvider->OpenCraftDashboard();
+	}
+	else
+	{
+		UIInvProvider->CloseCraftMenu();
+		BindCraftComponentToWidgets(nullptr);
 	}
 }
 
@@ -1261,6 +1337,17 @@ void UIInventoryManager::BindInteractionWidget()
 	InteractionComponent->OnBeginFocus.AddDynamic(InteractionWidget, &UInteractionWidget::OnFoundInteractable);
 	InteractionComponent->OnEndFocus.AddDynamic(InteractionWidget, &UInteractionWidget::OnLostInteractable);
 	InteractionComponent->OnInteractionProgress.AddDynamic(InteractionWidget, &UInteractionWidget::UpdateProgressBar);
+}
+
+void UIInventoryManager::BindCraftComponentToWidgets(UCraftingComponent* Component)
+{
+	if (!UIInvProvider) return;
+
+	if (auto Dashboard = Cast<UCraftDashboard>(UIInvProvider->GetCraftMenuDashboard()))
+		Dashboard->SetCraftComponentPtr(Component);
+
+	if (auto Choose = Cast<UCraftMenuChoose>(UIInvProvider->GetCraftChoose()))
+		Choose->SetCraftComponentPtr(Component);
 }
 
 void UIInventoryManager::BindEvents()
@@ -1338,10 +1425,15 @@ void UIInventoryManager::HandleToggleInventory()
 
 void UIInventoryManager::HandleToggleCraftMenu()
 {
-	if (!UIInvProvider)
-		return;
+	if (!UIInvProvider) return;
+	if (CraftProvider.GetObject()) return;
+	if (!PawnCraftingComponentRef) return;
 
-	UIInvProvider->ToggleCraftMenuLayout();
+	UCraftingComponent* Previous = ActiveCraftComponentRef;
+	ActiveCraftComponentRef = ActiveCraftComponentRef ? nullptr : PawnCraftingComponentRef;
+
+	if (OwnerPawnRef && OwnerPawnRef->IsLocallyControlled())
+		OnRep_ActiveCraftComponentRef(Previous);
 }
 
 void UIInventoryManager::InitializeBindings()
@@ -1431,9 +1523,12 @@ void UIInventoryManager::BindInputActions()
 	}
 }
 
-void UIInventoryManager::ValidateInventoryContextActions()
+void UIInventoryManager::SetInteractionOwnership(AActor* TargetActor, bool bTake)
 {
-	
+	if (!TargetActor || !TargetActor->HasAuthority())
+		return;
+
+	TargetActor->SetOwner(bTake && OwnerPawnRef ? OwnerPawnRef->GetController() : nullptr);
 }
 
 TMap<EObjectInteractionType, FModalActionConfig> UIInventoryManager::CollectAccessibleInventoryActions()

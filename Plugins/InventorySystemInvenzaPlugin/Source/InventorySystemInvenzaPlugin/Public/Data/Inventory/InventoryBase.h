@@ -114,9 +114,16 @@ public:
 	
 	UFUNCTION(BlueprintCallable)
 	virtual void RequestToResetItemVisual(UObject* Item);
+	
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Sorting")
+	void HandleSortItems(EInventorySortCriteria Criteria);
 
-	UFUNCTION(BlueprintCallable)
-	virtual void SortItemsInContainerByName() {};
+protected:
+	
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Sorting")
+	virtual void SortItemsInContainerByName(){};
+	
+public:
 
 	virtual void RequestSplitStack(UObject* ItemToSplit, int32 SplitAmount)
 	PURE_VIRTUAL(UInventoryBase::TrySplitItem, );

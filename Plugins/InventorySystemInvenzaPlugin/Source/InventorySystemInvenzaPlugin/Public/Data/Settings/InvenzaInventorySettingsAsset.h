@@ -74,6 +74,10 @@ public:
 	
 	UPROPERTY(EditDefaultsOnly, Category="Crafting|Blocks")
 	FGameplayTag Block_NoResources;
+	UPROPERTY(EditDefaultsOnly, Category="Crafting|Blocks")
+	FGameplayTag Block_NoOperator;
+	UPROPERTY(EditDefaultsOnly, Category="Crafting|Blocks")
+	FGameplayTag Block_NoFuel;
 	
 	const FBlockReasonData* FindBlockReason(const FGameplayTag& Tag) const;
 	

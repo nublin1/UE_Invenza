@@ -5,13 +5,14 @@
 #include "CoreMinimal.h"
 #include "InteractableComponent.h"
 #include "ActorComponents/ItemCollection.h"
+#include "Interface/Interaction/CraftProvider.h"
 #include "CraftingStationComponent.generated.h"
 
 
 class UCraftingComponent;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class INVENTORYSYSTEMINVENZAPLUGIN_API UCraftingStationComponent : public UInteractableComponent
+class INVENTORYSYSTEMINVENZAPLUGIN_API UCraftingStationComponent : public UInteractableComponent, public ICraftProvider
 {
 	GENERATED_BODY()
 
@@ -30,6 +31,8 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+	
+	virtual UCraftingComponent* GetCraftingComponent() const override { return CraftingComponentRef; }
 	
 	virtual void Interact(UInteractionComponent* InteractionComponent) override;
 	virtual void StopInteract(UInteractionComponent* InteractionComponent) override;

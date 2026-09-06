@@ -254,6 +254,11 @@ void USlotbasedInventoryWidget::ApplyInventorySettings()
 	
 	auto InvSettings = SlotBasedInventoryRef->GetInventorySettings();
 	
+	if (!InvSettings.bShowFilterPanel && ItemFiltersPanel)
+	{
+		ItemFiltersPanel->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	
 	if (!SlotsGridPanel || !InvSettings.InventorySlotBasedSettings.SlotbasedInventorySlotClass || !SlotBasedInventoryRef)
 	{
 		if (!InvSettings.InventorySlotBasedSettings.SlotbasedInventorySlotClass)

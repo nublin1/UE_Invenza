@@ -25,6 +25,12 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UListInventoryWidget : public UUInventory
 	GENERATED_BODY()
 
 public:
+	UListInventoryWidget();
+	
+protected:
+	virtual void NativeConstruct() override;
+	
+public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
@@ -32,7 +38,6 @@ public:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UListInventoryWidget();
 
 	virtual void InitializeInventoryWidget() override;
 	virtual void InitializeInventoryWidgetWithSettings() override;
@@ -60,7 +65,7 @@ protected:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	virtual void NativeConstruct() override;
+	virtual void ApplyInventorySettings() override;
 
 	//
 	virtual void ClearFilters() override;

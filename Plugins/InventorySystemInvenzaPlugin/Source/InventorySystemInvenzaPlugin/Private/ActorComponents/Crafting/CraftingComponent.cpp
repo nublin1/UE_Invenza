@@ -9,6 +9,7 @@
 #include "Data/Settings/InvenzaInventorySettingsAsset.h"
 #include "Net/UnrealNetwork.h"
 #include "Subsystems/InvenzaInventorySettingsSubsystem.h"
+#include "Utility/InterfaceUtils.h"
 #include "Utility/InvenzayUtility.h"
 
 UCraftingComponent::UCraftingComponent()
@@ -65,7 +66,7 @@ void UCraftingComponent::Server_InitCraftingComponent_Implementation()
 
 void UCraftingComponent::HandleInitCraftingComponent()
 {
-	if (Config.StartingRecipes.IsEmpty())
+	if (StartingRecipes.IsEmpty())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("StartingRecipes is empty on %s."), *GetOwner()->GetName());
 		return;
@@ -73,7 +74,7 @@ void UCraftingComponent::HandleInitCraftingComponent()
     
 	AvailableRecipes.Empty();
     
-	for (auto RecipeHandle : Config.StartingRecipes)
+	for (auto RecipeHandle : StartingRecipes)
 	{
 		if (!RecipeHandle.DataTable)
 			continue;
@@ -87,6 +88,42 @@ void UCraftingComponent::HandleInitCraftingComponent()
 	}
 	
 	RequestRecalculateAvailableRecipes();
+	UpdateFuelBlockState();
+}
+
+void UCraftingComponent::AddOperator()
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority())
+		return;
+
+	OperatorCount++;
+	if (OperatorCount >= 1)
+		UpdateOperatorBlockState();
+}
+
+void UCraftingComponent::RemoveOperator()
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority())
+		return;
+
+	OperatorCount = FMath::Max(0, OperatorCount - 1);
+	if (OperatorCount == 0)
+		UpdateOperatorBlockState();
+}
+
+bool UCraftingComponent::HasFuelAvailable() const
+{
+	if (!bRequiresFuel) return true;
+	if (!FuelInventory || !FuelInventory->GetItemCollectionLinked()) return false;
+
+	auto Aggregated = FuelInventory->GetItemCollectionLinked()->CollectItemsAggregated(
+		FuelInventory->GetInventoryContainerID());
+
+	for (const FItemIDEntry& Entry : Aggregated)
+	{
+		if (Entry.Amount > 0) return true;
+	}
+	return false;
 }
 
 void UCraftingComponent::SetInputInventory_Implementation(UInventoryBase* NewInputInventory)
@@ -610,6 +647,23 @@ void UCraftingComponent::ProcessCraftTick()
 {
 	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
 	if (CurrentCraftingRecipe.ItemRecipeRow.ID.IsNone()) return;
+	
+	if (bRequiresFuel)
+	{
+		FuelAccumulatedTime += ProcessCraftTickTime;
+
+		while (FuelAccumulatedTime >= SecondsPerFuelUnit)
+		{
+			if (!ConsumeFuelUnit())
+			{
+				FuelAccumulatedTime = 0.f;
+				UpdateFuelBlockState();
+				return;
+			}
+
+			FuelAccumulatedTime -= SecondsPerFuelUnit;
+		}
+	}
     
 	auto EffectiveSpeed = CraftingSpeed * ProcessCraftTickTime;
 	CurrentCraftingRecipe.CurrentProgress += EffectiveSpeed;
@@ -670,7 +724,7 @@ void UCraftingComponent::StartCurrentRecipe(FQueuedRecipe& Item)
 
 	CurrentCraftingRecipe = Item;
 	
-	UE_LOG(LogTemp, Warning,TEXT("SERVER CurrentRecipe Progress = %f"),	CurrentCraftingRecipe.CurrentProgress);
+	//UE_LOG(LogTemp, Log,TEXT("SERVER CurrentRecipe Progress = %f"),	CurrentCraftingRecipe.CurrentProgress);
 	
 	GetWorld()->GetTimerManager().SetTimer(
 		CraftTimerHandle,
@@ -760,6 +814,26 @@ void UCraftingComponent::FinishCurrentRecipe()
 	//LogQueueState(TEXT("FinishCurrentRecipe"));
 }
 
+bool UCraftingComponent::ConsumeFuelUnit()
+{
+	if (!FuelInventory || !FuelInventory->GetItemCollectionLinked())
+		return false;
+
+	TArray<UObject*> FuelItems = FuelInventory->GetItemCollectionLinked()->GetAllItemsByContainer(
+		FuelInventory->GetInventoryContainerID());
+
+	for (UObject* Item : FuelItems)
+	{
+		if (!UInterfaceUtils::ImplementsObjectDataProvider(Item)) continue;
+		if (IObjectDataProvider::Execute_GetQuantity(Item) <= 0) continue;
+
+		FuelInventory->HandleRemoveItem(Item, 1);
+		return true;
+	}
+
+	return false;
+}
+
 bool UCraftingComponent::ConsumeResourcesForRecipe(FQueuedRecipe& Item, int32 Count, FCraftAdditionalData& AddData) 
 {
 	auto CheckResult = CanCraft(Item.ItemRecipeRow, AddData.SelectedOptions, Count);
@@ -817,7 +891,17 @@ void UCraftingComponent::OnRep_CurrentRecipe()
 void UCraftingComponent::OnRep_InventoryUpdated()
 {
 	if (InputInventory)
-		RequestRecalculateAvailableRecipes();
+	{
+		if (GetOwner() && GetOwner()->HasAuthority())
+		{
+			HandleRecalculateAvailableRecipes();
+		}
+	}
+	
+	if (GetOwner() && GetOwner()->HasAuthority())
+	{
+		UpdateFuelBlockState();
+	}
 }
 
 void UCraftingComponent::OnRep_CachedRecipes()
@@ -831,6 +915,8 @@ void UCraftingComponent::OnRep_AvailableRecipes()
 	{
 		UE_LOG(LogTemp, Log, TEXT("Available Recipes replicated to client. Count: %d"), AvailableRecipes.Num());
 	}
+	
+	OnAvailableRecipesChanged.Broadcast();
 }
 
 void UCraftingComponent::OnRep_Blocks()
@@ -957,4 +1043,35 @@ void UCraftingComponent::RecalculateSortOrders()
 		}
 	}
 	RecipeQueue.MarkArrayDirty();
+}
+
+void UCraftingComponent::UpdateOperatorBlockState()
+{
+	if (bAllowAutomaticCrafting)
+		return; 
+
+	const auto* MySettings = UInvenzaInventorySettingsSubsystem::GetSettingsStatic(this);
+	if (!MySettings) return;
+
+	const FGameplayTag BlockTag = MySettings->Block_NoOperator; 
+	if (!BlockTag.IsValid()) return;
+
+	if (const FBlockReasonData* BlockReason = MySettings->FindBlockReason(BlockTag))
+	{
+		HandleSetBlockState(*BlockReason, OperatorCount == 0);
+	}
+}
+
+void UCraftingComponent::UpdateFuelBlockState()
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority() || !bRequiresFuel)
+		return;
+
+	const auto* MySettings = UInvenzaInventorySettingsSubsystem::GetSettingsStatic(this);
+	if (!MySettings) return;
+
+	const FBlockReasonData* BlockReason = MySettings->FindBlockReason(MySettings->Block_NoFuel);
+	if (!BlockReason) return;
+
+	HandleSetBlockState(*BlockReason, !HasFuelAvailable());
 }

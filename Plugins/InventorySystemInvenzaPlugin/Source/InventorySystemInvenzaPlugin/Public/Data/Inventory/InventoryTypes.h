@@ -28,6 +28,12 @@ class UObject;
 class UUInventoryBaseWidget;
 class UItemCollection;
 
+UENUM(BlueprintType)
+enum class EInventorySortCriteria : uint8
+{
+	ByName UMETA(DisplayName = "By Name")
+};
+
 USTRUCT(BlueprintType)
 struct FItemPlacementData
 {
@@ -281,9 +287,10 @@ struct FInventorySettings
 {
 	GENERATED_BODY()
 
-	/* Must be uniq */
+	/* Optional custom unique ID for this inventory.
+	If left empty, a unique ID will be generated automatically. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory")
-	FString InventoryID;
+	FString CustomInventoryID;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory")
 	FGameplayTag InventoryTag;
@@ -300,6 +307,10 @@ struct FInventorySettings
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory")
 	bool bIsAlwaysVisible = false;
+	
+	// Filters
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory")
+	bool bShowFilterPanel = true;
 
 	// Reference system
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory|Reference", meta=(ToolTip="If true this container acts as a reference source."))

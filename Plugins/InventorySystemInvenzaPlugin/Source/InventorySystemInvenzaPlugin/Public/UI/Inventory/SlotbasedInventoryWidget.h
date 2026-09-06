@@ -140,8 +140,8 @@ protected:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UFUNCTION(BlueprintCallable)
-	virtual void ApplyInventorySettings();
+	virtual void ApplyInventorySettings() override;
+	
 	UFUNCTION(BlueprintCallable)
 	virtual void BuildInventorySlots();
 	

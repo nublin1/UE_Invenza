@@ -117,6 +117,9 @@ public:
 	virtual void UpdateItem(UObject* Item) PURE_VIRTUAL(UUInventoryWidgetBase::RemoveItemFromPanel,);
 
 protected:
+	UFUNCTION(BlueprintCallable)
+	virtual void ApplyInventorySettings(){};
+	
 	// Filters
 	UFUNCTION()
 	virtual void ClearFilters() PURE_VIRTUAL(UUInventoryWidgetBase::ClearFilters,);

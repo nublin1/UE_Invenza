@@ -3,7 +3,6 @@
 
 #include "UI/Craft/CraftMenuChoose.h"
 
-#include "Components/Button.h"
 #include "Components/WidgetSwitcher.h"
 #include "Data/CraftSystem/Entries/RecipeListEntryObject.h"
 #include "UI/Core/Buttons/ActionButtonUI.h"
@@ -56,20 +55,25 @@ void UCraftMenuChoose::SetAvailableRecipes(const TArray<FItemRecipeRow>& Recipes
 }
 
 void UCraftMenuChoose::SetCraftComponentPtr(UCraftingComponent* NewCraftingComponent)
-{
-	if (!NewCraftingComponent)
-		return;
-	
+{	
 	if (CraftComponentPtr)
 	{
 		CraftComponentPtr->OnAvailableRecipesChanged.RemoveAll(this);
 	}
 
 	CraftComponentPtr = NewCraftingComponent;
-	CraftComponentPtr->OnAvailableRecipesChanged.AddDynamic(this, &UCraftMenuChoose::HandleAvailableRecipesChanged);
-	
-	SetAvailableRecipes(CraftComponentPtr->GetAvailableRecipes());
-	
+	SelectedObj = nullptr;
+
+	if (CraftComponentPtr)
+	{
+		CraftComponentPtr->OnAvailableRecipesChanged.AddDynamic(this, &UCraftMenuChoose::HandleAvailableRecipesChanged);
+		SetAvailableRecipes(CraftComponentPtr->GetAvailableRecipes());
+	}
+	else
+	{
+		SetAvailableRecipes(TArray<FItemRecipeRow>());
+	}
+
 	RefreshCurrentSelectionDetails();
 }
 
