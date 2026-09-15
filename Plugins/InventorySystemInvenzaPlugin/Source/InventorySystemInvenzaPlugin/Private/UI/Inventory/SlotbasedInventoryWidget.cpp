@@ -38,16 +38,16 @@ void USlotbasedInventoryWidget::NativeConstruct()
 	if (ItemFiltersPanel)
 	{
 		if (ItemFiltersPanel->GetSearchText())
-			ItemFiltersPanel->GetSearchText()->OnTextChanged.AddDynamic(this, &USlotbasedInventoryWidget::SearchTextChanged);
+			ItemFiltersPanel->GetSearchText()->OnTextChanged.AddUniqueDynamic(this, &USlotbasedInventoryWidget::SearchTextChanged);
 		
 		for (auto FilterButton : ItemFiltersPanel->GetFilteredCategores())
 		{
-			FilterButton->OnButtonClicked.AddDynamic(this, &USlotbasedInventoryWidget::OnFilterStatusChanged);
+			FilterButton->OnButtonClicked.AddUniqueDynamic(this, &USlotbasedInventoryWidget::OnFilterStatusChanged);
 		}
 
 		if (ItemFiltersPanel->GetClearFiltersButton())
 		{			
-			ItemFiltersPanel->GetClearFiltersButton()->MainButton->OnClicked.AddDynamic(this, &USlotbasedInventoryWidget::ClearFilters);
+			ItemFiltersPanel->GetClearFiltersButton()->MainButton->OnClicked.AddUniqueDynamic(this, &USlotbasedInventoryWidget::ClearFilters);
 		}
 	}
 }

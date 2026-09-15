@@ -22,6 +22,8 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UContainerComponent : public UInteractabl
 
 public:
 	UContainerComponent();
+	
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 protected:
 	virtual void OnRegister() override;
@@ -38,10 +40,12 @@ public:
 	virtual void BeginFocus() override;
 	virtual void EndFocus() override;
 	
-	virtual void Interact(UInteractionComponent* InteractionComponent) override;
-	virtual void StopInteract(UInteractionComponent* InteractionComponent) override;
+	virtual void HandleInteract(UInteractionComponent* InteractionComponent) override;
+	virtual void HandleStopInteract(UInteractionComponent* InteractionComponent, EInteractionType Type) override;
 
 	virtual const TObjectPtr<UInventoryBase>& GetMainLootContainer() const override {return MainLootInventory;}
+	UFUNCTION()
+	virtual void CheckDestroyWhenEmpty() override;
 
 protected:
 	//====================================================================
@@ -57,7 +61,7 @@ protected:
 	bool bDestroyWhenEmpty = false;
 
 	// Data
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite)
 	TObjectPtr<UInventoryBase> MainLootInventory;
 	UPROPERTY()
 	TObjectPtr<UStaticMeshComponent> CachedMesh;
@@ -81,6 +85,7 @@ protected:
 	UFUNCTION(BlueprintCallable)
 	void SetupStartingResources();
 		
-	UFUNCTION()
-	virtual void DestroyWhenEmpty(FItemMapping ItemSlots, UObject* Item);
+	
+	UFUNCTION(Server, Reliable)
+	virtual void Server_DestroyWhenEmpty();
 };

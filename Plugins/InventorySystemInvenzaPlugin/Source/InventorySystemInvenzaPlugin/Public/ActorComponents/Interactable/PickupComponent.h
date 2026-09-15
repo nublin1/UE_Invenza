@@ -39,7 +39,7 @@ public:
 	//====================================================================
 	virtual void BeginFocus() override;
 	virtual void EndFocus() override;
-	virtual void Interact(UInteractionComponent* InteractionComponent) override;
+	virtual void HandleInteract(UInteractionComponent* InteractionComponent) override;
 	
 	UFUNCTION(BlueprintCallable, Category = "Pickup | Initialization")
 	virtual void InitializeDrop(FInitItemsEntry ItemToDrop);

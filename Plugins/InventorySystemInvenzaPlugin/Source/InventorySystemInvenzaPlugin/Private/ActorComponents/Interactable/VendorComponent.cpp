@@ -61,9 +61,9 @@ void UVendorComponent::EndFocus()
 	Super::EndFocus();
 }
 
-void UVendorComponent::Interact(UInteractionComponent* InteractionComponent)
+void UVendorComponent::HandleInteract(UInteractionComponent* InteractionComponent)
 {
-	Super::Interact(InteractionComponent);
+	Super::HandleInteract(InteractionComponent);
 
 	if (!ItemCollectionRef)
 		return;
@@ -77,9 +77,9 @@ void UVendorComponent::Interact(UInteractionComponent* InteractionComponent)
 	SetInteracting(false);
 }
 
-void UVendorComponent::StopInteract(UInteractionComponent* InteractionComponent)
+void UVendorComponent::HandleStopInteract(UInteractionComponent* InteractionComponent, EInteractionType Type)
 {
-	Super::StopInteract(InteractionComponent);
+	Super::HandleStopInteract(InteractionComponent, Type);
 	
 	SetInteracting(false);
 }
@@ -196,9 +196,12 @@ void UVendorComponent::InitializeInteractionComponent()
 void UVendorComponent::UpdateInteractableData()
 {
 	Super::UpdateInteractableData();
-	InteractableData.DefaultInteractableType = EInteractableType::Vendor;
-	InteractableData.Action = FText::FromString(TEXT("Trade"));
-	InteractableData.Quantity = -1;
+	
+	FInteractableData PrimaryData;
+	PrimaryData.DefaultInteractableType = EInteractableType::Vendor;
+	PrimaryData.Action = FText::FromString(TEXT("Trade"));
+	PrimaryData.Quantity = -1;
+	InteractableDataMap.Add(EInteractionType::Primary, PrimaryData);
 }
 
 void UVendorComponent::InitializeVendorStartupData()

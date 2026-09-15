@@ -26,4 +26,6 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API ILootContainerProvider
 public:
 	virtual const TObjectPtr<UInventoryBase>& GetMainLootContainer() const = 0;
 	
+	virtual void CheckDestroyWhenEmpty(){};
+	
 };

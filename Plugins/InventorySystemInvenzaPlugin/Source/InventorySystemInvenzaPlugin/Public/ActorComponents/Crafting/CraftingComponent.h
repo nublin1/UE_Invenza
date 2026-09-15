@@ -80,11 +80,18 @@ public:
 	bool HasFuelAvailable() const;
 	
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Crafting")
+	void SetInventories(
+		UInventoryBase* NewInputInventory,
+		UInventoryBase* NewOutputInventory,
+		UInventoryBase* NewFuelInventory);
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Crafting")
 	void SetInputInventory(UInventoryBase* NewInputInventory);
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Crafting")
 	void SetOutputInventory(UInventoryBase* NewOutputInventory);
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Crafting")
 	void SetFuelInventory(UInventoryBase* NewFuelInventory);
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Crafting")
+	void SetInteractorInventory(UInventoryBase* NewInteractorInventory);
 
 	UFUNCTION(BlueprintCallable, Category = "Crafting")
 	void RequestRecalculateAvailableRecipes();
@@ -103,6 +110,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Crafting")
 	void SetNoResourcesRequest(bool bNewValue);
 
+	UFUNCTION(Category = "Crafting")
+	UInventoryBase* GetInputInventory() const {return InputInventory;};
+	UFUNCTION(Category = "Crafting")
+	UInventoryBase* GetOutputInventory() const {return OutputInventory;};
+	UFUNCTION(Category = "Crafting")
+	UInventoryBase* GetFuelInventory() const {return FuelInventory;};
+	
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Crafting")
 	FCraftingInventoryOverrides GetConfig() const { return Config; }
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Crafting")
@@ -147,12 +161,12 @@ protected:
 	// Refs
 	UPROPERTY(ReplicatedUsing=OnRep_InventoryUpdated, VisibleInstanceOnly, BlueprintReadWrite, Category="Crafting|Ref")
 	TObjectPtr<UInventoryBase> InputInventory;
-
 	UPROPERTY(ReplicatedUsing=OnRep_InventoryUpdated, VisibleInstanceOnly, BlueprintReadWrite, Category="Crafting|Ref")
 	TObjectPtr<UInventoryBase> OutputInventory;
-	
 	UPROPERTY(ReplicatedUsing=OnRep_InventoryUpdated, VisibleInstanceOnly, BlueprintReadWrite, Category="Crafting|Ref")
 	TObjectPtr<UInventoryBase> FuelInventory;
+	UPROPERTY(ReplicatedUsing=OnRep_InventoryUpdated, VisibleInstanceOnly, BlueprintReadWrite, Category="Crafting|Ref")
+	TObjectPtr<UInventoryBase> InteractorInventory;
 	
 	// Config
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Crafting|Config")

@@ -37,6 +37,7 @@ void UCraftingComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	DOREPLIFETIME(UCraftingComponent, InputInventory);
 	DOREPLIFETIME(UCraftingComponent, OutputInventory);
 	DOREPLIFETIME(UCraftingComponent, FuelInventory);
+	DOREPLIFETIME(UCraftingComponent, InteractorInventory);
 	DOREPLIFETIME(UCraftingComponent, CachedRecipeResults);
 	DOREPLIFETIME(UCraftingComponent, AvailableRecipes);
 }
@@ -126,6 +127,27 @@ bool UCraftingComponent::HasFuelAvailable() const
 	return false;
 }
 
+void UCraftingComponent::SetInventories_Implementation(UInventoryBase* NewInputInventory,
+	UInventoryBase* NewOutputInventory, UInventoryBase* NewFuelInventory)
+{
+	if (!GetOwner())
+		return;
+
+	const bool bChanged =
+		InputInventory != NewInputInventory ||
+		OutputInventory != NewOutputInventory ||
+		FuelInventory != NewFuelInventory;
+
+	if (!bChanged)
+		return;
+
+	InputInventory = NewInputInventory;
+	OutputInventory = NewOutputInventory;
+	FuelInventory = NewFuelInventory;
+
+	OnRep_InventoryUpdated();
+}
+
 void UCraftingComponent::SetInputInventory_Implementation(UInventoryBase* NewInputInventory)
 {
 	if (!GetOwner()) return;
@@ -155,6 +177,17 @@ void UCraftingComponent::SetFuelInventory_Implementation(UInventoryBase* NewFuel
 	if (FuelInventory != NewFuelInventory)
 	{
 		FuelInventory = NewFuelInventory;
+		OnRep_InventoryUpdated();
+	}
+}
+
+void UCraftingComponent::SetInteractorInventory_Implementation(UInventoryBase* NewInteractorInventory)
+{
+	if (!GetOwner()) return;
+
+	if (InteractorInventory != NewInteractorInventory)
+	{
+		InteractorInventory = NewInteractorInventory;
 		OnRep_InventoryUpdated();
 	}
 }
@@ -276,10 +309,24 @@ FRecipeCheckResult UCraftingComponent::CanCraft(const FItemRecipeRow& RecipeRow,
 {
 	FRecipeCheckResult Result;
 
-	if (InputInventory == nullptr)
-		return Result;
+	TArray<FItemIDEntry> InvItems;
 
-	auto InvItems = InputInventory->GetItemCollectionLinked()->CollectItemsAggregated(InputInventory->GetInventoryContainerID());
+	if (InputInventory)
+	{
+		InvItems.Append(InputInventory->GetItemCollectionLinked()->CollectItemsAggregated(
+				InputInventory->GetInventoryContainerID())
+		);
+	}
+
+	if (InteractorInventory && InteractorInventory != InputInventory)
+	{
+		InvItems.Append(InteractorInventory->GetItemCollectionLinked()->CollectItemsAggregated(
+				InteractorInventory->GetInventoryContainerID())
+		);
+	}
+
+	if (InvItems.IsEmpty())
+		return Result;
 
 	if (SelectedOptions.IsEmpty())
 		return CanCraftWithItems(RecipeRow, InvItems, Amount);
@@ -287,8 +334,7 @@ FRecipeCheckResult UCraftingComponent::CanCraft(const FItemRecipeRow& RecipeRow,
 	return CanCraftWithItemsOptions(RecipeRow, InvItems, SelectedOptions, Amount);
 }
 
-FRecipeCheckResult UCraftingComponent::CanCraftWithItems(const FItemRecipeRow& RecipeRow,
-                                                         const TArray<FItemIDEntry>& InventoryItems, int32 Amount)
+FRecipeCheckResult UCraftingComponent::CanCraftWithItems(const FItemRecipeRow& RecipeRow, const TArray<FItemIDEntry>& InventoryItems, int32 Amount)
 {
 	FRecipeCheckResult Result;
 

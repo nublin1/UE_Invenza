@@ -9,6 +9,7 @@
 #include "CraftingStationComponent.generated.h"
 
 
+class UWidgetComponent;
 class UCraftingComponent;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
@@ -18,9 +19,11 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UCraftingStationComponent : public UInter
 
 public:
 	UCraftingStationComponent();
-
-protected:
+	
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void BeginPlay() override;
+	
+protected:
 
 public:
 	//====================================================================
@@ -32,10 +35,10 @@ public:
 	// FUNCTIONS
 	//====================================================================
 	
-	virtual UCraftingComponent* GetCraftingComponent() const override { return CraftingComponentRef; }
+	virtual UCraftingComponent* GetCraftingComponent() const override { return CraftingComponentLink; }
 	
-	virtual void Interact(UInteractionComponent* InteractionComponent) override;
-	virtual void StopInteract(UInteractionComponent* InteractionComponent) override;
+	virtual void HandleInteract(UInteractionComponent* InteractionComponent) override;
+	virtual void HandleStopInteract(UInteractionComponent* InteractionComponent, EInteractionType Type) override;
 	
 protected:
 	//====================================================================
@@ -45,15 +48,24 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Crafting")
 	bool bUseInteractorInventory = false;
 
-	UPROPERTY(Transient)
-	TObjectPtr<UCraftingComponent> CraftingComponentRef = nullptr;
+	UPROPERTY(Transient, ReplicatedUsing = OnRep_CraftingComponentLink)
+	TObjectPtr<UCraftingComponent> CraftingComponentLink = nullptr;
 	
 	UPROPERTY(Transient)
 	TObjectPtr<UItemCollection> ItemCollectionRef = nullptr;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Crafting|UI")
+	TObjectPtr<UWidgetComponent> ProgressWidgetComponentLink;
 
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+	
+	UFUNCTION()
+	void OnRep_CraftingComponentLink();
+	
+	UFUNCTION()
+	void BindProgressWidget();
 	
 	UFUNCTION(BlueprintCallable, Category="Crafting")
 	void InitializeCraftingStation(AActor* ContextActor);

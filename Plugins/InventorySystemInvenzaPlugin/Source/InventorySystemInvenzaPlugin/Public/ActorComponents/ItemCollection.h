@@ -32,6 +32,7 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UItemCollection : public UActorComponent
 
 #pragma region Delegates
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInventoryItemsChanged, const FString&, InventoryID);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCollectionItemsIsEmpty, bool, IsEmpty);
 #pragma endregion Delegates
 
 public:
@@ -50,6 +51,8 @@ public:
 	//====================================================================
 	UPROPERTY(BlueprintAssignable, Category = "Item Collection")
 	FOnInventoryItemsChanged OnInventoryItemsChanged;
+	UPROPERTY(BlueprintAssignable, Category = "Item Collection")
+	FOnCollectionItemsIsEmpty OnCollectionItemsIsEmpty;
 	
 	//====================================================================
 	// FUNCTIONS
@@ -64,6 +67,7 @@ public:
 	
 	void SetVendorInventory(UInventoryBase* InVendorInv);
 	void SetExternalInventory(UInventoryBase* InExternalInventory);
+	void SetCraftInventories(UInventoryBase* InInput, UInventoryBase* InFuel, UInventoryBase* InOutput);
 	
 	UFUNCTION()
 	void SetInvManager(UIInventoryManager* NewManager) {InventoryArray.OwningManager = NewManager;}
@@ -142,7 +146,6 @@ public:
 
 	//
 	
-	
 	UFUNCTION(BlueprintCallable)
 	void RequestSortInventory(const FString& ContainerID, EInventorySortCriteria Criteria);
 	UFUNCTION(Server, Reliable)
@@ -165,14 +168,16 @@ protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing = OnRep_InventoryArray)
 	FInventoryArray InventoryArray;
 
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Replicated, ReplicatedUsing = OnRep_ActorInventories)
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, ReplicatedUsing = OnRep_ActorInventories)
 	TArray<TObjectPtr<UInventoryBase>> ActorInventories;
 
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Replicated, ReplicatedUsing=OnRep_LinkedInventories)
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, ReplicatedUsing=OnRep_LinkedInventories)
 	FLinkedInventories LinkedInventories;
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Replicated, ReplicatedUsing=OnRep_LinkedCraftInventories)
+	FLinkedCraftInventories LinkedCraftInventories;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
 	TMap<TObjectPtr<UInventoryBase>, TObjectPtr<UInventoryContainerWidget>> InventoryContainerWidgetMap;
@@ -184,9 +189,13 @@ protected:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+	
 	UFUNCTION()
-	void OnRep_LinkedInventories();
-		
+	void OnRep_InventoryArray();
+	UFUNCTION()
+	void OnRep_LinkedInventories();		
+	UFUNCTION()
+	void OnRep_LinkedCraftInventories();
 	UFUNCTION()
 	void OnRep_ActorInventories();
 

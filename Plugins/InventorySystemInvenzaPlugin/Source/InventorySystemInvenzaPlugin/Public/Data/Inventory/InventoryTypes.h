@@ -305,8 +305,18 @@ struct FInventorySettings
 		meta=(ToolTip="Maximum number of unique items allowed. -1 means infinite"))
 	int32 MaxStackCount = -1;
 	
+	// Container	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory")
 	bool bIsAlwaysVisible = false;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory")
+	bool bShowTotalMoney = true;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory")
+	bool bShowTotalWeight = true;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory")
+	FText ContainerTitle;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory")
+	bool bIsClosable = true;
 	
 	// Filters
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory")
@@ -411,6 +421,43 @@ struct FLinkedInventories
 
 		ExternalInventory = NewExternal;
 		VendorInventory   = NewVendor;
+	}
+};
+
+USTRUCT(BlueprintType)
+struct FLinkedCraftInventories
+{
+	GENERATED_BODY()
+
+	// ===== CURRENT =====
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TObjectPtr<UInventoryBase> InputInventory = nullptr;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TObjectPtr<UInventoryBase> FuelInventory = nullptr;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TObjectPtr<UInventoryBase> OutputInventory = nullptr;
+
+	// ===== PREVIOUS =====
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TObjectPtr<UInventoryBase> PrevInputInventory = nullptr;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TObjectPtr<UInventoryBase> PrevFuelInventory = nullptr;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TObjectPtr<UInventoryBase> PrevOutputInventory = nullptr;
+
+	void SetAll(UInventoryBase* NewInput, UInventoryBase* NewFuel, UInventoryBase* NewOutput)
+	{
+		PrevInputInventory  = InputInventory;
+		PrevFuelInventory   = FuelInventory;
+		PrevOutputInventory = OutputInventory;
+
+		InputInventory  = NewInput;
+		FuelInventory   = NewFuel;
+		OutputInventory = NewOutput;
 	}
 };
 

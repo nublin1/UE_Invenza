@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "Interactable/InteractableData.h"
+#include "Data/Interactable/InteractableData.h"
 #include "InteractableComponent.generated.h"
 
 
@@ -21,13 +21,15 @@ public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-
 	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UFUNCTION()
-	virtual const FInteractableData& GetInteractableData() const {return InteractableData;}
+
+	const TMap<EInteractionType, FInteractableData>& GetInteractableDataMap() const { return InteractableDataMap; }
+	const FInteractableData* GetInteractableDataForType(EInteractionType Type) const{return InteractableDataMap.Find(Type);	}
+	virtual const FInteractableData& GetInteractableData() const;
+	
 	
 	UFUNCTION(BlueprintCallable, Category="Interactable|Focus")
 	virtual void BeginFocus();
@@ -35,13 +37,12 @@ public:
 	virtual void EndFocus();
 	
 	UFUNCTION(BlueprintCallable, Category="Interactable|Interaction")
-	virtual void BeginInteract(UInteractionComponent* InteractionComponent);
+	virtual void BeginInteract(UInteractionComponent* InteractionComponent, EInteractionType Type);
 	UFUNCTION(BlueprintCallable, Category="Interactable|Interaction")
-	virtual void EndInteract(UInteractionComponent* InteractionComponent);
-	UFUNCTION(BlueprintCallable, Category="Interactable|Interaction")
-	virtual void Interact(UInteractionComponent* InteractionComponent);
-	UFUNCTION(BlueprintCallable, Category="Interactable|Interaction")
-	virtual void StopInteract(UInteractionComponent* InteractionComponent);
+	virtual void EndInteract(UInteractionComponent* InteractionComponent, EInteractionType Type);
+	
+	virtual void HandleInteract(UInteractionComponent* InteractionComponent);
+	virtual void HandleStopInteract(UInteractionComponent* InteractionComponent, EInteractionType Type);
 
 	UFUNCTION(BlueprintPure, Category="Interactable|State")
 	bool IsInteracting() const {return bIsInteracting;}
@@ -56,7 +57,7 @@ protected:
 	//====================================================================
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Interactable|Data")
-	FInteractableData InteractableData;
+	TMap<EInteractionType, FInteractableData> InteractableDataMap;
 	
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Replicated, Category="Interactable")
 	bool bIsInteracting = false;

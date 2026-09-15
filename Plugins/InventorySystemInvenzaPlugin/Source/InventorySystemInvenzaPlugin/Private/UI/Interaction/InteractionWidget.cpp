@@ -3,31 +3,11 @@
 #include "UI/Interaction/InteractionWidget.h"
 
 #include "Components/ProgressBar.h"
-#include "Components/TextBlock.h"
-#include "Interactable/InteractableData.h"
+#include "Data/Interactable/InteractableData.h"
 
 
 UInteractionWidget::UInteractionWidget()
 {
-}
-
-void UInteractionWidget::OnFoundInteractable_Implementation( FInteractableData NewInteractableData)
-{
-	UpdateText(NewInteractableData);
-	SetVisibility(ESlateVisibility::Visible);
-}
-
-void UInteractionWidget::OnLostInteractable_Implementation( FInteractableData NewInteractableData)
-{
-	SetVisibility(ESlateVisibility::Collapsed);
-}
-
-void UInteractionWidget::UpdateProgressBar(float Progress)
-{
-	if (InteractionProgressBar)
-	{
-		InteractionProgressBar->SetPercent(Progress);
-	}
 }
 
 void UInteractionWidget::NativeConstruct()
@@ -40,36 +20,42 @@ void UInteractionWidget::NativeConstruct()
 	}
 }
 
-void UInteractionWidget::UpdateText(FInteractableData& NewInteractableData)
+void UInteractionWidget::OnFoundInteractable_Implementation(const TArray<FInteractionDisplayEntry>& Entries)
 {
-	ActionText->SetText(NewInteractableData.Action);
+	TArray Rows = { FirstRow, SecondRow, ThirdRow };
 
-	if (NewInteractableData.bHoldToInteract)
+	for (int32 i = 0; i < Rows.Num(); ++i)
 	{
-		KeyPressText->SetText(FText::FromString("Hold"));
+		if (!Rows[i]) continue;
+
+		if (Entries.IsValidIndex(i))
+		{
+			Rows[i]->SetRowData(Entries[i].KeyLabel, Entries[i].Data, Entries[i].Data.bHoldToInteract);
+			Rows[i]->SetVisibility(ESlateVisibility::Visible);
+		}
+		else
+		{
+			Rows[i]->SetVisibility(ESlateVisibility::Hidden);
+		}
 	}
-	else
-	{
-		KeyPressText->SetText(FText::FromString("Press"));
-	}
+
+	InteractionProgressBar->SetVisibility(ESlateVisibility::Visible);
+	SetVisibility(ESlateVisibility::Visible);
+}
+
+void UInteractionWidget::OnLostInteractable_Implementation(const TArray<FInteractionDisplayEntry>& Entries)
+{
+	if (FirstRow) FirstRow->SetVisibility(ESlateVisibility::Hidden);
+	if (SecondRow) SecondRow->SetVisibility(ESlateVisibility::Hidden);
+	if (ThirdRow) ThirdRow->SetVisibility(ESlateVisibility::Hidden);
 	
-	if (NewInteractableData.Quantity >= 0)
-	{
-		QuantityText->SetText(FText::AsNumber(NewInteractableData.Quantity));
-		QuantityText->SetVisibility(ESlateVisibility::Visible );
-	}
-	else
-	{
-		QuantityText->SetVisibility(ESlateVisibility::Collapsed);
-	}
+	if (InteractionProgressBar) InteractionProgressBar->SetVisibility(ESlateVisibility::Hidden);
+}
 
-	if (!NewInteractableData.Name.IsEmpty())
+void UInteractionWidget::UpdateProgressBar(float Progress)
+{
+	if (InteractionProgressBar)
 	{
-		NameText->SetText(NewInteractableData.Name);
-		NameText->SetVisibility(ESlateVisibility::Visible);
-	}
-	else
-	{
-		NameText->SetVisibility(ESlateVisibility::Collapsed);
+		InteractionProgressBar->SetPercent(Progress);
 	}
 }

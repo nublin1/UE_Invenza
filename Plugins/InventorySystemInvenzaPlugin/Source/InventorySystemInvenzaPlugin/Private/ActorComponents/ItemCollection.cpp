@@ -49,6 +49,7 @@ void UItemCollection::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 
 	DOREPLIFETIME(UItemCollection, ActorInventories);
 	DOREPLIFETIME(UItemCollection, LinkedInventories);
+	DOREPLIFETIME(UItemCollection, LinkedCraftInventories);
 	DOREPLIFETIME(UItemCollection, InventoryArray);
 }
 
@@ -70,6 +71,12 @@ void UItemCollection::SetExternalInventory(UInventoryBase* InExternalInventory)
 {
 	LinkedInventories.SetExternal(InExternalInventory);
 	OnRep_LinkedInventories();
+}
+
+void UItemCollection::SetCraftInventories(UInventoryBase* InInput, UInventoryBase* InFuel, UInventoryBase* InOutput)
+{
+	LinkedCraftInventories.SetAll(InInput, InFuel, InOutput);
+	OnRep_LinkedCraftInventories();
 }
 
 void UItemCollection::Server_SetSlotBasedInventoryWidgetInitData_Implementation(const FString& ContainerID,
@@ -179,7 +186,7 @@ void UItemCollection::RegisterContainerWidget(UInventoryBase* Inventory, UInvent
 	auto InvCollection = Inventory->GetItemCollectionLinked();
 	if (InvCollection != this)
 	{
-		InvCollection->OnInventoryItemsChanged.AddDynamic(this, &UItemCollection::NotifyUI_ReDraw);
+		InvCollection->OnInventoryItemsChanged.AddUniqueDynamic(this, &UItemCollection::NotifyUI_ReDraw);
 	}
 }
 
@@ -546,8 +553,7 @@ void UItemCollection::RemoveItem(UObject* Item, FString ContainerID)
 	}
 
 	FInventoryEntry& Entry = InventoryArray.Items[EntryIndex];
-
-	// Удаляем маппинги для конкретного контейнера
+	
 	const int32 RemovedCount = Entry.Locations.Mappings.RemoveAll(
 	   [&](const FItemMapping& Mapping)
 	   {
@@ -881,6 +887,12 @@ void UItemCollection::NotifyUI_ReDraw(const FString& ContainerID)
 	TargetWidget->ReDrawAllItems();
 }
 
+void UItemCollection::OnRep_InventoryArray()
+{
+	bool NewStatus = InventoryArray.Items.IsEmpty();
+	OnCollectionItemsIsEmpty.Broadcast(NewStatus);
+}
+
 void UItemCollection::OnRep_LinkedInventories()
 {
 	UIInventoryManager* Manager = InventoryArray.OwningManager;
@@ -900,6 +912,14 @@ void UItemCollection::OnRep_LinkedInventories()
 
 	HandleLinkedSlot(LinkedInventories.ExternalInventory, LinkedInventories.PrevExternalInventory, EInteractableType::Container);
 	HandleLinkedSlot(LinkedInventories.VendorInventory, LinkedInventories.PrevVendorInventory, EInteractableType::Vendor);
+}
+
+void UItemCollection::OnRep_LinkedCraftInventories()
+{
+	UIInventoryManager* Manager = InventoryArray.OwningManager;
+	if (!Manager) return;
+	
+	Manager->HandleCraftInventoriesChanged(LinkedCraftInventories);
 }
 
 void UItemCollection::OnRep_ActorInventories()

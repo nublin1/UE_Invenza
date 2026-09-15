@@ -65,8 +65,6 @@ protected:
 	//====================================================================
 	// Widgets
 	UPROPERTY(meta=(BindWidgetOptional))
-	TObjectPtr<UFiltersPanel> ItemFiltersPanel;
-	UPROPERTY(meta=(BindWidgetOptional))
 	TObjectPtr<USizeBox> GridSizeBox;
 	UPROPERTY(meta=(BindWidgetOptional))
 	TObjectPtr<UScrollBox> ScrollBox;

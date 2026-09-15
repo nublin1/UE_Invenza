@@ -47,8 +47,8 @@ public:
 	virtual void BeginFocus() override;
 	virtual void EndFocus() override;
 	
-	virtual void Interact(UInteractionComponent* InteractionComponent) override;
-	virtual void StopInteract(UInteractionComponent* InteractionComponent) override;
+	virtual void HandleInteract(UInteractionComponent* InteractionComponent) override;
+	virtual void HandleStopInteract(UInteractionComponent* InteractionComponent, EInteractionType Type) override;
 
 	virtual FTradeResult ProcessTradeRequest(const FItemMoveData& TradeData) override;
 	UFUNCTION(BlueprintCallable, Server, Reliable)

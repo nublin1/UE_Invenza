@@ -9,6 +9,7 @@
 #include "Engine/StaticMesh.h"
 #include "Components/StaticMeshComponent.h"
 #include "Data/Inventory/InventoryBase.h"
+#include "Net/UnrealNetwork.h"
 #include "Utility/InvenzayUtility.h"
 
 
@@ -17,6 +18,13 @@ class UIInventoryManager;
 UContainerComponent::UContainerComponent()
 {
 	SetIsReplicatedByDefault(true);
+}
+
+void UContainerComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	
+	DOREPLIFETIME(UContainerComponent, MainLootInventory);
 }
 
 void UContainerComponent::OnRegister()
@@ -50,9 +58,9 @@ void UContainerComponent::EndFocus()
 	}
 }
 
-void UContainerComponent::Interact(UInteractionComponent* InteractionComponent)
+void UContainerComponent::HandleInteract(UInteractionComponent* InteractionComponent)
 {
-	Super::Interact(InteractionComponent);
+	Super::HandleInteract(InteractionComponent);
 
 	if (!ItemCollectionRef) return;
 
@@ -60,12 +68,27 @@ void UContainerComponent::Interact(UInteractionComponent* InteractionComponent)
 	SetInteracting(!bIsInteracting);
 }
 
-void UContainerComponent::StopInteract(UInteractionComponent* InteractionComponent)
+void UContainerComponent::HandleStopInteract(UInteractionComponent* InteractionComponent, EInteractionType Type)
 {
-	Super::StopInteract(InteractionComponent);
-	
+	Super::HandleStopInteract(InteractionComponent, Type);
 	SetInteracting(false);
 	CurrentInteractionComponent = nullptr;
+	
+}
+
+void UContainerComponent::CheckDestroyWhenEmpty()
+{
+	if (!bDestroyWhenEmpty)
+		return;
+	
+	if (!MainLootInventory)
+		return;
+	
+	auto Items = MainLootInventory->GetItemCollectionLinked()->GetAllItemsByContainer(MainLootInventory->GetInventoryContainerID());
+	if (Items.IsEmpty())
+	{
+		Server_DestroyWhenEmpty();
+	}
 }
 
 void UContainerComponent::InitializeInteractionComponent()
@@ -84,10 +107,20 @@ void UContainerComponent::InitializeInteractionComponent()
 void UContainerComponent::UpdateInteractableData()
 {
 	Super::UpdateInteractableData();
+	
+	if (InteractableDataMap.Contains(EInteractionType::Primary))
+	{
+		return;
+	}
+	
+	FInteractableData PrimaryData;
+	PrimaryData.DefaultInteractableType = EInteractableType::Container;
+	PrimaryData.Action = FText::FromString(TEXT("Open"));
+	PrimaryData.Quantity = -1;
+	PrimaryData.bHoldToInteract = false;
 
-	InteractableData.DefaultInteractableType = EInteractableType::Container;
-	InteractableData.Action = FText::FromString(TEXT("Open"));
-	InteractableData.Quantity = -1;
+	InteractableDataMap.Add(EInteractionType::Primary, PrimaryData);	
+	
 }
 
 void UContainerComponent::InitializeInventoryStartupData()
@@ -105,11 +138,8 @@ void UContainerComponent::InitializeInventoryStartupData()
 
 	for (auto Element : StartupInventories)
 	{
-		UInventoryBase* Inventory = UInvenzayUtility::CreateStartupInventory(
-		this,
-		ItemCollectionRef,
-		Element,
-		StartingItems);
+		UInventoryBase* Inventory = UInvenzayUtility::CreateStartupInventory(this,ItemCollectionRef,
+			Element,StartingItems);
 
 		if (!Inventory)
 		{
@@ -120,11 +150,6 @@ void UContainerComponent::InitializeInventoryStartupData()
 		{
 			MainLootInventory = Inventory;
 		}
-	}
-
-	if (MainLootInventory)
-	{
-		MainLootInventory->OnItemRemovedDelegate.AddDynamic(this, &UContainerComponent::DestroyWhenEmpty);
 	}
 }
 
@@ -138,15 +163,24 @@ void UContainerComponent::SetupStartingResources()
 	UInvenzayUtility::SetupStartingResources(this,StartingItems);
 }
 
-void UContainerComponent::DestroyWhenEmpty(FItemMapping ItemSlots, UObject* Item)
+
+void UContainerComponent::Server_DestroyWhenEmpty_Implementation()
 {
-	GetWorld()->GetTimerManager().SetTimerForNextTick([this]()
+	if (ItemCollectionRef)
 	{
-		if (ItemCollectionRef->GetItemLocations().Items.IsEmpty()
-		   && this->bDestroyWhenEmpty)
-		{
-		   CurrentInteractionComponent->StopInteract();
-		   GetOwner()->K2_DestroyActor();
-		}
+		ItemCollectionRef->SetExternalInventory(nullptr);
+	}
+
+	TWeakObjectPtr<UContainerComponent> WeakThis(this);
+	
+	GetWorld()->GetTimerManager().SetTimerForNextTick([WeakThis]()
+	{
+	   if (!WeakThis.IsValid()) return;
+	   UContainerComponent* Self = WeakThis.Get();
+
+	   if (AActor* Owner = Self->GetOwner())
+	   {
+		   Owner->K2_DestroyActor();
+	   }
 	});
 }

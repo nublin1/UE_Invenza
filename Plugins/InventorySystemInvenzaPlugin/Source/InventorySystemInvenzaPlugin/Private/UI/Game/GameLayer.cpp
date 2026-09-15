@@ -2,20 +2,35 @@
 
 #include "UI/Game/GameLayer.h"
 
+#include "ActorComponents/UIInventoryManager.h"
 #include "Components/Border.h"
+#include "Interface/Inventory/InvUIProvider.h"
 
 UGameLayer::UGameLayer()
 {
 }
 
-void UGameLayer::NativePreConstruct()
+void UGameLayer::NativeOnInitialized()
 {
-	Super::NativePreConstruct();
-}
+	Super::NativeOnInitialized();
 
-void UGameLayer::NativeConstruct()
-{
-	Super::NativeConstruct();
+	APawn* OwnerPawn = GetOwningPlayerPawn();
+	if (!OwnerPawn)
+	{
+		UE_LOG(LogTemp, Error, TEXT("OwnerPawn is null"));
+		return;
+	}
+
+	UIInventoryManager* InvManager = OwnerPawn->FindComponentByClass<UIInventoryManager>();
+	if (!InvManager)
+	{
+		UE_LOG(LogTemp, Error, TEXT("UIInventoryManager not found"));
+		return;
+	}
+
+	InvManager->SetInteractionUIProvider(
+		TScriptInterface<IInteractionUIProvider>(this)
+	);
 }
 
 UInteractionWidget* UGameLayer::GetPawnInteractionWidget() const

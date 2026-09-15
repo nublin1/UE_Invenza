@@ -3,6 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "InteractionRowWidget.h"
+#include "Data/Interaction/InteractionData.h"
 #include "UI/InvenzaBaseWidget.h"
 #include "InteractionWidget.generated.h"
 
@@ -32,15 +34,11 @@ public:
 	//====================================================================
 	//Widgets
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction UI", meta = (BindWidget))
-	TObjectPtr<UTextBlock> KeyPressText;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction UI", meta = (BindWidget))
-	TObjectPtr<UTextBlock> ButtonName;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction UI", meta = (BindWidget))
-	TObjectPtr<UTextBlock> ActionText;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction UI", meta = (BindWidget))
-	TObjectPtr<UTextBlock> NameText;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction UI", meta = (BindWidget))
-	TObjectPtr<UTextBlock> QuantityText;
+	TObjectPtr<UInteractionRowWidget> FirstRow;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction UI", meta = (BindWidgetOptional))
+	TObjectPtr<UInteractionRowWidget> SecondRow;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction UI", meta = (BindWidgetOptional))
+	TObjectPtr<UInteractionRowWidget> ThirdRow;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction UI", meta = (BindWidgetOptional))
 	TObjectPtr<UProgressBar> InteractionProgressBar;
@@ -49,12 +47,13 @@ public:
 	// FUNCTIONS
 	//====================================================================
 	UFUNCTION(BlueprintNativeEvent, Category = "Interaction Logic")
-	void OnFoundInteractable(FInteractableData NewInteractableData);
-	virtual void OnFoundInteractable_Implementation( FInteractableData NewInteractableData);
+	void OnFoundInteractable(const TArray<FInteractionDisplayEntry>& Entries);
+	virtual void OnFoundInteractable_Implementation(const TArray<FInteractionDisplayEntry>& Entries);
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Interaction Logic")
-	void OnLostInteractable(FInteractableData NewInteractableData);
-	virtual void OnLostInteractable_Implementation(FInteractableData NewInteractableData);
+	void OnLostInteractable(const TArray<FInteractionDisplayEntry>& Entries);
+	virtual void OnLostInteractable_Implementation(const TArray<FInteractionDisplayEntry>& Entries);
+	
 
 	UFUNCTION(BlueprintCallable, Category = "UI Updates")
 	void UpdateProgressBar(float Progress);
@@ -67,6 +66,6 @@ protected:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	UFUNCTION(BlueprintCallable, Category = "UI Updates")
-	void UpdateText(FInteractableData& NewInteractableData);
+	
+	
 };

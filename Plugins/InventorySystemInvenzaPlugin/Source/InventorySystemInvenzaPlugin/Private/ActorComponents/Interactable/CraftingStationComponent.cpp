@@ -5,14 +5,24 @@
 
 #include "ActorComponents/InteractionComponent.h"
 #include "ActorComponents/Crafting/CraftingComponent.h"
+#include "Components/WidgetComponent.h"
 #include "Data/Inventory/InventoryBase.h"
 #include "Data/Settings/InvenzaInventorySettingsAsset.h"
+#include "Interface/World/WorldCraft_WidProvider.h"
+#include "Net/UnrealNetwork.h"
 #include "Utility/InvenzayUtility.h"
 
 
 UCraftingStationComponent::UCraftingStationComponent()
 {
 	SetIsReplicatedByDefault(true);
+}
+
+void UCraftingStationComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	
+	DOREPLIFETIME(UCraftingStationComponent, CraftingComponentLink);
 }
 
 void UCraftingStationComponent::BeginPlay()
@@ -30,12 +40,12 @@ void UCraftingStationComponent::BeginPlay()
 	
 }
 
-void UCraftingStationComponent::Interact(UInteractionComponent* InteractionComponent)
+void UCraftingStationComponent::HandleInteract(UInteractionComponent* InteractionComponent)
 {
 	if (!InteractionComponent)
 		return;
 	
-	Super::Interact(InteractionComponent);
+	Super::HandleInteract(InteractionComponent);
 	
 	CurrentInteractionComponent = InteractionComponent;
 	if (bIsInteracting == false)
@@ -57,16 +67,37 @@ void UCraftingStationComponent::Interact(UInteractionComponent* InteractionCompo
 	}
 }
 
-void UCraftingStationComponent::StopInteract(UInteractionComponent* InteractionComponent)
+void UCraftingStationComponent::HandleStopInteract(UInteractionComponent* InteractionComponent, EInteractionType Type)
 {
-	Super::StopInteract(InteractionComponent);
+	Super::HandleStopInteract(InteractionComponent, Type);
 	
 	SetInteracting(false);
 	CurrentInteractionComponent = nullptr;
 	if (bUseInteractorInventory)
 	{
-		CraftingComponentRef = nullptr;
+		CraftingComponentLink = nullptr;
 		ItemCollectionRef = nullptr;
+	}
+}
+
+void UCraftingStationComponent::OnRep_CraftingComponentLink()
+{
+	BindProgressWidget();
+}
+
+void UCraftingStationComponent::BindProgressWidget()
+{
+	if (!CraftingComponentLink) return;
+
+	UWidgetComponent* WidgetComp = ProgressWidgetComponentLink
+		                               ? ProgressWidgetComponentLink.Get()
+		                               : GetOwner()->FindComponentByClass<UWidgetComponent>();
+
+	if (!WidgetComp) return;
+
+	if (IWorldCraft_WidProvider* Display = Cast<IWorldCraft_WidProvider>(WidgetComp->GetUserWidgetObject()))
+	{
+		Display->SetCraftComponentPtr(CraftingComponentLink);
 	}
 }
 
@@ -78,7 +109,7 @@ void UCraftingStationComponent::InitializeCraftingStation(AActor* ContextActor)
 		return;
 	}
 	
-	CraftingComponentRef = nullptr;
+	CraftingComponentLink = nullptr;
 	ItemCollectionRef = nullptr;
 
 	if (!IsValid(ContextActor))
@@ -89,8 +120,8 @@ void UCraftingStationComponent::InitializeCraftingStation(AActor* ContextActor)
 		return;
 	}
 
-	CraftingComponentRef = ContextActor->FindComponentByClass<UCraftingComponent>();
-	if (!CraftingComponentRef)
+	CraftingComponentLink = ContextActor->FindComponentByClass<UCraftingComponent>();
+	if (!CraftingComponentLink)
 	{
 		UE_LOG(LogTemp,	Error, TEXT("[%s] Actor '%s' has UCraftingStationComponent, but no UCraftingComponent was found."),
 			*GetName(),	*ContextActor->GetName());
@@ -107,7 +138,7 @@ void UCraftingStationComponent::InitializeCraftingStation(AActor* ContextActor)
 		}
 		
 		auto GSettings = UInvenzayUtility::GetInvenzaGlobalSettings(GetWorld());
-		auto CraftConfig = CraftingComponentRef->GetConfig();
+		auto CraftConfig = CraftingComponentLink->GetConfig();
 		
 		auto FindInventory = [this](const FGameplayTag& OverrideTag, const FGameplayTag& DefaultTag) -> UInventoryBase*
 		{
@@ -135,16 +166,16 @@ void UCraftingStationComponent::InitializeCraftingStation(AActor* ContextActor)
 		UInventoryBase* FuelInventory = FindInventory(CraftConfig.FuelInventoryTag, GSettings->FuelInvTagByDefault);
 
 		if (IsValid(InputInventory))
-			CraftingComponentRef->SetInputInventory(InputInventory);
+			CraftingComponentLink->SetInputInventory(InputInventory);
 
 		if (IsValid(OutputInventory))
-			CraftingComponentRef->SetOutputInventory(OutputInventory);
+			CraftingComponentLink->SetOutputInventory(OutputInventory);
 		
 		if (IsValid(FuelInventory))
-			CraftingComponentRef->SetFuelInventory(FuelInventory);
+			CraftingComponentLink->SetFuelInventory(FuelInventory);
 	}
 	
-	CraftingComponentRef->RequestInitCraftingComponent();
+	CraftingComponentLink->RequestInitCraftingComponent();
 }
 
 void UCraftingStationComponent::InitializeInteractionComponent()
@@ -155,8 +186,24 @@ void UCraftingStationComponent::InitializeInteractionComponent()
 void UCraftingStationComponent::UpdateInteractableData()
 {
 	Super::UpdateInteractableData();
-
-	InteractableData.DefaultInteractableType = EInteractableType::Craft;
-	InteractableData.Action = FText::FromString(TEXT("Open Craft"));
-	InteractableData.Quantity = -1;
+	
+	if (!InteractableDataMap.Contains(EInteractionType::Primary))
+	{
+		FInteractableData PrimaryData;
+		PrimaryData.DefaultInteractableType = EInteractableType::Craft;
+		PrimaryData.Action = FText::FromString(TEXT("Open Craft"));
+		PrimaryData.Quantity = -1;
+		InteractableDataMap.Add(EInteractionType::Primary, PrimaryData);
+	}
+	
+	if (!InteractableDataMap.Contains(EInteractionType::Secondary))
+	{
+		FInteractableData SecondaryData;
+		SecondaryData.DefaultInteractableType = EInteractableType::Craft;
+		SecondaryData.Action = FText::FromString(TEXT("Work"));
+		SecondaryData.bHoldToInteract = false;
+		SecondaryData.Quantity = -1;
+		InteractableDataMap.Add(EInteractionType::Secondary, SecondaryData);
+	}
+	
 }

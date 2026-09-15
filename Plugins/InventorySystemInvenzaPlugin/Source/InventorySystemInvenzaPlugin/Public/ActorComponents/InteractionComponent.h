@@ -5,8 +5,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Data/Interaction/InteractionData.h"
-#include "Interactable/InteractableData.h"
-#include "Settings/InvenzaSettings.h"
+#include "Data/Interactable/InteractableData.h"
 #include "InteractionComponent.generated.h"
 
 class UIInventoryManager;
@@ -23,13 +22,13 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UInteractionComponent : public UActorComp
 	GENERATED_BODY()
 
 #pragma region delegates
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBeginFocus, FInteractableData, InteractableData);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBeginFocus, const TArray<FInteractionDisplayEntry>&, Entries);
 
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEndFocus, FInteractableData, InteractableData);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEndFocus, const TArray<FInteractionDisplayEntry>&, Entries);
 
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInteract, UInteractableComponent*, TargetInteractableComponent);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnInteract, UInteractableComponent*, TargetInteractableComponent, EInteractionType, Type);
 
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnStopInteract, UInteractableComponent*, TargetInteractableComponent);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnStopInteract, UInteractableComponent*, TargetInteractableComponent, EInteractionType, Type);
 
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEndInteract, UInteractableComponent*, TargetInteractableComponent);
 
@@ -91,10 +90,7 @@ protected:
 
  #pragma region Input
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interaction|Input")
-	TObjectPtr<UInputAction> InteractAction;
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interaction|Input")
-	TObjectPtr<UInputAction> InteractionMenuAction;
+	TArray<FInteractionKeyBinding> KeyBindings;
 #pragma endregion
 
 	//
@@ -117,6 +113,10 @@ protected:
 	//Refs
 	UPROPERTY(BlueprintReadWrite)
 	TObjectPtr<UCameraComponent> CameraComponent;	
+	
+	// Runtime
+	EInteractionType PendingInteractionType = EInteractionType::Primary;
+	EInteractionType ActiveInteractionType = EInteractionType::Primary;
 
 	//====================================================================
 	// FUNCTIONS
@@ -135,7 +135,7 @@ protected:
 	 * - Otherwise a timer is started and interaction progress begins
 	 */
 	UFUNCTION()
-	void BeginInteract();
+	void BeginInteract(EInteractionType Type);
 	
 	/**
 	* Called when player releases the interact input.
@@ -145,7 +145,7 @@ protected:
 	* Does NOT stop an already completed interaction.
 	*/
 	UFUNCTION()
-	void EndInteract();
+	void EndInteract(EInteractionType Type);
 
 	/**
  	* Executes the interaction once its duration timer finishes
@@ -178,4 +178,7 @@ protected:
 	
 	UFUNCTION(BlueprintCallable)
 	void CollectInteractionActions();
+	
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	TArray<FInteractionDisplayEntry> BuildDisplayEntries(UInteractableComponent* Target) const;
 };

@@ -4,6 +4,7 @@
 #include "UI/Craft/CraftDashboard.h"
 
 #include "Components/ListView.h"
+#include "Components/NamedSlot.h"
 #include "Data/Settings/InvenzaInventorySettingsAsset.h"
 #include "Subsystems/InvenzaInventorySettingsSubsystem.h"
 #include "UI/Core/Buttons/UIButton.h"
@@ -73,6 +74,41 @@ void UCraftDashboard::SetCraftComponentPtr(UCraftingComponent* NewCraftingCompon
 	{
 		UpdateQueueCraftList(TArray<FQueuedRecipe>());
 		UpdateCurrentCraftProgress(FQueuedRecipe());
+	}
+}
+
+void UCraftDashboard::SetInventoryWidgets(UInventoryContainerWidget* InputWidget, UInventoryContainerWidget* FuelWidget,
+	UInventoryContainerWidget* OutputWidget)
+{
+	if (InputSlot)
+	{
+		InputSlot->ClearChildren();
+		if (InputWidget) InputSlot->AddChild(InputWidget);
+	}
+
+	if (FuelSlot)
+	{
+		FuelSlot->ClearChildren();
+		if (FuelWidget) FuelSlot->AddChild(FuelWidget);
+	}
+
+	if (OutputSlot)
+	{
+		OutputSlot->ClearChildren();
+		if (OutputWidget) OutputSlot->AddChild(OutputWidget);
+	}
+}
+
+void UCraftDashboard::SetInteractorWidget(UInventoryContainerWidget* InteractorWidget)
+{
+	if (InteractorSlot)
+	{
+		InteractorSlot->ClearChildren();
+		if (InteractorWidget)
+		{
+			InteractorSlot->AddChild(InteractorWidget);
+			InteractorWidget->ReDrawRequest();
+		}
 	}
 }
 

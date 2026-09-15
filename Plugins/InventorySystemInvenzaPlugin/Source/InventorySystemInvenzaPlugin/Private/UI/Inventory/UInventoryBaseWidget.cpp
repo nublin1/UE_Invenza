@@ -12,6 +12,16 @@ UUInventoryBaseWidget::UUInventoryBaseWidget()
 {
 }
 
+void UUInventoryBaseWidget::NativePreConstruct()
+{
+	Super::NativePreConstruct();
+	
+	if (ItemFiltersPanel && bShowFilterPanel == false)
+	{
+		ItemFiltersPanel->SetVisibility(ESlateVisibility::Collapsed);
+	}
+}
+
 void UUInventoryBaseWidget::NativeOnInitialized()
 {
 	Super::NativeOnInitialized();

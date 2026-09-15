@@ -4,10 +4,31 @@
 
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
+#include "InputAction.h"
 #include "UObject/Interface.h"
 #include "InteractableData.generated.h"
 
 class UInteractionComponent;
+
+UENUM(BlueprintType)
+enum class EInteractionType : uint8
+{
+	Primary,
+	Secondary,
+	Tertiary
+};
+
+USTRUCT(BlueprintType)
+struct FInteractionKeyBinding
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditDefaultsOnly)
+	TObjectPtr<UInputAction> Action;
+
+	UPROPERTY(EditDefaultsOnly)
+	EInteractionType Type = EInteractionType::Primary;
+};
 
 UENUM(BlueprintType)
 enum class EInteractableType: uint8 

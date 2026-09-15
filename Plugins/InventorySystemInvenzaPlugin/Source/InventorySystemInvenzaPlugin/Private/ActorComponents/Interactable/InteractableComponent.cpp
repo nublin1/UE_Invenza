@@ -16,6 +16,13 @@ void UInteractableComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 	DOREPLIFETIME(UInteractableComponent, bIsInteracting);
 }
 
+const FInteractableData& UInteractableComponent::GetInteractableData() const
+{
+	static FInteractableData Empty;
+	const FInteractableData* Found = InteractableDataMap.Find(EInteractionType::Primary);
+	return Found ? *Found : Empty;
+}
+
 // Add default functionality here for any IInteractionInterface functions that are not pure virtual.
 void UInteractableComponent::BeginFocus()
 {
@@ -25,19 +32,20 @@ void UInteractableComponent::EndFocus()
 {
 }
 
-void UInteractableComponent::BeginInteract(UInteractionComponent* InteractionComponent)
+void UInteractableComponent::BeginInteract(UInteractionComponent* InteractionComponent, EInteractionType Type)
 {
 }
 
-void UInteractableComponent::EndInteract(UInteractionComponent* InteractionComponent)
+void UInteractableComponent::EndInteract(UInteractionComponent* InteractionComponent, EInteractionType Type)
 {
 }
 
-void UInteractableComponent::Interact(UInteractionComponent* InteractionComponent)
+void UInteractableComponent::HandleInteract(UInteractionComponent* InteractionComponent)
 {
+	
 }
 
-void UInteractableComponent::StopInteract(UInteractionComponent* InteractionComponent)
+void UInteractableComponent::HandleStopInteract(UInteractionComponent* InteractionComponent, EInteractionType Type)
 {
 }
 
@@ -56,6 +64,12 @@ void UInteractableComponent::InitializeInteractionComponent()
 
 void UInteractableComponent::UpdateInteractableData()
 {
-	InteractableData.DefaultInteractableType = EInteractableType::InfoOnly;
-	InteractableData.Action = FText::FromString("");
+	if (InteractableDataMap.Contains(EInteractionType::Primary))
+		return;
+	
+	FInteractableData PrimaryData;
+	PrimaryData.DefaultInteractableType = EInteractableType::InfoOnly;
+	PrimaryData.Action = FText::FromString(TEXT(""));
+	PrimaryData.Quantity = -1;
+	InteractableDataMap.Add(EInteractionType::Primary, PrimaryData);
 }

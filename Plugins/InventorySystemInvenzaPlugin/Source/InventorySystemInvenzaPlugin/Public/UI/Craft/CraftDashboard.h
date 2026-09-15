@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
 #include "UI/InvenzaBaseWidget.h"
+#include "UI/Inventory/Container/InventoryContainerWidget.h"
 #include "CraftDashboard.generated.h"
 
 class UCraftControlPanel;
@@ -33,13 +34,23 @@ public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	// Widgets
 	
+	// Widgets
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
 	TObjectPtr<UQueueCraftList> QueueCraftList;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
 	TObjectPtr<UCraftControlPanel> CraftControlPanel;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
+	TObjectPtr<UNamedSlot> InputSlot;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
+	TObjectPtr<UNamedSlot> FuelSlot;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
+	TObjectPtr<UNamedSlot> OutputSlot;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
+	TObjectPtr<UNamedSlot> InteractorSlot;
 	
 	//====================================================================
 	// FUNCTIONS
@@ -50,6 +61,12 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void SetCraftComponentPtr(UCraftingComponent* NewCraftingComponent);
+	
+	UFUNCTION(BlueprintCallable)
+	void SetInventoryWidgets(UInventoryContainerWidget* InputWidget, UInventoryContainerWidget* FuelWidget, UInventoryContainerWidget* OutputWidget);
+	
+	UFUNCTION(BlueprintCallable)
+	void SetInteractorWidget(UInventoryContainerWidget* InteractorWidget);
 
 protected:
 	//====================================================================

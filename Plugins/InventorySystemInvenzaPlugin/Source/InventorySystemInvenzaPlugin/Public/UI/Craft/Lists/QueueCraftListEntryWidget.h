@@ -4,9 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/IUserObjectListEntry.h"
+#include "Data/CraftSystem/CraftingStructs.h"
 #include "UI/InvenzaBaseWidget.h"
 #include "QueueCraftListEntryWidget.generated.h"
 
+class UVerticalBox;
 class UCurrentMaxDisplay;
 class UProductionQueueListEntryObject;
 class UCraftingQuantitySelector;
@@ -49,24 +51,29 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Componets", meta = (BindWidget))
 	TObjectPtr<ULabelBaseText> QueueItemName;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidget))
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category = "UI|Componets", meta = (BindWidgetOptional))
+	TObjectPtr<UVerticalBox> VBox_QueueItemActions;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
 	TObjectPtr<UUIButton> Btn_QueueUp;
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidget))
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
 	TObjectPtr<UUIButton> Btn_QueueDown;
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidget))
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
 	TObjectPtr<UUIButton> Btn_QueueDelete;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Componets", meta = (BindWidgetOptional))
 	TObjectPtr<UCraftingQuantitySelector> CraftingQuantitySelectorMini;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Componets", meta = (BindWidgetOptional))
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category = "UI|Componets", meta = (BindWidgetOptional))
 	TObjectPtr<UCurrentMaxDisplay> RemainingCount ;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Componets", meta = (BindWidgetOptional))
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category = "UI|Componets", meta = (BindWidgetOptional))
 	TObjectPtr<UCurrentMaxDisplay> CraftProgress ;
 	
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+	
+	UFUNCTION(BlueprintCallable)
+	void UpdateData(const FQueuedRecipe& NewData);	
 
 protected:
 	//====================================================================
@@ -81,6 +88,8 @@ protected:
 	// FUNCTIONS
 	//====================================================================
 
+	UFUNCTION()
+	void UpdateQueueData(UProductionQueueListEntryObject* ProductionDetail);
 	UFUNCTION()
 	void HandleDataChanged();
 	

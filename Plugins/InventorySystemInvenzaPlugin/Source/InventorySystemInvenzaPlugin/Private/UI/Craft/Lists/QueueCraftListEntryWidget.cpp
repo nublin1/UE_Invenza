@@ -11,7 +11,7 @@
 #include "UI/Craft/CraftingQuantitySelector.h"
 
 
-UQueueCraftListEntryWidget::UQueueCraftListEntryWidget(): QueueListEntryRef(nullptr)
+UQueueCraftListEntryWidget::UQueueCraftListEntryWidget() : QueueListEntryRef(nullptr)
 {
 }
 
@@ -21,15 +21,12 @@ void UQueueCraftListEntryWidget::NativeConstruct()
 
 	if (Btn_QueueUp)
 	{
-		Btn_QueueUp->OnButtonClicked.AddDynamic(this,
-			&UQueueCraftListEntryWidget::OnBtnUpClicked);
+		Btn_QueueUp->OnButtonClicked.AddDynamic(this, &UQueueCraftListEntryWidget::OnBtnUpClicked);
 	}
 	if (Btn_QueueDown)
 	{
-		Btn_QueueDown->OnButtonClicked.AddDynamic(this,
-			&UQueueCraftListEntryWidget::OnBtnDownClicked);
+		Btn_QueueDown->OnButtonClicked.AddDynamic(this, &UQueueCraftListEntryWidget::OnBtnDownClicked);
 	}
-
 	if (Btn_QueueDelete)
 	{
 		Btn_QueueDelete->OnButtonClicked.AddDynamic(this, &UQueueCraftListEntryWidget::OnBtnDeleteClicked);
@@ -40,55 +37,53 @@ void UQueueCraftListEntryWidget::NativeOnListItemObjectSet(UObject* DetailItemOb
 {
 	IUserObjectListEntry::NativeOnListItemObjectSet(DetailItemObject);
 
-	if (auto ProductionDetail = Cast<UProductionQueueListEntryObject>(DetailItemObject))
+	if (auto* ProductionDetail = Cast<UProductionQueueListEntryObject>(DetailItemObject))
 	{
 		QueueListEntryRef = ProductionDetail;
-
 		QueueListEntryRef->OnDataChanged.AddDynamic(this, &UQueueCraftListEntryWidget::HandleDataChanged);
 		
 		if (UTexture2D* Icon = ProductionDetail->GetQueuedRecipeData().ItemRecipeRow.RecipeIcon.Get())
 		{
-			if (QueueIcon)
-				QueueIcon->UpdateImage(Icon);
+			if (QueueIcon) { QueueIcon->UpdateImage(Icon); }
 		}
-
 		QueueItemName->UpdateText(ProductionDetail->GetQueuedRecipeData().ItemRecipeRow.DisplayName);
+		UpdateQueueData(ProductionDetail);
+	}
+}
 
-		if (CraftingQuantitySelectorMini)
-		{
-			CraftingQuantitySelectorMini->SetQuantity(ProductionDetail->GetQueuedRecipeData().Count);
-		}
-		
-		if (RemainingCount)
-		{
-			RemainingCount->CurrentValue->UpdateText(FText::AsNumber(ProductionDetail->GetQueuedRecipeData().Count));
-		}
+void UQueueCraftListEntryWidget::UpdateData(const FQueuedRecipe& NewData)
+{
+	if (UTexture2D* Icon = NewData.ItemRecipeRow.RecipeIcon.Get())
+	{
+		if (QueueIcon) { QueueIcon->UpdateImage(Icon); }
+	}
+	
+	QueueItemName->UpdateText(NewData.ItemRecipeRow.DisplayName);
+	if (CraftingQuantitySelectorMini) { CraftingQuantitySelectorMini->SetQuantity(NewData.Count); }
+	if (RemainingCount) { RemainingCount->CurrentValue->UpdateText(FText::AsNumber(NewData.Count)); }
+	if (CraftProgress)
+	{
+		CraftProgress->CurrentValue->UpdateText(FText::AsNumber(NewData.CurrentProgress));
+		CraftProgress->MaxValue->UpdateText(FText::AsNumber(NewData.ItemRecipeRow.CraftVolume));
+	}
+}
 
-		if (CraftProgress)
-		{
-			CraftProgress->CurrentValue->UpdateText(FText::AsNumber(ProductionDetail->GetQueuedRecipeData().CurrentProgress));
-			CraftProgress->MaxValue->UpdateText(FText::AsNumber(ProductionDetail->GetQueuedRecipeData().ItemRecipeRow.CraftVolume));
-		}
+void UQueueCraftListEntryWidget::UpdateQueueData(UProductionQueueListEntryObject* ProductionDetail)
+{
+	if (!ProductionDetail) return;
+	const auto& QueuedRecipeData = ProductionDetail->GetQueuedRecipeData();
+	if (CraftingQuantitySelectorMini) { CraftingQuantitySelectorMini->SetQuantity(QueuedRecipeData.Count); }
+	if (RemainingCount) { RemainingCount->CurrentValue->UpdateText(FText::AsNumber(QueuedRecipeData.Count)); }
+	if (CraftProgress)
+	{
+		CraftProgress->CurrentValue->UpdateText(FText::AsNumber(QueuedRecipeData.CurrentProgress));
+		CraftProgress->MaxValue->UpdateText(FText::AsNumber(QueuedRecipeData.ItemRecipeRow.CraftVolume));
 	}
 }
 
 void UQueueCraftListEntryWidget::HandleDataChanged()
 {
-	if (CraftingQuantitySelectorMini)
-	{
-		CraftingQuantitySelectorMini->SetQuantity(QueueListEntryRef->GetQueuedRecipeData().Count);
-	}
-	
-	if (RemainingCount)
-	{
-		RemainingCount->CurrentValue->UpdateText(FText::AsNumber(QueueListEntryRef->GetQueuedRecipeData().Count));
-	}
-	
-	if (CraftProgress)
-	{
-		CraftProgress->CurrentValue->UpdateText(FText::AsNumber(QueueListEntryRef->GetQueuedRecipeData().CurrentProgress));
-		CraftProgress->MaxValue->UpdateText(FText::AsNumber(QueueListEntryRef->GetQueuedRecipeData().ItemRecipeRow.CraftVolume));
-	}
+	UpdateQueueData(QueueListEntryRef);
 }
 
 void UQueueCraftListEntryWidget::OnBtnUpClicked(UUIButton* Btn)

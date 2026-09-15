@@ -28,10 +28,7 @@ void UInventoryContainerWidget::NativePreConstruct()
 	
 	if (TitleBar)
 	{
-		TitleBar->TitleName->UpdateText(Title);
-		
-		if (!bIsShowCloseButton && TitleBar->HeaderCanvasPanel)
-			TitleBar->Button_Close->SetVisibility(ESlateVisibility::Collapsed);
+		UpdateTitle(Title);
 	}
 
 	if (OperationsSlot)
@@ -62,54 +59,27 @@ void UInventoryContainerWidget::NativeConstruct()
 	{
 		TitleBar->SetParentWidget(this);
 		
-		if (!bIsShowCloseButton)
-			TitleBar->Button_Close->OnButtonClicked.AddDynamic(this, &UInventoryContainerWidget::CloseButtonClicked);
+		if (bIsShowCloseButton)
+			TitleBar->Button_Close->OnButtonClicked.AddUniqueDynamic(this, &UInventoryContainerWidget::CloseButtonClicked);
 	}
 }
 
-void UInventoryContainerWidget::InitializeInventoryBindings()
+void UInventoryContainerWidget::InitializeInventoryContainer()
 {
 	UUInventoryBaseWidget* InventoryWidget = GetInventoryWidgetFromContainerSlot();
 	if (!InventoryWidget)
 		return;
 
-	auto Inventory = InventoryWidget->GetInventoryRef();
+	UInventoryBase* Inventory = InventoryWidget->GetInventoryRef();
 	if (!Inventory)
 		return;
 
 	InventoryRef = Inventory;
-
-	if (InvWeight)
-	{
-		if (InventoryRef->GetInventorySettings().InventoryMaxWeightCapacity < 0)
-			InvWeight->SetVisibility(ESlateVisibility::Collapsed);
-		else
-		{
-			InventoryRef->OnWeightUpdatedDelegate.AddDynamic(this, &UInventoryContainerWidget::UpdateWeightInfo);
-			InventoryRef->UpdateWeightInfo();
-		}
-	}
-
-	if (OperationsSlot && OperationsSlot->GetChildrenCount() > 0)
-	{
-		if (auto OperationsWidget = Cast<UOperationPanelWidget>(OperationsSlot->GetChildAt(0)))
-		{
-			if (OperationsWidget->Button_TakeAll && OperationsWidget->Button_TakeAll->MainButton)
-				OperationsWidget->Button_TakeAll->MainButton->OnClicked.AddDynamic(
-					this, &UInventoryContainerWidget::TakeAll);
-			if (OperationsWidget->Button_PlaceAll && OperationsWidget->Button_PlaceAll->MainButton)
-				OperationsWidget->Button_PlaceAll->MainButton->OnClicked.AddDynamic(
-					this, &UInventoryContainerWidget::PlaceAll);
-			if (OperationsWidget->Button_Sort && OperationsWidget->Button_Sort->MainButton)
-				OperationsWidget->Button_Sort->MainButton->OnClicked.AddDynamic(
-					this, &UInventoryContainerWidget::SortItems);
-		}
-	}
-	
 	InventoryWidgetRef = InventoryWidget;
-
-	Inventory->OnMoneyUpdatedDelegate.AddDynamic(this, &UInventoryContainerWidget::UpdateMoneyInfo);
-	Inventory->UpdateMoneyInfo();
+	
+	InitializeTitleBar();
+	InitializeInventoryInfo();
+	InitializeOperations();
 }
 
 void UInventoryContainerWidget::ChangeInventoryInContainerSlot(TSubclassOf<UInvenzaBaseWidget> NewInventory)
@@ -231,4 +201,121 @@ void UInventoryContainerWidget::SortItems()
 		return;
 
 	InventoryRef->GetItemCollectionLinked()->RequestSortInventory(InventoryRef->GetInventoryContainerID(), EInventorySortCriteria::ByName);
+}
+
+void UInventoryContainerWidget::InitializeTitleBar()
+{
+	const auto& InvSettings = InventoryRef->GetInventorySettings();
+	
+	UpdateTitle(InvSettings.ContainerTitle);
+	
+	if (InvSettings.bIsClosable)
+	{
+		TitleBar->Button_Close->SetVisibility(ESlateVisibility::Visible);
+		TitleBar->Button_Close->OnButtonClicked.AddDynamic(
+			this,
+			&UInventoryContainerWidget::CloseButtonClicked
+		);
+	}
+	else
+	{
+		TitleBar->Button_Close->SetVisibility(ESlateVisibility::Collapsed);
+	}
+}
+
+void UInventoryContainerWidget::InitializeInventoryInfo()
+{
+	if (!InventoryRef)
+		return;
+
+	const auto& InvSettings = InventoryRef->GetInventorySettings();
+
+	if (InvWeight)
+	{
+		if (!bIsShowWeight || !InvSettings.bShowTotalWeight ||
+			InvSettings.InventoryMaxWeightCapacity < 0)
+		{
+			InvWeight->SetVisibility(ESlateVisibility::Collapsed);
+		}
+		else
+		{
+			InvWeight->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+
+			InventoryRef->OnWeightUpdatedDelegate.AddDynamic(
+				this,
+				&UInventoryContainerWidget::UpdateWeightInfo
+			);
+
+			InventoryRef->UpdateWeightInfo();
+		}
+	}
+
+	if (InvMoney)
+	{
+		if (!bIsShowTotalMoney || !InvSettings.bShowTotalMoney)
+		{
+			InvMoney->SetVisibility(ESlateVisibility::Collapsed);
+		}
+		else
+		{
+			InvMoney->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+
+			InventoryRef->OnMoneyUpdatedDelegate.AddDynamic(
+				this,
+				&UInventoryContainerWidget::UpdateMoneyInfo
+			);
+
+			InventoryRef->UpdateMoneyInfo();
+		}
+	}
+}
+
+void UInventoryContainerWidget::InitializeOperations()
+{
+	if (!OperationsSlot || OperationsSlot->GetChildrenCount() == 0)
+		return;
+
+	UOperationPanelWidget* OperationsWidget = Cast<UOperationPanelWidget>(OperationsSlot->GetChildAt(0));
+	if (!OperationsWidget)
+		return;
+
+	if (OperationsWidget->Button_TakeAll &&
+		OperationsWidget->Button_TakeAll->MainButton)
+	{
+		OperationsWidget->Button_TakeAll->MainButton->OnClicked.AddDynamic(
+			this,
+			&UInventoryContainerWidget::TakeAll
+		);
+	}
+
+	if (OperationsWidget->Button_PlaceAll &&
+		OperationsWidget->Button_PlaceAll->MainButton)
+	{
+		OperationsWidget->Button_PlaceAll->MainButton->OnClicked.AddDynamic(
+			this,
+			&UInventoryContainerWidget::PlaceAll
+		);
+	}
+
+	if (OperationsWidget->Button_Sort &&
+		OperationsWidget->Button_Sort->MainButton)
+	{
+		OperationsWidget->Button_Sort->MainButton->OnClicked.AddDynamic(
+			this,
+			&UInventoryContainerWidget::SortItems
+		);
+	}
+}
+
+void UInventoryContainerWidget::UpdateTitle(FText NewText)
+{
+	Title = NewText;
+	
+	if (TitleBar)
+	{
+		TitleBar->TitleName->UpdateText(Title);
+		
+		if (!bIsShowCloseButton && TitleBar->HeaderCanvasPanel)
+			TitleBar->Button_Close->SetVisibility(ESlateVisibility::Collapsed);
+	}
 }

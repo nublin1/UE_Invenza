@@ -59,7 +59,7 @@ public:
 	// FUNCTIONS
 	//====================================================================
 	UFUNCTION(BlueprintCallable, Category = "Container|Inventory")
-	void InitializeInventoryBindings();
+	void InitializeInventoryContainer();
 	
 	UFUNCTION(BlueprintCallable, Category = "Container|Inventory")
 	virtual void ChangeInventoryInContainerSlot(TSubclassOf<UInvenzaBaseWidget> NewInventory);
@@ -112,5 +112,14 @@ protected:
 	virtual void PlaceAll();
 	UFUNCTION(BlueprintCallable, Category = "Container|Operations")
 	virtual void SortItems();
+	
+	UFUNCTION(BlueprintCallable)
+	void InitializeTitleBar();
+	UFUNCTION(BlueprintCallable)
+	void InitializeInventoryInfo();
+	UFUNCTION(BlueprintCallable)
+	void InitializeOperations();
+	UFUNCTION()
+	virtual void UpdateTitle(FText NewText);
 	
 };

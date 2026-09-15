@@ -1,8 +1,9 @@
-// Nublin Studio 2025 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Data/Interactable/InteractableData.h"
 #include "InteractionData.generated.h"
 
 class UInteractableComponent;
@@ -21,4 +22,16 @@ struct FInteractionData
 
 	UPROPERTY()
 	float LastInteractionCheckTime;
+};
+
+USTRUCT(BlueprintType)
+struct FInteractionDisplayEntry
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly)
+	FText KeyLabel;
+
+	UPROPERTY(BlueprintReadOnly)
+	FInteractableData Data;
 };

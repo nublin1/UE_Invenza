@@ -9,9 +9,10 @@
 #include "Engine/World.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/Character.h"
+#include "Utility/InputUtility.h"
 
 
-UInteractionComponent::UInteractionComponent(): TraceChannel(), TargetInteractableComponent(nullptr),
+UInteractionComponent::UInteractionComponent(): TargetInteractableComponent(nullptr),
                                                 CurrentInteractableComponent(nullptr)
 {
 	PrimaryComponentTick.bCanEverTick = true;
@@ -60,27 +61,21 @@ void UInteractionComponent::InitInteractionComponent()
 {
 	APawn* OwnerPawn = Cast<APawn>(GetOwner());
 	if (!OwnerPawn || !OwnerPawn->IsLocallyControlled())
-	{
-		UE_LOG(LogTemp, Log, TEXT("InitInteractionComponent: Skipping input binding — not locally controlled"));
 		return;
-	}
-	
+
 	if (auto CameraComp = OwnerPawn->FindComponentByClass<UCameraComponent>())
 		CameraComponent = CameraComp;
-	
-	UEnhancedInputComponent* Input = Cast<UEnhancedInputComponent>(GetOwner()->InputComponent);
-	if (!Input)
-	{
-		UE_LOG(LogTemp, Error, TEXT("InitInteractionComponent: InputComponent is NULL or not EnhancedInput. InputComponent=%s"),
-		   GetOwner()->InputComponent ? *GetOwner()->InputComponent->GetClass()->GetName() : TEXT("NULL"));
-		return;
-	}
 
-	UE_LOG(LogTemp, Log, TEXT("InitInteractionComponent: Binding actions, InteractAction=%s"),
-	   InteractAction ? *InteractAction->GetName() : TEXT("NULL"));
-	
-	Input->BindAction(InteractAction, ETriggerEvent::Started, this, &UInteractionComponent::BeginInteract);
-	Input->BindAction(InteractAction, ETriggerEvent::Completed, this, &UInteractionComponent::EndInteract);
+	UEnhancedInputComponent* Input = Cast<UEnhancedInputComponent>(GetOwner()->InputComponent);
+	if (!Input) return;
+
+	for (const FInteractionKeyBinding& Binding : KeyBindings)
+	{
+		if (!Binding.Action) continue;
+
+		Input->BindAction(Binding.Action, ETriggerEvent::Started, this, &UInteractionComponent::BeginInteract, Binding.Type);
+		Input->BindAction(Binding.Action, ETriggerEvent::Completed, this, &UInteractionComponent::EndInteract, Binding.Type);
+	}
 }
 
 void UInteractionComponent::PerformInteractionCheck()
@@ -144,16 +139,16 @@ void UInteractionComponent::FoundInteractable(AActor* NewInteractable, UInteract
 	TargetInteractableComponent = NewInteractableComp;
 
 	TargetInteractableComponent->BeginFocus();
-	if (OnBeginFocus.IsBound())
-	{
-		OnBeginFocus.Broadcast(TargetInteractableComponent->GetInteractableData());
-	}
+
+	const TArray<FInteractionDisplayEntry> DisplayEntry = BuildDisplayEntries(TargetInteractableComponent);
+	OnBeginFocus.Broadcast(DisplayEntry);
+	
 }
 
 void UInteractionComponent::NotFoundInteractable()
 {
 	GetWorld()->GetTimerManager().ClearTimer(TimerHandle_Interaction);
-	
+    
 	if (InteractionData.CurrentInteractable)
 	{
 		if (IsValid(TargetInteractableComponent))
@@ -161,106 +156,98 @@ void UInteractionComponent::NotFoundInteractable()
 			TargetInteractableComponent->EndFocus();
 		}
 
-		if (OnEndFocus.IsBound() && InteractionData.CurrentInteractable)
+		if (OnEndFocus.IsBound())
 		{
-			OnEndFocus.Broadcast(InteractionData.CurrentInteractable->GetInteractableData());
+			OnEndFocus.Broadcast(BuildDisplayEntries(InteractionData.CurrentInteractable));
 		}
-		InteractionData.CurrentInteractable = nullptr;		
-		
+       
+		InteractionData.CurrentInteractable = nullptr;    
 		InteractionData.LastInteractable = InteractionData.CurrentInteractable;
 		TargetInteractableComponent = nullptr;
 	}
 }
 
-void UInteractionComponent::BeginInteract()
+void UInteractionComponent::BeginInteract(EInteractionType Type)
 {
 	// verify nothing has changed with the iteractable state since beginning interaction
 	PerformInteractionCheck();
 
-	if (!InteractionData.CurrentInteractable)
+	if (!InteractionData.CurrentInteractable || !IsValid(TargetInteractableComponent))
 		return;
 
-	if (!IsValid(TargetInteractableComponent))
-		return;
-	
-	if (CurrentInteractableComponent &&
-		CurrentInteractableComponent == TargetInteractableComponent)
+	const FInteractableData* Data = TargetInteractableComponent->GetInteractableDataForType(Type);
+	if (!Data) return; 
+
+	if (CurrentInteractableComponent && CurrentInteractableComponent == TargetInteractableComponent
+		&& ActiveInteractionType == Type)
 	{
 		StopInteract();
 		return;
 	}
-	
+
 	if (TargetInteractableComponent->IsInteracting())
 	{
 		BusyNotify();
 		return;
 	}
-	
+
 	StopInteract();
+	PendingInteractionType = Type;
 
-	TargetInteractableComponent->BeginInteract(this);
+	TargetInteractableComponent->BeginInteract(this, Type);
 
-	if (FMath::IsNearlyZero(
-		TargetInteractableComponent->GetInteractableData().InteractableDuration, 0.1f))
+	if (FMath::IsNearlyZero(Data->InteractableDuration, 0.1f))
 	{
 		Interact();
 	}
 	else
 	{
 		InteractionStartTime = GetWorld()->GetTimeSeconds();
-
-		GetWorld()->GetTimerManager().SetTimer(
-			TimerHandle_Interaction,
-			this,
-			&UInteractionComponent::Interact,
-			TargetInteractableComponent->GetInteractableData().InteractableDuration,
-			false);
+		GetWorld()->GetTimerManager().SetTimer(TimerHandle_Interaction, this, &UInteractionComponent::Interact, Data->InteractableDuration, false);
 	}
 }
 
-void UInteractionComponent::EndInteract()
+void UInteractionComponent::EndInteract(EInteractionType Type)
 {
-	if (IsValid(TargetInteractableComponent) && TargetInteractableComponent->GetInteractableData().bHoldToInteract)
+	if (IsValid(TargetInteractableComponent))
 	{
-		GetWorld()->GetTimerManager().ClearTimer(TimerHandle_Interaction);	
-		
-		TargetInteractableComponent->EndInteract(this);
-		EndInteractNotify();
-		return;
-		
+		const FInteractableData* Data = TargetInteractableComponent->GetInteractableDataForType(Type);
+		if (Data && Data->bHoldToInteract)
+		{
+			GetWorld()->GetTimerManager().ClearTimer(TimerHandle_Interaction);
+			TargetInteractableComponent->EndInteract(this, Type);
+			EndInteractNotify();
+		}
 	}
 }
 
 void UInteractionComponent::Interact()
 {	
 	CurrentInteractableComponent = TargetInteractableComponent;
-	
+	ActiveInteractionType = PendingInteractionType;
+
 	if (IsValid(TargetInteractableComponent))
 	{
-		//TargetInteractableComponent->Interact(this);
+		TargetInteractableComponent->HandleInteract(this);
 		InteractNotify();
 	}
 
 	if (GetWorld()->GetTimerManager().IsTimerActive(TimerHandle_Interaction))
-	{
-		EndInteract();
-	}
+		EndInteract(PendingInteractionType);
 }
 
 void UInteractionComponent::StopInteract()
 {
-	if (!CurrentInteractableComponent)
-		return;
-	
-	OnStopInteract.Broadcast(CurrentInteractableComponent);
+	if (!CurrentInteractableComponent) return;
 
-	CurrentInteractableComponent->StopInteract(this);
+	OnStopInteract.Broadcast(CurrentInteractableComponent, ActiveInteractionType);
+	CurrentInteractableComponent->HandleStopInteract(this, ActiveInteractionType);
 	CurrentInteractableComponent = nullptr;
 }
 
 void UInteractionComponent::InteractNotify()
 {
-	OnInteract.Broadcast(TargetInteractableComponent);
+	OnInteract.Broadcast(TargetInteractableComponent, PendingInteractionType);
 }
 
 void UInteractionComponent::EndInteractNotify()
@@ -314,4 +301,25 @@ void UInteractionComponent::CollectInteractionActions()
 	{
 		DefaultInteractionData = AvailableInteractions[0];
 	}
+}
+
+TArray<FInteractionDisplayEntry> UInteractionComponent::BuildDisplayEntries(UInteractableComponent* Target) const
+{
+	TArray<FInteractionDisplayEntry> Result;
+	if (!Target) return Result;
+
+	const auto& DataMap = Target->GetInteractableDataMap();
+
+	for (const FInteractionKeyBinding& Binding : KeyBindings)
+	{
+		const FInteractableData* Data = DataMap.Find(Binding.Type);
+		if (!Data) continue;
+
+		FInteractionDisplayEntry Entry;
+		Entry.KeyLabel = UInputUtility::GetKeyForAction(GetWorld(), Binding.Action);
+		Entry.Data = *Data;
+		Result.Add(Entry);
+	}
+
+	return Result;
 }

@@ -8,6 +8,7 @@
 #include "Data/Trade/TradeTypes.h"
 #include "Settings/InvenzaSettings.h"
 #include "UI/InvenzaBaseWidget.h"
+#include "UI/Core/ItemFiltersPanel/FiltersPanel.h"
 #include "UI/Inventory/Container/InventoryContainerWidget.h"
 #include "UInventoryBaseWidget.generated.h"
 
@@ -32,7 +33,9 @@ public:
 	UUInventoryBaseWidget();
 	
 protected:
+	virtual void NativePreConstruct() override;
 	virtual void NativeOnInitialized() override;
+	
 	
 public:
 	
@@ -83,17 +86,24 @@ protected:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category="Inventory|Settings")
-	FUISettings UISettings;
+	// Widgets
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UFiltersPanel> ItemFiltersPanel;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UInvenzaInventorySettingsAsset> GlobalSettings;
+	
+	// Config
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|Config")
+	bool bShowFilterPanel = true; 
 
 	// Refs
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="InventoryWidget")
 	TObjectPtr<UInventoryBase> InventoryRef;
 
 	// Data
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category="Inventory|Settings")
+	FUISettings UISettings;
 	UPROPERTY(BlueprintReadWrite)
 	TSet<FGameplayTag> ActiveFilters;
 	UPROPERTY(BlueprintReadOnly)

@@ -9,6 +9,7 @@
 #include "Interface/Inventory/InventoryInteractionHandler.h"
 #include "UIInventoryManager.generated.h"
 
+enum class EInteractionType : uint8;
 class ICraftProvider;
 class UInvenzaInventorySettingsAsset;
 struct FModalResult;
@@ -200,7 +201,7 @@ protected:
 	TScriptInterface<IInvUIProvider> UIInvProvider;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TScriptInterface<IInteractionUIProvider> InteractionUIProvider;
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Replicated)
 	TScriptInterface<ILootContainerProvider> LootContainerProvider;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Replicated)
 	TScriptInterface<ICraftProvider> CraftProvider;
@@ -217,7 +218,7 @@ protected:
 	TObjectPtr<UEquipmentComponent> EquipmentComponentRef;
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
 	TObjectPtr<UCraftingComponent> PawnCraftingComponentRef;
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, ReplicatedUsing = OnRep_ActiveCraftComponentRef)
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Replicated)
 	TObjectPtr<UCraftingComponent> ActiveCraftComponentRef;
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
 	TObjectPtr<UItemCollection> ItemCollectionRef;
@@ -250,9 +251,9 @@ protected:
 	virtual void VendorRequest(FItemMoveData ItemMoveData);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
-	void InteractRequest(UInteractableComponent* TargetInteractableComponent);
+	void InteractRequest(UInteractableComponent* TargetInteractableComponent, EInteractionType Type);
 	UFUNCTION(Server, Reliable, Category = "Inventory|Interaction")
-	void Server_HandleInteract(UInteractableComponent* Target);
+	void Server_HandleInteract(UInteractableComponent* Target, EInteractionType Type);
 	
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
 	void HandlePickupInteraction(UInteractableComponent* Target);
@@ -261,31 +262,31 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
 	void HandleTradeInteraction(UInteractableComponent* Target);
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
-	void HandleCraftStationInteraction(UInteractableComponent* Target);
+	void HandleCraftStationInteraction(UInteractableComponent* Target, EInteractionType Type);
 
 	
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
-	void InteractClearRequest(UInteractableComponent* TargetInteractableComponent);
+	void InteractClearRequest(UInteractableComponent* TargetInteractableComponent, EInteractionType Type);
 	UFUNCTION(Server, Reliable, Category = "Inventory|Interaction")
-	void Server_HandleClearInteract(UInteractableComponent* Target);
+	void Server_HandleClearInteract(UInteractableComponent* Target, EInteractionType Type);
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
-	void HandleClearInteraction(UInteractableComponent* TargetInteractableComponent = nullptr);
+	void HandleClearInteraction(UInteractableComponent* Target, EInteractionType Type);
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void OpenSecondaryInventory(UInventoryBase* Inv, EInteractableType InteractableType);
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void CloseSecondaryInventory(EInteractableType InteractableType);
+	
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	void HandleCraftInventoriesChanged(const FLinkedCraftInventories& Current);
 
 protected:
-	UFUNCTION()
-	void OnRep_ActiveCraftComponentRef(UCraftingComponent* PreviousComponent);
+	UFUNCTION(Server, Reliable)
+	void Server_ClientClosedUI(EInteractableType InteractableType);
 	
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
 	void BindInteractionWidget();
-	
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Craft")
-	void BindCraftComponentToWidgets(UCraftingComponent* Component);
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")

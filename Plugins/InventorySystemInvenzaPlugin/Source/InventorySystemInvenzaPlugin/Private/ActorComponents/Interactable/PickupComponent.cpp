@@ -71,9 +71,9 @@ void UPickupComponent::EndFocus()
 	}
 }
 
-void UPickupComponent::Interact(UInteractionComponent* InteractionComponent)
+void UPickupComponent::HandleInteract(UInteractionComponent* InteractionComponent)
 {
-	Super::Interact(InteractionComponent);
+	Super::HandleInteract(InteractionComponent);
 }
 
 void UPickupComponent::InitializeDrop(FInitItemsEntry ItemToDrop)
@@ -132,18 +132,22 @@ void UPickupComponent::OnRep_ItemBase()
 void UPickupComponent::UpdateInteractableData()
 {
 	Super::UpdateInteractableData();
-	InteractableData.DefaultInteractableType = EInteractableType::Pickup;
-	InteractableData.Action = FText::FromString(TEXT("Pickup"));
-
+	
+	FInteractableData PrimaryData;
+	PrimaryData.DefaultInteractableType = EInteractableType::Pickup;
+	PrimaryData.Action = FText::FromString(TEXT("Pickup"));
+	PrimaryData.Quantity = -1;
+	InteractableDataMap.Add(EInteractionType::Primary, PrimaryData);
+	
 	if (ItemBase &&
 		UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(ItemBase, TEXT("UpdateInteractableData")))
 	{
-		InteractableData.Quantity = IObjectDataProvider::Execute_GetQuantity(ItemBase);
+		PrimaryData.Quantity = IObjectDataProvider::Execute_GetQuantity(ItemBase);
 
-		if (InteractableData.Name.IsEmpty())
+		if (PrimaryData.Name.IsEmpty())
 		{
 			const FItemMetaData Meta = IObjectDataProvider::Execute_GetItemRef(ItemBase);
-			InteractableData.Name = Meta.ItemTextData.DisplayName;
+			PrimaryData.Name = Meta.ItemTextData.DisplayName;
 		}
 	}
 }
