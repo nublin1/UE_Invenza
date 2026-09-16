@@ -22,24 +22,13 @@ void UInteractionWidget::NativeConstruct()
 
 void UInteractionWidget::OnFoundInteractable_Implementation(const TArray<FInteractionDisplayEntry>& Entries)
 {
-	TArray Rows = { FirstRow, SecondRow, ThirdRow };
+	OnInteractionDisplayChanged(Entries);
 
-	for (int32 i = 0; i < Rows.Num(); ++i)
+	if (InteractionProgressBar)
 	{
-		if (!Rows[i]) continue;
-
-		if (Entries.IsValidIndex(i))
-		{
-			Rows[i]->SetRowData(Entries[i].KeyLabel, Entries[i].Data, Entries[i].Data.bHoldToInteract);
-			Rows[i]->SetVisibility(ESlateVisibility::Visible);
-		}
-		else
-		{
-			Rows[i]->SetVisibility(ESlateVisibility::Hidden);
-		}
+		InteractionProgressBar->SetVisibility(ESlateVisibility::Visible);
 	}
 
-	InteractionProgressBar->SetVisibility(ESlateVisibility::Visible);
 	SetVisibility(ESlateVisibility::Visible);
 }
 
@@ -50,6 +39,30 @@ void UInteractionWidget::OnLostInteractable_Implementation(const TArray<FInterac
 	if (ThirdRow) ThirdRow->SetVisibility(ESlateVisibility::Hidden);
 	
 	if (InteractionProgressBar) InteractionProgressBar->SetVisibility(ESlateVisibility::Hidden);
+}
+
+void UInteractionWidget::OnInteractionDisplayChanged_Implementation(const TArray<FInteractionDisplayEntry>& Entries)
+{
+	UInteractionRowWidget* Rows[] = { FirstRow, SecondRow, ThirdRow };
+
+	for (int32 Index = 0; Index < 3; ++Index)
+	{
+		UInteractionRowWidget* Row = Rows[Index];
+		if (!Row)
+		{
+			continue;
+		}
+
+		if (!Entries.IsValidIndex(Index))
+		{
+			Row->SetVisibility(ESlateVisibility::Hidden);
+			continue;
+		}
+
+		const FInteractionDisplayEntry& Entry = Entries[Index];
+		Row->SetRowData(Entry.KeyLabel, Entry.Data, Entry.Data.bHoldToInteract);
+		Row->SetVisibility(ESlateVisibility::Visible);
+	}
 }
 
 void UInteractionWidget::UpdateProgressBar(float Progress)

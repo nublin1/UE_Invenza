@@ -54,6 +54,9 @@ public:
 	void OnLostInteractable(const TArray<FInteractionDisplayEntry>& Entries);
 	virtual void OnLostInteractable_Implementation(const TArray<FInteractionDisplayEntry>& Entries);
 	
+	UFUNCTION(BlueprintNativeEvent, Category = "Interaction Logic")
+	void OnInteractionDisplayChanged(const TArray<FInteractionDisplayEntry>& Entries);
+	virtual void OnInteractionDisplayChanged_Implementation(const TArray<FInteractionDisplayEntry>& Entries);
 
 	UFUNCTION(BlueprintCallable, Category = "UI Updates")
 	void UpdateProgressBar(float Progress);

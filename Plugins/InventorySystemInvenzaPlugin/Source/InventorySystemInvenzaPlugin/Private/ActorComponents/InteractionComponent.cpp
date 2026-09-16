@@ -78,6 +78,14 @@ void UInteractionComponent::InitInteractionComponent()
 	}
 }
 
+void UInteractionComponent::RefreshInteractionDisplay()
+{
+	if (IsValid(TargetInteractableComponent))
+	{
+		OnInteractionDisplayChanged.Broadcast(BuildDisplayEntries(TargetInteractableComponent));
+	}
+}
+
 void UInteractionComponent::PerformInteractionCheck()
 {
 	InteractionData.LastInteractionCheckTime = GetWorld()->GetTimeSeconds();
@@ -234,15 +242,29 @@ void UInteractionComponent::Interact()
 
 	if (GetWorld()->GetTimerManager().IsTimerActive(TimerHandle_Interaction))
 		EndInteract(PendingInteractionType);
+	
+	RefreshInteractionDisplay();
 }
 
 void UInteractionComponent::StopInteract()
 {
-	if (!CurrentInteractableComponent) return;
+	UInteractableComponent* PreviousTarget = CurrentInteractableComponent;
+	const EInteractionType PreviousType = ActiveInteractionType;
 
-	OnStopInteract.Broadcast(CurrentInteractableComponent, ActiveInteractionType);
-	CurrentInteractableComponent->HandleStopInteract(this, ActiveInteractionType);
+	// Clear before notifying listeners: a UI close callback may re-enter here.
 	CurrentInteractableComponent = nullptr;
+
+	if (IsValid(PreviousTarget))
+	{
+		OnStopInteract.Broadcast(PreviousTarget, PreviousType);
+
+		if (IsValid(PreviousTarget))
+		{
+			PreviousTarget->HandleStopInteract(this, PreviousType);
+		}
+	}
+
+	RefreshInteractionDisplay();
 }
 
 void UInteractionComponent::InteractNotify()
@@ -318,6 +340,8 @@ TArray<FInteractionDisplayEntry> UInteractionComponent::BuildDisplayEntries(UInt
 		FInteractionDisplayEntry Entry;
 		Entry.KeyLabel = UInputUtility::GetKeyForAction(GetWorld(), Binding.Action);
 		Entry.Data = *Data;
+		const bool bActiveForInteractor = CurrentInteractableComponent == Target && ActiveInteractionType == Binding.Type;
+		Entry.Data.Action = Target->GetInteractionActionText(Binding.Type, bActiveForInteractor);
 		Result.Add(Entry);
 	}
 

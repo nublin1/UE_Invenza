@@ -30,6 +30,9 @@ public:
 	const FInteractableData* GetInteractableDataForType(EInteractionType Type) const{return InteractableDataMap.Find(Type);	}
 	virtual const FInteractableData& GetInteractableData() const;
 	
+	UFUNCTION(BlueprintPure, Category = "Interactable|Data")
+	FText GetInteractionActionText(	EInteractionType Type,bool bActiveForInteractor) const;
+	
 	
 	UFUNCTION(BlueprintCallable, Category="Interactable|Focus")
 	virtual void BeginFocus();

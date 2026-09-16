@@ -16,6 +16,27 @@
 UCraftingStationComponent::UCraftingStationComponent()
 {
 	SetIsReplicatedByDefault(true);
+	
+	if (!InteractableDataMap.Contains(EInteractionType::Primary))
+	{
+		FInteractableData PrimaryData;
+		PrimaryData.DefaultInteractableType = EInteractableType::Craft;
+		PrimaryData.Action = FText::FromString(TEXT("Open Craft"));
+		PrimaryData.ActiveAction = FText::FromString(TEXT("Close Craft"));
+		PrimaryData.Quantity = -1;
+		InteractableDataMap.Add(EInteractionType::Primary, PrimaryData);
+	}
+	
+	if (!InteractableDataMap.Contains(EInteractionType::Secondary))
+	{
+		FInteractableData SecondaryData;
+		SecondaryData.DefaultInteractableType = EInteractableType::Craft;
+		SecondaryData.Action = FText::FromString(TEXT("Work"));
+		SecondaryData.ActiveAction = FText::FromString(TEXT("Stop Work"));
+		SecondaryData.bHoldToInteract = false;
+		SecondaryData.Quantity = -1;
+		InteractableDataMap.Add(EInteractionType::Secondary, SecondaryData);
+	}
 }
 
 void UCraftingStationComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -187,23 +208,6 @@ void UCraftingStationComponent::UpdateInteractableData()
 {
 	Super::UpdateInteractableData();
 	
-	if (!InteractableDataMap.Contains(EInteractionType::Primary))
-	{
-		FInteractableData PrimaryData;
-		PrimaryData.DefaultInteractableType = EInteractableType::Craft;
-		PrimaryData.Action = FText::FromString(TEXT("Open Craft"));
-		PrimaryData.Quantity = -1;
-		InteractableDataMap.Add(EInteractionType::Primary, PrimaryData);
-	}
 	
-	if (!InteractableDataMap.Contains(EInteractionType::Secondary))
-	{
-		FInteractableData SecondaryData;
-		SecondaryData.DefaultInteractableType = EInteractableType::Craft;
-		SecondaryData.Action = FText::FromString(TEXT("Work"));
-		SecondaryData.bHoldToInteract = false;
-		SecondaryData.Quantity = -1;
-		InteractableDataMap.Add(EInteractionType::Secondary, SecondaryData);
-	}
 	
 }

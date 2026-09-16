@@ -1194,10 +1194,10 @@ void UIInventoryManager::HandleCraftStationInteraction(UInteractableComponent* T
 	CraftProvider.SetInterface(StationProvider);
 	ActiveCraftComponentRef = StationCraft;
 	
-	ActiveCraftComponentRef->AddOperator();
 	
 	if (Type == EInteractionType::Secondary)
 	{
+		ActiveCraftComponentRef->AddOperator();
 		return; 
 	}
 	
@@ -1380,6 +1380,7 @@ void UIInventoryManager::BindInteractionWidget()
 	InteractionComponent->OnBeginFocus.AddDynamic(InteractionWidget, &UInteractionWidget::OnFoundInteractable);
 	InteractionComponent->OnEndFocus.AddDynamic(InteractionWidget, &UInteractionWidget::OnLostInteractable);
 	InteractionComponent->OnInteractionProgress.AddDynamic(InteractionWidget, &UInteractionWidget::UpdateProgressBar);
+	InteractionComponent->OnInteractionDisplayChanged.AddUniqueDynamic(InteractionWidget, &UInteractionWidget::OnInteractionDisplayChanged);
 }
 
 

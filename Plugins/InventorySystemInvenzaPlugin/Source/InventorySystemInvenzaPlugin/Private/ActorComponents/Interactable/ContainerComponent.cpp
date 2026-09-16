@@ -116,6 +116,7 @@ void UContainerComponent::UpdateInteractableData()
 	FInteractableData PrimaryData;
 	PrimaryData.DefaultInteractableType = EInteractableType::Container;
 	PrimaryData.Action = FText::FromString(TEXT("Open"));
+	PrimaryData.ActiveAction = FText::FromString(TEXT("Close"));
 	PrimaryData.Quantity = -1;
 	PrimaryData.bHoldToInteract = false;
 

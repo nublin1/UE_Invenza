@@ -25,6 +25,7 @@ struct FInteractionKeyBinding
 
 	UPROPERTY(EditDefaultsOnly)
 	TObjectPtr<UInputAction> Action;
+	
 
 	UPROPERTY(EditDefaultsOnly)
 	EInteractionType Type = EInteractionType::Primary;
@@ -62,6 +63,9 @@ struct FInteractableData
 	FText Name;	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interactable")
 	FText Action;
+	// Empty means: keep displaying Action.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interactable")
+	FText ActiveAction;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interactable")
 	int32 Quantity;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interactable")

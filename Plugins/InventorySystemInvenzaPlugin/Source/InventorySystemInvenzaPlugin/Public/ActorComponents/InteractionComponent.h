@@ -33,6 +33,8 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UInteractionComponent : public UActorComp
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEndInteract, UInteractableComponent*, TargetInteractableComponent);
 
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInteractionProgress, float, Progress);
+	
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInteractionDisplayChanged, const TArray<FInteractionDisplayEntry>&, Entries);
 
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInteractableBusy);
 	
@@ -63,6 +65,8 @@ public:
 	FOnEndInteract OnEndInteract;
 	UPROPERTY(BlueprintAssignable, Category="Interaction|Events")
 	FOnInteractionProgress OnInteractionProgress;
+	UPROPERTY(BlueprintAssignable, Category = "Interaction|Events")
+	FOnInteractionDisplayChanged OnInteractionDisplayChanged;
 	UPROPERTY(BlueprintAssignable, Category="Interaction|Events")
 	FOnInteractableBusy OnInteractableBusy;
 
@@ -121,6 +125,9 @@ protected:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+	UFUNCTION(BlueprintCallable, Category = "Interaction")
+	void RefreshInteractionDisplay();
+	
 	UFUNCTION()
 	void PerformInteractionCheck();
 	UFUNCTION()
@@ -164,7 +171,7 @@ public:
  	* - interaction needs to be forcefully stopped
  	* Calls InteractableComponent->StopInteract().
  	*/
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable, Category = "Interaction")
 	void StopInteract();
 
 protected:

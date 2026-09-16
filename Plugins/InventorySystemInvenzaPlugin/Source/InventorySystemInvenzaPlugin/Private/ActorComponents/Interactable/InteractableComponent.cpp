@@ -23,7 +23,19 @@ const FInteractableData& UInteractableComponent::GetInteractableData() const
 	return Found ? *Found : Empty;
 }
 
-// Add default functionality here for any IInteractionInterface functions that are not pure virtual.
+FText UInteractableComponent::GetInteractionActionText(EInteractionType Type, bool bActiveForInteractor) const
+{
+	const FInteractableData* Data = GetInteractableDataForType(Type);
+	if (!Data)
+	{
+		return FText::GetEmpty();
+	}
+
+	return bActiveForInteractor && !Data->ActiveAction.IsEmpty()
+		? Data->ActiveAction
+		: Data->Action;
+}
+
 void UInteractableComponent::BeginFocus()
 {
 }
