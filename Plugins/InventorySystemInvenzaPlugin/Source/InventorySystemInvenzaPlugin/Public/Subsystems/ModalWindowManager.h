@@ -73,6 +73,8 @@ protected:
 	
 	UFUNCTION()
 	void HandleModalResponse(FModalResult Result);
+
+	void ClearModalWindows();
 	
 	static void AttachChildWidget(UWorld* World, UPanelWidget* Slot, TSubclassOf<UUserWidget> WidgetClass);
 };

@@ -19,7 +19,7 @@ enum class EItemOrientationType : uint8
 UENUM(BlueprintType)
 enum class EStorageMethod : uint8
 {
-	Single	UMETA(DisplayName = "Single"),
+	SingleMesh	UMETA(DisplayName = "SingleMesh"),
 	Logs	UMETA(DisplayName = "Logs"),
 };
 
@@ -81,8 +81,6 @@ struct FItemAssetData
 
 	UPROPERTY(EditAnywhere, Category = "Item|Assets")
 	TObjectPtr<UStaticMesh> Mesh;
-	UPROPERTY(EditAnywhere, Category = "Item|Assets")
-	TObjectPtr<UStaticMesh> AlternativeMesh;
 };
 
 USTRUCT(BlueprintType)
@@ -102,27 +100,13 @@ struct FItemNumeraticData
 		meta = (ToolTip = "Number of vertical slots the item occupies in a character inventory"))
 	int32 InventoryVerticalSlots = 1;
 
-
-	/*// Size when the item is stored in storage containers (stash, warehouse, chest)
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Storage Size",
-		meta = (ToolTip = "Number of horizontal slots the item occupies in storage containers"))
-	int32 StorageHorizontalSlots = 1;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Storage Size",
-		meta = (ToolTip = "Number of vertical slots the item occupies in storage containers"))
-	int32 StorageVerticalSlots = 1;*/
-
 	//==============================
 	// STACKING
 	//==============================
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Stats")
 	int32 MaxStackSizeInCharacter;
-	/*UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Stats")
-	float MaxAmountInStorage = 100;*/
-
-	//
-	FItemNumeraticData()
-		: Weight(1), MaxStackSizeInCharacter(1)
+	
+	FItemNumeraticData(): Weight(1), MaxStackSizeInCharacter(1)
 	{
 	}
 };
@@ -137,6 +121,19 @@ struct FItemTradeData
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Trade")
 	float BasePrice = 0.0f;
 };
+
+USTRUCT(BlueprintType)
+struct FItemStorageData
+{
+	GENERATED_USTRUCT_BODY()
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|StorageData")
+	EStorageMethod StorageMethod;
+	
+	UPROPERTY(EditAnywhere, Category = "Item|StorageData")
+	TObjectPtr<UStaticMesh> StorageMesh;
+};
+
 
 USTRUCT(BlueprintType)
 struct FItemMetaData
@@ -154,15 +151,13 @@ struct FItemMetaData
 
 	UPROPERTY(EditAnywhere, Category = "Item|Metadata")
 	FItemTradeData ItemTradeData;
+	
+	UPROPERTY(EditAnywhere, Category = "Item|Metadata")
+	FItemStorageData ItemStorageData;
 
+	// CATEGORY
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Metadata")
 	FGameplayTag ItemCategory;
-
-	//==============================
-	// CATEGORY
-	//==============================
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Metadata")
-	EStorageMethod StorageMethod;
 	
 	// Behavor
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Metadata")

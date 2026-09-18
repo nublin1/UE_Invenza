@@ -9,6 +9,8 @@
 #include "Components/PanelWidget.h"
 #include "Data/Inventory/InventoryBase.h"
 #include "DragDrop/InvContainerDragDropOperation.h"
+#include "Engine/LocalPlayer.h"
+#include "Subsystems/UIInputModeSubsystem.h"
 #include "UI/Core/Buttons/UIButton.h"
 #include "UI/Core/MovableTitleBar/MovableTitleBar.h"
 #include "UI/Craft/CraftControlPanel.h"
@@ -386,25 +388,24 @@ void UGameMenuLayerInv::SetCraftMenuState(ECraftMenuState NewState)
 
 void UGameMenuLayerInv::UpdateInputMode()
 {
-	APlayerController* PC = GetWorld()->GetFirstPlayerController();
-	if (!PC)
-		return;
-
-	if (bInventoryOpen || bCraftMenuOpen)
+	if (ULocalPlayer* LocalPlayer = GetOwningLocalPlayer())
 	{
-		FInputModeGameAndUI InputMode;
-		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-		InputMode.SetHideCursorDuringCapture(false);
+		UUIInputModeSubsystem* Input = LocalPlayer->GetSubsystem<UUIInputModeSubsystem>();
+		if (bInventoryOpen || bCraftMenuOpen)
+		{
+			Input->RequestUIInput(this);
+		}
+		else
+		{
+			Input->ReleaseUIInput(this);
+		}
+	}
+}
 
-		PC->SetInputMode(InputMode);
-		PC->bShowMouseCursor = true;
-	}
-	else
-	{
-		FInputModeGameOnly InputMode;
-		PC->SetInputMode(InputMode);
-		PC->bShowMouseCursor = false;
-	}
+void UGameMenuLayerInv::NativeConstruct()
+{
+	Super::NativeConstruct();
+	UpdateInputMode();
 }
 
 bool UGameMenuLayerInv::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent,

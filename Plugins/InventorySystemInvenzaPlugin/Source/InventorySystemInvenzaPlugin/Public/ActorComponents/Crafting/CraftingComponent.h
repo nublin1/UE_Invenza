@@ -194,6 +194,15 @@ protected:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category="Crafting|Runtime")
 	int32 OperatorCount = 0;
 	
+	UPROPERTY(Transient)
+	TMap<FGuid, FCraftReservation> CraftReservations;
+
+	UPROPERTY(Transient)
+	TArray<FCraftItemBatch> PendingDeliveries;
+	
+	bool bCraftMutation = false;
+	float DeliveryRetryElapsed = 0.f;
+	
 
 	// Settings
 	UPROPERTY(editAnywhere, BlueprintReadWrite)
@@ -230,6 +239,7 @@ protected:
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
+	
 	UFUNCTION(BlueprintCallable, Server, Reliable)
 	void Server_EnqueueRecipe(FItemRecipeRow ItemRecipeRow, const TArray<int32>& SelectedOptions, int32 Count);
 	UFUNCTION(BlueprintCallable)
@@ -249,7 +259,10 @@ protected:
 	bool ConsumeFuelUnit();
 	bool ConsumeResourcesForRecipe(FQueuedRecipe& Item, int32 Count, FCraftAdditionalData& AddData);
 	void RefundResourcesForRecipe(const FQueuedRecipe& Item, int32 Count, FCraftAdditionalData& AddData);
-	void GiveCraftedItemToInventory(FItemRecipeRow CraftedRow);
+	TArray<UInventoryBase*> GetResourceInventories() const;
+	bool PrepareCraftOutput(const FItemRecipeRow& Recipe,TArray<FCraftItemBatch>& OutBatches);
+	void FlushPendingDeliveries();
+	void CommitReservedIteration(FQueuedRecipe& Item);
 
 	// --- Notification replication ---
 	UFUNCTION()
@@ -294,5 +307,16 @@ protected:
 	void UpdateOperatorBlockState();
 	
 	void UpdateFuelBlockState();
+	
+private:
+	UFUNCTION(Blueprintable)
+	static bool IsResourceInventory(UInventoryBase* Inventory);
+	
+	UFUNCTION(BlueprintCallable)
+	static int32 CountItem(UInventoryBase* Inventory, FName ItemID);
+	
+	UFUNCTION(BlueprintCallable)
+	static FRecipeCheckResult CheckRecipe(const FItemRecipeRow& Recipe, const TArray<FItemIDEntry>& Items,
+		const TArray<int32>& SelectedOptions, int32 Amount);
 	
 };

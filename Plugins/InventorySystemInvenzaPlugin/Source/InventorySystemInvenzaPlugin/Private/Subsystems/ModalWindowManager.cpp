@@ -4,6 +4,8 @@
 #include "Subsystems/ModalWindowManager.h"
 
 #include "Components/NamedSlot.h"
+#include "Engine/LocalPlayer.h"
+#include "Subsystems/UIInputModeSubsystem.h"
 #include "Data/Settings/InvenzaInventorySettingsAsset.h"
 #include "HUD/GameHUD_Inz.h"
 #include "Interface/HUD/HUDProvider.h"
@@ -67,7 +69,7 @@ void UModalWindowManager::ForceCancelModalFlow()
 
 	if (ModalLayoutRef)
 	{
-		ModalLayoutRef->ClearStack();
+		ClearModalWindows();
 	}
 
 	if (FinalDelegate.IsBound())
@@ -154,7 +156,7 @@ void UModalWindowManager::HandleModalResponse(FModalResult Result)
 	if (Interaction == EObjectInteractionType::None || Interaction == EObjectInteractionType::Cancel)
 	{
 		PendingOriginalResult = FModalResult();
-		ModalLayoutRef->ClearStack();
+		ClearModalWindows();
 		if (FinalDelegate.IsBound())
 		{
 			FModalResult CancelResult;
@@ -173,7 +175,7 @@ void UModalWindowManager::HandleModalResponse(FModalResult Result)
 
 		if (OriginalAction.StepRequirement == EModalStepRequirement::RequiresConfirm)
 		{
-			ModalLayoutRef->ClearStack();
+			ClearModalWindows();
 			
 			if (Interaction == EObjectInteractionType::Yes)
 			{
@@ -190,7 +192,7 @@ void UModalWindowManager::HandleModalResponse(FModalResult Result)
 
 		if (OriginalAction.StepRequirement == EModalStepRequirement::RequiresAmount)
 		{
-			ModalLayoutRef->ClearStack();
+			ClearModalWindows();
 			
 			if (Interaction == EObjectInteractionType::Yes)
 			{
@@ -270,10 +272,27 @@ void UModalWindowManager::HandleModalResponse(FModalResult Result)
 
 	case EModalStepRequirement::None:
 	default:
-		ModalLayoutRef->ClearStack();
+		ClearModalWindows();
 		FinalDelegate.Execute(Result);
 		break;
 	}
+}
+
+void UModalWindowManager::ClearModalWindows()
+{
+	if (!ModalLayoutRef) return;
+
+	// Slate destruction can be deferred; release requests before result callbacks.
+	const TArray<UInvenzaBaseWidget*> Windows = ModalLayoutRef->GetStack();
+	for (UInvenzaBaseWidget* Window : Windows)
+	{
+		if (!IsValid(Window)) continue;
+		if (ULocalPlayer* LocalPlayer = Window->GetOwningLocalPlayer())
+		{
+			LocalPlayer->GetSubsystem<UUIInputModeSubsystem>()->ReleaseUIInput(Window);
+		}
+	}
+	ModalLayoutRef->ClearStack();
 }
 
 void UModalWindowManager::AttachChildWidget(UWorld* World, UPanelWidget* Slot, TSubclassOf<UUserWidget> WidgetClass)

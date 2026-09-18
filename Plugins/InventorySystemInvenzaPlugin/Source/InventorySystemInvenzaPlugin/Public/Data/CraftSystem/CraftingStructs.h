@@ -8,6 +8,8 @@
 #include "Net/Serialization/FastArraySerializer.h"
 #include "CraftingStructs.generated.h"
 
+class UInventoryBase;
+
 USTRUCT(BlueprintType)
 struct FCraftingInventoryOverrides
 {
@@ -179,4 +181,48 @@ struct FCachedRecipeResult
 	FCachedRecipeResult(FName InRecipeID, const FRecipeCheckResult& InResult) 
 		: RecipeID(InRecipeID), CheckResult(InResult) {}
 };
-	
+
+// A snapshot of removed resources, or items waiting for delivery.
+USTRUCT(Blueprintable)
+struct FCraftItemBatch
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly)
+	TObjectPtr<UInventoryBase> Inventory = nullptr;
+
+	UPROPERTY(BlueprintReadOnly)
+	TObjectPtr<UObject> Sample = nullptr;
+
+	UPROPERTY(BlueprintReadOnly)
+	FName ItemID = NAME_None;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 Amount = 0;
+};
+
+USTRUCT(Blueprintable)
+struct FCraftReservation
+{
+	GENERATED_BODY()
+
+	// Number of fully paid craft iterations.
+	UPROPERTY(BlueprintReadOnly)
+	int32 PaidIterations = 0;
+
+	// Cost of ONE iteration, with alternatives already selected.
+	UPROPERTY(BlueprintReadOnly)
+	TArray<FInitItemsEntry> UnitCost;
+
+	// Resources that have not yet been committed to finished products.
+	UPROPERTY(BlueprintReadOnly)
+	TArray<FCraftItemBatch> Resources;
+};
+
+struct FCraftIngredientOption
+{
+	FDataTableRowHandle Handle;
+	FName ItemID = NAME_None;
+	int32 Amount = 0;
+	bool bValid = false;
+};

@@ -48,11 +48,7 @@ public:
 	//====================================================================
 
 	UFUNCTION(BlueprintCallable, Category = "Item|Initialization")
-	virtual void InitItem(
-		FName ID,
-		FItemData Data,
-		int32 InQuantity
-	);
+	virtual void InitItem(FName ID, FItemData Data, int32 InQuantity	);
 
 	//====================================================================
 	// ACTIONS

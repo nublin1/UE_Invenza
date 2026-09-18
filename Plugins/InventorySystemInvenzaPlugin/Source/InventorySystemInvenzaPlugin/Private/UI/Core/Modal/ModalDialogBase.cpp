@@ -5,6 +5,8 @@
 
 #include "Components/NamedSlot.h"
 #include "Components/TextBlock.h"
+#include "Engine/LocalPlayer.h"
+#include "Subsystems/UIInputModeSubsystem.h"
 #include "Interface/UIInterface.h"
 #include "Interface/UI/ModalInterface.h"
 #include "UI/Core/Buttons/UIButton.h"
@@ -13,6 +15,10 @@
 void UModalDialogBase::NativeConstruct()
 {
 	Super::NativeConstruct();
+	if (ULocalPlayer* LocalPlayer = GetOwningLocalPlayer())
+	{
+		LocalPlayer->GetSubsystem<UUIInputModeSubsystem>()->RequestUIInput(this);
+	}
 }
 
 void UModalDialogBase::ForceClose(FModalResult Result)
@@ -43,7 +49,7 @@ void UModalDialogBase::ConfigureHeader(FModalHeaderData HeaderData)
 	else
 	{
 		UE_LOG(LogTemp, Warning,
-			TEXT("UModalDialogBase::Configure — Widget '%s' does NOT implement UModalButtonsPanelInterface."),
+			TEXT("UModalDialogBase::Configure — Widget '%s' does NOT implement ModalInterface."),
 			*Content->GetClass()->GetName()
 		);
 		return;

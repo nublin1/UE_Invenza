@@ -26,9 +26,9 @@ void AStorageVisualRepresentation::UpdateVisual()
 
 	//StaticMeshVisual->SetStaticMesh(ItemBase->GetItemRef().ItemAssetData.MeshAsStorage);
 
-	switch (ItemBase->GetItemRef().StorageMethod)
+	switch (ItemBase->GetItemRef().ItemStorageData.StorageMethod)
 	{
-	case EStorageMethod::Single:
+	case EStorageMethod::SingleMesh:
 		
 		StaticMeshVisual->AddInstance(InstanceTransform, false);
 		break;

@@ -37,6 +37,7 @@ UENUM(BlueprintType)
 enum class EObjectInteractionType : uint8
 {
 	None,
+	Ok,
 	Yes,
 	No,
 	Cancel,

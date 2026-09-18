@@ -207,7 +207,4 @@ void UCraftingStationComponent::InitializeInteractionComponent()
 void UCraftingStationComponent::UpdateInteractableData()
 {
 	Super::UpdateInteractableData();
-	
-	
-	
 }

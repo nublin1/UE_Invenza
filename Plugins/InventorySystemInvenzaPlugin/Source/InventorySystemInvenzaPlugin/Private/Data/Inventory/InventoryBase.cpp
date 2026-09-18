@@ -393,9 +393,10 @@ void UInventoryBase::RemoveItemFromInventory(UObject* Item)
 	if (!Mapping)
 		return;
 
-	NotifyFullyRemoveItem(*Mapping, Item);
-
+	// Removing the mapping invalidates its pointer. Keep the UI data for the notification.
+	const FItemMapping RemovedMapping = *Mapping;
 	ItemCollectionLinked->RemoveItem(Item, InventoryContainerID);
+	NotifyFullyRemoveItem(RemovedMapping, Item);
 
 	UpdateWeightInfo();
 	UpdateMoneyInfo();

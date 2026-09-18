@@ -216,10 +216,11 @@ bool USlotbasedInventory::ConsumeReserved(AActor* Requestor)
 
 float USlotbasedInventory::GetInventoryOccupancyPercent()
 {
-	if (CollectOccupiedSlots().IsEmpty())
-		return 0.0f;
+	if (InvSize.X <= 0 || InvSize.Y <= 0) return 0.0f;
 
-	return (InvSize.X * InvSize.Y) / CollectOccupiedSlots().Num() * 100.0f;
+	const float TotalSlots = static_cast<float>(InvSize.X) * InvSize.Y;
+	const int32 OccupiedSlots = CollectOccupiedSlots().Num();
+	return FMath::Clamp(static_cast<float>(OccupiedSlots) / TotalSlots, 0.0f, 1.0f) * 100.0f;
 }
 
 bool USlotbasedInventory::CanPlaceItemAt(const FIntPoint& StartPos, FGameplayTag ItemCategory, FIntPoint ItemSize,

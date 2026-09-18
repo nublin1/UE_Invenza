@@ -1179,7 +1179,10 @@ void UIInventoryManager::HandleTradeInteraction(UInteractableComponent* Target)
 
 void UIInventoryManager::HandleCraftStationInteraction(UInteractableComponent* Target, EInteractionType Type)
 {
-	if (!Target) return;
+	if (!GetOwner() || !GetOwner()->HasAuthority() || !Target)
+	{
+		return;
+	}
 	
 	ICraftProvider* StationProvider = Cast<ICraftProvider>(Target);
 	if (!StationProvider) return;
@@ -1193,7 +1196,7 @@ void UIInventoryManager::HandleCraftStationInteraction(UInteractableComponent* T
 	CraftProvider.SetObject(Target);
 	CraftProvider.SetInterface(StationProvider);
 	ActiveCraftComponentRef = StationCraft;
-	
+	ActiveCraftComponentRef->SetInteractorInventory(MainPawnInventoryRef);
 	
 	if (Type == EInteractionType::Secondary)
 	{
@@ -1301,8 +1304,6 @@ void UIInventoryManager::HandleCraftInventoriesChanged(const FLinkedCraftInvento
 
 	if (ActiveCraftComponentRef)
 	{
-		ActiveCraftComponentRef->SetInteractorInventory(MainPawnInventoryRef);
-		
 		auto Dashboard = Cast<UCraftDashboard>(UIInvProvider->GetCraftMenuDashboard());
 		if (!Dashboard)
 			return;

@@ -7,6 +7,7 @@
 #include "Data/CraftSystem/ItemRecipe.h"
 #include "Data/Inventory/InventoryBase.h"
 #include "Data/Settings/InvenzaInventorySettingsAsset.h"
+#include "Factory/ItemFactory.h"
 #include "Net/UnrealNetwork.h"
 #include "Subsystems/InvenzaInventorySettingsSubsystem.h"
 #include "Utility/InterfaceUtils.h"
@@ -42,10 +43,35 @@ void UCraftingComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	DOREPLIFETIME(UCraftingComponent, AvailableRecipes);
 }
 
-void UCraftingComponent::TickComponent(float DeltaTime, ELevelTick TickType,
-                                       FActorComponentTickFunction* ThisTickFunction)
+void UCraftingComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	
+	if (!GetOwner() || !GetOwner()->HasAuthority()
+		|| bCraftMutation || PendingDeliveries.IsEmpty())
+	{
+		return;
+	}
+
+	DeliveryRetryElapsed += DeltaTime;
+	if (DeliveryRetryElapsed < 0.25f)
+	{
+		return;
+	}
+
+	DeliveryRetryElapsed = 0.f;
+
+	{
+		TGuardValue<bool> MutationGuard(bCraftMutation, true);
+		FlushPendingDeliveries();
+		HandleRecalculateAvailableRecipes();
+	}
+
+	if (PendingDeliveries.IsEmpty()
+		&& !GetWorld()->GetTimerManager().IsTimerActive(CraftTimerHandle))
+	{
+		TryStartNext();
+	}
 }
 
 void UCraftingComponent::RequestInitCraftingComponent()
@@ -127,9 +153,13 @@ bool UCraftingComponent::HasFuelAvailable() const
 	return false;
 }
 
-void UCraftingComponent::SetInventories_Implementation(UInventoryBase* NewInputInventory,
-	UInventoryBase* NewOutputInventory, UInventoryBase* NewFuelInventory)
+void UCraftingComponent::SetInventories_Implementation(UInventoryBase* NewInputInventory, UInventoryBase* NewOutputInventory, UInventoryBase* NewFuelInventory)
 {
+	if (bCraftMutation)
+	{
+		return;
+	}
+	
 	if (!GetOwner())
 		return;
 
@@ -151,6 +181,11 @@ void UCraftingComponent::SetInventories_Implementation(UInventoryBase* NewInputI
 void UCraftingComponent::SetInputInventory_Implementation(UInventoryBase* NewInputInventory)
 {
 	if (!GetOwner()) return;
+	
+	if (bCraftMutation)
+	{
+		return;
+	}
 
 	if (InputInventory != NewInputInventory)
 	{
@@ -162,6 +197,10 @@ void UCraftingComponent::SetInputInventory_Implementation(UInventoryBase* NewInp
 void UCraftingComponent::SetOutputInventory_Implementation(UInventoryBase* NewOutputInventory)
 {
 	if (!GetOwner()) return;
+	if (bCraftMutation)
+	{
+		return;
+	}
 
 	if (OutputInventory != NewOutputInventory)
 	{
@@ -173,6 +212,10 @@ void UCraftingComponent::SetOutputInventory_Implementation(UInventoryBase* NewOu
 void UCraftingComponent::SetFuelInventory_Implementation(UInventoryBase* NewFuelInventory)
 {
 	if (!GetOwner()) return;
+	if (bCraftMutation)
+	{
+		return;
+	}
 
 	if (FuelInventory != NewFuelInventory)
 	{
@@ -184,6 +227,10 @@ void UCraftingComponent::SetFuelInventory_Implementation(UInventoryBase* NewFuel
 void UCraftingComponent::SetInteractorInventory_Implementation(UInventoryBase* NewInteractorInventory)
 {
 	if (!GetOwner()) return;
+	if (bCraftMutation)
+	{
+		return;
+	}
 
 	if (InteractorInventory != NewInteractorInventory)
 	{
@@ -307,244 +354,26 @@ bool UCraftingComponent::GetCachedResultForRecipe(FName RecipeID, FRecipeCheckRe
 
 FRecipeCheckResult UCraftingComponent::CanCraft(const FItemRecipeRow& RecipeRow, const TArray<int32>& SelectedOptions, int32 Amount) const
 {
-	FRecipeCheckResult Result;
+	TArray<FItemIDEntry> Items;
 
-	TArray<FItemIDEntry> InvItems;
-
-	if (InputInventory)
+	for (UInventoryBase* Inventory : GetResourceInventories())
 	{
-		InvItems.Append(InputInventory->GetItemCollectionLinked()->CollectItemsAggregated(
-				InputInventory->GetInventoryContainerID())
-		);
+		Items.Append(Inventory->GetItemCollectionLinked()->CollectItemsAggregated(Inventory->GetInventoryContainerID()));
 	}
 
-	if (InteractorInventory && InteractorInventory != InputInventory)
-	{
-		InvItems.Append(InteractorInventory->GetItemCollectionLinked()->CollectItemsAggregated(
-				InteractorInventory->GetInventoryContainerID())
-		);
-	}
-
-	if (InvItems.IsEmpty())
-		return Result;
-
-	if (SelectedOptions.IsEmpty())
-		return CanCraftWithItems(RecipeRow, InvItems, Amount);
-	
-	return CanCraftWithItemsOptions(RecipeRow, InvItems, SelectedOptions, Amount);
+	return CheckRecipe(RecipeRow, Items, SelectedOptions, Amount);
 }
 
 FRecipeCheckResult UCraftingComponent::CanCraftWithItems(const FItemRecipeRow& RecipeRow, const TArray<FItemIDEntry>& InventoryItems, int32 Amount)
 {
-	FRecipeCheckResult Result;
-
-	auto GetItemAmountByID = [&InventoryItems](const FName& ItemID) -> int32
-	{
-		const FItemIDEntry* Item = InventoryItems.FindByPredicate(
-			[&](const FItemIDEntry& I) { return I.ItemID.IsValid() && I.ItemID == ItemID; }
-		);
-		return Item ? Item->Amount : 0;
-	};
-
-	auto HasItemWithQuantity = [&InventoryItems](const FName& ItemID, int32 Quantity)
-	{
-		const FItemIDEntry* Item = InventoryItems.FindByPredicate(
-			[&](const FItemIDEntry& I) { return I.ItemID == ItemID; }
-		);
-		return Item && Item->Amount >= Quantity;
-	};
-
-	for (const FRecipeItemRequirement& Req : RecipeRow.RequiredItems)
-	{
-		if (!Req.Item.DataTable) continue;
-
-		FRecipeItemRequirementCheck ReqCheck;
-
-		// Primary
-		const FItemData* ItemRow = Req.Item.DataTable->FindRow<FItemData>(Req.Item.RowName, TEXT("Context_MainItem"));
-		if (!ItemRow)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Main recipe item %s not found in DataTable!"), *Req.Item.RowName.ToString());
-			continue;
-		}
-
-		ReqCheck.Primary.RequiredItemID = ItemRow->ID;
-		ReqCheck.Primary.ItemMetaData = ItemRow->ItemMetaData;
-		ReqCheck.Primary.AmountNeed = Req.Quantity * Amount;
-		ReqCheck.Primary.AmountHave = GetItemAmountByID(ItemRow->ID);
-		ReqCheck.Primary.bIsSatisfied = HasItemWithQuantity(ItemRow->ID, ReqCheck.Primary.AmountNeed);
-
-		if (ReqCheck.Primary.bIsSatisfied)
-		{
-			FInitItemsEntry ConsumeEntry;
-			ConsumeEntry.Item = Req.Item;
-			ConsumeEntry.Amount = ReqCheck.Primary.AmountNeed;
-			Result.ResourcesToConsume.Add(ConsumeEntry);
-		}
-
-		bool bFoundAlternativeSatisfy = false;
-		FInitItemsEntry SelectedAlternative;
-
-		// Alternatives
-		for (const FAlternativeItem& Alt : Req.Alternatives)
-		{
-			if (!Alt.Item.DataTable) continue;
-
-			const FItemData* AltItemRow = Alt.Item.DataTable->FindRow<FItemData>(
-				Alt.Item.RowName, TEXT("Context_AltItem"));
-			if (!AltItemRow)
-			{
-				UE_LOG(LogTemp, Warning, TEXT("Alternative recipe item %s not found in DataTable!"),
-				       *Alt.Item.RowName.ToString());
-				continue;
-			}
-
-			FRecipeRequirementResult AltCheck;
-			AltCheck.RequiredItemID = AltItemRow->ID;
-			AltCheck.ItemMetaData = AltItemRow->ItemMetaData;
-			AltCheck.AmountNeed = Alt.Quantity * Amount;
-			AltCheck.AmountHave = GetItemAmountByID(AltItemRow->ID);
-			AltCheck.bIsSatisfied = HasItemWithQuantity(AltItemRow->ID, AltCheck.AmountNeed);
-
-			if (!ReqCheck.Primary.bIsSatisfied && AltCheck.bIsSatisfied && !bFoundAlternativeSatisfy)
-			{
-				bFoundAlternativeSatisfy = true;
-				SelectedAlternative.Item = Alt.Item;
-				SelectedAlternative.Amount = AltCheck.AmountNeed;
-			}
-
-			ReqCheck.Alternatives.Add(AltCheck);
-		}
-
-		if (!ReqCheck.Primary.bIsSatisfied && bFoundAlternativeSatisfy)
-		{
-			Result.ResourcesToConsume.Add(SelectedAlternative);
-		}
-		
-		Result.Requirements.Add(ReqCheck);
-	}
-
-	Result.bCanCraft = Result.Requirements.FindByPredicate([](const FRecipeItemRequirementCheck& R)
-	{
-	   if (R.Primary.bIsSatisfied) return false;
-       
-	   return R.Alternatives.FindByPredicate([](const FRecipeRequirementResult& Alt) { return Alt.bIsSatisfied; }) == nullptr;
-	}) == nullptr;
-
-	if (!Result.bCanCraft)
-	{
-		Result.ResourcesToConsume.Empty();
-	}
-
-	return Result;
+	return CheckRecipe(RecipeRow, InventoryItems, TArray<int32>(), Amount);
 }
 
 FRecipeCheckResult UCraftingComponent::CanCraftWithItemsOptions(const FItemRecipeRow& RecipeRow,
                                                                 const TArray<FItemIDEntry>& InventoryItems,
                                                                 const TArray<int32>& SelectedOptions, int32 Amount)
 {
-	FRecipeCheckResult Result;
-	Result.bCanCraft = true;
-
-	auto GetItemAmountByID = [&InventoryItems](const FName& ItemID) -> int32
-	{
-		const FItemIDEntry* Item = InventoryItems.FindByPredicate(
-			[&](const FItemIDEntry& I) { return I.ItemID.IsValid() && I.ItemID == ItemID; }
-		);
-		return Item ? Item->Amount : 0;
-	};
-
-	auto HasItemWithQuantity = [&InventoryItems](const FName& ItemID, int32 Quantity)
-	{
-		const FItemIDEntry* Item = InventoryItems.FindByPredicate(
-			[&](const FItemIDEntry& I) { return I.ItemID == ItemID; }
-		);
-		return Item && Item->Amount >= Quantity;
-	};
-
-	for (int32 ReqIndex = 0; ReqIndex < RecipeRow.RequiredItems.Num(); ++ReqIndex)
-	{
-		const FRecipeItemRequirement& Req = RecipeRow.RequiredItems[ReqIndex];
-		if (!Req.Item.DataTable) continue;
-
-		FRecipeItemRequirementCheck ReqCheck;
-
-		const FItemData* ItemRow = Req.Item.DataTable->FindRow<FItemData>(Req.Item.RowName, TEXT("Context_MainItem"));
-		if (!ItemRow)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Main recipe item %s not found in DataTable!"), *Req.Item.RowName.ToString());
-			continue;
-		}
-
-		ReqCheck.Primary.RequiredItemID = ItemRow->ID;
-		ReqCheck.Primary.ItemMetaData = ItemRow->ItemMetaData;
-		ReqCheck.Primary.AmountNeed = Req.Quantity * Amount;
-		ReqCheck.Primary.AmountHave = GetItemAmountByID(ItemRow->ID);
-		ReqCheck.Primary.bIsSatisfied = HasItemWithQuantity(ItemRow->ID, ReqCheck.Primary.AmountNeed);
-
-		for (const FAlternativeItem& Alt : Req.Alternatives)
-		{
-			if (!Alt.Item.DataTable) continue;
-
-			const FItemData* AltItemRow = Alt.Item.DataTable->FindRow<FItemData>(
-				Alt.Item.RowName, TEXT("Context_AltItem"));
-			if (!AltItemRow) continue;
-
-			FRecipeRequirementResult AltCheck;
-			AltCheck.RequiredItemID = AltItemRow->ID;
-			AltCheck.ItemMetaData = AltItemRow->ItemMetaData;
-			AltCheck.AmountNeed = Alt.Quantity * Amount;
-			AltCheck.AmountHave = GetItemAmountByID(AltItemRow->ID);
-			AltCheck.bIsSatisfied = HasItemWithQuantity(AltItemRow->ID, AltCheck.AmountNeed);
-
-			ReqCheck.Alternatives.Add(AltCheck);
-		}
-
-		int32 ChosenOption = SelectedOptions.IsValidIndex(ReqIndex) ? SelectedOptions[ReqIndex] : 0;
-		bool bCurrentSlotSatisfied = false;
-
-		if (ChosenOption == 0)
-		{
-			bCurrentSlotSatisfied = ReqCheck.Primary.bIsSatisfied;
-			if (bCurrentSlotSatisfied)
-			{
-				FInitItemsEntry ConsumeEntry;
-				ConsumeEntry.Item = Req.Item;
-				ConsumeEntry.Amount = ReqCheck.Primary.AmountNeed;
-				Result.ResourcesToConsume.Add(ConsumeEntry);
-			}
-		}
-		else
-		{
-			int32 AltIndex = ChosenOption - 1;
-			if (ReqCheck.Alternatives.IsValidIndex(AltIndex) && Req.Alternatives.IsValidIndex(AltIndex))
-			{
-				bCurrentSlotSatisfied = ReqCheck.Alternatives[AltIndex].bIsSatisfied;
-				if (bCurrentSlotSatisfied)
-				{
-					FInitItemsEntry ConsumeEntry;
-					ConsumeEntry.Item = Req.Alternatives[AltIndex].Item;
-					ConsumeEntry.Amount = ReqCheck.Alternatives[AltIndex].AmountNeed;
-					Result.ResourcesToConsume.Add(ConsumeEntry);
-				}
-			}
-		}
-
-		if (!bCurrentSlotSatisfied)
-		{
-			Result.bCanCraft = false;
-		}
-
-		Result.Requirements.Add(ReqCheck);
-	}
-
-
-	if (!Result.bCanCraft)
-	{
-		Result.ResourcesToConsume.Empty();
-	}
-
-	return Result;
+	return CheckRecipe(RecipeRow, InventoryItems, SelectedOptions, Amount);
 }
 
 void UCraftingComponent::EnqueueRecipeRequest(FItemRecipeRow ItemRecipeRow, const TArray<int32>& SelectedOptions, int32 Count)
@@ -596,40 +425,46 @@ void UCraftingComponent::Server_EnqueueRecipe_Implementation(FItemRecipeRow Item
 	HandleEnqueueRecipe(ItemRecipeRow,SelectedOptions, Count);
 }
 
-void UCraftingComponent::HandleEnqueueRecipe(FItemRecipeRow ItemRecipeRow, const TArray<int32>& SelectedOptions, int32 Count)
+void UCraftingComponent::HandleEnqueueRecipe(FItemRecipeRow ItemRecipeRow, const TArray<int32>& SelectedOptions,
+                                             int32 Count)
 {
-	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
-	
-	//LogQueueState(TEXT("BEFORE_Enqueue"));
-
-	const bool bConsumeOnQueueAdd = ConsumePolicy == ECraftingResourceConsumePolicy::OnQueueAdd;
-	FQueuedRecipe NewQueuedRecipe = FQueuedRecipe(ItemRecipeRow, Count, bConsumeOnQueueAdd);
-	
-	FQueuedRecipe& QueuedRecipeInArray = RecipeQueue.Items.Add_GetRef(NewQueuedRecipe);
-	QueuedRecipeInArray.SortOrder = RecipeQueue.Items.Num() - 1;
-	RecipeQueue.MarkItemDirty(QueuedRecipeInArray);
-	
-	FCraftAdditionalData AddData(QueuedRecipeInArray.ReplicationID, SelectedOptions);
-	int32 DataIndex = QueueAdditionalData.Add(AddData);
-
-	if (bConsumeOnQueueAdd)
+	if (!GetOwner() || !GetOwner()->HasAuthority()
+		|| bCraftMutation || Count <= 0
+		|| ItemRecipeRow.ID.IsNone())
 	{
-		auto Result = ConsumeResourcesForRecipe(QueuedRecipeInArray, Count, QueueAdditionalData[DataIndex]);
-		if (!Result)
+		return;
+	}
+	
+	{
+		TGuardValue<bool> MutationGuard(bCraftMutation, true);
+
+		// The flag becomes true only after successful payment.
+		FQueuedRecipe NewItem(ItemRecipeRow, Count, false);
+
+		FQueuedRecipe& Item = RecipeQueue.Items.Add_GetRef(NewItem);
+		Item.SortOrder = RecipeQueue.Items.Num() - 1;
+		RecipeQueue.MarkItemDirty(Item);
+
+		const int32 DataIndex = QueueAdditionalData.Add(FCraftAdditionalData(Item.ReplicationID, SelectedOptions));
+		if (ConsumePolicy == ECraftingResourceConsumePolicy::OnQueueAdd)
 		{
-			RecipeQueue.Items.RemoveAt(RecipeQueue.Items.Num() - 1);
-			RecipeQueue.MarkArrayDirty();
-			QueueAdditionalData.RemoveAt(DataIndex);
-			return;
+			if (!ConsumeResourcesForRecipe(Item, Count, QueueAdditionalData[DataIndex]))
+			{
+				RecipeQueue.Items.RemoveAt(RecipeQueue.Items.Num() - 1);
+				RecipeQueue.MarkArrayDirty();
+				QueueAdditionalData.RemoveAt(DataIndex);
+
+				// A failed partial removal may have created refunds.
+				FlushPendingDeliveries();
+				return;
+			}
 		}
+
+		HandleRecalculateAvailableRecipes();
+		OnRep_Queue();
 	}
-    
-	OnRep_Queue();
-	//LogQueueState(TEXT("AFTER_Enqueue")); 
-	if (CurrentCraftingRecipe.ItemRecipeRow.ID.IsNone() || CurrentCraftingRecipe.Count == 0)
-	{
-		TryStartNext();
-	}
+
+	TryStartNext();
 }
 
 void UCraftingComponent::Server_CancelRecipe_Implementation(int32 QueueIndex)
@@ -639,59 +474,68 @@ void UCraftingComponent::Server_CancelRecipe_Implementation(int32 QueueIndex)
 
 void UCraftingComponent::HandleCancelRecipe(int32 QueueIndex)
 {
-	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
-	if (!RecipeQueue.Items.IsValidIndex(QueueIndex)) return;
-
-	auto RecipeToDelete = RecipeQueue.Items[QueueIndex];
-	const int32 TargetID = RecipeToDelete.ReplicationID;
-
-	if (RecipeToDelete.bResourcesWasConsumed)
+	if (!GetOwner() || !GetOwner()->HasAuthority()
+		|| bCraftMutation
+		|| !RecipeQueue.Items.IsValidIndex(QueueIndex))
 	{
-		FCraftAdditionalData* FoundData = QueueAdditionalData.FindByPredicate([TargetID](const FCraftAdditionalData& Data) {
-		   return Data.TargetRepID == TargetID;
-	   });
-
-		if (FoundData)
-		{
-			RefundResourcesForRecipe(RecipeToDelete, RecipeToDelete.Count, *FoundData);
-		}
+		return;
 	}
 
-	if (QueueIndex == 0)
 	{
-		GetWorld()->GetTimerManager().ClearTimer(CraftTimerHandle);
-		CurrentCraftingRecipe = FQueuedRecipe();
-       
+		TGuardValue<bool> MutationGuard(bCraftMutation, true);
+
+		const FQueuedRecipe Item = RecipeQueue.Items[QueueIndex];
+		const int32 TargetRepID = Item.ReplicationID;
+
+		const bool bWasCurrent =
+			CurrentCraftingRecipe.QueueEntryId == Item.QueueEntryId;
+
+		if (bWasCurrent)
+		{
+			GetWorld()->GetTimerManager().ClearTimer(CraftTimerHandle);
+			CurrentCraftingRecipe = FQueuedRecipe();
+		}
+
+		FCraftAdditionalData* AddData =	QueueAdditionalData.FindByPredicate([TargetRepID](const FCraftAdditionalData& Data)
+		{
+			return Data.TargetRepID == TargetRepID;
+		});
+
+		FCraftAdditionalData DummyData;
+		RefundResourcesForRecipe(Item, Item.Count, AddData ? *AddData : DummyData);
 		RecipeQueue.Items.RemoveAt(QueueIndex);
 		RecalculateSortOrders();
-		
-		QueueAdditionalData.RemoveAll([TargetID](const FCraftAdditionalData& Data) {
-		   return Data.TargetRepID == TargetID;
-	   });
 
-		if (ActiveBlocksReasons.IsEmpty())
+		QueueAdditionalData.RemoveAll([TargetRepID](const FCraftAdditionalData& Data)
 		{
-			TryStartNext();
-		}
+			return Data.TargetRepID == TargetRepID;
+		});
+
+		FlushPendingDeliveries();
+		HandleRecalculateAvailableRecipes();
+
+		OnRep_Queue();
+		OnRep_CurrentRecipe();
+		Multicast_OnCraftCanceled();
 	}
-	else
-	{
-		RecipeQueue.Items.RemoveAt(QueueIndex);
-		RecalculateSortOrders();
-		
-		QueueAdditionalData.RemoveAll([TargetID](const FCraftAdditionalData& Data) {
-		   return Data.TargetRepID == TargetID;
-	   });
-	}
-    
-	OnRep_Queue();
-	OnRep_CurrentRecipe();
-	Multicast_OnCraftCanceled();
+
+	TryStartNext();
 }
 
 void UCraftingComponent::ProcessCraftTick()
 {
 	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
+	if (bCraftMutation)
+	{
+		return;
+	}
+
+	// Do not spend additional fuel/progress while delivery is blocked.
+	if (!PendingDeliveries.IsEmpty())
+	{
+		return;
+	}
+	
 	if (CurrentCraftingRecipe.ItemRecipeRow.ID.IsNone()) return;
 	
 	if (bRequiresFuel)
@@ -714,7 +558,7 @@ void UCraftingComponent::ProcessCraftTick()
 	auto EffectiveSpeed = CraftingSpeed * ProcessCraftTickTime;
 	CurrentCraftingRecipe.CurrentProgress += EffectiveSpeed;
 
-	if (RecipeQueue.Items.Num() > 0 && RecipeQueue.Items[0].ItemRecipeRow.ID == CurrentCraftingRecipe.ItemRecipeRow.ID)
+	if (RecipeQueue.Items.Num() > 0	&& RecipeQueue.Items[0].QueueEntryId == CurrentCraftingRecipe.QueueEntryId)
 	{
 		RecipeQueue.Items[0].CurrentProgress = CurrentCraftingRecipe.CurrentProgress;
 		RecipeQueue.MarkItemDirty(RecipeQueue.Items[0]);
@@ -730,133 +574,165 @@ void UCraftingComponent::ProcessCraftTick()
 
 void UCraftingComponent::TryStartNext()
 {
-	if (!GetOwner() || !GetOwner()->HasAuthority())
+	if (!GetOwner() || !GetOwner()->HasAuthority()
+		|| bCraftMutation
+		|| !ActiveBlocksReasons.IsEmpty()
+		|| !PendingDeliveries.IsEmpty()
+		|| RecipeQueue.Items.IsEmpty()
+		|| GetWorld()->GetTimerManager().IsTimerActive(CraftTimerHandle))
+	{
 		return;
-	
-	if (!ActiveBlocksReasons.IsEmpty())
-		return;
-	
-	//if (!CurrentCraftingRecipe.ItemRecipeRow.ID.IsNone() || CurrentCraftingRecipe.Count > 0)
-	//	return;
+	}
 
-	if (RecipeQueue.Items.Num() == 0)
-		return;
-	
 	StartCurrentRecipe(RecipeQueue.Items[0]);
 }
 
 void UCraftingComponent::StartCurrentRecipe(FQueuedRecipe& Item)
 {
-	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
-
-	const bool bConsumeOnCraftStart = ConsumePolicy == ECraftingResourceConsumePolicy::OnCraftStart;
-	if (bConsumeOnCraftStart && Item.bResourcesWasConsumed == false)
+	if (!GetOwner() || !GetOwner()->HasAuthority()
+		|| bCraftMutation || Item.Count <= 0
+		|| ProcessCraftTickTime <= 0.f)
 	{
-		const int32 TargetID = Item.ReplicationID;
-		FCraftAdditionalData* FoundData = QueueAdditionalData.FindByPredicate([TargetID](const FCraftAdditionalData& Data) {
-			return Data.TargetRepID == TargetID;
-		});
-		
-		FCraftAdditionalData DummyData;
-		auto Result = ConsumeResourcesForRecipe(Item, 1, FoundData ? *FoundData : DummyData);
-		if (!Result)
+		return;
+	}
+
+	TGuardValue<bool> MutationGuard(bCraftMutation, true);
+
+	FCraftAdditionalData* AddData =	QueueAdditionalData.FindByPredicate(
+			[&Item](const FCraftAdditionalData& Data)
+			{
+				return Data.TargetRepID == Item.ReplicationID;
+			});
+
+	if (!AddData)
+	{
+		return;
+	}
+
+	if (ConsumePolicy == ECraftingResourceConsumePolicy::OnCraftStart
+		&& !CraftReservations.Contains(Item.QueueEntryId))
+	{
+		if (!ConsumeResourcesForRecipe(Item, 1, *AddData))
 		{
 			SetNoResourcesRequest(true);
 			return;
 		}
 	}
-	
-	GetWorld()->GetTimerManager().ClearTimer(CraftTimerHandle);
+
+	if (ConsumePolicy == ECraftingResourceConsumePolicy::OnQueueAdd
+		&& !CraftReservations.Contains(Item.QueueEntryId))
+	{
+		// Do not manufacture an unpaid queued batch.
+		return;
+	}
+
+	if (!ActiveBlocksReasons.IsEmpty()
+		|| !PendingDeliveries.IsEmpty())
+	{
+		return;
+	}
 
 	CurrentCraftingRecipe = Item;
-	
-	//UE_LOG(LogTemp, Log,TEXT("SERVER CurrentRecipe Progress = %f"),	CurrentCraftingRecipe.CurrentProgress);
-	
 	GetWorld()->GetTimerManager().SetTimer(
 		CraftTimerHandle,
 		this,
 		&UCraftingComponent::ProcessCraftTick,
 		ProcessCraftTickTime,
-		true
-		);
-	
+		true);
+
 	OnRep_CurrentRecipe();
 }
 
 void UCraftingComponent::FinishCurrentRecipe()
 {
-	if (!GetOwner() || !GetOwner()->HasAuthority())
+	if (!GetOwner() || !GetOwner()->HasAuthority() || bCraftMutation)
+	{
 		return;
+	}
 
 	GetWorld()->GetTimerManager().ClearTimer(CraftTimerHandle);
-	
-	int32 TargetID = CurrentCraftingRecipe.ReplicationID;
-	FCraftAdditionalData* FoundData = QueueAdditionalData.FindByPredicate([TargetID](const FCraftAdditionalData& Data) {
-		return Data.TargetRepID == TargetID;
-	});
-
-	const bool bConsumeOnCraftFinish = ConsumePolicy == ECraftingResourceConsumePolicy::OnCraftFinish;
-	if (bConsumeOnCraftFinish)
 	{
-		FCraftAdditionalData DummyData;
-		auto Result = ConsumeResourcesForRecipe(CurrentCraftingRecipe, 1, FoundData ? *FoundData : DummyData);
-		if (!Result)
+		TGuardValue<bool> MutationGuard(bCraftMutation, true);
+
+		const int32 QueueIndex = RecipeQueue.Items.IndexOfByPredicate([this](const FQueuedRecipe& Item)
 		{
-			CurrentCraftingRecipe.CurrentProgress = CurrentCraftingRecipe.ItemRecipeRow.CraftVolume - 0.01f;
-			SaveCurrentProgressToQueue();
-			SetNoResourcesRequest(true);
+			return Item.QueueEntryId == CurrentCraftingRecipe.QueueEntryId;
+		});
+
+		if (QueueIndex == INDEX_NONE)
+		{
 			return;
 		}
-	}
 
-	GiveCraftedItemToInventory(CurrentCraftingRecipe.ItemRecipeRow);
-	
-	if (CurrentCraftingRecipe.Count > 1)
-	{
-		CurrentCraftingRecipe.Count--;
-		CurrentCraftingRecipe.CurrentProgress = 0.f;
-		if (RecipeQueue.Items.Num() > 0 && RecipeQueue.Items[0].ItemRecipeRow.ID == CurrentCraftingRecipe.ItemRecipeRow.ID)
+		FQueuedRecipe& Item = RecipeQueue.Items[QueueIndex];
+		FCraftAdditionalData* AddData =	QueueAdditionalData.FindByPredicate([&Item](const FCraftAdditionalData& Data)
 		{
-			RecipeQueue.Items[0].Count = CurrentCraftingRecipe.Count;
-			RecipeQueue.Items[0].CurrentProgress = 0.f;
-			RecipeQueue.MarkItemDirty(RecipeQueue.Items[0]); 
-			
+			return Data.TargetRepID == Item.ReplicationID;
+		});
+
+		if (!AddData)
+		{
+			return;
 		}
 
-		OnRep_Queue();
-		OnRep_CurrentRecipe();
-		
-		if (ActiveBlocksReasons.IsEmpty())
+		TArray<FCraftItemBatch> Output;
+
+		// Prepare every output before committing the paid resources.
+		if (!PrepareCraftOutput(Item.ItemRecipeRow, Output))
 		{
-			GetWorld()->GetTimerManager().SetTimer(
-			CraftTimerHandle,
-			this,
-			&UCraftingComponent::ProcessCraftTick,
-			ProcessCraftTickTime,
-			true);
+			UE_LOG(LogTemp, Error,
+			       TEXT("Cannot prepare output for recipe %s"),
+			       *Item.ItemRecipeRow.ID.ToString());
+			return;
 		}
 
-		OnRep_CurrentRecipe();
-	}
-	else
-	{
-		if (RecipeQueue.Items.Num() > 0)
+		if (!CraftReservations.Contains(Item.QueueEntryId))
 		{
-			RecipeQueue.Items.RemoveAt(0);
+			if (ConsumePolicy != ECraftingResourceConsumePolicy::OnCraftFinish || !ConsumeResourcesForRecipe(Item, 1, *AddData))
+			{
+				SetNoResourcesRequest(true);
+				return;
+			}
+		}
+
+		// Output now belongs to the player/station.
+		// Cancelling remaining iterations must not refund this iteration.
+		CommitReservedIteration(Item);
+		PendingDeliveries.Append(Output);
+
+		const int32 TargetRepID = Item.ReplicationID;
+		--Item.Count;
+		Item.CurrentProgress = 0.f;
+
+		if (Item.Count <= 0)
+		{
+			RecipeQueue.Items.RemoveAt(QueueIndex);
 			RecalculateSortOrders();
+
+			QueueAdditionalData.RemoveAll(
+				[TargetRepID](const FCraftAdditionalData& Data)
+				{
+					return Data.TargetRepID == TargetRepID;
+				});
 		}
-		
-		QueueAdditionalData.RemoveAll([TargetID](const FCraftAdditionalData& Data) {
-		   return Data.TargetRepID == TargetID;
-	   });
+		else
+		{
+			RecipeQueue.MarkItemDirty(Item);
+		}
 
 		CurrentCraftingRecipe = FQueuedRecipe();
+
+		FlushPendingDeliveries();
+		HandleRecalculateAvailableRecipes();
+
 		OnRep_Queue();
 		OnRep_CurrentRecipe();
-
-		TryStartNext();
 	}
-	
+
+	// A new iteration passes through StartCurrentRecipe again.
+	// Unpaid iterations cannot reuse the previous payment.
+	TryStartNext();
+
 	//LogQueueState(TEXT("FinishCurrentRecipe"));
 }
 
@@ -882,43 +758,318 @@ bool UCraftingComponent::ConsumeFuelUnit()
 
 bool UCraftingComponent::ConsumeResourcesForRecipe(FQueuedRecipe& Item, int32 Count, FCraftAdditionalData& AddData) 
 {
-	auto CheckResult = CanCraft(Item.ItemRecipeRow, AddData.SelectedOptions, Count);
-	if (!CheckResult.bCanCraft)
-		return false;
+	if (Count <= 0)
+    {
+        return false;
+    }
 
-	for (const FInitItemsEntry& ResourceToConsume : CheckResult.ResourcesToConsume)
-	{
-		AddData.ConsumedResources.Add(ResourceToConsume);
-		InputInventory->HandleRemoveItemsByID( ResourceToConsume.Item.RowName, ResourceToConsume.Amount);
-	}
-	
-	Item.bResourcesWasConsumed = true;
-	RecipeQueue.MarkItemDirty(Item);
-	
-	OnRep_InventoryUpdated();
+    if (const FCraftReservation* Existing = CraftReservations.Find(Item.QueueEntryId))
+    {
+        return Existing->PaidIterations >= Count;
+    }
 
-	return true;
+    const FRecipeCheckResult Check = CanCraft(Item.ItemRecipeRow, AddData.SelectedOptions, Count);
+	if (!Check.bCanCraft)
+    {
+        return false;
+    }
+
+    FCraftReservation Reservation;
+    const TArray<UInventoryBase*> Sources = GetResourceInventories();
+
+    auto Rollback = [&]()
+    {
+        // Keep actual removed resources until they can be returned.
+        PendingDeliveries.Append(Reservation.Resources);
+        return false;
+    };
+
+    for (const FInitItemsEntry& Cost : Check.ResourcesToConsume)
+    {
+        const FItemData* Row = Cost.Item.DataTable
+            ? Cost.Item.DataTable->FindRow<FItemData>(Cost.Item.RowName, TEXT("CraftConsume"))
+            : nullptr;
+
+        if (!Row || Cost.Amount <= 0 || Cost.Amount % Count != 0)
+        {
+            return Rollback();
+        }
+
+        FInitItemsEntry UnitCost = Cost;
+        UnitCost.Amount /= Count;
+        Reservation.UnitCost.Add(UnitCost);
+
+        int32 Remaining = Cost.Amount;
+
+        for (UInventoryBase* Source : Sources)
+        {
+            const TArray<UObject*> SourceItems = Source->GetItemCollectionLinked()->GetAllItemsByContainer(
+                    Source->GetInventoryContainerID());
+
+            TSet<UObject*> Seen;
+            for (UObject* SourceItem : SourceItems)
+            {
+                if (Remaining == 0)
+                {
+                    break;
+                }
+
+                if (!IsValid(SourceItem) || Seen.Contains(SourceItem)
+                    || !UInterfaceUtils::ImplementsObjectDataProvider(
+                        SourceItem))
+                {
+                    continue;
+                }
+
+                Seen.Add(SourceItem);
+
+                if (IObjectDataProvider::Execute_GetItemID(SourceItem)
+                    != Row->ID)
+                {
+                    continue;
+                }
+
+                const int32 Requested = FMath::Min(
+                    Remaining,FMath::Max(0,IObjectDataProvider::Execute_GetQuantity(SourceItem)));
+
+                if (Requested == 0)
+                {
+                    continue;
+                }
+
+                UObject* Snapshot = IObjectDataProvider::Execute_DuplicateItem(SourceItem);
+
+                if (!IsValid(Snapshot)
+                    || Snapshot == SourceItem
+                    || !UInterfaceUtils::ImplementsObjectDataProvider(
+                        Snapshot))
+                {
+                    return Rollback();
+                }
+
+                const int32 Before = CountItem(Source, Row->ID);
+
+                Source->HandleRemoveItem(SourceItem, Requested);
+
+                const int32 After = CountItem(Source, Row->ID);
+
+                const int32 Removed = FMath::Clamp(Before - After, 0, Requested);
+
+                if (Removed > 0)
+                {
+                    IObjectDataProvider::Execute_SetQuantity(Snapshot, Removed);
+
+                    FCraftItemBatch Batch;
+                    Batch.Inventory = Source;
+                    Batch.Sample = Snapshot;
+                    Batch.ItemID = Row->ID;
+                    Batch.Amount = Removed;
+
+                    Reservation.Resources.Add(Batch);
+                    Remaining -= Removed;
+                }
+
+                if (Removed != Requested)
+                {
+                    return Rollback();
+                }
+            }
+
+            if (Remaining == 0)
+            {
+                break;
+            }
+        }
+
+        if (Remaining != 0)
+        {
+            return Rollback();
+        }
+    }
+
+    Reservation.PaidIterations = Count;
+    CraftReservations.Add(Item.QueueEntryId, MoveTemp(Reservation));
+
+    Item.bResourcesWasConsumed = true;
+    RecipeQueue.MarkItemDirty(Item);
+
+    // The old array no longer represents refundable resources.
+    AddData.ConsumedResources.Reset();
+
+    return true;
 }
 
 void UCraftingComponent::RefundResourcesForRecipe(const FQueuedRecipe& Item, int32 Count, FCraftAdditionalData& AddData)
 {
-	if (Item.bResourcesWasConsumed)
+	if (FCraftReservation* Reservation = CraftReservations.Find(Item.QueueEntryId))
 	{
-		for (auto Element : AddData.ConsumedResources)
-		{
-			UInvenzayUtility::AddItemQuantity(this, InputInventory, Element);
-		}
-		
-		OnRep_InventoryUpdated();
+		// Only uncommitted resources remain here.
+		PendingDeliveries.Append(Reservation->Resources);
+		CraftReservations.Remove(Item.QueueEntryId);
 	}
+
+	AddData.ConsumedResources.Reset();
 }
 
-void UCraftingComponent::GiveCraftedItemToInventory(FItemRecipeRow CraftedRow)
+TArray<UInventoryBase*> UCraftingComponent::GetResourceInventories() const
 {
-	for (auto Element : CraftedRow.OutputItems)
+	TArray<UInventoryBase*> Result;
+
+	if (IsResourceInventory(InputInventory))
 	{
-		UInvenzayUtility::AddItemQuantity(this, OutputInventory, Element);
+		Result.Add(InputInventory);
 	}
+
+	if (IsResourceInventory(InteractorInventory))
+	{
+		Result.AddUnique(InteractorInventory);
+	}
+
+	return Result;
+}
+
+bool UCraftingComponent::PrepareCraftOutput(const FItemRecipeRow& Recipe, TArray<FCraftItemBatch>& OutBatches)
+{
+	OutBatches.Reset();
+
+	if (!IsResourceInventory(OutputInventory))
+	{
+		return false;
+	}
+
+	for (const FInitItemsEntry& Output : Recipe.OutputItems)
+	{
+		if (Output.Amount <= 0 || Output.Item.IsNull())
+		{
+			OutBatches.Reset();
+			return false;
+		}
+
+		UObject* Sample = UItemFactory::CreateItemByHandle(this, Output.Item, 1);
+
+		if (!IsValid(Sample)
+			|| !UInterfaceUtils::ImplementsObjectDataProvider(Sample))
+		{
+			OutBatches.Reset();
+			return false;
+		}
+
+		FCraftItemBatch Batch;
+		Batch.Inventory = OutputInventory;
+		Batch.Sample = Sample;
+		Batch.ItemID = IObjectDataProvider::Execute_GetItemID(Sample);
+		Batch.Amount = Output.Amount;
+
+		OutBatches.Add(Batch);
+	}
+
+	return true;
+}
+
+void UCraftingComponent::FlushPendingDeliveries()
+{
+	for (FCraftItemBatch& Batch : PendingDeliveries)
+	{
+		if (!IsResourceInventory(Batch.Inventory)
+			|| !IsValid(Batch.Sample))
+		{
+			continue;
+		}
+
+		// Bound the work per retry for large batches.
+		for (int32 Attempt = 0;
+			 Attempt < 32 && Batch.Amount > 0;
+			 ++Attempt)
+		{
+			const bool bStackable = IObjectDataProvider::Execute_IsStackable(Batch.Sample);
+			const FItemMetaData Meta = IObjectDataProvider::Execute_GetItemRef(Batch.Sample);
+			const int32 MaxStack = bStackable
+				? FMath::Max(1, Meta.ItemNumeraticData.MaxStackSizeInCharacter)
+				: 1;
+
+			const int32 Requested = FMath::Min(Batch.Amount, MaxStack);
+			UObject* Item = IObjectDataProvider::Execute_DuplicateItem(Batch.Sample);
+
+			if (!IsValid(Item) || Item == Batch.Sample
+				|| !UInterfaceUtils::ImplementsObjectDataProvider(Item))
+			{
+				break;
+			}
+
+			IObjectDataProvider::Execute_SetQuantity(Item, Requested);
+
+			FItemMoveData Move;
+			Move.SourceItem = Item;
+			Move.TargetInventory = Batch.Inventory;
+
+			const FItemAddResult Result = Batch.Inventory->HandleAddItem(Move);
+			const int32 Added = FMath::Clamp(Result.ActualAmountAdded, 0, Requested);
+			Batch.Amount -= Added;
+
+			if (Added < Requested)
+			{
+				break;
+			}
+		}
+	}
+
+	PendingDeliveries.RemoveAll(
+		[](const FCraftItemBatch& Batch)
+		{
+			return Batch.Amount <= 0;
+		});
+}
+
+
+void UCraftingComponent::CommitReservedIteration(FQueuedRecipe& Item)
+{
+	FCraftReservation* Reservation = CraftReservations.Find(Item.QueueEntryId);
+
+	check(Reservation && Reservation->PaidIterations > 0);
+
+	for (const FInitItemsEntry& Cost : Reservation->UnitCost)
+	{
+		const FItemData* Row = Cost.Item.DataTable
+			? Cost.Item.DataTable->FindRow<FItemData>(Cost.Item.RowName, TEXT("CraftCommit"))
+			: nullptr;
+
+		check(Row);
+		int32 Remaining = Cost.Amount;
+		for (FCraftItemBatch& Batch : Reservation->Resources)
+		{
+			if (Batch.ItemID != Row->ID)
+			{
+				continue;
+			}
+
+			const int32 Used = FMath::Min(Remaining, Batch.Amount);
+			Batch.Amount -= Used;
+			Remaining -= Used;
+
+			if (Remaining == 0)
+			{
+				break;
+			}
+		}
+
+		check(Remaining == 0);
+	}
+
+	Reservation->Resources.RemoveAll(
+		[](const FCraftItemBatch& Batch)
+		{
+			return Batch.Amount <= 0;
+		});
+
+	--Reservation->PaidIterations;
+	Item.bResourcesWasConsumed = Reservation->PaidIterations > 0;
+
+	if (Reservation->PaidIterations == 0)
+	{
+		CraftReservations.Remove(Item.QueueEntryId);
+	}
+
+	RecipeQueue.MarkItemDirty(Item);
 }
 
 void UCraftingComponent::OnRep_Queue()
@@ -1002,6 +1153,11 @@ void UCraftingComponent::Server_MoveQueueItem_Implementation(FName RecipeID, int
 
 void UCraftingComponent::Handle_MoveQueueItem(FName RecipeID, int32 QueueIndex, bool bMoveUp)
 {
+	if (bCraftMutation)
+	{
+		return;
+	}
+	
 	if (!RecipeQueue.Items.IsValidIndex(QueueIndex)) 
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Handle_MoveQueueItem: Invalid queue index received: %d"), QueueIndex);
@@ -1121,3 +1277,196 @@ void UCraftingComponent::UpdateFuelBlockState()
 
 	HandleSetBlockState(*BlockReason, !HasFuelAvailable());
 }
+
+bool UCraftingComponent::IsResourceInventory(UInventoryBase* Inventory)
+{
+	return IsValid(Inventory) && IsValid(Inventory->GetItemCollectionLinked())
+			&& !Inventory->GetInventorySettings().bIsReferenceContainer;
+}
+
+int32 UCraftingComponent::CountItem(UInventoryBase* Inventory, FName ItemID)
+{
+	if (!IsResourceInventory(Inventory))
+	{
+		return 0;
+	}
+
+	int64 Total = 0;
+	TSet<UObject*> Seen;
+
+	for (UObject* Item : Inventory->GetItemCollectionLinked()->GetAllItemsByContainer(
+			Inventory->GetInventoryContainerID()))
+	{
+		if (!IsValid(Item) || Seen.Contains(Item)
+			|| !UInterfaceUtils::ImplementsObjectDataProvider(Item))
+		{
+			continue;
+		}
+
+		Seen.Add(Item);
+		if (IObjectDataProvider::Execute_GetItemID(Item) == ItemID)
+		{
+			Total += FMath::Max(0, IObjectDataProvider::Execute_GetQuantity(Item));
+		}
+	}
+
+	return static_cast<int32>(FMath::Min<int64>(Total, MAX_int32));
+}
+
+FRecipeCheckResult UCraftingComponent::CheckRecipe(const FItemRecipeRow& Recipe, const TArray<FItemIDEntry>& Items,
+                                                   const TArray<int32>& SelectedOptions, int32 Amount)
+{
+	FRecipeCheckResult Result;
+	if (Amount <= 0)
+	{
+		return Result;
+	}
+
+	TMap<FName, int64> Available;
+
+	for (const FItemIDEntry& Item : Items)
+	{
+		if (!Item.ItemID.IsNone() && Item.Amount > 0)
+		{
+			Available.FindOrAdd(Item.ItemID) += Item.Amount;
+		}
+	}
+
+	TArray<TArray<FCraftIngredientOption>> Options;
+	bool bInvalidPrimary = false;
+
+	for (const FRecipeItemRequirement& Requirement : Recipe.RequiredItems)
+	{
+		FRecipeItemRequirementCheck Display;
+		TArray<FCraftIngredientOption> RowOptions;
+
+		auto AddOption = [&](const FDataTableRowHandle& Handle, int32 Quantity, FRecipeRequirementResult& DisplayOption)
+		{
+			FCraftIngredientOption Option;
+			Option.Handle = Handle;
+			const FItemData* Row = Handle.DataTable ? Handle.DataTable->FindRow<FItemData>(Handle.RowName, TEXT("CraftCheck")): nullptr;
+			const int64 Required = static_cast<int64>(Quantity) * Amount;
+
+			if (Row && !Row->ID.IsNone()
+				&& Quantity > 0
+				&& Required > 0
+				&& Required <= MAX_int32)
+			{
+				Option.bValid = true;
+				Option.ItemID = Row->ID;
+				Option.Amount = static_cast<int32>(Required);
+
+				DisplayOption.RequiredItemID = Row->ID;
+				DisplayOption.ItemMetaData = Row->ItemMetaData;
+				DisplayOption.AmountNeed = Option.Amount;
+				DisplayOption.AmountHave = static_cast<int32>(FMath::Min<int64>(Available.FindRef(Row->ID), MAX_int32));
+
+				DisplayOption.bIsSatisfied = Available.FindRef(Row->ID) >= Required;
+			}
+
+			// Keep indexes stable even for an invalid alternative.
+			RowOptions.Add(Option);
+		};
+
+		AddOption(Requirement.Item,	Requirement.Quantity,Display.Primary);
+		bInvalidPrimary |= !RowOptions[0].bValid;
+
+		for (const FAlternativeItem& Alternative : Requirement.Alternatives)
+		{
+			FRecipeRequirementResult AlternativeDisplay;
+			AddOption(Alternative.Item, Alternative.Quantity,AlternativeDisplay);
+			Display.Alternatives.Add(AlternativeDisplay);
+		}
+
+		Result.Requirements.Add(Display);
+		Options.Add(MoveTemp(RowOptions));
+	}
+
+	if (bInvalidPrimary)
+	{
+		return Result;
+	}
+
+	TArray<int32> Chosen;
+	Chosen.Init(INDEX_NONE, Options.Num());
+
+	// Reserve quantities while choosing alternatives.
+	// Backtracking also handles overlapping alternatives correctly.
+	TFunction<bool(int32)> Choose = [&](int32 RequirementIndex)
+	{
+		if (RequirementIndex == Options.Num())
+		{
+			return true;
+		}
+
+		const auto& Candidates = Options[RequirementIndex];
+		auto TryOption = [&](int32 OptionIndex)
+		{
+			if (!Candidates.IsValidIndex(OptionIndex))
+			{
+				return false;
+			}
+
+			const FCraftIngredientOption& Option = Candidates[OptionIndex];
+
+			if (!Option.bValid
+				|| Available.FindRef(Option.ItemID) < Option.Amount)
+			{
+				return false;
+			}
+
+			Available.FindOrAdd(Option.ItemID) -= Option.Amount;
+			Chosen[RequirementIndex] = OptionIndex;
+
+			if (Choose(RequirementIndex + 1))
+			{
+				return true;
+			}
+
+			Available.FindOrAdd(Option.ItemID) += Option.Amount;
+			Chosen[RequirementIndex] = INDEX_NONE;
+			return false;
+		};
+
+		if (!SelectedOptions.IsEmpty())
+		{
+			// Preserve the existing convention:
+			// missing selections mean Primary.
+			const int32 Selected =
+				SelectedOptions.IsValidIndex(RequirementIndex)
+					? SelectedOptions[RequirementIndex]
+					: 0;
+
+			return TryOption(Selected);
+		}
+
+		for (int32 Index = 0; Index < Candidates.Num(); ++Index)
+		{
+			if (TryOption(Index))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	};
+
+	Result.bCanCraft = Choose(0);
+
+	if (Result.bCanCraft)
+	{
+		for (int32 Index = 0; Index < Options.Num(); ++Index)
+		{
+			const FCraftIngredientOption& Option = Options[Index][Chosen[Index]];
+
+			FInitItemsEntry Entry;
+			Entry.Item = Option.Handle;
+			Entry.Amount = Option.Amount;
+
+			Result.ResourcesToConsume.Add(Entry);
+		}
+	}
+
+	return Result;
+}
+
