@@ -12,15 +12,16 @@
 UENUM(BlueprintType)
 enum class EItemOrientationType : uint8
 {
-	Vertical UMETA(DisplayName = "Vertical"),
-	Horizontal UMETA(DisplayName = "Hotizontal"),
+	Vertical	UMETA(DisplayName = "Vertical"),
+	Horizontal	UMETA(DisplayName = "Hotizontal"),
 };
 
 UENUM(BlueprintType)
 enum class EStorageMethod : uint8
 {
 	SingleMesh	UMETA(DisplayName = "SingleMesh"),
-	Logs	UMETA(DisplayName = "Logs"),
+	Logs		UMETA(DisplayName = "Logs"),
+	SmallBoxes	UMETA(DisplayName = "SmallBoxes"),
 };
 
 USTRUCT(BlueprintType)
@@ -122,6 +123,13 @@ struct FItemTradeData
 	float BasePrice = 0.0f;
 };
 
+UENUM(BlueprintType)
+enum class EStorageMeshAxis : uint8
+{
+	X UMETA(DisplayName = "X"),
+	Y UMETA(DisplayName = "Y")
+};
+
 USTRUCT(BlueprintType)
 struct FItemStorageData
 {
@@ -132,6 +140,10 @@ struct FItemStorageData
 	
 	UPROPERTY(EditAnywhere, Category = "Item|StorageData")
 	TObjectPtr<UStaticMesh> StorageMesh;
+
+	/** Longitudinal axis of the source mesh. Currently used by Logs. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|StorageData")
+	EStorageMeshAxis MeshLengthAxis = EStorageMeshAxis::X;
 };
 
 

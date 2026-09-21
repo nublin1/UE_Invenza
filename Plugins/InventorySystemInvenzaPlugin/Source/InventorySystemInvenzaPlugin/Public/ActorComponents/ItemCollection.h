@@ -32,6 +32,7 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UItemCollection : public UActorComponent
 
 #pragma region Delegates
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInventoryItemsChanged, const FString&, InventoryID);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnActorInventoriesChanged);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCollectionItemsIsEmpty, bool, IsEmpty);
 #pragma endregion Delegates
 
@@ -51,6 +52,9 @@ public:
 	//====================================================================
 	UPROPERTY(BlueprintAssignable, Category = "Item Collection")
 	FOnInventoryItemsChanged OnInventoryItemsChanged;
+	/** Inventory list or inventory selection/size data became available or changed. */
+	UPROPERTY(BlueprintAssignable, Category = "Item Collection")
+	FOnActorInventoriesChanged OnActorInventoriesChanged;
 	UPROPERTY(BlueprintAssignable, Category = "Item Collection")
 	FOnCollectionItemsIsEmpty OnCollectionItemsIsEmpty;
 	

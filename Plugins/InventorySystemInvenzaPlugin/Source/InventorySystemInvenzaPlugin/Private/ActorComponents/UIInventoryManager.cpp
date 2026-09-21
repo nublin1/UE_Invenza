@@ -1148,7 +1148,7 @@ void UIInventoryManager::HandleContainerInteraction(UInteractableComponent* Targ
 	
 	SetInteractionOwnership(Target->GetOwner(), true);
 
-	LootContainerProvider.SetObject(Target->GetOwner());
+	LootContainerProvider.SetObject(Target);
 	LootContainerProvider.SetInterface(LootProvider);
 
 	ItemCollectionRef->SetExternalInventory(InventoryToDisplay);
@@ -1278,7 +1278,7 @@ void UIInventoryManager::CloseSecondaryInventory(EInteractableType InteractableT
 	switch (InteractableType)
 	{
 	case EInteractableType::Container:
-		if (GetOwner() && !GetOwner()->HasAuthority())
+		if (GetOwner())
 		{
 			Server_ClientClosedUI(InteractableType);
 		}

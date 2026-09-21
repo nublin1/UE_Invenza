@@ -4,6 +4,25 @@
 
 #include "InputAction.h"
 #include "Net/UnrealNetwork.h"
+#include "ActorComponents/ItemCollection.h"
+#include "Data/Inventory/SlotBasedInv/SlotbasedInventory.h"
+#include "GameFramework/Actor.h"
+
+void UInventorySlotData::OnRep_InventorySlotInfo()
+{
+	// Slot references and their coordinates can arrive in separate replication updates.
+	const AActor* Owner = GetTypedOuter<AActor>();
+	UItemCollection* Collection = Owner ? Owner->FindComponentByClass<UItemCollection>() : nullptr;
+	if (!Collection) return;
+	for (UInventoryBase* Inventory : Collection->GetActorInventories())
+	{
+		USlotbasedInventory* Grid = Cast<USlotbasedInventory>(Inventory);
+		if (Grid && Grid->GetInventorySlots().Contains(this))
+		{
+			Collection->OnInventoryItemsChanged.Broadcast(Grid->GetInventoryContainerID());
+		}
+	}
+}
 
 UInventorySlotData::UInventorySlotData(): InventorySlotInfo()
 {

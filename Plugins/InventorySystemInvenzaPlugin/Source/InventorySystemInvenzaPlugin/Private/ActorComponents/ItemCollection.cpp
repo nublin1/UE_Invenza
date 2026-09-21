@@ -172,6 +172,7 @@ UInventoryBase* UItemCollection::GetInventoryByID(FString ContainerID)
 void UItemCollection::AddPawnInventory_Internal(UInventoryBase* InInventory)
 {
 	ActorInventories.Add(InInventory);
+	OnActorInventoriesChanged.Broadcast();
 }
 
 void UItemCollection::RegisterContainerWidget(UInventoryBase* Inventory, UInventoryContainerWidget* Widget)
@@ -937,6 +938,7 @@ void UItemCollection::OnRep_ActorInventories()
 			}
 		}
 	}
+	OnActorInventoriesChanged.Broadcast();
 }
 
 void UItemCollection::OnItemDataReplicated(UObject* Item)

@@ -30,8 +30,11 @@ public:
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Replicated, Category="Inventory")
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, ReplicatedUsing = OnRep_InventorySlotInfo, Category="Inventory")
 	FInventorySlotInfo InventorySlotInfo;
+
+	UFUNCTION()
+	void OnRep_InventorySlotInfo();
 
 	//====================================================================
 	// FUNCTIONS

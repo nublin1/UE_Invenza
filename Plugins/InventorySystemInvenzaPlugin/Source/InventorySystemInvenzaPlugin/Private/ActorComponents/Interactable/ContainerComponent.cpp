@@ -106,7 +106,6 @@ void UContainerComponent::InitializeInteractionComponent()
 
 void UContainerComponent::UpdateInteractableData()
 {
-	Super::UpdateInteractableData();
 	
 	if (InteractableDataMap.Contains(EInteractionType::Primary))
 	{
@@ -122,6 +121,7 @@ void UContainerComponent::UpdateInteractableData()
 
 	InteractableDataMap.Add(EInteractionType::Primary, PrimaryData);	
 	
+	Super::UpdateInteractableData();
 }
 
 void UContainerComponent::InitializeInventoryStartupData()

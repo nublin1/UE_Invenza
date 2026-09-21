@@ -438,6 +438,14 @@ void UInventoryBase::OnRep_InventoryTotalWeight()
 	OnWeightUpdatedDelegate.Broadcast(InventoryTotalWeight);
 }
 
+void UInventoryBase::OnRep_InventoryConfiguration()
+{
+	if (IsValid(ItemCollectionLinked))
+	{
+		ItemCollectionLinked->OnActorInventoriesChanged.Broadcast();
+	}
+}
+
 void UInventoryBase::OnRep_InventoryTotalMoney()
 {
 	OnMoneyUpdatedDelegate.Broadcast(InventoryTotalMoney);

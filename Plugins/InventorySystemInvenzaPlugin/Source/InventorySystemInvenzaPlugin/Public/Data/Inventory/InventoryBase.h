@@ -211,10 +211,16 @@ public:
 	virtual void SetInventorySettings(FInventorySettings NewInventorySettings) {InventorySettings = NewInventorySettings;}
 	
 	UFUNCTION(BlueprintCallable)
-	virtual void SetInventorySize(FIntPoint NewSize) { InvSize = NewSize; }
+	virtual void SetInventorySize(FIntPoint NewSize)
+	{
+		if (InvSize != NewSize) { InvSize = NewSize; OnRep_InventoryConfiguration(); }
+	}
 	
 	UFUNCTION()
-	void SetItemCollectionLink(UItemCollection* NewCollection) { ItemCollectionLinked = NewCollection; }
+	void SetItemCollectionLink(UItemCollection* NewCollection)
+	{
+		if (ItemCollectionLinked != NewCollection) { ItemCollectionLinked = NewCollection; OnRep_InventoryConfiguration(); }
+	}
 
 	UFUNCTION()
 	virtual void SetInventoryOwnerActor(AActor* InInventoryOwnerActor){this->InventoryOwnerActor = InInventoryOwnerActor;}
@@ -227,13 +233,13 @@ protected:
 	// PROPERTIES AND VARIABLES
 	//====================================================================
 	// Settings
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated, Category = "Inventory|Config")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, ReplicatedUsing = OnRep_InventoryConfiguration, Category = "Inventory|Config")
 	FInventorySettings InventorySettings;
 
 	// Data
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, ReplicatedUsing = OnRep_InventoryConfiguration)
 	FString InventoryContainerID; // Uniq ID
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, ReplicatedUsing = OnRep_InventoryConfiguration)
 	TObjectPtr<UItemCollection> ItemCollectionLinked = nullptr;
 	
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
@@ -244,7 +250,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing = OnRep_InventoryTotalMoney, Category="Inventory")
 	int32 InventoryTotalMoney = 0;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, ReplicatedUsing = OnRep_InventoryConfiguration)
 	FIntPoint InvSize = FIntPoint(1, 1);
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, Category="Inventory")
@@ -297,6 +303,8 @@ protected:
 	virtual void NotifyUseSlot(UInventorySlotData* UsedSlot);
 	UFUNCTION()
 	virtual void OnRep_InventoryTotalWeight();
+	UFUNCTION()
+	void OnRep_InventoryConfiguration();
 	UFUNCTION()
 	virtual void OnRep_InventoryTotalMoney();
 	UFUNCTION()

@@ -114,14 +114,17 @@ void UInteractionComponent::PerformInteractionCheck()
 	{
 		AActor* HitActor = TraceHit.GetActor();
 
-		if (HitActor)
+		UInteractableComponent* InteractableComp = IsValid(HitActor)
+			? HitActor->FindComponentByClass<UInteractableComponent>()
+			: nullptr;
+
+		if (IsValid(InteractableComp))
 		{
-			UInteractableComponent* InteractableComp = HitActor->FindComponentByClass<UInteractableComponent>();
-			
-			if (InteractableComp && InteractableComp != InteractionData.CurrentInteractable)
+			if (InteractableComp != InteractionData.CurrentInteractable)
 			{
 				FoundInteractable(HitActor, InteractableComp);
 			}
+
 			return;
 		}
 	}
