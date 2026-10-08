@@ -1,4 +1,4 @@
-﻿//  Nublin Studio 2026 All Rights Reserved.
+//  Nublin Studio 2026 All Rights Reserved.
 
 #include "ActorComponents/Crafting/CraftingComponent.h"
 
@@ -374,6 +374,44 @@ FRecipeCheckResult UCraftingComponent::CanCraftWithItemsOptions(const FItemRecip
                                                                 const TArray<int32>& SelectedOptions, int32 Amount)
 {
 	return CheckRecipe(RecipeRow, InventoryItems, SelectedOptions, Amount);
+}
+
+int32 UCraftingComponent::GetMaxCraftAmount(const FItemRecipeRow& RecipeRow,
+	const TArray<int32>& SelectedOptions) const
+{
+	TArray<FItemIDEntry> Items;
+	for (UInventoryBase* Inventory : GetResourceInventories())
+		Items.Append(Inventory->GetItemCollectionLinked()->CollectItemsAggregated(Inventory->GetInventoryContainerID()));
+	return GetMaxCraftAmountWithItems(RecipeRow, Items, SelectedOptions);
+}
+
+int32 UCraftingComponent::GetMaxCraftAmountWithItems(const FItemRecipeRow& RecipeRow,
+	const TArray<FItemIDEntry>& Items, const TArray<int32>& SelectedOptions)
+{
+	if (RecipeRow.RequiredItems.IsEmpty()) return 0;
+	// Match the UI's default selection (Primary), never auto-pick another alternative.
+	TArray<int32> Options = SelectedOptions;
+	if (Options.IsEmpty()) Options.Init(0, RecipeRow.RequiredItems.Num());
+	const FRecipeCheckResult Single = CheckRecipe(RecipeRow, Items, Options, 1);
+	if (!Single.bCanCraft) return 0;
+	int32 Upper = MAX_int32;
+	for (int32 Index = 0; Index < Single.Requirements.Num(); ++Index)
+	{
+		const auto& Requirement = Single.Requirements[Index];
+		const int32 Selected = Options.IsValidIndex(Index) ? Options[Index] : 0;
+		const auto& Option = Selected == 0 ? Requirement.Primary : Requirement.Alternatives[Selected - 1];
+		if (Option.AmountNeed <= 0) return 0;
+		Upper = FMath::Min(Upper, Option.AmountHave / Option.AmountNeed);
+	}
+	// The shared check reserves resources across requirements, including duplicate ItemIDs.
+	int32 Lower = 1;
+	while (Lower < Upper)
+	{
+		const int32 Mid = Lower + static_cast<int32>((static_cast<int64>(Upper) - Lower + 1) / 2);
+		if (CheckRecipe(RecipeRow, Items, Options, Mid).bCanCraft) Lower = Mid;
+		else Upper = Mid - 1;
+	}
+	return Lower;
 }
 
 void UCraftingComponent::EnqueueRecipeRequest(FItemRecipeRow ItemRecipeRow, const TArray<int32>& SelectedOptions, int32 Count)

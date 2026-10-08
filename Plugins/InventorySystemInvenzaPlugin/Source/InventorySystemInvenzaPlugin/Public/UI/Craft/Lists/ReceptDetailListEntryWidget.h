@@ -1,4 +1,4 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -30,6 +30,8 @@ public:
 protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeOnListItemObjectSet(UObject* DetailItemObject) override;
+	virtual void NativeOnEntryReleased() override;
+	void RefreshFromModel();
 
 public:	
 	//====================================================================

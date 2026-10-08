@@ -1,4 +1,4 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -26,6 +26,12 @@ protected:
 	virtual void NativeConstruct() override;
 
 public:
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnOptionsChanged);
+	UPROPERTY(BlueprintAssignable, Category="Crafting")
+	FOnOptionsChanged OnOptionsChanged;
+
+	void ClearRequirements();
+
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
@@ -52,7 +58,5 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI|Settings")
 	TSubclassOf<URecipeRequiredIListEntryObject> RequiredListEntryObjectClass;
 
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
+	void HandleOptionChanged();
 };

@@ -1,9 +1,10 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "UI/InvenzaBaseWidget.h"
+#include "Data/CraftSystem/ItemRecipe.h"
 #include "CraftMenuDetail.generated.h"
 
 class UReceptDetailRequiredListSimple;
@@ -54,6 +55,15 @@ public:
 	//====================================================================
 	UFUNCTION(BlueprintCallable)
 	void SetCraftDetail(FItemRecipeRow RecipeRow, FRecipeCheckResult CheckResult);
+
+	void ClearDetail();
+
+	// Data for the future description/work widgets; does not require a Blueprint layout change.
+	UPROPERTY(Transient, BlueprintReadOnly, Category="Crafting|Detail")
+	FItemRecipeRow CurrentRecipe;
+
+	UFUNCTION(BlueprintImplementableEvent, Category="Crafting|Detail")
+	void OnRecipeDataChanged();
 
 protected:
 	//====================================================================

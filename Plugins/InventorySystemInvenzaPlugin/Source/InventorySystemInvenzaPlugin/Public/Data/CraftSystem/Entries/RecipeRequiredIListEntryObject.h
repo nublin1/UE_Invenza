@@ -1,4 +1,4 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -18,6 +18,8 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API URecipeRequiredIListEntryObject : public 
 	
 	
 public:
+	FSimpleMulticastDelegate OnDataChanged;
+	FSimpleMulticastDelegate OnSelectionChanged;
 	UPROPERTY(BlueprintReadOnly)
 	FItemRecipeRow RecipeRow;
 

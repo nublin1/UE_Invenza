@@ -1,4 +1,4 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 
 #include "UI/Craft/Lists/RecipeListEntryWidget.h"
@@ -19,7 +19,12 @@ void URecipeListEntryWidget::NativeOnListItemObjectSet(UObject* ListItemObject)
 	if (!RecipeObj)
 		return;
 
-	UpdateImage(RecipeObj->RecipeRow.RecipeIcon);
+	if (ListEntry_Image)
+	{
+		UTexture2D* Texture = RecipeObj->RecipeRow.RecipeIcon.LoadSynchronous();
+		ListEntry_Image->UpdateImage(Texture);
+		ListEntry_Image->SetRenderOpacity(Texture ? 1.f : 0.f);
+	}
 	UpdateText(RecipeObj->Text);
 }
 

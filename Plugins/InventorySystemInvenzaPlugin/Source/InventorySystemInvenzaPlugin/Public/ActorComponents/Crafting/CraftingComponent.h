@@ -1,4 +1,4 @@
-﻿//  Nublin Studio 2026 All Rights Reserved.
+//  Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -147,6 +147,13 @@ public:
 												const TArray<int32>& SelectedOptions,
 												int32 Amount = 1);
 	
+	// Zero means no finite, currently craftable resource maximum (including resource-free recipes).
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="Crafting")
+	int32 GetMaxCraftAmount(const FItemRecipeRow& RecipeRow, const TArray<int32>& SelectedOptions) const;
+
+	static int32 GetMaxCraftAmountWithItems(const FItemRecipeRow& RecipeRow,
+		const TArray<FItemIDEntry>& Items, const TArray<int32>& SelectedOptions);
+
 	UFUNCTION(BlueprintCallable, Category="Crafting")
 	void EnqueueRecipeRequest(FItemRecipeRow ItemRecipeRow, const TArray<int32>& SelectedOptions, int32 Count = 1);
 	

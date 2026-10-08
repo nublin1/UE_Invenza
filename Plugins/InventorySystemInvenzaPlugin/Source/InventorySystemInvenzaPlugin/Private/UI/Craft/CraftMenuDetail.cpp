@@ -1,4 +1,4 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #include "UI/Craft/CraftMenuDetail.h"
 #include "Components/ListView.h"
@@ -20,27 +20,32 @@ void UCraftMenuDetail::NativeConstruct()
 
 void UCraftMenuDetail::SetCraftDetail(FItemRecipeRow RecipeRow, FRecipeCheckResult CheckResult)
 {
-	if (RecipeImage && !RecipeRow.RecipeIcon.IsNull())
+	CurrentRecipe = RecipeRow;
+	if (RecipeImage)
 	{
-		if (UTexture2D* Texture = RecipeRow.RecipeIcon.Get())
-		{
-			RecipeImage->UpdateImage(Texture);
-		}
-		else
-		{
-			RecipeImage->UpdateImage(RecipeRow.RecipeIcon.LoadSynchronous()); 
-		}
+		UTexture2D* Texture = RecipeRow.RecipeIcon.LoadSynchronous();
+		RecipeImage->UpdateImage(Texture);
+		RecipeImage->SetRenderOpacity(Texture ? 1.f : 0.f);
 	}
 	
 	if (RecipeDetailRequiredListSimple)
 	{
 		RecipeDetailRequiredListSimple->RefreshRequiredList(RecipeRow, CheckResult.Requirements);
 	}
+	OnRecipeDataChanged();
+}
+
+void UCraftMenuDetail::ClearDetail()
+{
+	CurrentRecipe = FItemRecipeRow();
+	if (RecipeDetailRequiredListSimple) RecipeDetailRequiredListSimple->ClearRequirements();
+	if (RecipeImage) { RecipeImage->UpdateImage(nullptr); RecipeImage->SetRenderOpacity(0.f); }
+	OnRecipeDataChanged();
 }
 
 void UCraftMenuDetail::OnClickedTabRecipeRequireds(UUIButton* ButtonPressed)
 {
-	RecipeTabsSwitcher->SetActiveWidget(RecipeDetailRequiredListSimple);
+	if (RecipeTabsSwitcher && RecipeDetailRequiredListSimple) RecipeTabsSwitcher->SetActiveWidget(RecipeDetailRequiredListSimple);
 }
 
 void UCraftMenuDetail::OnClickedTabRecipeDescription(UUIButton* ButtonPressed)

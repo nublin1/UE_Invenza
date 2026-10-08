@@ -1,4 +1,4 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #include "UI/Craft/Lists/ReceptDetailListEntryWidget.h"
 
@@ -22,7 +22,22 @@ void UReceptDetailListEntryWidget::NativeOnListItemObjectSet(UObject* DetailItem
 {
 	IUserObjectListEntry::NativeOnListItemObjectSet(DetailItemObject);
 
-	auto* RecipeItem = Cast<URecipeRequiredIListEntryObject>(DetailItemObject);
+	if (CashedListEntryObject) CashedListEntryObject->OnDataChanged.RemoveAll(this);
+	CashedListEntryObject = Cast<URecipeRequiredIListEntryObject>(DetailItemObject);
+	if (CashedListEntryObject) CashedListEntryObject->OnDataChanged.AddUObject(this, &ThisClass::RefreshFromModel);
+	RefreshFromModel();
+}
+
+void UReceptDetailListEntryWidget::NativeOnEntryReleased()
+{
+	if (CashedListEntryObject) CashedListEntryObject->OnDataChanged.RemoveAll(this);
+	CashedListEntryObject = nullptr;
+	IUserObjectListEntry::NativeOnEntryReleased();
+}
+
+void UReceptDetailListEntryWidget::RefreshFromModel()
+{
+	auto* RecipeItem = CashedListEntryObject.Get();
 	if (!RecipeItem || !RequirementOptionClass || !RequirementsContainer)
 		return;
 
@@ -39,7 +54,7 @@ void UReceptDetailListEntryWidget::NativeOnListItemObjectSet(UObject* DetailItem
 		{
 			if (!OptionEntry || !OptionEntry->MainButton) continue;
 			RequirementsContainer->AddChild(OptionEntry);
-			OptionEntry->MainButton->OnButtonClicked.AddDynamic(
+			OptionEntry->MainButton->OnButtonClicked.AddUniqueDynamic(
 				this,
 				&UReceptDetailListEntryWidget::HandleOptionButtonClicked
 			);
@@ -76,7 +91,7 @@ void UReceptDetailListEntryWidget::NativeOnListItemObjectSet(UObject* DetailItem
 					if (!NewEntry->MainButton) continue;
 
 					RequirementsContainer->AddChild(NewEntry);
-					NewEntry->MainButton->OnButtonClicked.AddDynamic(
+					NewEntry->MainButton->OnButtonClicked.AddUniqueDynamic(
 						this,
 						&UReceptDetailListEntryWidget::HandleOptionButtonClicked
 					);
@@ -96,7 +111,7 @@ void UReceptDetailListEntryWidget::NativeOnListItemObjectSet(UObject* DetailItem
 
 void UReceptDetailListEntryWidget::HandleOptionButtonClicked(UUIButton* ClickedButton)
 {
-	if (!ClickedButton)
+	if (!ClickedButton || !CashedListEntryObject)
 		return;
 
 	auto FindResult = ButtonToEntryMap.FindRef(ClickedButton);
@@ -109,7 +124,11 @@ void UReceptDetailListEntryWidget::HandleOptionButtonClicked(UUIButton* ClickedB
 	}
 
 	SelectedOption = EntryToIndexMap.FindRef(FindResult);
-	CashedListEntryObject->SelectedOptionIndex = SelectedOption;
+	if (CashedListEntryObject->SelectedOptionIndex != SelectedOption)
+	{
+		CashedListEntryObject->SelectedOptionIndex = SelectedOption;
+		CashedListEntryObject->OnSelectionChanged.Broadcast();
+	}
 }
 
 URequirementOptionEntry* UReceptDetailListEntryWidget::CreateRequirementOptionEntry(

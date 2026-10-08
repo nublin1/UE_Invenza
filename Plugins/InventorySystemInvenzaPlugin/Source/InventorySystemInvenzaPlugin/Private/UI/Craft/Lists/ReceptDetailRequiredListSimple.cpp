@@ -1,100 +1,68 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
-
-
+// Nublin Studio 2026 All Rights Reserved.
 #include "UI/Craft/Lists/ReceptDetailRequiredListSimple.h"
-
 #include "Components/ListView.h"
 #include "Data/CraftSystem/Entries/RecipeRequiredIListEntryObject.h"
 
 UReceptDetailRequiredListSimple::UReceptDetailRequiredListSimple()
 {
+	RequiredListEntryObjectClass = URecipeRequiredIListEntryObject::StaticClass();
 }
+void UReceptDetailRequiredListSimple::NativeConstruct() { Super::NativeConstruct(); }
 
-void UReceptDetailRequiredListSimple::NativeConstruct()
+void UReceptDetailRequiredListSimple::ClearRequirements()
 {
-	Super::NativeConstruct();
+	if (!RequiredList) return;
+	for (UObject* Object : RequiredList->GetListItems())
+		if (auto* Item = Cast<URecipeRequiredIListEntryObject>(Object)) Item->OnSelectionChanged.RemoveAll(this);
+	RequiredList->ClearListItems();
 }
 
 void UReceptDetailRequiredListSimple::RefreshRequiredList(const FItemRecipeRow& RecipeRow,
 	const TArray<FRecipeItemRequirementCheck>& Requirements)
 {
 	if (!RequiredList) return;
-	
-	if (!RequiredListEntryObjectClass)
+	if (Requirements.IsEmpty()) { ClearRequirements(); return; }
+	if (!RequiredListEntryObjectClass) { ClearRequirements(); return; }
+	const TArray<UObject*>& Existing = RequiredList->GetListItems();
+	bool bReuse = Existing.Num() == Requirements.Num();
+	for (UObject* Object : Existing)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("%s - RequiredListEntryObjectClass is not set!"), *FString(__FUNCTION__));
-		return;
+		const auto* Item = Cast<URecipeRequiredIListEntryObject>(Object);
+		bReuse &= Item && Item->RecipeRow.ID == RecipeRow.ID;
 	}
-
-	if (Requirements.IsEmpty())
+	if (!bReuse)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("%s - Requirements array is empty!"), *FString(__FUNCTION__));
-		return;
+		ClearRequirements();
+		for (int32 Index = 0; Index < Requirements.Num(); ++Index)
+		{
+			auto* Item = NewObject<URecipeRequiredIListEntryObject>(this, RequiredListEntryObjectClass);
+			Item->RecipeRow = RecipeRow;
+			Item->Index = Index;
+			Item->OnSelectionChanged.AddUObject(this, &ThisClass::HandleOptionChanged);
+			RequiredList->AddItem(Item);
+		}
 	}
-
-	RequiredList->ClearListItems();
-
 	for (int32 Index = 0; Index < Requirements.Num(); ++Index)
 	{
-		auto* ItemObj = NewObject<URecipeRequiredIListEntryObject>(this, RequiredListEntryObjectClass);
-		if (!ItemObj) continue;
-
-		ItemObj->RecipeRow = RecipeRow;
-		ItemObj->RecipeCheckResult = Requirements[Index];
-		ItemObj->Index = Index;
-
-		RequiredList->AddItem(ItemObj);
+		auto* Item = CastChecked<URecipeRequiredIListEntryObject>(RequiredList->GetItemAt(Index));
+		Item->RecipeRow = RecipeRow;
+		Item->RecipeCheckResult = Requirements[Index];
+		Item->SelectedOptionIndex = FMath::Clamp(Item->SelectedOptionIndex, 0, Requirements[Index].Alternatives.Num());
+		Item->OnDataChanged.Broadcast();
 	}
-	
 	RequiredList->RequestRefresh();
 }
-
-void UReceptDetailRequiredListSimple::UpdateRequirementsCheck(const FItemRecipeRow& UpdateRecipeRow,
-	const TArray<FRecipeItemRequirementCheck>& NewRequirements)
+void UReceptDetailRequiredListSimple::UpdateRequirementsCheck(const FItemRecipeRow& RecipeRow,
+	const TArray<FRecipeItemRequirementCheck>& Requirements)
 {
-	if (!RequiredList) return;
-	
-	const TArray<UObject*>& CurrentItems = RequiredList->GetListItems();
-
-	if (CurrentItems.IsEmpty())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("%s - List is empty, nothing to update!"), *FString(__FUNCTION__));
-		return;
-	}
-
-	if (NewRequirements.Num() != CurrentItems.Num())
-	{
-		UE_LOG(LogTemp, Error, TEXT("%s - Count mismatch! New checks: %d, Items in list: %d"), 
-			*FString(__FUNCTION__), NewRequirements.Num(), CurrentItems.Num());
-		return;
-	}
-	
-	for (int32 Index = 0; Index < CurrentItems.Num(); ++Index)
-	{
-		if (auto* RecipeItem = Cast<URecipeRequiredIListEntryObject>(CurrentItems[Index]))
-		{
-			if (RecipeItem->RecipeRow.ID == UpdateRecipeRow.ID)
-				RecipeItem->RecipeCheckResult = NewRequirements[Index];
-		}
-	}
-	
-	RequiredList->RequestRefresh();
+	RefreshRequiredList(RecipeRow, Requirements);
 }
-
 TArray<int32> UReceptDetailRequiredListSimple::GetAllSelectedOptions()
 {
-	TArray<int32> ResultIndices;
-	if (!RequiredList) return ResultIndices;
-	
-	const TArray<UObject*>& AllItems = RequiredList->GetListItems();
-
-	for (UObject* ItemObj : AllItems)
-	{
-		if (auto* RecipeItem = Cast<URecipeRequiredIListEntryObject>(ItemObj))
-		{
-			ResultIndices.Add(RecipeItem->SelectedOptionIndex);
-		}
-	}
-
-	return ResultIndices;
+	TArray<int32> Result;
+	if (RequiredList)
+		for (UObject* Object : RequiredList->GetListItems())
+			if (const auto* Item = Cast<URecipeRequiredIListEntryObject>(Object)) Result.Add(Item->SelectedOptionIndex);
+	return Result;
 }
+void UReceptDetailRequiredListSimple::HandleOptionChanged() { OnOptionsChanged.Broadcast(); }

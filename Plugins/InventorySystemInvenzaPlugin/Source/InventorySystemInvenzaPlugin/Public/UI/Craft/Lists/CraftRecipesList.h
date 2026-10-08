@@ -1,4 +1,4 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -53,6 +53,8 @@ protected:
 	//Data
 	UPROPERTY()
 	TArray<FItemRecipeRow> RecipesData;
+	FText ActiveSearchText;
+	void ApplySearch();
 
 	//====================================================================
 	// FUNCTIONS

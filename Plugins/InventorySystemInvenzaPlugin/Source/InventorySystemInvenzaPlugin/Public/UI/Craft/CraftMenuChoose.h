@@ -1,4 +1,4 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -32,6 +32,7 @@ public:
 protected:
 	virtual void NativePreConstruct() override;
 	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
 
 public:
 	//====================================================================
@@ -77,9 +78,14 @@ protected:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "UI|Data")
 	TObjectPtr<URecipeListEntryObject> SelectedObj = nullptr;
 	UPROPERTY()
-	float AmountToCraft = 0;
+	int32 AmountToCraft = 0;
 	UPROPERTY()
 	TArray<int32> SelectedOptions;
+	bool bRefreshingDetails = false;
+	bool bRefreshMaximum = true;
+	void ResetSelection();
+	UFUNCTION()
+	void HandleOptionsChanged();
 
 	//====================================================================
 	// FUNCTIONS

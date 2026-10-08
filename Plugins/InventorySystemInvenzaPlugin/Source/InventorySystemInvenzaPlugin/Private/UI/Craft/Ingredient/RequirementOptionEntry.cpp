@@ -1,4 +1,4 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 
 #include "UI/Craft/Ingredient/RequirementOptionEntry.h"
@@ -18,7 +18,7 @@ void URequirementOptionEntry::NativeConstruct()
 
 	if (MainButton)
 	{
-		MainButton->OnToggled.AddDynamic(this, &URequirementOptionEntry::URequirementOptionEntry::SetToggleStatus);
+		MainButton->OnToggled.AddUniqueDynamic(this, &URequirementOptionEntry::URequirementOptionEntry::SetToggleStatus);
 	}
 }
 
@@ -26,13 +26,13 @@ void URequirementOptionEntry::UpdateData(const FRecipeRequirementResult& NewData
 {
 	UpdateIngredientImage(NewData.ItemMetaData.ItemAssetData.Icon);
 		
-	RequiredItemName->UpdateText(NewData.ItemMetaData.ItemTextData.DisplayName);
-	if (RemainingCounter->CurrentValue)
+	if (RequiredItemName) RequiredItemName->UpdateText(NewData.ItemMetaData.ItemTextData.DisplayName);
+	if (RemainingCounter && RemainingCounter->CurrentValue)
 	{
 		RemainingCounter->CurrentValue->UpdateText(FText::AsNumber(NewData.AmountNeed));
 	}
     
-	if (RemainingCounter->MaxValue)
+	if (RemainingCounter && RemainingCounter->MaxValue)
 	{
 		RemainingCounter->MaxValue->UpdateText(FText::AsNumber(NewData.AmountHave));
 	}
@@ -40,17 +40,12 @@ void URequirementOptionEntry::UpdateData(const FRecipeRequirementResult& NewData
 
 void URequirementOptionEntry::UpdateIngredientImage(const TSoftObjectPtr<UTexture2D>& NewIngredientIcon)
 {
-	if (!IngredientIcon || NewIngredientIcon.IsNull())
-		return;
-
-	UTexture2D* LoadedTexture = NewIngredientIcon.LoadSynchronous();
-	if (!LoadedTexture)
-		return;
-
-	FSlateBrush NewBrush;
-	NewBrush.SetResourceObject(LoadedTexture);
-	//NewBrush.ImageSize = FVector2D(LoadedTexture->GetSizeX(), LoadedTexture->GetSizeY());
-	IngredientIcon->UpdateBrush(NewBrush);
+	if (!IngredientIcon) return;
+	UTexture2D* Texture = NewIngredientIcon.LoadSynchronous();
+	FSlateBrush Brush;
+	Brush.SetResourceObject(Texture);
+	IngredientIcon->UpdateBrush(Brush);
+	IngredientIcon->SetRenderOpacity(Texture ? 1.f : 0.f);
 }
 
 void URequirementOptionEntry::SetToggleStatus(bool bNewStatus)

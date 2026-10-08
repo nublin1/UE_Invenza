@@ -15,6 +15,10 @@ class UGenericProgress;
 class UCraftMenuChoose;
 class UCraftingComponent;
 class UUIButton;
+class UPanelWidget;
+class ULabelBaseText;
+class USimpleUserObjectListEntry;
+struct FBlockReasonData;
 /**
  * 
  */
@@ -29,6 +33,7 @@ public:
 protected:
 	virtual void NativePreConstruct() override;
 	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
 
 public:
 	//====================================================================
@@ -41,6 +46,16 @@ public:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
 	TObjectPtr<UCraftControlPanel> CraftControlPanel;
+
+	/** Rows are populated from the crafting component's block-change event. */
+	UPROPERTY(BlueprintReadOnly, Category = "UI|Components", meta = (BindWidgetOptional))
+	TObjectPtr<UPanelWidget> BlockReasonsPanel;
+
+	UPROPERTY(BlueprintReadOnly, Category = "UI|Components", meta = (BindWidgetOptional))
+	TObjectPtr<UWidget> BlockReasonsSection;
+
+	UPROPERTY(BlueprintReadOnly, Category = "UI|Components", meta = (BindWidgetOptional))
+	TObjectPtr<ULabelBaseText> EmptyQueueLabel;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
 	TObjectPtr<UNamedSlot> InputSlot;
@@ -81,6 +96,16 @@ protected:
 	FGameplayTag AddTaskBtnTag;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="UI|Config")
 	FGameplayTag PauseBtnTag;
+
+	/** Uses the Core list-entry widget, including its Core label and image. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI|Config")
+	TSubclassOf<USimpleUserObjectListEntry> BlockReasonWidgetClass;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI|Config")
+	FText PauseButtonText = NSLOCTEXT("InvenzaCraft", "Pause", "Pause");
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI|Config")
+	FText ResumeButtonText = NSLOCTEXT("InvenzaCraft", "Resume", "Resume");
 	
 	//====================================================================
 	// FUNCTIONS
@@ -96,6 +121,12 @@ protected:
 
 	UFUNCTION()
 	void UpdateQueueCraftList(const TArray<FQueuedRecipe>& NewRecipeQueue);
+
+	UFUNCTION()
+	void HandleBlocksUpdated(TArray<FBlockReasonData> Blocks);
+
+	void UnbindCraftComponent();
+	void RefreshCraftState();
 
 	UFUNCTION()
 	void HandleQueueOrderChangeRequested(FName RecipeID, const int32 QueueIndex, bool bMoveUp);

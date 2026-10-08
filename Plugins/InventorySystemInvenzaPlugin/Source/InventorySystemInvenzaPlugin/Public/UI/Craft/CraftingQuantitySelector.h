@@ -1,4 +1,4 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -27,6 +27,7 @@ public:
 protected:
 	virtual void NativePreConstruct() override;
 	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
 
 public:
 	//====================================================================
@@ -71,6 +72,13 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category="Quantity")
 	int32 GetCurrentQuantity() const;
+
+	// Resource maximum is a shortcut, not a limit on queued work.
+	UFUNCTION(BlueprintCallable, Category="Quantity")
+	void SetResourceMaximum(int32 NewMaximum);
+
+	UFUNCTION(BlueprintCallable, Category="Quantity")
+	void CommitPendingQuantity();
 	
 protected:
 	//====================================================================
@@ -91,4 +99,13 @@ protected:
 
 	UFUNCTION()
 	void UpdateText();
+
+	UFUNCTION()
+	void HandleTextCommitted(const FText& NewText, ETextCommit::Type CommitMethod);
+
+	int32 ResourceMaximum = 0;
+	bool bUpdatingText = false;
+	bool bHasPendingText = false;
+	FText PendingText;
+	void UpdateButtons();
 };
