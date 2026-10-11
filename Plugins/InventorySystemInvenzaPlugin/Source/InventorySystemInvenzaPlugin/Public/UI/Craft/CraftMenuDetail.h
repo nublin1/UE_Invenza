@@ -17,6 +17,7 @@ class UImageBaseWidget;
 class UMultiLineEditableTextBox;
 class UCraftMenuRecipeActions;
 class UWidgetSwitcher;
+class ULabelBaseText;
 /**
  * 
  */
@@ -49,6 +50,17 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Componets", meta = (BindWidget))
 	TObjectPtr<UWidgetSwitcher> RecipeTabsSwitcher;
+
+	UPROPERTY(BlueprintReadOnly, Category="UI|Components", meta=(BindWidgetOptional))
+	TObjectPtr<ULabelBaseText> RecipeName;
+	UPROPERTY(BlueprintReadOnly, Category="UI|Components", meta=(BindWidgetOptional))
+	TObjectPtr<ULabelBaseText> RecipeDescription;
+	UPROPERTY(BlueprintReadOnly, Category="UI|Components", meta=(BindWidgetOptional))
+	TObjectPtr<ULabelBaseText> RecipeWorkAmount;
+	UPROPERTY(BlueprintReadOnly, Category="UI|Components", meta=(BindWidgetOptional))
+	TObjectPtr<ULabelBaseText> RecipeOutput;
+	UPROPERTY(BlueprintReadOnly, Category="UI|Components", meta=(BindWidgetOptional))
+	TObjectPtr<ULabelBaseText> NoRequirementsText;
 	
 	//====================================================================
 	// FUNCTIONS

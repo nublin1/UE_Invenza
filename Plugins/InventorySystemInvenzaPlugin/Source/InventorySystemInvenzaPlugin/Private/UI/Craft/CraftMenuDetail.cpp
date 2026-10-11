@@ -7,6 +7,9 @@
 #include "Data/CraftSystem/Entries/RecipeRequiredIListEntryObject.h"
 #include "UI/Core/Image/ImageBaseWidget.h"
 #include "UI/Craft/Lists/ReceptDetailRequiredListSimple.h"
+#include "UI/Craft/CraftingQuantitySelector.h"
+#include "UI/Core/LabelBaseText.h"
+#include "Data/ItemData.h"
 
 
 UCraftMenuDetail::UCraftMenuDetail()
@@ -21,6 +24,32 @@ void UCraftMenuDetail::NativeConstruct()
 void UCraftMenuDetail::SetCraftDetail(FItemRecipeRow RecipeRow, FRecipeCheckResult CheckResult)
 {
 	CurrentRecipe = RecipeRow;
+	if (RecipeName) RecipeName->UpdateText(RecipeRow.DisplayName);
+	if (RecipeDescription)
+	{
+		RecipeDescription->UpdateText(RecipeRow.Description);
+		RecipeDescription->SetVisibility(RecipeRow.Description.IsEmpty() ? ESlateVisibility::Collapsed : ESlateVisibility::HitTestInvisible);
+	}
+	const int32 Quantity = CraftingQuantitySelector ? CraftingQuantitySelector->GetCurrentQuantity() : 1;
+	if (RecipeWorkAmount)
+		RecipeWorkAmount->UpdateText(FText::Format(NSLOCTEXT("CraftMenu", "WorkAmount", "Work amount: {0}"),
+			FText::AsNumber(static_cast<double>(RecipeRow.CraftVolume) * Quantity)));
+	if (RecipeOutput)
+	{
+		TArray<FString> Outputs;
+		for (const FInitItemsEntry& Entry : RecipeRow.OutputItems)
+		{
+			const FItemData* Item = Entry.Item.GetRow<FItemData>(TEXT("CraftMenuOutput"));
+			if (!Item || Entry.Amount <= 0) continue;
+			Outputs.Add(FText::Format(NSLOCTEXT("CraftMenu", "OutputAmount", "{0} × {1}"),
+				Item->ItemMetaData.ItemTextData.DisplayName,
+				FText::AsNumber(static_cast<int64>(Entry.Amount) * Quantity)).ToString());
+		}
+		RecipeOutput->UpdateText(Outputs.IsEmpty() ? NSLOCTEXT("CraftMenu", "NoOutput", "No output specified")
+			: FText::FromString(FString::Join(Outputs, TEXT("\n"))));
+	}
+	if (NoRequirementsText)
+		NoRequirementsText->SetVisibility(CheckResult.Requirements.IsEmpty() ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
 	if (RecipeImage)
 	{
 		UTexture2D* Texture = RecipeRow.RecipeIcon.LoadSynchronous();
@@ -38,6 +67,10 @@ void UCraftMenuDetail::SetCraftDetail(FItemRecipeRow RecipeRow, FRecipeCheckResu
 void UCraftMenuDetail::ClearDetail()
 {
 	CurrentRecipe = FItemRecipeRow();
+	if (RecipeName) RecipeName->ClearText();
+	if (RecipeDescription) RecipeDescription->ClearText();
+	if (RecipeWorkAmount) RecipeWorkAmount->ClearText();
+	if (RecipeOutput) RecipeOutput->ClearText();
 	if (RecipeDetailRequiredListSimple) RecipeDetailRequiredListSimple->ClearRequirements();
 	if (RecipeImage) { RecipeImage->UpdateImage(nullptr); RecipeImage->SetRenderOpacity(0.f); }
 	OnRecipeDataChanged();

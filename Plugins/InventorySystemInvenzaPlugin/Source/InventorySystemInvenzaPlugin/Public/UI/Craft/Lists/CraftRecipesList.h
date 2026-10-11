@@ -10,6 +10,7 @@
 #include "CraftRecipesList.generated.h"
 
 class UFiltersPanel;
+class ULabelBaseText;
 struct FItemRecipeRow;
 class URecipeListEntryObject;
 /**
@@ -39,6 +40,8 @@ public:
 	TArray<TObjectPtr<URecipeListEntryObject>> ItemsArray;
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Inventory|Data")
 	TArray<TObjectPtr<URecipeListEntryObject>> FilteredItemsArray;
+	UPROPERTY(BlueprintReadOnly, Category="UI|Components", meta=(BindWidgetOptional))
+	TObjectPtr<ULabelBaseText> EmptyRecipesText;
 		
 	//====================================================================
 	// FUNCTIONS

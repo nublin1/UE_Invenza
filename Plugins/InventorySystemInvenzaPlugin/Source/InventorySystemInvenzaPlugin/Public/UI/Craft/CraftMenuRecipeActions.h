@@ -6,7 +6,7 @@
 #include "UI/InvenzaBaseWidget.h"
 #include "CraftMenuRecipeActions.generated.h"
 
-class UActionButtonUI;
+class UUIButton;
 /**
  * 
  */
@@ -29,7 +29,7 @@ public:
 	//====================================================================
 	// Widgets
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidget))
-	TObjectPtr<UActionButtonUI> Btn_Craft;
+	TObjectPtr<UUIButton> Btn_Craft;
 	
 	//====================================================================
 	// FUNCTIONS

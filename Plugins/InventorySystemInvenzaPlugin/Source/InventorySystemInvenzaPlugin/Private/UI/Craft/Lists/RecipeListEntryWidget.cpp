@@ -11,6 +11,33 @@ URecipeListEntryWidget::URecipeListEntryWidget()
 {
 }
 
+void URecipeListEntryWidget::NativeOnItemSelectionChanged(bool bIsSelected)
+{
+	IUserObjectListEntry::NativeOnItemSelectionChanged(bIsSelected);
+	if (SelectionIndicator) SelectionIndicator->SetRenderOpacity(bIsSelected ? 1.f : 0.f);
+	if (SelectionHighlight) SelectionHighlight->SetRenderOpacity(bIsSelected ? 1.f : 0.f);
+}
+
+void URecipeListEntryWidget::NativeOnEntryReleased()
+{
+	if (SelectionIndicator) SelectionIndicator->SetRenderOpacity(0.f);
+	if (SelectionHighlight) SelectionHighlight->SetRenderOpacity(0.f);
+	if (HoverHighlight) HoverHighlight->SetRenderOpacity(0.f);
+	IUserObjectListEntry::NativeOnEntryReleased();
+}
+
+void URecipeListEntryWidget::NativeOnMouseEnter(const FGeometry& Geometry, const FPointerEvent& Event)
+{
+	Super::NativeOnMouseEnter(Geometry, Event);
+	if (HoverHighlight) HoverHighlight->SetRenderOpacity(1.f);
+}
+
+void URecipeListEntryWidget::NativeOnMouseLeave(const FPointerEvent& Event)
+{
+	Super::NativeOnMouseLeave(Event);
+	if (HoverHighlight) HoverHighlight->SetRenderOpacity(0.f);
+}
+
 void URecipeListEntryWidget::NativeOnListItemObjectSet(UObject* ListItemObject)
 {
 	IUserObjectListEntry::NativeOnListItemObjectSet(ListItemObject);

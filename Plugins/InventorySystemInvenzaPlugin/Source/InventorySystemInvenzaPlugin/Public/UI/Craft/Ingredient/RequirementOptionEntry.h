@@ -41,6 +41,12 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Componets", meta = (BindWidgetOptional))
 	TObjectPtr<UUIButton> MainButton;
+	UPROPERTY(BlueprintReadOnly, Category="UI|Components", meta=(BindWidgetOptional))
+	TObjectPtr<UImageBaseWidget> SelectedMarker;
+	UPROPERTY(BlueprintReadOnly, Category="UI|Components", meta=(BindWidgetOptional))
+	TObjectPtr<UImageBaseWidget> SelectionBackground;
+	UPROPERTY(BlueprintReadOnly, Category="UI|Components", meta=(BindWidgetOptional))
+	TObjectPtr<ULabelBaseText> MissingResourcesText;
 	
 	//====================================================================
 	// FUNCTIONS

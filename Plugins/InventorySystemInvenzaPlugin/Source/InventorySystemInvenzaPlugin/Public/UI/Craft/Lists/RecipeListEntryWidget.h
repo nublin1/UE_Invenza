@@ -22,6 +22,17 @@ public:
 	URecipeListEntryWidget();
 
 	virtual void NativeOnListItemObjectSet(UObject* ListItemObject) override;
+	virtual void NativeOnItemSelectionChanged(bool bIsSelected) override;
+	virtual void NativeOnEntryReleased() override;
+	virtual void NativeOnMouseEnter(const FGeometry& Geometry, const FPointerEvent& Event) override;
+	virtual void NativeOnMouseLeave(const FPointerEvent& Event) override;
+
+	UPROPERTY(BlueprintReadOnly, Category="UI|Components", meta=(BindWidgetOptional))
+	TObjectPtr<UImageBaseWidget> SelectionIndicator;
+	UPROPERTY(BlueprintReadOnly, Category="UI|Components", meta=(BindWidgetOptional))
+	TObjectPtr<UImageBaseWidget> SelectionHighlight;
+	UPROPERTY(BlueprintReadOnly, Category="UI|Components", meta=(BindWidgetOptional))
+	TObjectPtr<UImageBaseWidget> HoverHighlight;
 	
 	//====================================================================
 	// PROPERTIES AND VARIABLES

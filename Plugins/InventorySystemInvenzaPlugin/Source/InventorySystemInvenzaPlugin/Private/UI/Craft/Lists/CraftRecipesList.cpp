@@ -3,6 +3,7 @@
 #include "Components/EditableText.h"
 #include "UI/Core/ItemFiltersPanel/FiltersPanel.h"
 #include "UI/Craft/Lists/RecipeListEntryWidget.h"
+#include "UI/Core/LabelBaseText.h"
 
 UCraftRecipesList::UCraftRecipesList() { RecipeEntryObjectClass = URecipeListEntryObject::StaticClass(); }
 void UCraftRecipesList::NativePreConstruct() { Super::NativePreConstruct(); }
@@ -55,4 +56,10 @@ void UCraftRecipesList::ApplySearch()
 	if (UObject* Selection = ObjectList->GetSelectedItem(); Selection && !Visible.Contains(Selection)) ObjectList->ClearSelection();
 	if (ObjectList->GetListItems() != Visible) ObjectList->SetListItems(Visible);
 	ObjectList->RequestRefresh();
+	if (EmptyRecipesText)
+	{
+		EmptyRecipesText->UpdateText(Search.IsEmpty() ? NSLOCTEXT("CraftMenu", "NoRecipes", "No recipes available")
+			: NSLOCTEXT("CraftMenu", "NoMatches", "No matching recipes"));
+		EmptyRecipesText->SetVisibility(Visible.IsEmpty() ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+	}
 }

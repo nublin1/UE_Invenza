@@ -19,12 +19,15 @@ void URequirementOptionEntry::NativeConstruct()
 	if (MainButton)
 	{
 		MainButton->OnToggled.AddUniqueDynamic(this, &URequirementOptionEntry::URequirementOptionEntry::SetToggleStatus);
+		SetToggleStatus(MainButton->GetToggleStatus());
 	}
 }
 
 void URequirementOptionEntry::UpdateData(const FRecipeRequirementResult& NewData)
 {
 	UpdateIngredientImage(NewData.ItemMetaData.ItemAssetData.Icon);
+	if (MissingResourcesText)
+		MissingResourcesText->SetVisibility(NewData.bIsSatisfied ? ESlateVisibility::Collapsed : ESlateVisibility::HitTestInvisible);
 		
 	if (RequiredItemName) RequiredItemName->UpdateText(NewData.ItemMetaData.ItemTextData.DisplayName);
 	if (RemainingCounter && RemainingCounter->CurrentValue)
@@ -50,5 +53,6 @@ void URequirementOptionEntry::UpdateIngredientImage(const TSoftObjectPtr<UTextur
 
 void URequirementOptionEntry::SetToggleStatus(bool bNewStatus)
 {
-	
+	if (SelectedMarker) SelectedMarker->SetRenderOpacity(bNewStatus ? 1.f : 0.f);
+	if (SelectionBackground) SelectionBackground->SetRenderOpacity(bNewStatus ? 1.f : 0.f);
 }
