@@ -73,3 +73,29 @@ Plugins/*/Intermediate/*
 
 # Cache files for the editor to use
 DerivedDataCache/*
+
+# Generated Unreal output, including disposable nested projects
+Binaries/
+Intermediate/
+Saved/
+DerivedDataCache/
+
+# Local marketplace media and screenshots
+/Media/
+Screenshots/
+Captures/
+/ArtSource/**/preview.png
+/ArtSource/**/*-preview.png
+/ArtSource/**/geometry-preview.png
+
+# Logs, crash dumps and temporary scripting output
+*.log
+*.log.*
+*.dmp
+*.tmp
+__pycache__/
+*.py[cod]
+
+# Per-user IDE state
+.idea/
+*.sln.DotSettings.user
