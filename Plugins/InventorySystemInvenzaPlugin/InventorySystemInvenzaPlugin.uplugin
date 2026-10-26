@@ -1,28 +1,44 @@
 {
-	"FileVersion": 3,
-	"Version": 1,
-	"VersionName": "1.0",
-	"FriendlyName": "InventorySystemInvenzaPlugin",
-	"Description": "",
-	"Category": "Other",
-	"CreatedBy": "",
-	"CreatedByURL": "",
-	"DocsURL": "",
-	"FabURL": "com.epicgames.launcher://ue/Fab/product/c482fd7a-2be8-42a8-aba6-52d53e6964a7",
-	"MarketplaceURL": "",
-	"SupportURL": "",
-	"CopyrightNotice": "Copyright (c) 2026 Nublin Studio. All Rights Reserved.",
-	"CanContainContent": true,
-	"IsBetaVersion": false,
-	"IsExperimentalVersion": false,
-	"Installed": false,
-	"SupportedTargetBuildPlatforms": [ "Win64", "Linux", "Mac" ],
-	"Modules": [
-		{
-			"Name": "InventorySystemInvenzaPlugin",
-			"Type": "Runtime",
-			"LoadingPhase": "Default",
-			"PlatformAllowList": [ "Win64", "Linux", "Mac" ]
-		}
-	]
+  "FileVersion": 3,
+  "Version": 1,
+  "VersionName": "1.0",
+  "FriendlyName": "Invenza Inventory",
+  "Description": "Grid and list inventories, equipment, crafting, trading, world storage and persistent saves.",
+  "Category": "Gameplay",
+  "CreatedBy": "Nublin Studio",
+  "CreatedByURL": "",
+  "DocsURL": "",
+  "FabURL": "com.epicgames.launcher://ue/Fab/product/c482fd7a-2be8-42a8-aba6-52d53e6964a7",
+  "MarketplaceURL": "com.epicgames.launcher://ue/Fab/product/c482fd7a-2be8-42a8-aba6-52d53e6964a7",
+  "SupportURL": "",
+  "CopyrightNotice": "Copyright (c) 2026 Nublin Studio. All Rights Reserved.",
+  "EngineVersion": "5.6.0",
+  "CanContainContent": true,
+  "IsBetaVersion": false,
+  "IsExperimentalVersion": false,
+  "Installed": false,
+  "SupportedTargetPlatforms": [
+    "Win64"
+  ],
+  "Plugins": [
+    {
+      "Name": "EnhancedInput",
+      "Enabled": true
+    },
+    {
+      "Name": "ControlRig",
+      "Enabled": true
+    }
+  ],
+  "Modules": [
+    {
+      "Name": "InventorySystemInvenzaPlugin",
+      "Type": "Runtime",
+      "LoadingPhase": "Default",
+      "PlatformAllowList": [
+        "Win64"
+      ]
+    }
+  ],
+  "EnabledByDefault": false
 }

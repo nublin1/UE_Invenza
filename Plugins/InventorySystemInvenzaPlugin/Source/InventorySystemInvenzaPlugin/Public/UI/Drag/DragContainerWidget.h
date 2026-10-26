@@ -1,4 +1,4 @@
-﻿//  Nublin Studio 2025 All Rights Reserved.
+//  Nublin Studio 2025 All Rights Reserved.
 
 #pragma once
 
@@ -18,25 +18,10 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UDragContainerWidget : public UInvenzaBas
 
 public:
 	UDragContainerWidget();
-	
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
+
+public:
+	// Properties and variables
 	//Widgets
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TitleBar", meta = (BindWidgetOptional))
 	TObjectPtr<UCoreCellWidget> CoreCellWidget;
-
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
-	
-protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-	
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
 };

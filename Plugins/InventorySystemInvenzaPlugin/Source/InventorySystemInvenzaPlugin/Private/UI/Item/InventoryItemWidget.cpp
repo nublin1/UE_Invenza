@@ -2,7 +2,7 @@
 
 #include "UI/Item/InventoryItemWidget.h"
 
-#include "Data/Items/ItemBase.h"
+#include "Data/Items/itemBase.h"
 #include "Components/Border.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Components/Image.h"
@@ -16,23 +16,20 @@ UInventoryItemWidget::UInventoryItemWidget()
 {
 }
 
-void UInventoryItemWidget::UpdateItemVisual( UObject* Item,EItemOrientationType Orientation, FVector2D TotalSize,
-	FVector2D Position, bool bIgnoreSize)
+void UInventoryItemWidget::UpdateItemVisual(UObject* Item, EItemOrientationType Orientation, FVector2D TotalSize,
+											FVector2D Position, bool bIgnoreSize)
 {
 	if (!Item || !UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(Item, TEXT("UpdateItemVisual")))
+	{
 		return;
+	}
 
-	FIntPoint ItemSize = bIgnoreSize
-		? FIntPoint(1, 1)
-		: IObjectDataProvider::Execute_GetItemSize(Item, Orientation);
+	FIntPoint ItemSize = bIgnoreSize ? FIntPoint(1, 1) : IObjectDataProvider::Execute_GetItemSize(Item, Orientation);
 
 	float RotationAngle = 0.f;
 	if (ItemSize.X != ItemSize.Y)
 	{
-		RotationAngle =
-			(IObjectDataProvider::Execute_GetInitialItemOrientation(Item) == Orientation)
-			? 0.f
-			: -90.f;
+		RotationAngle = (IObjectDataProvider::Execute_GetInitialItemOrientation(Item) == Orientation) ? 0.f : -90.f;
 	}
 
 	if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(this->Slot))
@@ -50,19 +47,20 @@ void UInventoryItemWidget::UpdateItemVisual( UObject* Item,EItemOrientationType 
 		Orientation == EItemOrientationType::Horizontal ? TEXT("Horizontal") : TEXT("Vertical"));*/
 }
 
-void UInventoryItemWidget::UpdateVisual(UObject* Item,float AngleDegrees)
+void UInventoryItemWidget::UpdateVisual(UObject* Item, float AngleDegrees)
 {
-	if (!Item ||
-		!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(Item, TEXT("UpdateVisual")) ||
-		!CoreCellWidget ||
-		!CoreCellWidget->Content_Image)
+	if (!Item || !UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(Item, TEXT("UpdateVisual")) ||
+		!CoreCellWidget || !CoreCellWidget->Content_Image)
+	{
 		return;
+	}
 
-	UTexture2D* Icon =
-		IObjectDataProvider::Execute_GetItemRef(Item).ItemAssetData.Icon;
+	UTexture2D* Icon = IObjectDataProvider::Execute_GetItemRef(Item).ItemAssetData.Icon;
 
 	if (!Icon)
+	{
 		return;
+	}
 
 	if (!IconMaterial)
 	{
@@ -81,8 +79,11 @@ void UInventoryItemWidget::UpdateVisual(UObject* Item,float AngleDegrees)
 
 void UInventoryItemWidget::ClearVisual()
 {
-	if (!CoreCellWidget || !CoreCellWidget->Content_Image) return;
-	
+	if (!CoreCellWidget || !CoreCellWidget->Content_Image)
+	{
+		return;
+	}
+
 	CoreCellWidget->Content_Image->UpdateImage(nullptr);
 }
 
@@ -90,10 +91,12 @@ void UInventoryItemWidget::UpdateVisualSize(FVector2D ItemTotalSize) const
 {
 	CoreCellWidget->SizeBox->SetWidthOverride(ItemTotalSize.X);
 	CoreCellWidget->SizeBox->SetHeightOverride(ItemTotalSize.Y);
-	
+
 	if (!SizeBoxText)
+	{
 		return;
-	
+	}
+
 	SizeBoxText->SetWidthOverride(ItemTotalSize.X);
 	SizeBoxText->SetHeightOverride(ItemTotalSize.Y);
 
@@ -106,7 +109,9 @@ void UInventoryItemWidget::UpdateVisualSize(FVector2D ItemTotalSize) const
 void UInventoryItemWidget::UpdateItemName(FText Name)
 {
 	if (!ItemName)
+	{
 		return;
+	}
 
 	ItemName->SetText(Name);
 }
@@ -114,15 +119,19 @@ void UInventoryItemWidget::UpdateItemName(FText Name)
 void UInventoryItemWidget::UpdateQuantityText(int Quantity)
 {
 	if (!ItemQuantity)
+	{
 		return;
-	
+	}
+
 	if (Quantity > 1)
 	{
 		ItemQuantity->SetText(FText::AsNumber(Quantity));
 		ItemQuantity->SetVisibility(ESlateVisibility::Visible);
 	}
 	else
+	{
 		ItemQuantity->SetVisibility(ESlateVisibility::Collapsed);
+	}
 }
 
 void UInventoryItemWidget::ChangeBorderColor(FLinearColor NewColor) const
@@ -161,8 +170,7 @@ FReply UInventoryItemWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry
 }
 
 void UInventoryItemWidget::NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent,
-	UDragDropOperation*& OutOperation)
+												UDragDropOperation*& OutOperation)
 {
 	Super::NativeOnDragDetected(InGeometry, InMouseEvent, OutOperation);
-	
 }

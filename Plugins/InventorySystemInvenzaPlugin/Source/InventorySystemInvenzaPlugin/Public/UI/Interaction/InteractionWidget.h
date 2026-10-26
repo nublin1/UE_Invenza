@@ -8,7 +8,6 @@
 #include "UI/InvenzaBaseWidget.h"
 #include "InteractionWidget.generated.h"
 
-
 struct FInteractableData;
 class UProgressBar;
 class UTextBlock;
@@ -21,54 +20,45 @@ UCLASS()
 class INVENTORYSYSTEMINVENZAPLUGIN_API UInteractionWidget : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
-	
+
 public:
 	UInteractionWidget();
 
 protected:
+	// Unreal overrides
 	virtual void NativeConstruct() override;
 
 public:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
+	// Properties and variables
 	//Widgets
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction UI", meta = (BindWidget))
 	TObjectPtr<UInteractionRowWidget> FirstRow;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction UI", meta = (BindWidgetOptional))
 	TObjectPtr<UInteractionRowWidget> SecondRow;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction UI", meta = (BindWidgetOptional))
 	TObjectPtr<UInteractionRowWidget> ThirdRow;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction UI", meta = (BindWidgetOptional))
 	TObjectPtr<UProgressBar> InteractionProgressBar;
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
+
+	// Functions
 	UFUNCTION(BlueprintNativeEvent, Category = "Interaction Logic")
 	void OnFoundInteractable(const TArray<FInteractionDisplayEntry>& Entries);
+
 	virtual void OnFoundInteractable_Implementation(const TArray<FInteractionDisplayEntry>& Entries);
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Interaction Logic")
 	void OnLostInteractable(const TArray<FInteractionDisplayEntry>& Entries);
+
 	virtual void OnLostInteractable_Implementation(const TArray<FInteractionDisplayEntry>& Entries);
-	
+
 	UFUNCTION(BlueprintNativeEvent, Category = "Interaction Logic")
 	void OnInteractionDisplayChanged(const TArray<FInteractionDisplayEntry>& Entries);
+
 	virtual void OnInteractionDisplayChanged_Implementation(const TArray<FInteractionDisplayEntry>& Entries);
 
 	UFUNCTION(BlueprintCallable, Category = "UI Updates")
 	void UpdateProgressBar(float Progress);
-
-protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
-	
-	
 };

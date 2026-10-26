@@ -9,12 +9,12 @@
 class UInteractableComponent;
 
 USTRUCT(BlueprintType)
-struct FInteractionData
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FInteractionData
 {
 	GENERATED_USTRUCT_BODY()
 
-	FInteractionData() : CurrentInteractable(nullptr), LastInteractable(nullptr),LastInteractionCheckTime(0.0f){};
-	
+	FInteractionData() : CurrentInteractable(nullptr), LastInteractable(nullptr), LastInteractionCheckTime(0.0f) {};
+
 	UPROPERTY()
 	TObjectPtr<UInteractableComponent> CurrentInteractable;
 	UPROPERTY()
@@ -25,13 +25,13 @@ struct FInteractionData
 };
 
 USTRUCT(BlueprintType)
-struct FInteractionDisplayEntry
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FInteractionDisplayEntry
 {
 	GENERATED_BODY()
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(Category = "Invenza|Interaction", BlueprintReadOnly)
 	FText KeyLabel;
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(Category = "Invenza|Interaction", BlueprintReadOnly)
 	FInteractableData Data;
 };

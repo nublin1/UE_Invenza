@@ -1,0 +1,40 @@
+Key,SourceString
+Title,Session saves
+Scope,"Player, equipment, NPCs and storage are restored together."
+Continue,Continue from latest save
+QuickSave,Quick save
+ManualSave1,Save to slot 1
+ManualSave2,Save to slot 2
+ManualSave3,Save to slot 3
+Load,Load selected save
+Trust,Trust client inventory state (host setting)
+TrustDescription,Trusted clients may submit their own items and quantities. World saves and resets remain host-only.
+Recover,Retry items in recovery
+Reset,Start again / Reset level
+Confirm,"Yes, start again"
+Cancel,Cancel
+Close,Close
+ConfirmReset,Reset this profile's progress for this level? All inventories return to their starting state. Controls and graphics settings are retained.
+HostOnly,"Only the host can save, load or reset this world."
+RecoveryHeading,Recovery:
+RecoveryItem,{0} × {1}
+SlotEntry,{0} | {1}
+Quick,Quick save
+Manual1,Manual save 1
+Manual2,Manual save 2
+Manual3,Manual save 3
+Exit,Exit save
+Shutdown,Session end
+AutoSlot,Autosave {0}
+FreshStart,New playthrough started.
+Saving,Saving…
+Saved,Saved
+SaveFailed,Save failed. The previous generation is retained. See the log for details.
+WaitBeforeExit,Wait for saving to finish before leaving.
+NoSave,No saved progress in this playthrough yet.
+LoadedRecovery,Loaded. {0} stacks are in recovery; their data is retained.
+Loaded,Loaded
+LoadFailed,Load failed. See the log for details.
+ResetFailed,Reset failed. Current progress was retained.
+RecoveryFailed,Recovery failed. See the log for details.
+RecoveryRemaining,Stacks remaining in recovery: {0}

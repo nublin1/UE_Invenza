@@ -1,11 +1,10 @@
 ﻿//  Nublin Studio 2026 All Rights Reserved.
 
-
 #include "Data/Inventory/InventoryBase.h"
 
-#include "ActorComponents/ItemCollection.h"
+#include "ActorComponents/InventoryCollectionComponent.h"
 #include "Data/Inventory/InventorySlotData.h"
-#include "Data/Items/ItemBase.h"
+#include "Data/Items/itemBase.h"
 #include "Data/Settings/InvenzaInventorySettingsAsset.h"
 #include "Factory/ItemFactory.h"
 #include "Net/UnrealNetwork.h"
@@ -41,26 +40,33 @@ UInventoryBase* UInventoryBase::CreateInventory(UObject* Outer, FInventoryStartu
 	{
 		return nullptr;
 	}
-	
-	UInventoryBase* Inventory =	NewObject<UInventoryBase>(Outer, StartupData.Settings.InventoryClass);
+
+	UInventoryBase* Inventory = NewObject<UInventoryBase>(Outer, StartupData.Settings.InventoryClass);
 
 	if (!Inventory)
+	{
 		return nullptr;
+	}
 
 	if (!StartupData.Settings.CustomInventoryID.IsEmpty())
+	{
 		Inventory->SetInventoryContainerID(StartupData.Settings.CustomInventoryID);
-		
+	}
+
 	Inventory->SetInventorySettings(StartupData.Settings);
 
 	return Inventory;
 }
 
 UInventoryBase* UInventoryBase::CreateInventoryAdvanced(UObject* Outer, FInventoryStartupData StartupData,
-	AActor* OwnerActor, UItemCollection* InItemCollection)
+														AActor* OwnerActor,
+														UInventoryCollectionComponent* InItemCollection)
 {
-	UInventoryBase* Inventory =	CreateInventory(Outer, StartupData);
+	UInventoryBase* Inventory = CreateInventory(Outer, StartupData);
 	if (!Inventory)
+	{
 		return nullptr;
+	}
 
 	Inventory->SetInventoryOwnerActor(OwnerActor);
 	Inventory->SetItemCollectionLink(InItemCollection);
@@ -71,10 +77,12 @@ UInventoryBase* UInventoryBase::CreateInventoryAdvanced(UObject* Outer, FInvento
 
 UInventoryBase* UInventoryBase::DuplicateInventory(UObject* Outer)
 {
-	UInventoryBase* Inventory =	NewObject<UInventoryBase>(Outer, this->GetClass());
+	UInventoryBase* Inventory = NewObject<UInventoryBase>(Outer, this->GetClass());
 
 	if (!Inventory)
+	{
 		return nullptr;
+	}
 
 	Inventory->SetInventorySettings(InventorySettings);
 	Inventory->SetItemCollectionLink(ItemCollectionLinked);
@@ -86,7 +94,8 @@ UInventoryBase* UInventoryBase::DuplicateInventory(UObject* Outer)
 
 void UInventoryBase::InitInventory()
 {
-	InvSize = FIntPoint(InventorySettings.InventorySlotBasedSettings.InitNumberRows, InventorySettings.InventorySlotBasedSettings.InitNumColumns);
+	InvSize = FIntPoint(InventorySettings.InventorySlotBasedSettings.InitNumberRows,
+						InventorySettings.InventorySlotBasedSettings.InitNumColumns);
 }
 
 void UInventoryBase::InitInventoryWithSettings(FInventorySettings NewInventorySettings)
@@ -97,10 +106,15 @@ void UInventoryBase::InitInventoryWithSettings(FInventorySettings NewInventorySe
 
 void UInventoryBase::RequestToResetItemVisual(UObject* Item)
 {
-	if (!Item) return;
+	if (!Item)
+	{
+		return;
+	}
 
 	if (ItemCollectionLinked->ItemHasInventory(Item, InventoryContainerID))
+	{
 		NotifyRequestToResetItemVisual(Item);
+	}
 }
 
 void UInventoryBase::HandleSortItems(EInventorySortCriteria Criteria)
@@ -110,9 +124,10 @@ void UInventoryBase::HandleSortItems(EInventorySortCriteria Criteria)
 	case EInventorySortCriteria::ByName:
 		SortItemsInContainerByName();
 		break;
-	
+
 	default:
-		UE_LOG(LogTemp, Warning, TEXT("[UInventoryBase::HandleSortItems] Unhandled sort criteria: %d"), static_cast<uint8>(Criteria));
+		UE_LOG(LogTemp, Warning, TEXT("[UInventoryBase::HandleSortItems] Unhandled sort criteria: %d"),
+			   static_cast<uint8>(Criteria));
 		break;
 	}
 }
@@ -120,37 +135,53 @@ void UInventoryBase::HandleSortItems(EInventorySortCriteria Criteria)
 void UInventoryBase::MergeStackableItems()
 {
 	auto Items = ItemCollectionLinked->GetAllItemsByContainer(InventoryContainerID);
-	if (Items.IsEmpty()) return;
+	if (Items.IsEmpty())
+	{
+		return;
+	}
 
 	for (int32 i = Items.Num() - 1; i > 0; --i)
 	{
 		UObject* ItemObj = Items[i];
 		if (!ItemObj)
+		{
 			continue;
-		
+		}
+
 		if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(ItemObj, TEXT("MergeStackableItems")))
+		{
 			continue;
-		
+		}
+
 		if (!IObjectDataProvider::Execute_IsStackable(ItemObj))
+		{
 			continue;
+		}
 
 		auto SameItems = ItemCollectionLinked->GetAllSameItemsInContainerByItemSample(InventoryContainerID, ItemObj);
 		if (SameItems.IsEmpty())
+		{
 			continue;
+		}
 
 		int32 RemainingQuantity = IObjectDataProvider::Execute_GetQuantity(ItemObj);
 		for (UObject* SameItemObj : SameItems)
 		{
 			if (SameItemObj == ItemObj)
+			{
 				continue;
+			}
 
-			if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(SameItemObj, TEXT("MergeStackableItems")))
+			if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(SameItemObj,
+																				   TEXT("MergeStackableItems")))
+			{
 				continue;
-			
+			}
+
 			const int32 AddedQuantity = TryInsertToStackItem(SameItemObj, RemainingQuantity, false);
 			RemainingQuantity -= AddedQuantity;
 		}
-		
+
 		if (RemainingQuantity <= 0)
 		{
 			HandleRemoveItem(ItemObj, IObjectDataProvider::Execute_GetQuantity(ItemObj));
@@ -160,7 +191,7 @@ void UInventoryBase::MergeStackableItems()
 			IObjectDataProvider::Execute_SetQuantity(ItemObj, RemainingQuantity);
 		}
 	}
-	
+
 	OnRep_InventoryTotalWeight();
 	OnRep_InventoryTotalMoney();
 }
@@ -168,33 +199,38 @@ void UInventoryBase::MergeStackableItems()
 void UInventoryBase::UseSlot(UInventorySlotData* UsedSlot)
 {
 	if (!UsedSlot || !ItemCollectionLinked)
+	{
 		return;
+	}
 
-	UObject* ItemObj = ItemCollectionLinked->GetItemFromSlot(
-		UsedSlot->InventorySlotInfo.SlotGuid,
-		InventoryContainerID
-	);
+	UObject* ItemObj =
+		ItemCollectionLinked->GetItemFromSlot(UsedSlot->InventorySlotInfo.SlotGuid, InventoryContainerID);
 
 	if (!ItemObj)
+	{
 		return;
+	}
 
 	if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(ItemObj, TEXT("UseSlot")))
+	{
 		return;
-	
+	}
+
 	IObjectDataProvider::Execute_UseItem(ItemObj);
-	
+
 	NotifyUseSlot(UsedSlot);
 }
 
 void UInventoryBase::UpdateWeightInfo()
 {
 	if (!ItemCollectionLinked)
+	{
 		return;
+	}
 
 	InventoryTotalWeight = 0.0f;
 
-	const TArray<UObject*> AllItems =
-		ItemCollectionLinked->GetAllItemsByContainer(InventoryContainerID);
+	const TArray<UObject*> AllItems = ItemCollectionLinked->GetAllItemsByContainer(InventoryContainerID);
 
 	if (AllItems.IsEmpty())
 	{
@@ -205,26 +241,23 @@ void UInventoryBase::UpdateWeightInfo()
 	for (UObject* ItemObj : AllItems)
 	{
 		if (!ItemObj)
-			continue;
-		
-		if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(
-				ItemObj,
-				TEXT("UpdateWeightInfo")))
 		{
 			continue;
 		}
-		
-		const int32 Quantity =
-			IObjectDataProvider::Execute_GetQuantity(ItemObj);
-		
-		const float SingleWeight =
-			IObjectDataProvider::Execute_GetItemSingleWeight(ItemObj);
+
+		if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(ItemObj, TEXT("UpdateWeightInfo")))
+		{
+			continue;
+		}
+
+		const int32 Quantity = IObjectDataProvider::Execute_GetQuantity(ItemObj);
+
+		const float SingleWeight = IObjectDataProvider::Execute_GetItemSingleWeight(ItemObj);
 
 		InventoryTotalWeight += Quantity * SingleWeight;
 	}
-	
-	InventoryTotalWeight =
-		FMath::RoundToFloat(InventoryTotalWeight * 100.0f) / 100.0f;
+
+	InventoryTotalWeight = FMath::RoundToFloat(InventoryTotalWeight * 100.0f) / 100.0f;
 
 	OnRep_InventoryTotalWeight();
 }
@@ -232,11 +265,15 @@ void UInventoryBase::UpdateWeightInfo()
 void UInventoryBase::UpdateMoneyInfo()
 {
 	if (!ItemCollectionLinked)
+	{
 		return;
+	}
 
 	const auto* MySettings = UInvenzaInventorySettingsSubsystem::GetSettingsStatic(this);
 	if (!MySettings)
+	{
 		return;
+	}
 
 	InventoryTotalMoney = 0;
 
@@ -250,21 +287,26 @@ void UInventoryBase::UpdateMoneyInfo()
 	for (UObject* ItemObj : AllItems)
 	{
 		if (!ItemObj)
+		{
 			continue;
+		}
 
 		if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(ItemObj, TEXT("UpdateMoneyInfo")))
+		{
 			continue;
+		}
 
 		const FItemMetaData Meta = IObjectDataProvider::Execute_GetItemRef(ItemObj);
 		if (Meta.ItemCategory == MySettings->CurrencyGameplayTag)
+		{
 			InventoryTotalMoney += IObjectDataProvider::Execute_GetQuantity(ItemObj);
+		}
 	}
 
 	OnRep_InventoryTotalMoney();
 }
 
-TArray<UInventorySlotData*> UInventoryBase::GetAvailableSlotForItem(UObject* Item,
-	EItemOrientationType& OutOrientation)
+TArray<UInventorySlotData*> UInventoryBase::GetAvailableSlotForItem(UObject* Item, EItemOrientationType& OutOrientation)
 {
 	TArray<UInventorySlotData*> ReturnSlots;
 	return ReturnSlots;
@@ -311,20 +353,27 @@ int32 UInventoryBase::CalculateActualAmountToAdd(int32 InAmountToAdd, float Item
 		}
 		return FMath::Min(RemainingSlots, InAmountToAdd);
 	}
-	
+
 	return InAmountToAdd;
 }
 
 int32 UInventoryBase::TryInsertToStackItem(UObject* ResourceToInsertInto, int32 AmountToDistribute, bool bOnlyCheck)
 {
 	if (!ResourceToInsertInto)
+	{
 		return 0;
+	}
 
-	if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(ResourceToInsertInto, TEXT("TryInsertToStackItem")))
+	if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(ResourceToInsertInto,
+																		   TEXT("TryInsertToStackItem")))
+	{
 		return 0;
+	}
 
 	if (IObjectDataProvider::Execute_IsFullItemStack(ResourceToInsertInto))
+	{
 		return 0;
+	}
 
 	const FItemMetaData Meta = IObjectDataProvider::Execute_GetItemRef(ResourceToInsertInto);
 	const int32 CurrentQuantity = IObjectDataProvider::Execute_GetQuantity(ResourceToInsertInto);
@@ -351,10 +400,14 @@ int32 UInventoryBase::TryInsertToStackItem(UObject* ResourceToInsertInto, int32 
 int32 UInventoryBase::TryRemoveFromStackItem(UObject* Item, int32 RequestedRemoveAmount)
 {
 	if (!Item || RequestedRemoveAmount <= 0)
+	{
 		return 0;
+	}
 
 	if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(Item, TEXT("TryRemoveFromStackItem")))
+	{
 		return 0;
+	}
 
 	const int32 CurrentQuantity = IObjectDataProvider::Execute_GetQuantity(Item);
 	const int32 AmountToRemove = FMath::Min(RequestedRemoveAmount, CurrentQuantity);
@@ -388,10 +441,12 @@ void UInventoryBase::RemoveItemFromInventory(UObject* Item)
 		UE_LOG(LogTemp, Warning, TEXT("RemoveItemFromInventory: Item is null"));
 		return;
 	}
-	
+
 	auto Mapping = ItemCollectionLinked->FindItemMappingByContainerName(Item, InventoryContainerID);
 	if (!Mapping)
+	{
 		return;
+	}
 
 	// Removing the mapping invalidates its pointer. Keep the UI data for the notification.
 	const FItemMapping RemovedMapping = *Mapping;
@@ -422,8 +477,8 @@ void UInventoryBase::NotifyFullyRemoveItem(FItemMapping FromSlots, UObject* Item
 	OnItemRemovedDelegate.Broadcast(FromSlots, Item);
 }
 
-void UInventoryBase::NotifyReplaceItem(TArray<UInventorySlotData*> OldItemSlots,
-	FItemMapping& NewItemSlots, UObject* Item)
+void UInventoryBase::NotifyReplaceItem(TArray<UInventorySlotData*> OldItemSlots, FItemMapping& NewItemSlots,
+									   UObject* Item)
 {
 	OnItemReplaceDelegate.Broadcast(OldItemSlots, NewItemSlots, Item);
 }
@@ -440,6 +495,7 @@ void UInventoryBase::OnRep_InventoryTotalWeight()
 
 void UInventoryBase::OnRep_InventoryConfiguration()
 {
+	OnConfigurationChanged.Broadcast();
 	if (IsValid(ItemCollectionLinked))
 	{
 		ItemCollectionLinked->OnActorInventoriesChanged.Broadcast();
@@ -465,4 +521,3 @@ void UInventoryBase::NotifyRequestToResetItemVisual(UObject* Item)
 {
 	OnRequestToResetItemVisual.Broadcast(Item);
 }
-

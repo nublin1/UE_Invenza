@@ -1,8 +1,12 @@
 ﻿//  Nublin Studio 2026 All Rights Reserved.
 
 #include "Utility/InvenzayUtility.h"
+#include "Engine/World.h"
+#include "Engine/GameInstance.h"
+#include "GameFramework/Actor.h"
+#include "Layout/Margin.h"
 
-#include "ActorComponents/ItemCollection.h"
+#include "ActorComponents/InventoryCollectionComponent.h"
 #include "ActorComponents/Interactable/PickupComponent.h"
 #include "Data/Inventory/InventoryBase.h"
 #include "Data/Inventory/InventoryTypes.h"
@@ -13,9 +17,10 @@
 #include "Subsystems/InvenzaInventorySettingsSubsystem.h"
 #include "Utility/InterfaceUtils.h"
 
-
-UInventoryBase* UInvenzayUtility::CreateStartupInventory(UObject* WorldContextObject, UItemCollection* ItemCollection,
-	const FInventoryStartupData& StartupData, TMap<TObjectPtr<UInventoryBase>, FInitItemsList>& StartingItems)
+UInventoryBase*
+UInvenzayUtility::CreateStartupInventory(UObject* WorldContextObject, UInventoryCollectionComponent* ItemCollection,
+										 const FInventoryStartupData& StartupData,
+										 TMap<TObjectPtr<UInventoryBase>, FInitItemsList>& StartingItems)
 {
 	if (!WorldContextObject || !ItemCollection)
 	{
@@ -28,7 +33,7 @@ UInventoryBase* UInvenzayUtility::CreateStartupInventory(UObject* WorldContextOb
 		return nullptr;
 	}
 
-	UInventoryBase* Inventory = UInventoryBase::CreateInventoryAdvanced(Owner,StartupData, Owner, ItemCollection);
+	UInventoryBase* Inventory = UInventoryBase::CreateInventoryAdvanced(Owner, StartupData, Owner, ItemCollection);
 	if (!Inventory)
 	{
 		return nullptr;
@@ -45,7 +50,7 @@ UInventoryBase* UInvenzayUtility::CreateStartupInventory(UObject* WorldContextOb
 }
 
 void UInvenzayUtility::SetupStartingResources(UObject* WorldContextObject,
-                                              TMap<TObjectPtr<UInventoryBase>, FInitItemsList>& StartingItems)
+											  TMap<TObjectPtr<UInventoryBase>, FInitItemsList>& StartingItems)
 {
 	if (StartingItems.IsEmpty())
 	{
@@ -54,9 +59,7 @@ void UInvenzayUtility::SetupStartingResources(UObject* WorldContextObject,
 
 	for (auto& [Inventory, InitItems] : StartingItems)
 	{
-		if (!Inventory ||
-			Inventory->GetInventoryContainerID().IsEmpty() ||
-			InitItems.Items.IsEmpty() ||
+		if (!Inventory || Inventory->GetInventoryContainerID().IsEmpty() || InitItems.Items.IsEmpty() ||
 			!Inventory->GetItemCollectionLinked())
 		{
 			continue;
@@ -82,28 +85,33 @@ void UInvenzayUtility::SetupStartingResources(UObject* WorldContextObject,
 	StartingItems.Empty();
 }
 
-bool UInvenzayUtility::AddItemQuantity(UObject* Outer, UInventoryBase* TargetInventory, const FInitItemsEntry InitItemsEntry)
+bool UInvenzayUtility::AddItemQuantity(UObject* Outer, UInventoryBase* TargetInventory,
+									   const FInitItemsEntry InitItemsEntry)
 {
 	if (!TargetInventory || InitItemsEntry.Item.IsNull() || InitItemsEntry.Amount <= 0)
+	{
 		return false;
+	}
 
 	UObject* ItemForDuplicate = UItemFactory::CreateItemByHandle(Outer, InitItemsEntry.Item, InitItemsEntry.Amount);
 	return AddItemQuantityInternal(TargetInventory, ItemForDuplicate, InitItemsEntry.Amount);
 }
 
 bool UInvenzayUtility::AddItemQuantityBySample(UObject* Outer, UInventoryBase* TargetInventory, UObject* ItemSample,
-                                                int32 TotalQuantity)
+											   int32 TotalQuantity)
 {
 	if (!TargetInventory || !ItemSample || TotalQuantity <= 0)
+	{
 		return false;
+	}
 
 	if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(ItemSample, TEXT("AddItemQuantityBySample")))
+	{
 		return false;
+	}
 
 	UObject* ItemForDuplicate =
-		UItemFactory::CreateItemByHandle(Outer,
-			IObjectDataProvider::Execute_GetItemRow(ItemSample),
-			TotalQuantity);
+		UItemFactory::CreateItemByHandle(Outer, IObjectDataProvider::Execute_GetItemRow(ItemSample), TotalQuantity);
 
 	return AddItemQuantityInternal(TargetInventory, ItemForDuplicate, TotalQuantity);
 }
@@ -125,17 +133,16 @@ bool UInvenzayUtility::bIsSameItems(UObject* FirstItem, UObject* SecondItem)
 		return false;
 	}
 
-	const FName FirstItemID =
-		IObjectDataProvider::Execute_GetItemID(FirstItem);
+	const FName FirstItemID = IObjectDataProvider::Execute_GetItemID(FirstItem);
 
-	const FName SecondItemID =
-		IObjectDataProvider::Execute_GetItemID(SecondItem);
+	const FName SecondItemID = IObjectDataProvider::Execute_GetItemID(SecondItem);
 
 	return FirstItemID == SecondItemID;
 }
 
 bool UInvenzayUtility::DoItemsHaveSameFootprint(UObject* FirstItem, UObject* SecondItem,
-	EItemOrientationType OrientationFirstItem, EItemOrientationType OrientationSecondItem, bool bIgnoreSize)
+												EItemOrientationType OrientationFirstItem,
+												EItemOrientationType OrientationSecondItem, bool bIgnoreSize)
 {
 	if (!FirstItem || !SecondItem)
 	{
@@ -157,77 +164,82 @@ bool UInvenzayUtility::DoItemsHaveSameFootprint(UObject* FirstItem, UObject* Sec
 		return true;
 	}
 
-	const FIntPoint FirstSize =
-		IObjectDataProvider::Execute_GetItemSize(
-			FirstItem,
-			OrientationFirstItem
-		);
+	const FIntPoint FirstSize = IObjectDataProvider::Execute_GetItemSize(FirstItem, OrientationFirstItem);
 
-	const FIntPoint SecondSize =
-		IObjectDataProvider::Execute_GetItemSize(
-			SecondItem,
-			OrientationSecondItem
-		);
+	const FIntPoint SecondSize = IObjectDataProvider::Execute_GetItemSize(SecondItem, OrientationSecondItem);
 
 	return FirstSize == SecondSize;
 }
 
-void UInvenzayUtility::DropItem(UWorld* World, AActor* OwnerActor, const FDataTableRowHandle& ItemRow, int32 AmountToDrop,
-	const FVector& SpawnLocation, const FRotator& SpawnRotation)
+AActor* UInvenzayUtility::DropItem(UWorld* World, AActor* OwnerActor, const FDataTableRowHandle& ItemRow,
+								int32 AmountToDrop, const FVector& SpawnLocation, const FRotator& SpawnRotation)
 {
-	if (!World) return;
+	if (!IsValid(World) || World->GetNetMode() == NM_Client || !IsValid(OwnerActor) ||
+		!OwnerActor->HasAuthority() || OwnerActor->GetWorld() != World || AmountToDrop <= 0 ||
+		!ItemRow.DataTable || ItemRow.RowName.IsNone())
+	{
+		return nullptr;
+	}
 
 	auto Settings = GetInvenzaGlobalSettings(World);
 	if (!Settings || !Settings->PickupClass)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("PickupClass is not set."));
-		return;
+		return nullptr;
 	}
 
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.Owner = OwnerActor;
-	SpawnParams.SpawnCollisionHandlingOverride =
-		ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
-	AActor* Pickup = World->SpawnActor<AActor>(
-		Settings->PickupClass,
-		SpawnLocation,
-		SpawnRotation,
-		SpawnParams);
+	AActor* Pickup = World->SpawnActor<AActor>(Settings->PickupClass, SpawnLocation, SpawnRotation, SpawnParams);
 
-	if (!Pickup)
+	if (!IsValid(Pickup))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Failed to spawn Pickup."));
-		return;
+		return nullptr;
 	}
 
-	if (UPickupComponent* PickupComponent = Pickup->FindComponentByClass<UPickupComponent>())
+	UPickupComponent* PickupComponent = Pickup->FindComponentByClass<UPickupComponent>();
+	if (!IsValid(PickupComponent))
 	{
-		FInitItemsEntry ItemDrop;
-		ItemDrop.Item = ItemRow;
-		ItemDrop.Amount = AmountToDrop;	
-		
-		PickupComponent->InitializeDrop(ItemDrop);
+		Pickup->Destroy();
+		return nullptr;
 	}
+
+	FInitItemsEntry ItemDrop;
+	ItemDrop.Item = ItemRow;
+	ItemDrop.Amount = AmountToDrop;
+	PickupComponent->InitializeDrop(ItemDrop);
+
+	UObject* DroppedItem = PickupComponent->PeekItemData();
+	if (!IsValid(Pickup) || !IsValid(DroppedItem) || !DroppedItem->Implements<UObjectDataProvider>() ||
+		IObjectDataProvider::Execute_GetQuantity(DroppedItem) != AmountToDrop)
+	{
+		Pickup->Destroy();
+		return nullptr;
+	}
+
+	return Pickup;
 }
 
-FVector2D UInvenzayUtility::CalculateItemVisualSize(UObject* Item, EItemOrientationType Orientation,
-	FVector2D SlotSize, FMargin SlotSpacing, bool bIgnoreSize)
+FVector2D UInvenzayUtility::CalculateItemVisualSize(UObject* Item, EItemOrientationType Orientation, FVector2D SlotSize,
+													FMargin SlotSpacing, bool bIgnoreSize)
 {
 	if (!Item ||
 		!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(Item, TEXT("CalculateItemVisualSize")))
+	{
 		return FVector2D::ZeroVector;
+	}
 
-	FIntPoint ItemSize = bIgnoreSize
-		? FIntPoint(1, 1)
-		: IObjectDataProvider::Execute_GetItemSize(Item, Orientation);
+	FIntPoint ItemSize = bIgnoreSize ? FIntPoint(1, 1) : IObjectDataProvider::Execute_GetItemSize(Item, Orientation);
 
-	return FVector2D(
-		SlotSize.X * ItemSize.X + SlotSpacing.Left * (ItemSize.X - 1),
-		SlotSize.Y * ItemSize.Y + SlotSpacing.Top  * (ItemSize.Y - 1));
+	return FVector2D(SlotSize.X * ItemSize.X + SlotSpacing.Left * (ItemSize.X - 1),
+					 SlotSize.Y * ItemSize.Y + SlotSpacing.Top * (ItemSize.Y - 1));
 }
 
-TMap<EObjectInteractionType, FModalActionConfig> UInvenzayUtility::CollectAccessibleObjectActions(UWorld* World, UObject* InItem)
+TMap<EObjectInteractionType, FModalActionConfig> UInvenzayUtility::CollectAccessibleObjectActions(UWorld* World,
+																								  UObject* InItem)
 {
 	TMap<EObjectInteractionType, FModalActionConfig> AllowedActions;
 
@@ -256,7 +268,10 @@ TMap<EObjectInteractionType, FModalActionConfig> UInvenzayUtility::CollectAccess
 
 UInvenzaInventorySettingsAsset* UInvenzayUtility::GetInvenzaGlobalSettings(const UObject* WorldContext)
 {
-	if (!WorldContext) return nullptr;
+	if (!WorldContext)
+	{
+		return nullptr;
+	}
 
 	if (auto GI = WorldContext->GetWorld()->GetGameInstance())
 	{
@@ -274,7 +289,9 @@ TScriptInterface<IInventoryInteractionHandler> UInvenzayUtility::FindInventoryHa
 	TScriptInterface<IInventoryInteractionHandler> Handler;
 
 	if (!Actor)
+	{
 		return Handler;
+	}
 
 	for (UActorComponent* Comp : Actor->GetComponents())
 	{
@@ -290,11 +307,13 @@ TScriptInterface<IInventoryInteractionHandler> UInvenzayUtility::FindInventoryHa
 }
 
 bool UInvenzayUtility::AddItemQuantityInternal(UInventoryBase* TargetInventory, UObject* ItemForDuplicate,
-	int32 Remaining)
+											   int32 Remaining)
 {
-	if (!ItemForDuplicate ||
-		!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(ItemForDuplicate, TEXT("AddItemQuantityInternal")))
+	if (!ItemForDuplicate || !UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(
+								 ItemForDuplicate, TEXT("AddItemQuantityInternal")))
+	{
 		return false;
+	}
 
 	while (Remaining > 0)
 	{
@@ -311,7 +330,9 @@ bool UInvenzayUtility::AddItemQuantityInternal(UInventoryBase* TargetInventory, 
 		MoveData.TargetInventory = TargetInventory;
 
 		if (TargetInventory->HandleAddItem(MoveData).OperationResult == EItemAddResult::IAR_NoItemAdded)
+		{
 			return false;
+		}
 
 		Remaining -= AddAmount;
 	}

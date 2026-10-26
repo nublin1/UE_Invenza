@@ -3,7 +3,7 @@
 #include "Data/Inventory/Simulator/InventorySimulator.h"
 
 #include "ActorComponents/SaveLoad/SaveLoadStructs.h"
-#include "ActorComponents/ItemCollection.h"
+#include "ActorComponents/InventoryCollectionComponent.h"
 #include "Data/Inventory/InventoryBase.h"
 #include "Factory/ItemFactory.h"
 #include "Utility/InterfaceUtils.h"
@@ -15,18 +15,20 @@ UInventorySimulator::UInventorySimulator()
 void UInventorySimulator::DuplicateInventoryForSimulation(UInventoryBase* InInventory)
 {
 	SourceInventory = InInventory;
-	
+
 	auto NewInv = SourceInventory->DuplicateInventory(GetOuter());
 	if (!NewInv)
+	{
 		return;
+	}
 
 	SimulationInventory = NewInv;
 	SimulationInventory->SetFlags(RF_Transient);
 	SimulationInventory->ClearFlags(RF_Transactional);
-	
+
 	SimulationInventory->SetInventoryContainerID(InInventory->GetInventoryContainerID() + "_Sim");
 
-	SimulationCollection = NewObject<UItemCollection>(GetOuter());
+	SimulationCollection = NewObject<UInventoryCollectionComponent>(GetOuter());
 	SimulationInventory->SetItemCollectionLink(SimulationCollection);
 
 	TArray<FItemSaveEntry> SavedData;
@@ -41,10 +43,15 @@ void UInventorySimulator::DuplicateInventoryForSimulation(UInventoryBase* InInve
 void UInventorySimulator::TransferRequestSimulateQuantity(UObject* ItemSample, int32 TotalQuantity)
 {
 	if (!SimulationInventory || !ItemSample || TotalQuantity <= 0)
+	{
 		return;
+	}
 
-	if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(ItemSample, TEXT("TransferRequestSimulateQuantity")))
+	if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(ItemSample,
+																		   TEXT("TransferRequestSimulateQuantity")))
+	{
 		return;
+	}
 
 	int32 Remaining = TotalQuantity;
 
@@ -54,10 +61,15 @@ void UInventorySimulator::TransferRequestSimulateQuantity(UObject* ItemSample, i
 
 		UObject* Item = UItemFactory::CreateItemByHandle(this, ItemRow, Remaining);
 		if (!Item)
+		{
 			return;
+		}
 
-		if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(Item, TEXT("TransferRequestSimulateQuantity")))
+		if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(Item,
+																			   TEXT("TransferRequestSimulateQuantity")))
+		{
 			return;
+		}
 
 		const FItemMetaData Meta = IObjectDataProvider::Execute_GetItemRef(Item);
 		const int32 MaxStack = Meta.ItemNumeraticData.MaxStackSizeInCharacter;
@@ -79,10 +91,14 @@ void UInventorySimulator::TransferRequestSimulateQuantity(UObject* ItemSample, i
 void UInventorySimulator::TransferRequestSimulate(FItemMoveData ItemMoveData)
 {
 	if (!SimulationInventory)
+	{
 		return;
+	}
 
 	if (ItemMoveData.TargetInventory != SimulationInventory)
+	{
 		return;
+	}
 
 	FItemAddResult Result = ItemMoveData.TargetInventory->HandleAddItem(ItemMoveData, false);
 
@@ -96,12 +112,14 @@ void UInventorySimulator::TransferRequestSimulate(FItemMoveData ItemMoveData)
 bool UInventorySimulator::AreAllOperationsSuccessful() const
 {
 	if (OperationHistory.Num() == 0)
+	{
 		return false;
-	
+	}
+
 	for (const FInventorySimulationOperation& Operation : OperationHistory)
 	{
 		auto OpResult = Operation.Result.OperationResult;
-		if (OpResult == EItemAddResult::IAR_NoItemAdded || OpResult == EItemAddResult::IAR_PartialAmountItemAdded )
+		if (OpResult == EItemAddResult::IAR_NoItemAdded || OpResult == EItemAddResult::IAR_PartialAmountItemAdded)
 		{
 			return false;
 		}
@@ -113,10 +131,12 @@ bool UInventorySimulator::AreAllOperationsSuccessful() const
 bool UInventorySimulator::WasLastOperationSuccessful()
 {
 	if (OperationHistory.Num() == 0)
+	{
 		return false;
+	}
 
 	auto LastOpResult = OperationHistory.Last().Result.OperationResult;
-	
+
 	if (LastOpResult == EItemAddResult::IAR_NoItemAdded || LastOpResult == EItemAddResult::IAR_PartialAmountItemAdded)
 	{
 		//UE_LOG(LogTemp, Warning, TEXT("WasLastOperationSuccessful: FAILED"));

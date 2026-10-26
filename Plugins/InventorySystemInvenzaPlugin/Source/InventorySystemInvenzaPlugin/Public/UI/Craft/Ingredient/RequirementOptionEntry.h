@@ -1,4 +1,4 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -13,7 +13,7 @@ class UCurrentMaxDisplay;
 class ULabelBaseText;
 class UImageBaseWidget;
 /**
- * 
+ *
  */
 UCLASS()
 class INVENTORYSYSTEMINVENZAPLUGIN_API URequirementOptionEntry : public UInvenzaBaseWidget
@@ -24,49 +24,44 @@ public:
 	URequirementOptionEntry();
 
 protected:
+	// Unreal overrides
 	virtual void NativeConstruct() override;
 
 public:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-	
+	// Properties and variables
 	// Widgets
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Componets", meta = (BindWidgetOptional))
 	TObjectPtr<UImageBaseWidget> IngredientIcon;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Componets", meta = (BindWidget))
 	TObjectPtr<ULabelBaseText> RequiredItemName;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Componets", meta = (BindWidget))
 	TObjectPtr<UCurrentMaxDisplay> RemainingCounter;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Componets", meta = (BindWidgetOptional))
 	TObjectPtr<UUIButton> MainButton;
-	UPROPERTY(BlueprintReadOnly, Category="UI|Components", meta=(BindWidgetOptional))
-	TObjectPtr<UImageBaseWidget> SelectedMarker;
-	UPROPERTY(BlueprintReadOnly, Category="UI|Components", meta=(BindWidgetOptional))
-	TObjectPtr<UImageBaseWidget> SelectionBackground;
-	UPROPERTY(BlueprintReadOnly, Category="UI|Components", meta=(BindWidgetOptional))
-	TObjectPtr<ULabelBaseText> MissingResourcesText;
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
 
-	UFUNCTION(BlueprintCallable)
+	UPROPERTY(BlueprintReadOnly, Category = "UI|Components", meta = (BindWidgetOptional))
+	TObjectPtr<UImageBaseWidget> SelectedMarker;
+
+	UPROPERTY(BlueprintReadOnly, Category = "UI|Components", meta = (BindWidgetOptional))
+	TObjectPtr<UImageBaseWidget> SelectionBackground;
+
+	UPROPERTY(BlueprintReadOnly, Category = "UI|Components", meta = (BindWidgetOptional))
+	TObjectPtr<ULabelBaseText> MissingResourcesText;
+
+	// Functions
+	UFUNCTION(Category = "Invenza|Crafting", BlueprintCallable)
 	void UpdateData(const FRecipeRequirementResult& NewData);
 
 protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-	
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
-	UFUNCTION(BlueprintCallable)
+	// Runtime
+
+	// Functions
+	UFUNCTION(Category = "Invenza|Crafting", BlueprintCallable)
 	void UpdateIngredientImage(const TSoftObjectPtr<UTexture2D>& NewIngredientIcon);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(Category = "Invenza|Crafting", BlueprintCallable)
 	void SetToggleStatus(bool bNewStatus);
 };

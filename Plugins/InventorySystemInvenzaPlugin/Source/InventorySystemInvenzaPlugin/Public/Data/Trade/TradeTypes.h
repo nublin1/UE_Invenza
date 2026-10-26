@@ -6,58 +6,75 @@
 #include "Data/CraftSystem/ItemRecipe.h"
 #include "TradeTypes.generated.h"
 
-
 class UInventoryBase;
 class UItemBase;
+struct FTradeResult;
 
-USTRUCT(BlueprintType)
-struct FTradeEntry
+/** Per-player history. References the actual stacks received by the vendor. */
+USTRUCT()
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FTradeSessionItems
 {
 	GENERATED_BODY()
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY()
 	TObjectPtr<UInventoryBase> Inventory = nullptr;
 
-	UPROPERTY(BlueprintReadOnly)
-	TObjectPtr<UObject> Item = nullptr;
+	UPROPERTY()
+	TArray<TObjectPtr<UObject>> SoldItems;
 
-	UPROPERTY(BlueprintReadOnly)
-	int32 QuantityDelta = 0;
+	UPROPERTY()
+	uint32 SessionId = 0;
 
-	UPROPERTY(BlueprintReadOnly)
-	bool bIsCurrency = false;
-
-	FTradeEntry(){};
-
-	FTradeEntry(UInventoryBase* InInventory, UObject* InItem, int32 InQuantityDelta, bool bInIsCurrency)
-		: Inventory(InInventory)
-		, Item(InItem)
-		, QuantityDelta(InQuantityDelta)
-		, bIsCurrency(bInIsCurrency)
-	{}
+	void Reset(UInventoryBase* NewInventory = nullptr);
+	void RecordTrade(const FTradeResult& Result, const TMap<UObject*, int32>& Before,
+					 const TMap<UObject*, int32>& After);
 };
 
 USTRUCT(BlueprintType)
-struct FTradeTransaction
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FTradeEntry
 {
 	GENERATED_BODY()
 
-	UPROPERTY(BlueprintReadOnly)
-	bool bSuccess = false;
+	UPROPERTY(Category = "Invenza|TradeTypes", BlueprintReadOnly)
+	TObjectPtr<UInventoryBase> Inventory = nullptr;
 
-	UPROPERTY(BlueprintReadOnly)
-	bool bIsBuyingFromVendor = false;
+	UPROPERTY(Category = "Invenza|TradeTypes", BlueprintReadOnly)
+	TObjectPtr<UObject> Item = nullptr;
 
-	UPROPERTY(BlueprintReadOnly)
-	float TotalPrice = 0;
+	UPROPERTY(Category = "Invenza|TradeTypes", BlueprintReadOnly)
+	int32 QuantityDelta = 0;
 
-	UPROPERTY(BlueprintReadOnly)
-	TArray<FTradeEntry> Entries;
+	UPROPERTY(Category = "Invenza|TradeTypes", BlueprintReadOnly)
+	bool bIsCurrency = false;
 
-	UPROPERTY(BlueprintReadOnly)
-	FText Message;
+	FTradeEntry() {};
+
+	FTradeEntry(UInventoryBase* InInventory, UObject* InItem, int32 InQuantityDelta, bool bInIsCurrency)
+		: Inventory(InInventory), Item(InItem), QuantityDelta(InQuantityDelta), bIsCurrency(bInIsCurrency)
+	{
+	}
 };
 
+USTRUCT(BlueprintType)
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FTradeTransaction
+{
+	GENERATED_BODY()
+
+	UPROPERTY(Category = "Invenza|TradeTypes", BlueprintReadOnly)
+	bool bSuccess = false;
+
+	UPROPERTY(Category = "Invenza|TradeTypes", BlueprintReadOnly)
+	bool bIsBuyingFromVendor = false;
+
+	UPROPERTY(Category = "Invenza|TradeTypes", BlueprintReadOnly)
+	float TotalPrice = 0;
+
+	UPROPERTY(Category = "Invenza|TradeTypes", BlueprintReadOnly)
+	TArray<FTradeEntry> Entries;
+
+	UPROPERTY(Category = "Invenza|TradeTypes", BlueprintReadOnly)
+	FText Message;
+};
 
 UENUM(BlueprintType)
 enum class ETradeResult : uint8
@@ -71,7 +88,7 @@ enum class ETradeResult : uint8
 };
 
 USTRUCT(BlueprintType, Blueprintable)
-struct FTradeSettings
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FTradeSettings
 {
 	GENERATED_BODY()
 
@@ -85,66 +102,60 @@ struct FTradeSettings
 	bool bAddPurchasedItemsToVendorDisplay = true;
 	UPROPERTY(Category = "Trade Settings", EditAnywhere, BlueprintReadOnly)
 	bool bSellOnly = false;
-	
 };
 
 USTRUCT(BlueprintType)
-struct FTradeContext
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FTradeContext
 {
 	GENERATED_BODY()
-	
-	UPROPERTY(BlueprintReadWrite)
+
+	UPROPERTY(Category = "Invenza|TradeTypes", BlueprintReadWrite)
 	AActor* Buyer = nullptr;
-	UPROPERTY(BlueprintReadWrite)
+	UPROPERTY(Category = "Invenza|TradeTypes", BlueprintReadWrite)
 	AActor* Vendor = nullptr;
-	
-	UPROPERTY(BlueprintReadWrite)
+
+	UPROPERTY(Category = "Invenza|TradeTypes", BlueprintReadWrite)
 	FTradeSettings TradeSettings;
 };
 
-USTRUCT(BlueprintType, meta=(ScriptName="FTradeResult"))
-struct FTradeResult
+USTRUCT(BlueprintType, meta = (ScriptName = "FTradeResult"))
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FTradeResult
 {
 	GENERATED_BODY()
 
-	FTradeResult():
-		ItemsTraded(0),
-		MoneySpent(0),
-		MoneyReceived(0),
-		OperationResult(ETradeResult::TR_Failed),
-		ResultMessage(FText::GetEmpty()),
-		bWasBuyingFromVendor(false),
-		TradedItem(nullptr)
+	FTradeResult()
+		: ItemsTraded(0), MoneySpent(0), MoneyReceived(0), OperationResult(ETradeResult::TR_Failed),
+		  ResultMessage(FText::GetEmpty()), bWasBuyingFromVendor(false), TradedItem(nullptr)
 	{
 	}
 
 	// Amount of items traded
-	UPROPERTY(BlueprintReadOnly, Category="Trade Result")
+	UPROPERTY(BlueprintReadOnly, Category = "Trade Result")
 	int32 ItemsTraded;
 
 	// Money player spent
-	UPROPERTY(BlueprintReadOnly, Category="Trade Result")
+	UPROPERTY(BlueprintReadOnly, Category = "Trade Result")
 	int32 MoneySpent;
 
 	// Money player received
-	UPROPERTY(BlueprintReadOnly, Category="Trade Result")
+	UPROPERTY(BlueprintReadOnly, Category = "Trade Result")
 	int32 MoneyReceived;
 
 	// Trade result
-	UPROPERTY(BlueprintReadOnly, Category="Trade Result")
+	UPROPERTY(BlueprintReadOnly, Category = "Trade Result")
 	ETradeResult OperationResult;
 
 	// Describes the result
-	UPROPERTY(BlueprintReadOnly, Category="Trade Result")
+	UPROPERTY(BlueprintReadOnly, Category = "Trade Result")
 	FText ResultMessage;
-	
-	UPROPERTY(BlueprintReadOnly, Category="Trade Result")
+
+	UPROPERTY(BlueprintReadOnly, Category = "Trade Result")
 	bool bWasBuyingFromVendor;
-	
-	UPROPERTY(BlueprintReadOnly, Category="Trade Result")
+
+	UPROPERTY(BlueprintReadOnly, Category = "Trade Result")
 	TObjectPtr<UObject> TradedItem;
-	
-	UPROPERTY(BlueprintReadOnly, Category="Trade Result")
+
+	UPROPERTY(BlueprintReadOnly, Category = "Trade Result")
 	FTradeTransaction Transaction;
 
 	static FTradeResult Success(const int32 InItemsTraded, const int32 InMoneySpent, const int32 InMoneyReceived,
@@ -191,6 +202,3 @@ struct FTradeResult
 		return Result;
 	}
 };
-
-
-

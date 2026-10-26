@@ -1,4 +1,4 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -17,46 +17,33 @@ UCLASS()
 class INVENTORYSYSTEMINVENZAPLUGIN_API URecipeListEntryWidget : public USimpleUserObjectListEntry
 {
 	GENERATED_BODY()
-	
+
 public:
 	URecipeListEntryWidget();
 
+protected:
+	// Unreal overrides
 	virtual void NativeOnListItemObjectSet(UObject* ListItemObject) override;
+
 	virtual void NativeOnItemSelectionChanged(bool bIsSelected) override;
+
 	virtual void NativeOnEntryReleased() override;
+
 	virtual void NativeOnMouseEnter(const FGeometry& Geometry, const FPointerEvent& Event) override;
+
 	virtual void NativeOnMouseLeave(const FPointerEvent& Event) override;
 
-	UPROPERTY(BlueprintReadOnly, Category="UI|Components", meta=(BindWidgetOptional))
+public:
+	// Properties and variables
+	UPROPERTY(BlueprintReadOnly, Category = "UI|Components", meta = (BindWidgetOptional))
 	TObjectPtr<UImageBaseWidget> SelectionIndicator;
-	UPROPERTY(BlueprintReadOnly, Category="UI|Components", meta=(BindWidgetOptional))
+
+	UPROPERTY(BlueprintReadOnly, Category = "UI|Components", meta = (BindWidgetOptional))
 	TObjectPtr<UImageBaseWidget> SelectionHighlight;
-	UPROPERTY(BlueprintReadOnly, Category="UI|Components", meta=(BindWidgetOptional))
+
+	UPROPERTY(BlueprintReadOnly, Category = "UI|Components", meta = (BindWidgetOptional))
 	TObjectPtr<UImageBaseWidget> HoverHighlight;
-	
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-	// Widgets
-	/*UPROPERTY(BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
-	TObjectPtr<UImageBaseWidget> Recipe_Image;
-	UPROPERTY(BlueprintReadWrite, Category = "UI|Components", meta = (BindWidget))
-	TObjectPtr<ULabelBaseText> Recipe_Text;*/
 
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
-
-protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
-	/*UFUNCTION()
-	void UpdateRecipeImage(const TSoftObjectPtr<UTexture2D>& RecipeIcon);
-	UFUNCTION()
-	void UpdateRecipeText(const FText& Text);*/
+	// Functions
+	void RefreshRecipe(UObject* ListItemObject);
 };

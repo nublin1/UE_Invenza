@@ -1,6 +1,5 @@
 // Nublin Studio 2026 All Rights Reserved.
 
-
 #include "UI/Craft/Lists/RecipeListEntryWidget.h"
 
 #include "Data/CraftSystem/Entries/RecipeListEntryObject.h"
@@ -14,28 +13,49 @@ URecipeListEntryWidget::URecipeListEntryWidget()
 void URecipeListEntryWidget::NativeOnItemSelectionChanged(bool bIsSelected)
 {
 	IUserObjectListEntry::NativeOnItemSelectionChanged(bIsSelected);
-	if (SelectionIndicator) SelectionIndicator->SetRenderOpacity(bIsSelected ? 1.f : 0.f);
-	if (SelectionHighlight) SelectionHighlight->SetRenderOpacity(bIsSelected ? 1.f : 0.f);
+	if (SelectionIndicator)
+	{
+		SelectionIndicator->SetRenderOpacity(bIsSelected ? 1.f : 0.f);
+	}
+	if (SelectionHighlight)
+	{
+		SelectionHighlight->SetRenderOpacity(bIsSelected ? 1.f : 0.f);
+	}
 }
 
 void URecipeListEntryWidget::NativeOnEntryReleased()
 {
-	if (SelectionIndicator) SelectionIndicator->SetRenderOpacity(0.f);
-	if (SelectionHighlight) SelectionHighlight->SetRenderOpacity(0.f);
-	if (HoverHighlight) HoverHighlight->SetRenderOpacity(0.f);
+	if (SelectionIndicator)
+	{
+		SelectionIndicator->SetRenderOpacity(0.f);
+	}
+	if (SelectionHighlight)
+	{
+		SelectionHighlight->SetRenderOpacity(0.f);
+	}
+	if (HoverHighlight)
+	{
+		HoverHighlight->SetRenderOpacity(0.f);
+	}
 	IUserObjectListEntry::NativeOnEntryReleased();
 }
 
 void URecipeListEntryWidget::NativeOnMouseEnter(const FGeometry& Geometry, const FPointerEvent& Event)
 {
 	Super::NativeOnMouseEnter(Geometry, Event);
-	if (HoverHighlight) HoverHighlight->SetRenderOpacity(1.f);
+	if (HoverHighlight)
+	{
+		HoverHighlight->SetRenderOpacity(1.f);
+	}
 }
 
 void URecipeListEntryWidget::NativeOnMouseLeave(const FPointerEvent& Event)
 {
 	Super::NativeOnMouseLeave(Event);
-	if (HoverHighlight) HoverHighlight->SetRenderOpacity(0.f);
+	if (HoverHighlight)
+	{
+		HoverHighlight->SetRenderOpacity(0.f);
+	}
 }
 
 void URecipeListEntryWidget::NativeOnListItemObjectSet(UObject* ListItemObject)
@@ -44,7 +64,9 @@ void URecipeListEntryWidget::NativeOnListItemObjectSet(UObject* ListItemObject)
 
 	const auto RecipeObj = Cast<URecipeListEntryObject>(ListItemObject);
 	if (!RecipeObj)
+	{
 		return;
+	}
 
 	if (ListEntry_Image)
 	{
@@ -79,3 +101,8 @@ void URecipeListEntryWidget::UpdateRecipeText(const FText& Text)
 	Recipe_Text->UpdateText(Text);
 }
 */
+
+void URecipeListEntryWidget::RefreshRecipe(UObject* ListItemObject)
+{
+	NativeOnListItemObjectSet(ListItemObject);
+}

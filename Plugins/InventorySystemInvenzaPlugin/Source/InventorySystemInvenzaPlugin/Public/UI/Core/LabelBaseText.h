@@ -1,4 +1,4 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -9,55 +9,54 @@
 struct FLabelStyle;
 class UTextBlock;
 /**
- * 
+ *
  */
 UCLASS()
 class INVENTORYSYSTEMINVENZAPLUGIN_API ULabelBaseText : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
-	
+
 public:
 	ULabelBaseText();
+
 protected:
+	// Unreal overrides
 	virtual void NativePreConstruct() override;
+
 	virtual void NativeConstruct() override;
 
 public:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
+	// Properties and variables
 	//Widgets
 	UPROPERTY(BlueprintReadWrite, Category = "UI|Components", meta = (BindWidget))
 	TObjectPtr<UTextBlock> MainTextBlock;
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
-	UFUNCTION(BlueprintCallable)
+
+	// Functions
+	UFUNCTION(Category = "Invenza|UI|Core", BlueprintCallable)
 	void UpdateText(FText NewText);
-	UFUNCTION(BlueprintCallable)
+
+	UFUNCTION(Category = "Invenza|UI|Core", BlueprintCallable)
 	void UpdateFont(FSlateFontInfo NewFontInfo);
-	UFUNCTION(BlueprintCallable)
+
+	UFUNCTION(Category = "Invenza|UI|Core", BlueprintCallable)
 	void UpdateTextAndFont(FLabelStyle LabelStyle);
-	UFUNCTION(BlueprintCallable)
+
+	UFUNCTION(Category = "Invenza|UI|Core", BlueprintCallable)
 	void SyncTextAndFont();
-	UFUNCTION(BlueprintCallable)
+
+	UFUNCTION(Category = "Invenza|UI|Core", BlueprintCallable)
 	void ClearText();
 
 protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
+	// Runtime
+	// Properties and variables
 	// Config
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Config")
 	FText Text;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Config")
 	FSlateColor Color;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Config")
 	FSlateFontInfo FontInfo;
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
-	
 };

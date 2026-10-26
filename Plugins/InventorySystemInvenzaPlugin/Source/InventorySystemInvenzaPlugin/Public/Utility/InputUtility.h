@@ -1,4 +1,4 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -18,60 +18,42 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UInputUtility : public UBlueprintFunction
 	GENERATED_BODY()
 
 public:
+	// Functions
 	UFUNCTION(BlueprintCallable, Category = "Helpers|Input")
 	static FText GetKeyForAction(UWorld* World, UInputAction* Action);
-	
+
 	template <typename UserClass, typename... VarTypes>
 	static uint32 BindAction(UEnhancedInputComponent* Input, UInputAction* Action, ETriggerEvent Trigger,
-		UserClass* Object, void (UserClass::*Func)(VarTypes...), VarTypes... Vars);
-	
-	template<typename UserClass, typename FuncType, typename... VarTypes>
-	static uint32 RebindAction(
-		UEnhancedInputComponent* Input,
-		uint32& Handle,
-		UInputAction* Action,
-		ETriggerEvent Trigger,
-		UserClass* Object,
-		FuncType Func,
-		VarTypes... Vars);
+							 UserClass* Object, void (UserClass::*Func)(VarTypes...), VarTypes... Vars);
 
-	
-	static void RemoveBinding(
-		UEnhancedInputComponent* Input,
-		uint32& Handle);
+	template <typename UserClass, typename FuncType, typename... VarTypes>
+	static uint32 RebindAction(UEnhancedInputComponent* Input, uint32& Handle, UInputAction* Action,
+							   ETriggerEvent Trigger, UserClass* Object, FuncType Func, VarTypes... Vars);
+
+	static void RemoveBinding(UEnhancedInputComponent* Input, uint32& Handle);
 };
-
 
 template <typename UserClass, typename... VarTypes>
 uint32 UInputUtility::BindAction(UEnhancedInputComponent* Input, UInputAction* Action, ETriggerEvent Trigger,
-	UserClass* Object, void (UserClass::*Func)(VarTypes...), VarTypes... Vars)
+								 UserClass* Object, void (UserClass::*Func)(VarTypes...), VarTypes... Vars)
 {
 	if (!Input || !Action || !Object)
+	{
 		return INDEX_NONE;
+	}
 
-	auto& Binding = Input->BindAction(
-		Action,
-		Trigger,
-		Object,
-		Func,
-		Vars...);
+	auto& Binding = Input->BindAction(Action, Trigger, Object, Func, Vars...);
 
 	return Binding.GetHandle();
 }
 
-template <typename UserClass, typename FuncType, typename ... VarTypes>
+template <typename UserClass, typename FuncType, typename... VarTypes>
 uint32 UInputUtility::RebindAction(UEnhancedInputComponent* Input, uint32& Handle, UInputAction* Action,
-	ETriggerEvent Trigger, UserClass* Object, FuncType Func, VarTypes... Vars)
+								   ETriggerEvent Trigger, UserClass* Object, FuncType Func, VarTypes... Vars)
 {
 	RemoveBinding(Input, Handle);
 
-	Handle = BindAction(
-		Input,
-		Action,
-		Trigger,
-		Object,
-		Func,
-		Vars...);
+	Handle = BindAction(Input, Action, Trigger, Object, Func, Vars...);
 
 	return Handle;
 }

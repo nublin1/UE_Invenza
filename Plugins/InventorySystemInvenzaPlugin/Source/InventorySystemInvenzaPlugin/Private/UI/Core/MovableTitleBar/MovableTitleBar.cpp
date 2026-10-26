@@ -1,6 +1,5 @@
 //  Nublin Studio 2026 All Rights Reserved.
 
-
 #include "UI/Core/MovableTitleBar/MovableTitleBar.h"
 
 #include "ActorComponents/UIInventoryManager.h"
@@ -35,8 +34,10 @@ void UMovableTitleBar::NativeConstruct()
 void UMovableTitleBar::OnDragFinished_Implementation(bool bSuccess, UDragDropOperation* InOperation)
 {
 	if (!ParentWidget)
+	{
 		return;
-	
+	}
+
 	if (UInvContainerDragDropOperation* DragOp = Cast<UInvContainerDragDropOperation>(InOperation))
 	{
 		ParentWidget->SetVisibility(ESlateVisibility::Visible);
@@ -64,23 +65,25 @@ void UMovableTitleBar::OnDragFinished_Implementation(bool bSuccess, UDragDropOpe
 
 void UMovableTitleBar::ConvertSlotToTopLeftAnchors(UCanvasPanelSlot* CanvasSlot)
 {
-	if (!CanvasSlot) return;
+	if (!CanvasSlot)
+	{
+		return;
+	}
 
 	UCanvasPanel* ParentCanvas = Cast<UCanvasPanel>(CanvasSlot->Parent);
-	if (!ParentCanvas) return;
+	if (!ParentCanvas)
+	{
+		return;
+	}
 
 	const FVector2D ParentSize = ParentCanvas->GetCachedGeometry().GetLocalSize();
 	const FGeometry WidgetGeom = ParentWidget->GetCachedGeometry();
 	const FVector2D WidgetSize = WidgetGeom.GetLocalSize();
-	
-	const FVector2D AnchorPoint = FVector2D(
-		ParentSize.X * CanvasSlot->GetAnchors().Minimum.X,
-		ParentSize.Y * CanvasSlot->GetAnchors().Minimum.Y
-	);
-	const FVector2D AlignmentOffset = FVector2D(
-		WidgetSize.X * CanvasSlot->GetAlignment().X,
-		WidgetSize.Y * CanvasSlot->GetAlignment().Y
-	);
+
+	const FVector2D AnchorPoint =
+		FVector2D(ParentSize.X * CanvasSlot->GetAnchors().Minimum.X, ParentSize.Y * CanvasSlot->GetAnchors().Minimum.Y);
+	const FVector2D AlignmentOffset =
+		FVector2D(WidgetSize.X * CanvasSlot->GetAlignment().X, WidgetSize.Y * CanvasSlot->GetAlignment().Y);
 
 	const FVector2D AbsoluteTopLeft = AnchorPoint + CanvasSlot->GetPosition() - AlignmentOffset;
 
@@ -96,13 +99,13 @@ FReply UMovableTitleBar::NativeOnMouseButtonDown(const FGeometry& InGeometry, co
 		if (ParentWidget && bAllowDragging)
 		{
 			return UWidgetBlueprintLibrary::DetectDragIfPressed(InMouseEvent, this, EKeys::LeftMouseButton).NativeReply;
-		}		
+		}
 	}
 	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
 }
 
 void UMovableTitleBar::NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent,
-	UDragDropOperation*& OutOperation)
+											UDragDropOperation*& OutOperation)
 {
 	if (auto* CanvasSlot = Cast<UCanvasPanelSlot>(ParentWidget->Slot))
 	{
@@ -112,10 +115,10 @@ void UMovableTitleBar::NativeOnDragDetected(const FGeometry& InGeometry, const F
 
 		ConvertSlotToTopLeftAnchors(CanvasSlot);
 	}
-	
+
 	auto* Settings = UInvenzayUtility::GetInvenzaGlobalSettings(GetWorld());
 	auto DragContainerclass = Settings->DragContainerWidgetClass;
-	
+
 	DragContainer_Temp = CreateWidget<UDragContainerWidget>(GetWorld(), DragContainerclass);
 	if (DragContainer_Temp)
 	{
@@ -124,7 +127,7 @@ void UMovableTitleBar::NativeOnDragDetected(const FGeometry& InGeometry, const F
 
 		FVector2D OriginalSize = ParentWidget->GetCachedGeometry().GetLocalSize();
 		DragContainer_Temp->CoreCellWidget->SizeBox->SetWidthOverride(OriginalSize.X);
-		DragContainer_Temp->CoreCellWidget->SizeBox->SetHeightOverride (OriginalSize.Y);
+		DragContainer_Temp->CoreCellWidget->SizeBox->SetHeightOverride(OriginalSize.Y);
 		DragContainer_Temp->SetDesiredSizeInViewport(OriginalSize);
 	}
 	else
@@ -132,19 +135,19 @@ void UMovableTitleBar::NativeOnDragDetected(const FGeometry& InGeometry, const F
 		UE_LOG(LogTemp, Error, TEXT("Drag Widget not found"));
 		return;
 	}
-	
+
 	UInvContainerDragDropOperation* DragOperation = NewObject<UInvContainerDragDropOperation>();
 	DragOperation->DefaultDragVisual = DragContainer_Temp;
 	DragOperation->Pivot = EDragPivot::MouseDown;
 	DragOperation->Payload = this;
-	
+
 	FVector2D ScreenCursorPos = InMouseEvent.GetScreenSpacePosition();
 	auto _DragOffset = ParentWidget->GetCachedGeometry().AbsoluteToLocal(ScreenCursorPos);
 	DragOperation->DragOffset = _DragOffset;
-	
+
 	OutOperation = DragOperation;
 
 	ParentWidget->SetVisibility(ESlateVisibility::Collapsed);
-	
+
 	Super::NativeOnDragDetected(InGeometry, InMouseEvent, OutOperation);
 }

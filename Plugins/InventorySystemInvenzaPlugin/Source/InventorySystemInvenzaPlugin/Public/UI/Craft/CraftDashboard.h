@@ -1,14 +1,16 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Settings/InvenzaInventoryDeveloperSettings.h"
 #include "GameplayTagContainer.h"
 #include "UI/InvenzaBaseWidget.h"
 #include "UI/Inventory/Container/InventoryContainerWidget.h"
 #include "CraftDashboard.generated.h"
 
 class UCraftControlPanel;
+class UInventoryWorkspaceWidget;
 struct FQueuedRecipe;
 class UQueueCraftList;
 class UGenericProgress;
@@ -20,7 +22,7 @@ class ULabelBaseText;
 class USimpleUserObjectListEntry;
 struct FBlockReasonData;
 /**
- * 
+ *
  */
 UCLASS()
 class INVENTORYSYSTEMINVENZAPLUGIN_API UCraftDashboard : public UInvenzaBaseWidget
@@ -31,19 +33,25 @@ public:
 	UCraftDashboard();
 
 protected:
+	// Unreal overrides
 	virtual void NativePreConstruct() override;
+
 	virtual void NativeConstruct() override;
+
 	virtual void NativeDestruct() override;
 
 public:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-	
+	// Properties and variables
+	UPROPERTY(BlueprintReadOnly, Category = "UI|Components", meta = (BindWidgetOptional))
+	TObjectPtr<UInventoryWorkspaceWidget> InventoryWorkspace;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UInventoryContainerWidget> WorkspaceInteractor;
+
 	// Widgets
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
 	TObjectPtr<UQueueCraftList> QueueCraftList;
-	
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
 	TObjectPtr<UCraftControlPanel> CraftControlPanel;
 
@@ -56,45 +64,49 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Category = "UI|Components", meta = (BindWidgetOptional))
 	TObjectPtr<ULabelBaseText> EmptyQueueLabel;
-	
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
 	TObjectPtr<UNamedSlot> InputSlot;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
 	TObjectPtr<UNamedSlot> FuelSlot;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
 	TObjectPtr<UNamedSlot> OutputSlot;
-	
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
 	TObjectPtr<UNamedSlot> InteractorSlot;
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
 
-	UFUNCTION(BlueprintCallable)
+	// Functions
+	void AttachInteractor();
+
+	UInventoryContainerWidget* DetachInteractor();
+
+	UFUNCTION(Category = "Invenza|Crafting", BlueprintCallable)
 	void InitializeCraftComponentBindings();
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(Category = "Invenza|Crafting", BlueprintCallable)
 	void SetCraftComponentPtr(UCraftingComponent* NewCraftingComponent);
-	
-	UFUNCTION(BlueprintCallable)
-	void SetInventoryWidgets(UInventoryContainerWidget* InputWidget, UInventoryContainerWidget* FuelWidget, UInventoryContainerWidget* OutputWidget);
-	
-	UFUNCTION(BlueprintCallable)
+
+	UFUNCTION(Category = "Invenza|Crafting", BlueprintCallable)
+	void SetInventoryWidgets(UInventoryContainerWidget* InputWidget, UInventoryContainerWidget* FuelWidget,
+							 UInventoryContainerWidget* OutputWidget);
+
+	UFUNCTION(Category = "Invenza|Crafting", BlueprintCallable)
 	void SetInteractorWidget(UInventoryContainerWidget* InteractorWidget);
 
 protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
+	// Runtime
+	// Properties and variables
 	// Refs
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category = "UI|Refs")
 	TObjectPtr<UCraftingComponent> CraftComponentPtr;
-	
+
 	// Config
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="UI|Config")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI|Config")
 	FGameplayTag AddTaskBtnTag;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="UI|Config")
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI|Config")
 	FGameplayTag PauseBtnTag;
 
 	/** Uses the Core list-entry widget, including its Core label and image. */
@@ -102,19 +114,29 @@ protected:
 	TSubclassOf<USimpleUserObjectListEntry> BlockReasonWidgetClass;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI|Config")
-	FText PauseButtonText = NSLOCTEXT("InvenzaCraft", "Pause", "Pause");
+	FText PauseButtonText = GetDefault<UInvenzaInventoryDeveloperSettings>()->GetText(TEXT("InvenzaCraft.Pause"));
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI|Config")
-	FText ResumeButtonText = NSLOCTEXT("InvenzaCraft", "Resume", "Resume");
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
+	FText ResumeButtonText = GetDefault<UInvenzaInventoryDeveloperSettings>()->GetText(TEXT("InvenzaCraft.Resume"));
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI|Config")
+	FText AutomaticCraftingButtonText;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI|Config")
+	FText OperatorCraftingButtonText;
+
+	// Functions
 	UFUNCTION()
 	void AddTaskBtnPressed(UUIButton* Btn);
-	
+
 	UFUNCTION()
 	void PauseBtnPressed(UUIButton* Btn);
+
+	UFUNCTION()
+	void AutomaticCraftingBtnPressed(UUIButton* Btn);
+
+	UFUNCTION()
+	void HandleAutomaticCraftingChanged(bool bAutomatic);
 
 	UFUNCTION()
 	void UpdateCurrentCraftProgress(const FQueuedRecipe& Recipe);
@@ -126,6 +148,7 @@ protected:
 	void HandleBlocksUpdated(TArray<FBlockReasonData> Blocks);
 
 	void UnbindCraftComponent();
+
 	void RefreshCraftState();
 
 	UFUNCTION()

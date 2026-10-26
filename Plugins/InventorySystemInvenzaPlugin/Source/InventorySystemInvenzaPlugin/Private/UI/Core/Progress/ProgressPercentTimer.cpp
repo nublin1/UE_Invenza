@@ -1,11 +1,9 @@
 ﻿// Nublin Studio 2026 All Rights Reserved.
 
-
 #include "UI/Core/Progress/ProgressPercentTimer.h"
 
 #include "Components/ProgressBar.h"
 #include "UI/Core/LabelBaseText.h"
-
 
 UProgressPercentTimer::UProgressPercentTimer()
 {

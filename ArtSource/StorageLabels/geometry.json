@@ -1,0 +1,54 @@
+[
+  {
+    "name": "SM_StorageLabelBoxSmall",
+    "dimensions_m": [
+      0.2013999968767166,
+      0.2013999968767166,
+      0.2506999969482422
+    ],
+    "triangles": 54,
+    "materials": [
+      "Invenza_StorageCardboard",
+      "Invenza_StorageLabel"
+    ]
+  },
+  {
+    "name": "SM_StorageLabelBoxMedium",
+    "dimensions_m": [
+      0.40139999985694885,
+      0.40139999985694885,
+      0.40070000290870667
+    ],
+    "triangles": 54,
+    "materials": [
+      "Invenza_StorageCardboard",
+      "Invenza_StorageLabel"
+    ]
+  },
+  {
+    "name": "SM_StorageLabelBoxLarge",
+    "dimensions_m": [
+      0.8014000058174133,
+      0.6014000177383423,
+      0.4507000148296356
+    ],
+    "triangles": 54,
+    "materials": [
+      "Invenza_StorageCardboard",
+      "Invenza_StorageLabel"
+    ]
+  },
+  {
+    "name": "SM_StorageRopeBundle",
+    "dimensions_m": [
+      0.6490744948387146,
+      0.20200000703334808,
+      0.19244790077209473
+    ],
+    "triangles": 8856,
+    "materials": [
+      "Invenza_RopeFiber",
+      "Invenza_RopeTie"
+    ]
+  }
+]

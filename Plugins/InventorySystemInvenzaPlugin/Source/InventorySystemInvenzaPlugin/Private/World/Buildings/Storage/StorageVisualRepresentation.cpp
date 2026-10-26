@@ -20,8 +20,10 @@ void AStorageVisualRepresentation::BeginPlay()
 void AStorageVisualRepresentation::UpdateVisual()
 {
 	if (!ItemBase)
+	{
 		return;
-	
+	}
+
 	FTransform InstanceTransform(FRotator::ZeroRotator, FVector(0.0f), FVector(1.f, 1.f, 1.f));
 
 	//StaticMeshVisual->SetStaticMesh(ItemBase->GetItemRef().ItemAssetData.MeshAsStorage);
@@ -29,7 +31,7 @@ void AStorageVisualRepresentation::UpdateVisual()
 	switch (ItemBase->GetItemRef().ItemStorageData.StorageMethod)
 	{
 	case EStorageMethod::SingleMesh:
-		
+
 		StaticMeshVisual->AddInstance(InstanceTransform, false);
 		break;
 	default:

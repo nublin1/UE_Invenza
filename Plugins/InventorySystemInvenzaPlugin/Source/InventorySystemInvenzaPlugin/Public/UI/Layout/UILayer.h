@@ -1,4 +1,4 @@
-﻿//  Nublin Studio 2026 All Rights Reserved.
+//  Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -8,78 +8,71 @@
 
 class UBorder;
 /**
- * 
+ *
  */
 UCLASS()
 class INVENTORYSYSTEMINVENZAPLUGIN_API UUILayer : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
 
+public:
+	UUILayer();
+
+protected:
+	// Unreal overrides
+	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+
+public:
 #pragma region Delegates
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnBackgroundClicked);
 #pragma endregion Delegates
-	
-public:
-	UUILayer();
-	
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
+
+	// Properties and variables
 	UPROPERTY(BlueprintAssignable, Category = "ModalLayout")
 	FOnBackgroundClicked OnBackgroundClicked;
 
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
-	
-	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent )
+	// Functions
+	UFUNCTION(Category = "Invenza|UI|Layout", BlueprintCallable, BlueprintImplementableEvent)
 	void ShowTop();
-	
-	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent )
+
+	UFUNCTION(Category = "Invenza|UI|Layout", BlueprintCallable, BlueprintImplementableEvent)
 	void CollapseTop();
-	
-	UFUNCTION(BlueprintCallable, BlueprintPure, BlueprintImplementableEvent )
+
+	UFUNCTION(Category = "Invenza|UI|Layout", BlueprintCallable, BlueprintPure, BlueprintImplementableEvent)
 	UUserWidget* Peek();
-	
-	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent )
+
+	UFUNCTION(Category = "Invenza|UI|Layout", BlueprintCallable, BlueprintImplementableEvent)
 	UInvenzaBaseWidget* PushContent(const TSoftClassPtr<UUserWidget>& WidgetClass);
-	
+
 	UFUNCTION()
 	TArray<UInvenzaBaseWidget*> GetStack() { return Stack; }
-	
-	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent )
+
+	UFUNCTION(Category = "Invenza|UI|Layout", BlueprintCallable, BlueprintImplementableEvent)
 	void ClearStack();
-	
-	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent )
+
+	UFUNCTION(Category = "Invenza|UI|Layout", BlueprintCallable, BlueprintImplementableEvent)
 	void PopContent();
 
 protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
+	// Runtime
+	// Properties and variables
 	//
-	UPROPERTY(BlueprintReadOnly, meta=(BindWidgetOptional))
+	UPROPERTY(Category = "Invenza|UI|Layout", BlueprintReadOnly, meta = (BindWidgetOptional))
 	TObjectPtr<UBorder> MainBorder;
 
 	//
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
+	UPROPERTY(Category = "Invenza|UI|Layout", VisibleInstanceOnly, BlueprintReadWrite)
 	TObjectPtr<UInvenzaBaseWidget> PushedWidget;
-	
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
+
+	UPROPERTY(Category = "Invenza|UI|Layout", VisibleInstanceOnly, BlueprintReadWrite)
 	TArray<TObjectPtr<UInvenzaBaseWidget>> Stack;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+
+	UPROPERTY(Category = "Invenza|UI|Layout", EditAnywhere, BlueprintReadWrite)
 	bool bCollapseWhenStackIsEmpty = true;
-	
-	UPROPERTY(EditInstanceOnly, BlueprintReadWrite)
+
+	UPROPERTY(Category = "Invenza|UI|Layout", EditInstanceOnly, BlueprintReadWrite)
 	TEnumAsByte<EHorizontalAlignment> DefaultHorizontalAlignment = HAlign_Center;
-	UPROPERTY(EditInstanceOnly, BlueprintReadWrite)
+
+	UPROPERTY(Category = "Invenza|UI|Layout", EditInstanceOnly, BlueprintReadWrite)
 	TEnumAsByte<EVerticalAlignment> DefaultVerticalAlignment = VAlign_Center;
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
-	
-	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
-	
 };

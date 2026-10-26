@@ -1,4 +1,4 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -8,13 +8,13 @@
 
 // This class does not need to be modified.
 UINTERFACE()
-class UInteractionActionProvider : public UInterface
+class INVENTORYSYSTEMINVENZAPLUGIN_API UInteractionActionProvider : public UInterface
 {
 	GENERATED_BODY()
 };
 
 /**
- * 
+ *
  */
 class INVENTORYSYSTEMINVENZAPLUGIN_API IInteractionActionProvider
 {

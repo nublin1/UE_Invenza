@@ -7,22 +7,44 @@ UReceptDetailRequiredListSimple::UReceptDetailRequiredListSimple()
 {
 	RequiredListEntryObjectClass = URecipeRequiredIListEntryObject::StaticClass();
 }
-void UReceptDetailRequiredListSimple::NativeConstruct() { Super::NativeConstruct(); }
+void UReceptDetailRequiredListSimple::NativeConstruct()
+{
+	Super::NativeConstruct();
+}
 
 void UReceptDetailRequiredListSimple::ClearRequirements()
 {
-	if (!RequiredList) return;
+	if (!RequiredList)
+	{
+		return;
+	}
 	for (UObject* Object : RequiredList->GetListItems())
-		if (auto* Item = Cast<URecipeRequiredIListEntryObject>(Object)) Item->OnSelectionChanged.RemoveAll(this);
+	{
+		if (auto* Item = Cast<URecipeRequiredIListEntryObject>(Object))
+		{
+			Item->OnSelectionChanged.RemoveAll(this);
+		}
+	}
 	RequiredList->ClearListItems();
 }
 
 void UReceptDetailRequiredListSimple::RefreshRequiredList(const FItemRecipeRow& RecipeRow,
-	const TArray<FRecipeItemRequirementCheck>& Requirements)
+														  const TArray<FRecipeItemRequirementCheck>& Requirements)
 {
-	if (!RequiredList) return;
-	if (Requirements.IsEmpty()) { ClearRequirements(); return; }
-	if (!RequiredListEntryObjectClass) { ClearRequirements(); return; }
+	if (!RequiredList)
+	{
+		return;
+	}
+	if (Requirements.IsEmpty())
+	{
+		ClearRequirements();
+		return;
+	}
+	if (!RequiredListEntryObjectClass)
+	{
+		ClearRequirements();
+		return;
+	}
 	const TArray<UObject*>& Existing = RequiredList->GetListItems();
 	bool bReuse = Existing.Num() == Requirements.Num();
 	for (UObject* Object : Existing)
@@ -53,7 +75,7 @@ void UReceptDetailRequiredListSimple::RefreshRequiredList(const FItemRecipeRow& 
 	RequiredList->RequestRefresh();
 }
 void UReceptDetailRequiredListSimple::UpdateRequirementsCheck(const FItemRecipeRow& RecipeRow,
-	const TArray<FRecipeItemRequirementCheck>& Requirements)
+															  const TArray<FRecipeItemRequirementCheck>& Requirements)
 {
 	RefreshRequiredList(RecipeRow, Requirements);
 }
@@ -61,8 +83,18 @@ TArray<int32> UReceptDetailRequiredListSimple::GetAllSelectedOptions()
 {
 	TArray<int32> Result;
 	if (RequiredList)
+	{
 		for (UObject* Object : RequiredList->GetListItems())
-			if (const auto* Item = Cast<URecipeRequiredIListEntryObject>(Object)) Result.Add(Item->SelectedOptionIndex);
+		{
+			if (const auto* Item = Cast<URecipeRequiredIListEntryObject>(Object))
+			{
+				Result.Add(Item->SelectedOptionIndex);
+			}
+		}
+	}
 	return Result;
 }
-void UReceptDetailRequiredListSimple::HandleOptionChanged() { OnOptionsChanged.Broadcast(); }
+void UReceptDetailRequiredListSimple::HandleOptionChanged()
+{
+	OnOptionsChanged.Broadcast();
+}

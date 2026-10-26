@@ -1,15 +1,20 @@
 ﻿// Nublin Studio 2026 All Rights Reserved.
 
-
 #include "UI/GameMenu/GameMenuLayerInv.h"
+#include "Engine/GameViewportClient.h"
+#include "GameFramework/Pawn.h"
+#include "Engine/Engine.h"
 
 #include "ActorComponents/UIInventoryManager.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Components/NamedSlot.h"
 #include "Components/PanelWidget.h"
+#include "Components/Overlay.h"
+#include "Components/OverlaySlot.h"
 #include "Data/Inventory/InventoryBase.h"
 #include "DragDrop/InvContainerDragDropOperation.h"
 #include "Engine/LocalPlayer.h"
+#include "Engine/World.h"
 #include "Subsystems/UIInputModeSubsystem.h"
 #include "UI/Core/Buttons/UIButton.h"
 #include "UI/Core/MovableTitleBar/MovableTitleBar.h"
@@ -22,6 +27,22 @@ UGameMenuLayerInv::UGameMenuLayerInv()
 {
 }
 
+bool UGameMenuLayerInv::AttachStorageWindow(UUserWidget* Window)
+{
+	if (!IsValid(Window))
+	{
+		return false;
+	}
+	if (auto* Overlay = Cast<UOverlay>(GetRootWidget()))
+	{
+		auto* WindowSlot = Overlay->AddChildToOverlay(Window);
+		WindowSlot->SetHorizontalAlignment(HAlign_Fill);
+		WindowSlot->SetVerticalAlignment(VAlign_Fill);
+		return true;
+	}
+	return false;
+}
+
 void UGameMenuLayerInv::NativeOnInitialized()
 {
 	Super::NativeOnInitialized();
@@ -32,38 +53,43 @@ void UGameMenuLayerInv::NativeOnInitialized()
 		UE_LOG(LogTemp, Error, TEXT("OwnerPawn is null in NativeOnInitialized"));
 		return;
 	}
-	
+
 	UIInventoryManager* InvManager = OwnerPawn->FindComponentByClass<UIInventoryManager>();
 	if (!InvManager)
 	{
 		UE_LOG(LogTemp, Error, TEXT("UIInventoryManager not found on OwnerPawn"));
 		return;
 	}
-	
+
 	if (!GetClass()->ImplementsInterface(UInvUIProvider::StaticClass()))
 	{
 		UE_LOG(LogTemp, Error, TEXT("UGameMenuLayerInv does not implement IInvUIProvider"));
 		return;
 	}
-	
+
 	TScriptInterface<IInvUIProvider> ProviderInterface;
 	ProviderInterface.SetObject(this);
 	ProviderInterface.SetInterface(Cast<IInvUIProvider>(this));
-	
+
 	InvManager->SetUIProvider(ProviderInterface);
 }
 
 TArray<UUInventoryBaseWidget*> UGameMenuLayerInv::GetAllPawnInventories() const
 {
 	TArray<UUInventoryBaseWidget*> Result;
-	if (!PawnInventories) return Result;
+	if (!PawnInventories)
+	{
+		return Result;
+	}
 
 	for (int32 i = 0; i < PawnInventories->GetChildrenCount(); i++)
 	{
 		if (auto* InvContainer = Cast<UInventoryContainerWidget>(PawnInventories->GetChildAt(i)))
 		{
 			if (auto InventoryWidget = Cast<UUInventoryBaseWidget>(InvContainer->ContainerSlot->GetContent()))
+			{
 				Result.Add(InventoryWidget);
+			}
 		}
 	}
 	return Result;
@@ -72,11 +98,16 @@ TArray<UUInventoryBaseWidget*> UGameMenuLayerInv::GetAllPawnInventories() const
 TArray<UInventoryContainerWidget*> UGameMenuLayerInv::GetAllPawnInvContainers() const
 {
 	TArray<UInventoryContainerWidget*> Result;
-	if (!PawnInventories) return Result;
+	if (!PawnInventories)
+	{
+		return Result;
+	}
 	for (int32 i = 0; i < PawnInventories->GetChildrenCount(); i++)
 	{
 		if (auto* InvContainer = Cast<UInventoryContainerWidget>(PawnInventories->GetChildAt(i)))
+		{
 			Result.Add(InvContainer);
+		}
 	}
 
 	return Result;
@@ -84,11 +115,22 @@ TArray<UInventoryContainerWidget*> UGameMenuLayerInv::GetAllPawnInvContainers() 
 
 UPanelSlot* UGameMenuLayerInv::AddPawnInvContainerWidget(UInventoryContainerWidget* InvContainerWidgetToAdd) const
 {
-	if (!PawnInventories) return nullptr;
+	if (!GetWorld() || GetWorld()->bIsTearingDown || !IsValid(PawnInventories) || !IsValid(InvContainerWidgetToAdd))
+	{
+		return nullptr;
+	}
+	if (const APawn* Pawn = GetOwningPlayerPawn(); Pawn && Pawn->IsActorBeingDestroyed())
+	{
+		return nullptr;
+	}
+	auto* InvWidget = InvContainerWidgetToAdd->GetInventoryWidgetFromContainerSlot();
+	if (!IsValid(InvWidget) || !IsValid(InvWidget->GetInventoryRef()))
+	{
+		return nullptr;
+	}
 
 	UPanelSlot* InvContainerSlot = PawnInventories->AddChild(InvContainerWidgetToAdd);
 
-	auto InvWidget = InvContainerWidgetToAdd->GetInventoryWidgetFromContainerSlot();
 	auto InvSettings = InvWidget->GetInventoryRef()->GetInventorySettings();
 	InvWidget->ReDrawAllItems();
 	EInventoryType Type = InvSettings.InventoryType;
@@ -98,32 +140,36 @@ UPanelSlot* UGameMenuLayerInv::AddPawnInvContainerWidget(UInventoryContainerWidg
 		if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(InvContainerSlot))
 		{
 			CanvasSlot->SetAutoSize(true);
-			CanvasSlot->SetSize(FVector2D(0,0));
+			CanvasSlot->SetSize(FVector2D(0, 0));
 			FVector2D NormalizedPos = InventoryDefaultPositions[Type];
 
 			FVector2D ViewportSize;
 			GEngine->GameViewport->GetViewportSize(ViewportSize);
 
-			FVector2D RealPos = FVector2D(
-				NormalizedPos.X * ViewportSize.X,
-				NormalizedPos.Y * ViewportSize.Y
-			);
+			FVector2D RealPos = FVector2D(NormalizedPos.X * ViewportSize.X, NormalizedPos.Y * ViewportSize.Y);
 
 			CanvasSlot->SetPosition(RealPos);
 		}
 	}
 
 	if (InvSettings.bIsAlwaysVisible)
+	{
 		InvContainerWidgetToAdd->SetVisibility(ESlateVisibility::Visible);
+	}
 	else
+	{
 		InvContainerWidgetToAdd->SetVisibility(ESlateVisibility::Collapsed);
-	
+	}
+
 	return InvContainerSlot;
 }
 
 void UGameMenuLayerInv::RemovePawnInvContainer(UInventoryContainerWidget* InvContainerToRemove) const
 {
-	if (!PawnInventories) return;
+	if (!PawnInventories)
+	{
+		return;
+	}
 
 	for (int32 i = 0; i < PawnInventories->GetChildrenCount(); i++)
 	{
@@ -136,20 +182,26 @@ void UGameMenuLayerInv::RemovePawnInvContainer(UInventoryContainerWidget* InvCon
 }
 
 void UGameMenuLayerInv::OpenDualInventoryView(UInventoryContainerWidget* ExternalContainerWidget,
-	UInventoryContainerWidget* PlayerInventoryToShow)
+											  UInventoryContainerWidget* PlayerInventoryToShow)
 {
-	if (!DualInventoryWidget || !ExternalContainerWidget ||! PlayerInventoryToShow) return;
-	
+	if (!DualInventoryWidget || !ExternalContainerWidget || !PlayerInventoryToShow)
+	{
+		return;
+	}
+
 	BorrowedPlayerContainer = PlayerInventoryToShow;
 	DualInventoryWidget->SetRightInventoryContainer(PlayerInventoryToShow);
-	
+
 	CurrentExternalContainer = ExternalContainerWidget;
 	DualInventoryWidget->SetLeftInventoryContainer(ExternalContainerWidget);
-	
+
 	DualInventoryWidget->ApplyCornerAlignment();
-	
+
 	DualInventoryWidget->SetVisibility(ESlateVisibility::Visible);
-	if (WorldDropZone) WorldDropZone->SetVisibility(ESlateVisibility::Visible);
+	if (WorldDropZone)
+	{
+		WorldDropZone->SetVisibility(ESlateVisibility::Visible);
+	}
 
 	bInventoryOpen = true;
 	UpdateInputMode();
@@ -157,14 +209,24 @@ void UGameMenuLayerInv::OpenDualInventoryView(UInventoryContainerWidget* Externa
 
 void UGameMenuLayerInv::CloseDualInventoryView()
 {
-	if (!DualInventoryWidget) return;
-	
+	if (!DualInventoryWidget)
+	{
+		return;
+	}
+	if (APawn* Pawn = GetOwningPlayerPawn())
+	{
+		if (UIInventoryManager* Manager = Pawn->FindComponentByClass<UIInventoryManager>())
+		{
+			Manager->CloseTradeSession();
+		}
+	}
+
 	if (BorrowedPlayerContainer)
 	{
-		AddPawnInvContainerWidget(BorrowedPlayerContainer); 
+		AddPawnInvContainerWidget(BorrowedPlayerContainer);
 		BorrowedPlayerContainer = nullptr;
 	}
-	
+
 	if (CurrentExternalContainer)
 	{
 		CurrentExternalContainer->RemoveFromParent();
@@ -179,29 +241,39 @@ void UGameMenuLayerInv::CloseDualInventoryView()
 }
 
 void UGameMenuLayerInv::OpenNestedInventory(UObject* Key, UInventoryContainerWidget* ContainerWidget,
-	FVector2D ScreenPosition)
+											FVector2D ScreenPosition)
 {
-	if (!DualInventoryWidget || !ContainerWidget) return;
+	if (!DualInventoryWidget || !ContainerWidget)
+	{
+		return;
+	}
 	DualInventoryWidget->AddFloatingInventory(Key, ContainerWidget, ScreenPosition);
 }
 
 void UGameMenuLayerInv::CloseNestedInventory(UObject* Key)
 {
-	if (!DualInventoryWidget) return;
+	if (!DualInventoryWidget)
+	{
+		return;
+	}
 	DualInventoryWidget->RemoveFloatingInventory(Key);
 }
 
 void UGameMenuLayerInv::ToggleInventoryLayout()
 {
 	if (!GetWorld())
+	{
 		return;
-	
+	}
+
 	bInventoryOpen = !bInventoryOpen;
-	
+
 	const auto Containers = GetAllPawnInvContainers();
 	if (Containers.IsEmpty())
+	{
 		return;
-	
+	}
+
 	const ESlateVisibility NewVisibility = bInventoryOpen ? ESlateVisibility::Visible : ESlateVisibility::Collapsed;
 	bool bAnyToggleableVisible = bInventoryOpen;
 
@@ -209,14 +281,17 @@ void UGameMenuLayerInv::ToggleInventoryLayout()
 	{
 		WorldDropZone->SetVisibility(NewVisibility);
 	}
-	
+
 	for (auto* Container : Containers)
 	{
 		if (!Container)
+		{
 			continue;
-		
+		}
+
 		auto InvWidget = Container->GetInventoryWidgetFromContainerSlot();
-		if (InvWidget && InvWidget->GetInventoryRef() && InvWidget->GetInventoryRef()->GetInventorySettings().bIsAlwaysVisible)
+		if (InvWidget && InvWidget->GetInventoryRef() &&
+			InvWidget->GetInventoryRef()->GetInventorySettings().bIsAlwaysVisible)
 		{
 			Container->SetVisibility(ESlateVisibility::Visible);
 			continue;
@@ -224,14 +299,16 @@ void UGameMenuLayerInv::ToggleInventoryLayout()
 
 		Container->SetVisibility(NewVisibility);
 	}
-	
+
 	UpdateInputMode();
 }
 
 UInvenzaBaseWidget* UGameMenuLayerInv::GetCraftMenuDashboard()
 {
 	if (!PawnCraftWidgetsPanel)
+	{
 		return nullptr;
+	}
 
 	for (int32 i = 0; i < PawnCraftWidgetsPanel->GetChildrenCount(); i++)
 	{
@@ -247,7 +324,9 @@ UInvenzaBaseWidget* UGameMenuLayerInv::GetCraftMenuDashboard()
 UInvenzaBaseWidget* UGameMenuLayerInv::GetCraftChoose()
 {
 	if (!PawnCraftWidgetsPanel)
+	{
 		return nullptr;
+	}
 
 	for (int32 i = 0; i < PawnCraftWidgetsPanel->GetChildrenCount(); i++)
 	{
@@ -262,7 +341,10 @@ UInvenzaBaseWidget* UGameMenuLayerInv::GetCraftChoose()
 
 UPanelSlot* UGameMenuLayerInv::AddPawnCraftDashboardWidget(UInvenzaBaseWidget* WidgetToAdd)
 {
-	if (!WidgetToAdd || !PawnCraftWidgetsPanel) return nullptr;
+	if (!WidgetToAdd || !PawnCraftWidgetsPanel)
+	{
+		return nullptr;
+	}
 
 	UPanelSlot* CraftSlot = PawnCraftWidgetsPanel->AddChild(WidgetToAdd);
 	WidgetToAdd->SetVisibility(ESlateVisibility::Collapsed);
@@ -270,7 +352,7 @@ UPanelSlot* UGameMenuLayerInv::AddPawnCraftDashboardWidget(UInvenzaBaseWidget* W
 	if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(CraftSlot))
 	{
 		CanvasSlot->SetAutoSize(true);
-		CanvasSlot->SetSize(FVector2D(0,0));
+		CanvasSlot->SetSize(FVector2D(0, 0));
 	}
 
 	return CraftSlot;
@@ -284,10 +366,23 @@ UPanelSlot* UGameMenuLayerInv::AddPawnCraftChooseWidget(UInvenzaBaseWidget* Widg
 void UGameMenuLayerInv::ToggleCraftMenuLayout()
 {
 	if (!GetWorld())
+	{
 		return;
+	}
 
 	bCraftMenuOpen = !bCraftMenuOpen;
-	
+	if (auto* Dashboard = Cast<UCraftDashboard>(GetCraftMenuDashboard()))
+	{
+		if (bCraftMenuOpen)
+		{
+			Dashboard->AttachInteractor();
+		}
+		else if (auto* PlayerWidget = Dashboard->DetachInteractor())
+		{
+			AddPawnInvContainerWidget(PlayerWidget);
+		}
+	}
+
 	const ESlateVisibility NewVisibility = bCraftMenuOpen ? ESlateVisibility::Visible : ESlateVisibility::Collapsed;
 
 	if (WorldDropZone)
@@ -302,12 +397,16 @@ void UGameMenuLayerInv::ToggleCraftMenuLayout()
 	else
 	{
 		if (auto Dashboard = GetCraftMenuDashboard())
+		{
 			Dashboard->SetVisibility(ESlateVisibility::Collapsed);
+		}
 
 		if (auto Choose = GetCraftChoose())
+		{
 			Choose->SetVisibility(ESlateVisibility::Collapsed);
+		}
 	}
-    
+
 	UpdateInputMode();
 }
 
@@ -335,27 +434,22 @@ void UGameMenuLayerInv::BindCraftWidgets()
 	auto Dashboard = Cast<UCraftDashboard>(GetCraftMenuDashboard());
 	if (Dashboard && Dashboard->CraftControlPanel && Dashboard->CraftControlPanel->Btn_AddTask)
 	{
-		Dashboard->CraftControlPanel->Btn_AddTask->OnButtonClicked.AddDynamic(
-			this,
-			&UGameMenuLayerInv::HandleCraftMenuSwap
-		);
+		Dashboard->CraftControlPanel->Btn_AddTask->OnButtonClicked.AddDynamic(this,
+																			  &UGameMenuLayerInv::HandleCraftMenuSwap);
 	}
 
 	auto Choose = Cast<UCraftMenuChoose>(GetCraftChoose());
 	if (Choose)
 	{
-		Choose->MovableTitleBar->Button_Close->OnButtonClicked.AddDynamic(
-			this,
-			&UGameMenuLayerInv::HandleCraftMenuSwap);
+		Choose->MovableTitleBar->Button_Close->OnButtonClicked.AddDynamic(this,
+																		  &UGameMenuLayerInv::HandleCraftMenuSwap);
 	}
 }
 
 void UGameMenuLayerInv::HandleCraftMenuSwap(UUIButton* UIButton)
 {
 	const ECraftMenuState NewState =
-		CraftMenuState == ECraftMenuState::Dashboard
-		? ECraftMenuState::Choose
-		: ECraftMenuState::Dashboard;
+		CraftMenuState == ECraftMenuState::Dashboard ? ECraftMenuState::Choose : ECraftMenuState::Dashboard;
 
 	SetCraftMenuState(NewState);
 }
@@ -369,20 +463,14 @@ void UGameMenuLayerInv::SetCraftMenuState(ECraftMenuState NewState)
 
 	if (Dashboard)
 	{
-		Dashboard->SetVisibility(
-			NewState == ECraftMenuState::Dashboard
-			? ESlateVisibility::Visible
-			: ESlateVisibility::Collapsed
-		);
+		Dashboard->SetVisibility(NewState == ECraftMenuState::Dashboard ? ESlateVisibility::Visible
+																		: ESlateVisibility::Collapsed);
 	}
 
 	if (Choose)
 	{
-		Choose->SetVisibility(
-			NewState == ECraftMenuState::Choose
-			? ESlateVisibility::Visible
-			: ESlateVisibility::Collapsed
-		);
+		Choose->SetVisibility(NewState == ECraftMenuState::Choose ? ESlateVisibility::Visible
+																  : ESlateVisibility::Collapsed);
 	}
 }
 
@@ -391,6 +479,10 @@ void UGameMenuLayerInv::UpdateInputMode()
 	if (ULocalPlayer* LocalPlayer = GetOwningLocalPlayer())
 	{
 		UUIInputModeSubsystem* Input = LocalPlayer->GetSubsystem<UUIInputModeSubsystem>();
+		if (!Input)
+		{
+			return;
+		}
 		if (bInventoryOpen || bCraftMenuOpen)
 		{
 			Input->RequestUIInput(this);
@@ -409,7 +501,7 @@ void UGameMenuLayerInv::NativeConstruct()
 }
 
 bool UGameMenuLayerInv::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent,
-                                     UDragDropOperation* InOperation)
+									 UDragDropOperation* InOperation)
 {
 	if (UInvContainerDragDropOperation* DragOp = Cast<UInvContainerDragDropOperation>(InOperation))
 	{

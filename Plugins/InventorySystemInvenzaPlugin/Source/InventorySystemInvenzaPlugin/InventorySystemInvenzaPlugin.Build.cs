@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -6,49 +6,28 @@ public class InventorySystemInvenzaPlugin : ModuleRules
 {
 	public InventorySystemInvenzaPlugin(ReadOnlyTargetRules Target) : base(Target)
 	{
-		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
-		
-		PublicIncludePaths.AddRange(
-			new string[] {
-				// ... add public include paths required here ...
-			}
-			);
-				
-		
-		PrivateIncludePaths.AddRange(
-			new string[] {
-				// ... add other private include paths required here ...
-			}
-			);
-			
-		
-		PublicDependencyModuleNames.AddRange(
-			new string[]
-			{
-				"Core", "NetCore", "UMG","Json","JsonUtilities", "EnhancedInput", "GameplayTags","DeveloperSettings"
-			}
-			);
-			
-		
-		PrivateDependencyModuleNames.AddRange(
-			new string[]
-			{
-				"CoreUObject",
-				"Engine",
-				"Slate",
-				"SlateCore",
-				"ApplicationCore",
-				"InputCore", "AIModule",
-				"Engine"
-			}
-			);
-		
-		
-		DynamicallyLoadedModuleNames.AddRange(
-			new string[]
-			{
-				// ... add any modules that your module loads dynamically here ...
-			}
-			);
+		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+
+		// Public headers expose widgets, input helpers, settings, tags and fast-array replication.
+		PublicDependencyModuleNames.AddRange(new[]
+		{
+			"Core",
+			"CoreUObject",
+			"Engine",
+			"InputCore",
+			"UMG",
+			"SlateCore",
+			"EnhancedInput",
+			"GameplayTags",
+			"DeveloperSettings",
+			"NetCore"
+		});
+
+		PrivateDependencyModuleNames.AddRange(new[]
+		{
+			"Slate",
+			"CoreOnline",
+			"Projects"
+		});
 	}
 }

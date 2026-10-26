@@ -1,11 +1,11 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
- 
+
 #include "CoreMinimal.h"
+#include "Engine/Texture2D.h"
 #include "GameplayTagContainer.h"
 #include "ModalTypes.generated.h"
-
 
 UENUM(BlueprintType)
 enum class EModalHeaderType : uint8
@@ -19,10 +19,10 @@ UENUM(BlueprintType)
 enum class EModalFooterType : uint8
 {
 	None,
-	Notification, // ОК
+	Notification, // OK
 	Binary,
-	Confirmation, // Да / Нет / Отмена
-	Selection     // Список вариантов 
+	Confirmation, // Yes / No / Cancel
+	Selection	  // A list of choices.
 };
 
 UENUM(BlueprintType)
@@ -60,87 +60,86 @@ enum class EModalStepRequirement : uint8
 };
 
 USTRUCT(BlueprintType)
-struct FModalActionConfig
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FModalActionConfig
 {
 	GENERATED_BODY()
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Modal|Flow")
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Modal|Flow")
 	FText HeaderText;
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Modal|Flow")
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Modal|Flow")
 	EModalStepRequirement StepRequirement = EModalStepRequirement::None;
 };
 
 USTRUCT(BlueprintType)
-struct FModalAction
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FModalAction
 {
 	GENERATED_BODY()
-	
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Modal")
 	FGameplayTag ActionTag;
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Modal")
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Modal")
 	FText DisplayText;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Modal")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Modal")
 	TObjectPtr<UTexture2D> Icon = nullptr;
 };
 
 USTRUCT(BlueprintType)
-struct FModalHeaderData
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FModalHeaderData
 {
 	GENERATED_BODY()
-	
+
 	UPROPERTY(BlueprintReadOnly, Category = "Modal")
 	EModalHeaderType HeaderType = EModalHeaderType::None;
-	
+
 	UPROPERTY(BlueprintReadOnly, Category = "Modal")
 	FText Title;
-	
-	UPROPERTY(BlueprintReadOnly, Category="Modal")
+
+	UPROPERTY(BlueprintReadOnly, Category = "Modal")
 	bool bShowMinValue = false;
-	UPROPERTY(BlueprintReadOnly, Category="Modal")
+	UPROPERTY(BlueprintReadOnly, Category = "Modal")
 	FText MinValueLabel;
 
-	UPROPERTY(BlueprintReadOnly, Category="Modal")
+	UPROPERTY(BlueprintReadOnly, Category = "Modal")
 	float MinValue = 0.f;
-	UPROPERTY(BlueprintReadOnly, Category="Modal")
+	UPROPERTY(BlueprintReadOnly, Category = "Modal")
 	bool bShowMaxValue = false;
 
-	UPROPERTY(BlueprintReadOnly, Category="Modal")
+	UPROPERTY(BlueprintReadOnly, Category = "Modal")
 	FText MaxValueLabel;
-	UPROPERTY(BlueprintReadOnly, Category="Modal")
+	UPROPERTY(BlueprintReadOnly, Category = "Modal")
 	float MaxValue = 1.f;
-	
+
 	FModalHeaderData() {}
-	
+
 	FModalHeaderData(EModalHeaderType HeaderType, FText InTitle) : HeaderType(HeaderType), Title(InTitle) {}
 };
 
 USTRUCT(BlueprintType)
-struct FModalHeaderResult
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FModalHeaderResult
 {
 	GENERATED_BODY()
-	
-	UPROPERTY(BlueprintReadWrite)
+
+	UPROPERTY(Category = "Invenza|UI|Modal", BlueprintReadWrite)
 	float SelectedAmount = 0;
-	
-	UPROPERTY(BlueprintReadWrite)
+
+	UPROPERTY(Category = "Invenza|UI|Modal", BlueprintReadWrite)
 	FText EnteredText;
 };
 
 USTRUCT(BlueprintType)
-struct FModalResult
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FModalResult
 {
 	GENERATED_BODY()
- 
+
 	UPROPERTY(BlueprintReadWrite, Category = "Modal")
-	EObjectInteractionType ResultInteractionType;
-	
-	UPROPERTY(BlueprintReadWrite)
+	EObjectInteractionType ResultInteractionType = EObjectInteractionType::None;
+
+	UPROPERTY(Category = "Invenza|UI|Modal", BlueprintReadWrite)
 	FModalHeaderResult HeaderResult;
 };
-
 
 #pragma region Delegates
 DECLARE_DYNAMIC_DELEGATE_OneParam(FModalResultDelegate, FModalResult, Result);

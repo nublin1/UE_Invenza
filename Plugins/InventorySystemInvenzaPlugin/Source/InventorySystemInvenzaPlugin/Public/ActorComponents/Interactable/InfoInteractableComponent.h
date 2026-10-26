@@ -1,4 +1,4 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -7,8 +7,7 @@
 #include "UI/Core/Modal/ModalTypes.h"
 #include "InfoInteractableComponent.generated.h"
 
-
-UCLASS(ClassGroup=(Custom), Blueprintable, meta=(BlueprintSpawnableComponent))
+UCLASS(ClassGroup = (Custom), Blueprintable, meta = (BlueprintSpawnableComponent))
 class INVENTORYSYSTEMINVENZAPLUGIN_API UInfoInteractableComponent : public UInteractableComponent
 {
 	GENERATED_BODY()
@@ -16,17 +15,25 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UInfoInteractableComponent : public UInte
 public:
 	UInfoInteractableComponent();
 
+public:
+	// Functions
 	virtual void HandleInteract(UInteractionComponent* InteractionComponent) override;
 
+	virtual void HandleStopInteract(UInteractionComponent* InteractionComponent, EInteractionType Type) override;
+
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite,	Category="Interactable|Information", meta=(MultiLine=true))
+	// Runtime
+	// Properties and variables
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interactable|Information", meta = (MultiLine = true))
 	FText InformationText;
 
+	TWeakObjectPtr<class UModalWindowManager> ActiveModalManager;
+
+	bool bModalOpen = false;
+
+	// Functions
 	UFUNCTION()
 	void HandleModalResult(FModalResult Result);
-	
-	virtual void UpdateInteractableData() override;
 
-private:
-	bool bModalOpen = false;
+	virtual void UpdateInteractableData() override;
 };

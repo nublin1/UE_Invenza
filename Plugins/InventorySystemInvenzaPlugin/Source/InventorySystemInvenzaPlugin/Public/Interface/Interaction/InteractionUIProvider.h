@@ -1,5 +1,4 @@
-﻿//  Nublin Studio 2026 All Rights Reserved.
-
+//  Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -10,13 +9,13 @@
 
 // This class does not need to be modified.
 UINTERFACE()
-class UInteractionUIProvider : public UInterface
+class INVENTORYSYSTEMINVENZAPLUGIN_API UInteractionUIProvider : public UInterface
 {
 	GENERATED_BODY()
 };
 
 /**
- * 
+ *
  */
 class INVENTORYSYSTEMINVENZAPLUGIN_API IInteractionUIProvider
 {
@@ -24,7 +23,6 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API IInteractionUIProvider
 
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
-
 	virtual UInteractionWidget* GetPawnInteractionWidget() const
-	PURE_VIRTUAL(IInteractionUIProvider::GetPawnInteractionWidget, return nullptr; );
+		PURE_VIRTUAL(IInteractionUIProvider::GetPawnInteractionWidget, return nullptr;);
 };

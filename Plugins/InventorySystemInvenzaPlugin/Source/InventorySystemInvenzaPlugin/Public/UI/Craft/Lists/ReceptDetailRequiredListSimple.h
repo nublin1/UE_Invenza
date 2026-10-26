@@ -11,52 +11,52 @@ struct FRecipeItemRequirementCheck;
 struct FItemRecipeRow;
 class UListView;
 /**
- * 
+ *
  */
 UCLASS()
 class INVENTORYSYSTEMINVENZAPLUGIN_API UReceptDetailRequiredListSimple : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
 
-	
 public:
 	UReceptDetailRequiredListSimple();
 
 protected:
+	// Unreal overrides
 	virtual void NativeConstruct() override;
 
 public:
+#pragma region Delegates
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnOptionsChanged);
-	UPROPERTY(BlueprintAssignable, Category="Crafting")
+#pragma endregion Delegates
+
+	// Properties and variables
+	UPROPERTY(BlueprintAssignable, Category = "Crafting")
 	FOnOptionsChanged OnOptionsChanged;
 
-	void ClearRequirements();
-
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
 	// Widgets
 	UPROPERTY(BlueprintReadWrite, Category = "UI|Components", meta = (BindWidget))
 	TObjectPtr<UListView> RequiredList;
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
-	UFUNCTION(BlueprintCallable)
+
+	// Functions
+	void ClearRequirements();
+
+	UFUNCTION(Category = "Invenza|Crafting", BlueprintCallable)
 	void RefreshRequiredList(const FItemRecipeRow& RecipeRow, const TArray<FRecipeItemRequirementCheck>& Requirements);
-	UFUNCTION(BlueprintCallable)
-	void UpdateRequirementsCheck(const FItemRecipeRow& UpdateRecipeRow, const TArray<FRecipeItemRequirementCheck>& NewRequirements);
-	
-	UFUNCTION(BlueprintCallable)
+
+	UFUNCTION(Category = "Invenza|Crafting", BlueprintCallable)
+	void UpdateRequirementsCheck(const FItemRecipeRow& UpdateRecipeRow,
+								 const TArray<FRecipeItemRequirementCheck>& NewRequirements);
+
+	UFUNCTION(Category = "Invenza|Crafting", BlueprintCallable)
 	TArray<int32> GetAllSelectedOptions();
 
 protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-
+	// Runtime
+	// Properties and variables
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI|Settings")
 	TSubclassOf<URecipeRequiredIListEntryObject> RequiredListEntryObjectClass;
 
+	// Functions
 	void HandleOptionChanged();
 };

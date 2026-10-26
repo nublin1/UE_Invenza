@@ -22,15 +22,24 @@ void UReceptDetailListEntryWidget::NativeOnListItemObjectSet(UObject* DetailItem
 {
 	IUserObjectListEntry::NativeOnListItemObjectSet(DetailItemObject);
 
-	if (CashedListEntryObject) CashedListEntryObject->OnDataChanged.RemoveAll(this);
+	if (CashedListEntryObject)
+	{
+		CashedListEntryObject->OnDataChanged.RemoveAll(this);
+	}
 	CashedListEntryObject = Cast<URecipeRequiredIListEntryObject>(DetailItemObject);
-	if (CashedListEntryObject) CashedListEntryObject->OnDataChanged.AddUObject(this, &ThisClass::RefreshFromModel);
+	if (CashedListEntryObject)
+	{
+		CashedListEntryObject->OnDataChanged.AddUObject(this, &ThisClass::RefreshFromModel);
+	}
 	RefreshFromModel();
 }
 
 void UReceptDetailListEntryWidget::NativeOnEntryReleased()
 {
-	if (CashedListEntryObject) CashedListEntryObject->OnDataChanged.RemoveAll(this);
+	if (CashedListEntryObject)
+	{
+		CashedListEntryObject->OnDataChanged.RemoveAll(this);
+	}
 	CashedListEntryObject = nullptr;
 	IUserObjectListEntry::NativeOnEntryReleased();
 }
@@ -39,7 +48,9 @@ void UReceptDetailListEntryWidget::RefreshFromModel()
 {
 	auto* RecipeItem = CashedListEntryObject.Get();
 	if (!RecipeItem || !RequirementOptionClass || !RequirementsContainer)
+	{
 		return;
+	}
 
 	CashedListEntryObject = RecipeItem;
 	SelectedOption = CashedListEntryObject->SelectedOptionIndex;
@@ -48,16 +59,20 @@ void UReceptDetailListEntryWidget::RefreshFromModel()
 	{
 		const TArray<URequirementOptionEntry*> OptionEntries =
 			CreateRequirementOptionEntries(RecipeItem->RecipeCheckResult);
-		if (OptionEntries.IsEmpty()) return;
+		if (OptionEntries.IsEmpty())
+		{
+			return;
+		}
 
 		for (URequirementOptionEntry* OptionEntry : OptionEntries)
 		{
-			if (!OptionEntry || !OptionEntry->MainButton) continue;
+			if (!OptionEntry || !OptionEntry->MainButton)
+			{
+				continue;
+			}
 			RequirementsContainer->AddChild(OptionEntry);
 			OptionEntry->MainButton->OnButtonClicked.AddUniqueDynamic(
-				this,
-				&UReceptDetailListEntryWidget::HandleOptionButtonClicked
-			);
+				this, &UReceptDetailListEntryWidget::HandleOptionButtonClicked);
 		}
 	}
 	else
@@ -65,16 +80,20 @@ void UReceptDetailListEntryWidget::RefreshFromModel()
 		TArray<UWidget*> ChildWidgets = RequirementsContainer->GetAllChildren();
 
 		if (ChildWidgets.IsValidIndex(0))
+		{
 			if (auto* PrimaryEntry = Cast<URequirementOptionEntry>(ChildWidgets[0]))
+			{
 				PrimaryEntry->UpdateData(RecipeItem->RecipeCheckResult.Primary);
+			}
+		}
 
 		const TArray<FRecipeRequirementResult>& Alternatives = RecipeItem->RecipeCheckResult.Alternatives;
-		
+
 		for (int32 ExcessIndex = ChildWidgets.Num() - 1; ExcessIndex >= Alternatives.Num() + 1; --ExcessIndex)
 		{
 			RequirementsContainer->RemoveChildAt(ExcessIndex);
 		}
-		
+
 		for (int32 AltIndex = 0; AltIndex < Alternatives.Num(); ++AltIndex)
 		{
 			int32 ChildIndex = AltIndex + 1;
@@ -82,24 +101,28 @@ void UReceptDetailListEntryWidget::RefreshFromModel()
 			if (ChildWidgets.IsValidIndex(ChildIndex))
 			{
 				if (auto* AltEntry = Cast<URequirementOptionEntry>(ChildWidgets[ChildIndex]))
+				{
 					AltEntry->UpdateData(Alternatives[AltIndex]);
+				}
 			}
 			else
 			{
-				if (URequirementOptionEntry* NewEntry = CreateRequirementOptionEntry(Alternatives[AltIndex], RequirementOptionClassAlt))
+				if (URequirementOptionEntry* NewEntry =
+						CreateRequirementOptionEntry(Alternatives[AltIndex], RequirementOptionClassAlt))
 				{
-					if (!NewEntry->MainButton) continue;
+					if (!NewEntry->MainButton)
+					{
+						continue;
+					}
 
 					RequirementsContainer->AddChild(NewEntry);
 					NewEntry->MainButton->OnButtonClicked.AddUniqueDynamic(
-						this,
-						&UReceptDetailListEntryWidget::HandleOptionButtonClicked
-					);
+						this, &UReceptDetailListEntryWidget::HandleOptionButtonClicked);
 				}
 			}
 		}
 	}
-	
+
 	RebuildMaps();
 
 	for (auto& Element : ButtonToEntryMap)
@@ -112,11 +135,15 @@ void UReceptDetailListEntryWidget::RefreshFromModel()
 void UReceptDetailListEntryWidget::HandleOptionButtonClicked(UUIButton* ClickedButton)
 {
 	if (!ClickedButton || !CashedListEntryObject)
+	{
 		return;
+	}
 
 	auto FindResult = ButtonToEntryMap.FindRef(ClickedButton);
 	if (!FindResult)
+	{
 		return;
+	}
 
 	for (auto Element : ButtonToEntryMap)
 	{
@@ -131,33 +158,43 @@ void UReceptDetailListEntryWidget::HandleOptionButtonClicked(UUIButton* ClickedB
 	}
 }
 
-URequirementOptionEntry* UReceptDetailListEntryWidget::CreateRequirementOptionEntry(
-	const FRecipeRequirementResult& RequirementResult, TSubclassOf<URequirementOptionEntry> OptionClass)
+URequirementOptionEntry*
+UReceptDetailListEntryWidget::CreateRequirementOptionEntry(const FRecipeRequirementResult& RequirementResult,
+														   TSubclassOf<URequirementOptionEntry> OptionClass)
 {
 	auto Wid = UInvenzaWidgetFactory::CreateInvenzaWidget(GetOwningPlayer(), OptionClass);
 	if (!Wid)
+	{
 		return nullptr;
+	}
 
 	URequirementOptionEntry* Entry = Cast<URequirementOptionEntry>(Wid);
 	if (!Entry)
+	{
 		return nullptr;
+	}
 
 	Entry->UpdateData(RequirementResult);
 	return Entry;
 }
 
-TArray<URequirementOptionEntry*> UReceptDetailListEntryWidget::CreateRequirementOptionEntries(
-	const FRecipeItemRequirementCheck& ItemRequirementCheck)
+TArray<URequirementOptionEntry*>
+UReceptDetailListEntryWidget::CreateRequirementOptionEntries(const FRecipeItemRequirementCheck& ItemRequirementCheck)
 {
 	TArray<URequirementOptionEntry*> Result;
 
-	if (URequirementOptionEntry* PrimaryEntry = CreateRequirementOptionEntry(ItemRequirementCheck.Primary, RequirementOptionClass))
+	if (URequirementOptionEntry* PrimaryEntry =
+			CreateRequirementOptionEntry(ItemRequirementCheck.Primary, RequirementOptionClass))
+	{
 		Result.Add(PrimaryEntry);
+	}
 
 	for (const FRecipeRequirementResult& Alternative : ItemRequirementCheck.Alternatives)
 	{
 		if (URequirementOptionEntry* AltEntry = CreateRequirementOptionEntry(Alternative, RequirementOptionClassAlt))
+		{
 			Result.Add(AltEntry);
+		}
 	}
 
 	return Result;
@@ -172,7 +209,10 @@ void UReceptDetailListEntryWidget::RebuildMaps()
 	for (int32 Index = 0; Index < ChildWidgets.Num(); ++Index)
 	{
 		auto* Entry = Cast<URequirementOptionEntry>(ChildWidgets[Index]);
-		if (!Entry || !Entry->MainButton) continue;
+		if (!Entry || !Entry->MainButton)
+		{
+			continue;
+		}
 
 		ButtonToEntryMap.Add(Entry->MainButton, Entry);
 		EntryToIndexMap.Add(Entry, Index);

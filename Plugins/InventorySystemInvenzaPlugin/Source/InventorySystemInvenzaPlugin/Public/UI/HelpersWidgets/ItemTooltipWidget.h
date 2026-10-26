@@ -20,53 +20,53 @@ UCLASS()
 class INVENTORYSYSTEMINVENZAPLUGIN_API UItemTooltipWidget : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
-	
+
 public:
 	UItemTooltipWidget();
-	
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
+
+public:
+	// Properties and variables
 	//Widgets
-	UPROPERTY(meta=(BindWidget))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<ULabelBaseText> ItemName;
-	UPROPERTY(meta=(BindWidgetOptional))
+
+	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<ULabelBaseText> ItemType;
-	UPROPERTY(meta=(BindWidgetOptional))
+
+	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<ULabelBaseText> ItemDescription;
-	UPROPERTY(meta=(BindWidgetOptional))
+
+	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<ULabelBaseText> MaxStackSize;
-	UPROPERTY(meta=(BindWidgetOptional))
+
+	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<ULabelBaseText> StackSizeValue;
-	UPROPERTY(meta=(BindWidgetOptional))
+
+	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<ULabelBaseText> StackWeightValue;
 
-	UPROPERTY(meta=(BindWidgetOptional))
+	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UImage> MoneyIcon;
-	UPROPERTY(meta=(BindWidgetOptional))
+
+	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<ULabelBaseText> PriceText;
-	UPROPERTY(meta=(BindWidgetOptional))
+
+	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<ULabelBaseText> PriceValue;
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
-	UFUNCTION(BlueprintCallable, Category="Tooltip|Core")
+
+	// Functions
+	UFUNCTION(BlueprintCallable, Category = "Tooltip|Core")
 	virtual void SetTooltipData(UObject* InItem, UInventoryBase* InInventory = nullptr);
 
-	UFUNCTION(BlueprintCallable, Category="Tooltip|Price")
+	UFUNCTION(BlueprintCallable, Category = "Tooltip|Price")
 	virtual void UpdatePrice();
 
 protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Tooltip|Data")
+	// Runtime
+	// Properties and variables
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Tooltip|Data")
 	TObjectPtr<UObject> Item;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Tooltip|Data")
-	TObjectPtr<UInventoryBase> Inventory;	
 
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Tooltip|Data")
+	TObjectPtr<UInventoryBase> Inventory;
 };

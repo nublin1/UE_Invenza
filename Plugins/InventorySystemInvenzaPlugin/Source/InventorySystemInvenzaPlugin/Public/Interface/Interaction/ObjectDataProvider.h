@@ -1,8 +1,9 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Engine/DataTable.h"
 #include "Data/ItemDataStructures.h"
 #include "UObject/Interface.h"
 #include "ObjectDataProvider.generated.h"
@@ -18,7 +19,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnItemDataReplicated, UObject*, Ite
 
 // This class does not need to be modified.
 UINTERFACE()
-class UObjectDataProvider : public UInterface
+class INVENTORYSYSTEMINVENZAPLUGIN_API UObjectDataProvider : public UInterface
 {
 	GENERATED_BODY()
 };
@@ -33,22 +34,22 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API IObjectDataProvider
 	GENERATED_BODY()
 
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
-	
-public:	
+
+public:
 	//====================================================================
 	// EVENTS
 	//====================================================================
 	virtual FOnUseItemDelegate& GetOnUseItemDelegate() = 0;
 	virtual FOnAmountChangedDelegate& GetOnAmountChangedDelegate() = 0;
 	virtual FOnItemDataReplicated& GetOnItemDataReplicatedDelegate() = 0;
-	
+
 	//====================================================================
 	// OBJECT OPERATIONS
 	//====================================================================
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ObjectData|Operations")
 	UObject* DuplicateItem();
-	
+
 	//====================================================================
 	// IDENTITY & DATA
 	//====================================================================
@@ -64,7 +65,7 @@ public:
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ObjectData|Identity")
 	FText GetItemDisplayText() const;
-	
+
 	//====================================================================
 	// QUANTITY
 	//====================================================================
@@ -83,7 +84,7 @@ public:
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ObjectData|Quantity")
 	FVector2D GetMinMaxSplit();
-	
+
 	//====================================================================
 	// WEIGHT
 	//====================================================================
@@ -93,7 +94,7 @@ public:
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ObjectData|Weight")
 	float GetItemSingleWeight();
-	
+
 	//====================================================================
 	// FOOTPRINT & ORIENTATION
 	//====================================================================
@@ -103,7 +104,6 @@ public:
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ObjectData|Footprint")
 	FIntPoint GetItemSize(EItemOrientationType Orientation);
-
 
 	//====================================================================
 	// CATEGORY
@@ -115,7 +115,6 @@ public:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ObjectData|Category")
 	FString CategoryToShortString();
 
-
 	//====================================================================
 	// ACTIONS
 	//====================================================================
@@ -124,11 +123,8 @@ public:
 	void UseItem();
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ObjectData|Actions")
-	bool CanPerformAction(
-		EObjectInteractionType Action,
-		const UInvenzaInventorySettingsAsset* SettingsAsset = nullptr
-	);
-	
+	bool CanPerformAction(EObjectInteractionType Action, const UInvenzaInventorySettingsAsset* SettingsAsset = nullptr);
+
 	//====================================================================
 	// RESERVATION
 	//====================================================================
@@ -137,20 +133,11 @@ public:
 	int32 GetFreeAmount() const;
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ObjectData|Reservation")
-	bool ReserveAmount(
-		AActor* Requestor,
-		int32 AmountToReserve
-	);
+	bool ReserveAmount(AActor* Requestor, int32 AmountToReserve);
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ObjectData|Reservation")
-	void ReleaseReservation(
-		AActor* Requestor,
-		int32 AmountToRelease
-	);
+	void ReleaseReservation(AActor* Requestor, int32 AmountToRelease);
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ObjectData|Reservation")
-	UObject* ConsumeReserved(
-		AActor* Requestor,
-		int32 RequestedAmount
-	);
+	UObject* ConsumeReserved(AActor* Requestor, int32 RequestedAmount);
 };

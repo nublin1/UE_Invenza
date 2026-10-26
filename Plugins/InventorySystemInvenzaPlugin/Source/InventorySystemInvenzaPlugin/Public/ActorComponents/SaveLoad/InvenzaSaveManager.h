@@ -1,14 +1,12 @@
-// Nublin Studio 2025 All Rights Reserved.
+//  Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
-#include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "SaveLoad/ISaveLoadGame.h"
+#include "SaveLoad/InventorySaveTypes.h"
 #include "InvenzaSaveManager.generated.h"
 
-
-class USaveGame;
 class UInputAction;
 class UInvenzaSaveGame;
 
@@ -16,57 +14,57 @@ class UInvenzaSaveGame;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnGameLoaded);
 #pragma endregion Delegates
 
-UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
+UCLASS(ClassGroup = (Inventory), meta = (BlueprintSpawnableComponent))
 class INVENTORYSYSTEMINVENZAPLUGIN_API UInvenzaSaveManager : public UActorComponent, public IISaveLoadGame
 {
 	GENERATED_BODY()
 
 public:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "Save System|Events")
-	FOnGameLoaded OnGameLoaded;
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
 	UInvenzaSaveManager();
-	
-	virtual void SaveGame_Implementation(bool Async = false) override;
-	virtual void LoadGame_Implementation(bool Async = false) override;
 
 protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
+	// Unreal overrides
+	virtual void BeginPlay() override;
+
+	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
+
+public:
+	// Properties and variables
+	UPROPERTY(BlueprintAssignable, Category = "Save System|Events")
+	FOnGameLoaded OnGameLoaded;
+
+	// Functions
+	virtual void SaveGame_Implementation(bool Async = false) override;
+
+	virtual void LoadGame_Implementation(bool Async = false) override;
+
+	UFUNCTION(BlueprintCallable, Category = "Save System")
+	void ShowSaveMenu();
+
+protected:
+	// Runtime
+	// Properties and variables
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Save System|Inputs")
 	TObjectPtr<UInputAction> SaveAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Save System|Inputs")
 	TObjectPtr<UInputAction> LoadAction;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Save System|Config")
-	FName SaveSlotName = "InventorySave";
 
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category = "Save System|Config")
+	/** Legacy fields remain readable by existing Blueprints; profiles are now configured globally. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Save System|Legacy",
+			  meta = (DeprecatedProperty, DeprecationMessage = "Use Invenza Save System project settings"))
+	FName SaveSlotName = TEXT("InventorySave");
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category = "Save System|Legacy")
 	int32 SaveUserIndex = 0;
 
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Save System|Data")
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Save System|Legacy")
 	TObjectPtr<UInvenzaSaveGame> LoadedSaveData;
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
-	virtual void BeginPlay() override;
 
+	// Functions
 	UFUNCTION()
 	void OnInitializationComplete();
 
 	UFUNCTION()
-	void OnSaveGameLoaded(const FString& SlotName, const int32 UserIndex, USaveGame* LoadedGame);
-
-	UFUNCTION()
-	void HandleSaveInput();
-	UFUNCTION()
-	void HandleLoadInput();
+	void SessionLoaded();
 };

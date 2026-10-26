@@ -1,9 +1,11 @@
 //  Nublin Studio 2025 All Rights Reserved.
 
 #include "ActorComponents/Interactable/ContainerComponent.h"
+#include "Settings/InvenzaInventoryDeveloperSettings.h"
+#include "TimerManager.h"
 
 #include "ActorComponents/InteractionComponent.h"
-#include "ActorComponents/ItemCollection.h"
+#include "ActorComponents/InventoryCollectionComponent.h"
 #include "ActorComponents/UIInventoryManager.h"
 #include "GameFramework/Actor.h"
 #include "Engine/StaticMesh.h"
@@ -11,7 +13,6 @@
 #include "Data/Inventory/InventoryBase.h"
 #include "Net/UnrealNetwork.h"
 #include "Utility/InvenzayUtility.h"
-
 
 class UIInventoryManager;
 
@@ -23,7 +24,7 @@ UContainerComponent::UContainerComponent()
 void UContainerComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	
+
 	DOREPLIFETIME(UContainerComponent, MainLootInventory);
 }
 
@@ -32,11 +33,19 @@ void UContainerComponent::OnRegister()
 	Super::OnRegister();
 }
 
+void UContainerComponent::OnRep_MainLootInventory()
+{
+	if (auto* Collection = GetOwner()->FindComponentByClass<UInventoryCollectionComponent>())
+	{
+		Collection->OnActorInventoriesChanged.Broadcast();
+	}
+}
+
 void UContainerComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	CachedMesh = GetOwner()->FindComponentByClass<UStaticMeshComponent>();
-	
+
 	InitializeInteractionComponent();
 }
 
@@ -62,7 +71,10 @@ void UContainerComponent::HandleInteract(UInteractionComponent* InteractionCompo
 {
 	Super::HandleInteract(InteractionComponent);
 
-	if (!ItemCollectionRef) return;
+	if (!ItemCollectionRef)
+	{
+		return;
+	}
 
 	CurrentInteractionComponent = InteractionComponent;
 	SetInteracting(!bIsInteracting);
@@ -73,18 +85,22 @@ void UContainerComponent::HandleStopInteract(UInteractionComponent* InteractionC
 	Super::HandleStopInteract(InteractionComponent, Type);
 	SetInteracting(false);
 	CurrentInteractionComponent = nullptr;
-	
 }
 
 void UContainerComponent::CheckDestroyWhenEmpty()
 {
 	if (!bDestroyWhenEmpty)
+	{
 		return;
-	
+	}
+
 	if (!MainLootInventory)
+	{
 		return;
-	
-	auto Items = MainLootInventory->GetItemCollectionLinked()->GetAllItemsByContainer(MainLootInventory->GetInventoryContainerID());
+	}
+
+	auto Items = MainLootInventory->GetItemCollectionLinked()->GetAllItemsByContainer(
+		MainLootInventory->GetInventoryContainerID());
 	if (Items.IsEmpty())
 	{
 		Server_DestroyWhenEmpty();
@@ -94,10 +110,12 @@ void UContainerComponent::CheckDestroyWhenEmpty()
 void UContainerComponent::InitializeInteractionComponent()
 {
 	Super::InitializeInteractionComponent();
-	
-	if (auto ItemCollection = GetOwner()->FindComponentByClass<UItemCollection>())
+
+	if (auto ItemCollection = GetOwner()->FindComponentByClass<UInventoryCollectionComponent>())
+	{
 		ItemCollectionRef = ItemCollection;
-	
+	}
+
 	UpdateInteractableData();
 
 	InitializeInventoryStartupData();
@@ -106,21 +124,22 @@ void UContainerComponent::InitializeInteractionComponent()
 
 void UContainerComponent::UpdateInteractableData()
 {
-	
+
 	if (InteractableDataMap.Contains(EInteractionType::Primary))
 	{
 		return;
 	}
-	
+
 	FInteractableData PrimaryData;
 	PrimaryData.DefaultInteractableType = EInteractableType::Container;
-	PrimaryData.Action = FText::FromString(TEXT("Open"));
-	PrimaryData.ActiveAction = FText::FromString(TEXT("Close"));
+	PrimaryData.Action = GetDefault<UInvenzaInventoryDeveloperSettings>()->GetText(TEXT("ContainerComponent.Literal0"));
+	PrimaryData.ActiveAction =
+		GetDefault<UInvenzaInventoryDeveloperSettings>()->GetText(TEXT("ContainerComponent.Literal1"));
 	PrimaryData.Quantity = -1;
 	PrimaryData.bHoldToInteract = false;
 
-	InteractableDataMap.Add(EInteractionType::Primary, PrimaryData);	
-	
+	InteractableDataMap.Add(EInteractionType::Primary, PrimaryData);
+
 	Super::UpdateInteractableData();
 }
 
@@ -139,8 +158,8 @@ void UContainerComponent::InitializeInventoryStartupData()
 
 	for (auto Element : StartupInventories)
 	{
-		UInventoryBase* Inventory = UInvenzayUtility::CreateStartupInventory(this,ItemCollectionRef,
-			Element,StartingItems);
+		UInventoryBase* Inventory =
+			UInvenzayUtility::CreateStartupInventory(this, ItemCollectionRef, Element, StartingItems);
 
 		if (!Inventory)
 		{
@@ -161,9 +180,8 @@ void UContainerComponent::SetupStartingResources()
 		return;
 	}
 
-	UInvenzayUtility::SetupStartingResources(this,StartingItems);
+	UInvenzayUtility::SetupStartingResources(this, StartingItems);
 }
-
 
 void UContainerComponent::Server_DestroyWhenEmpty_Implementation()
 {
@@ -173,15 +191,19 @@ void UContainerComponent::Server_DestroyWhenEmpty_Implementation()
 	}
 
 	TWeakObjectPtr<UContainerComponent> WeakThis(this);
-	
-	GetWorld()->GetTimerManager().SetTimerForNextTick([WeakThis]()
-	{
-	   if (!WeakThis.IsValid()) return;
-	   UContainerComponent* Self = WeakThis.Get();
 
-	   if (AActor* Owner = Self->GetOwner())
-	   {
-		   Owner->K2_DestroyActor();
-	   }
-	});
+	GetWorld()->GetTimerManager().SetTimerForNextTick(
+		[WeakThis]()
+		{
+			if (!WeakThis.IsValid())
+			{
+				return;
+			}
+			UContainerComponent* Self = WeakThis.Get();
+
+			if (AActor* Owner = Self->GetOwner())
+			{
+				Owner->K2_DestroyActor();
+			}
+		});
 }

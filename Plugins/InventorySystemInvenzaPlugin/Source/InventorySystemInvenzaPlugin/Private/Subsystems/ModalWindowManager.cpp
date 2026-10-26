@@ -1,6 +1,5 @@
 ﻿// Nublin Studio 2026 All Rights Reserved.
 
-
 #include "Subsystems/ModalWindowManager.h"
 
 #include "Components/NamedSlot.h"
@@ -13,6 +12,7 @@
 #include "UI/Layout/PrimaryLayout.h"
 #include "UI/Layout/UILayer.h"
 #include "Utility/InvenzayUtility.h"
+#include "UI/Controls/ControlsHelpWidget.h"
 
 UModalWindowManager::UModalWindowManager()
 {
@@ -21,15 +21,18 @@ UModalWindowManager::UModalWindowManager()
 void UModalWindowManager::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
-	
+
 	UWorld* World = GetWorld();
-	if (!World) return;
-	
+	if (!World)
+	{
+		return;
+	}
+
 	InvenzaInventorySettingsAsset = UInvenzayUtility::GetInvenzaGlobalSettings(World);
 	if (!InvenzaInventorySettingsAsset)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("ModalWindowManager: Global Settings not found!"));
-		return ;
+		return;
 	}
 }
 
@@ -55,13 +58,89 @@ void UModalWindowManager::InitializeUI()
 
 	ModalLayoutRef = PrimaryLayoutRef->ModalLayer;
 	if (!ModalLayoutRef)
+	{
 		return;
-	
-	ModalLayoutRef->OnBackgroundClicked.AddDynamic(this, &UModalWindowManager::ForceCancelModalFlow);
+	}
+
+	ModalLayoutRef->OnBackgroundClicked.AddUniqueDynamic(this, &UModalWindowManager::ForceCancelModalFlow);
+}
+
+void UModalWindowManager::CancelModalFlowFor(const UObject* ContextObject)
+{
+	if (ContextObject && CachedContextObject == ContextObject)
+	{
+		CloseControlsHelp();
+		ForceCancelModalFlow();
+	}
+}
+
+void UModalWindowManager::ShowControlsHelp()
+{
+	if (ControlsHelpWindow)
+	{
+		CloseControlsHelp();
+		return;
+	}
+	if (!ModalLayoutRef)
+	{
+		InitializeUI();
+	}
+	if (!InvenzaInventorySettingsAsset)
+	{
+		InvenzaInventorySettingsAsset = UInvenzayUtility::GetInvenzaGlobalSettings(GetWorld());
+	}
+	if (!ModalLayoutRef || !InvenzaInventorySettingsAsset || !InvenzaInventorySettingsAsset->ControlsHelpWidgetClass)
+	{
+		return;
+	}
+	if (!ModalLayoutRef->GetStack().IsEmpty())
+	{
+		ModalLayoutRef->CollapseTop();
+	}
+	ControlsHelpWindow = Cast<UControlsHelpWidget>(
+		ModalLayoutRef->PushContent(InvenzaInventorySettingsAsset->ControlsHelpWidgetClass.Get()));
+	if (ControlsHelpWindow)
+	{
+		ControlsHelpWindow->SetOwningPlayer(GetLocalPlayer()->GetPlayerController(GetWorld()));
+		ModalLayoutRef->ShowTop();
+		ControlsHelpWindow->RefreshControls();
+		ControlsHelpWindow->SetFocus();
+	}
+	else
+	{
+		ModalLayoutRef->ShowTop();
+	}
+}
+
+void UModalWindowManager::CloseControlsHelp()
+{
+	if (!ControlsHelpWindow)
+	{
+		return;
+	}
+	ControlsHelpWindow->ReleaseInput();
+	ControlsHelpWindow = nullptr;
+	if (ModalLayoutRef)
+	{
+		ModalLayoutRef->PopContent();
+		if (!ModalLayoutRef->GetStack().IsEmpty())
+		{
+			ModalLayoutRef->ShowTop();
+			if (auto* Previous = ModalLayoutRef->Peek())
+			{
+				Previous->SetFocus();
+			}
+		}
+	}
 }
 
 void UModalWindowManager::ForceCancelModalFlow()
 {
+	if (ControlsHelpWindow)
+	{
+		CloseControlsHelp();
+		return;
+	}
 	PendingOriginalResult = FModalResult();
 	PendingOriginalAction = FModalActionConfig();
 	CurrentStepActionsMap.Empty();
@@ -78,15 +157,17 @@ void UModalWindowManager::ForceCancelModalFlow()
 		CancelResult.ResultInteractionType = EObjectInteractionType::None;
 		FinalDelegate.Execute(CancelResult);
 	}
-	
+
 	FinalDelegate.Unbind();
 }
 
 void UModalWindowManager::OpenModalFlow(UObject* InObject, FModalHeaderData HeaderData, EModalFooterType FooterType,
-                                        const TMap<EObjectInteractionType, FModalActionConfig>& Actions, FModalResultDelegate OnResult)
+										const TMap<EObjectInteractionType, FModalActionConfig>& Actions,
+										FModalResultDelegate OnResult)
 {
+	CloseControlsHelp();
 	CachedContextObject = InObject;
-	
+
 	FinalDelegate = OnResult;
 	PendingOriginalResult = FModalResult();
 
@@ -94,35 +175,42 @@ void UModalWindowManager::OpenModalFlow(UObject* InObject, FModalHeaderData Head
 }
 
 void UModalWindowManager::ShowModalStep(FModalHeaderData HeaderData, EModalFooterType FooterType,
-	 const TMap<EObjectInteractionType, FModalActionConfig>& Actions)
+										const TMap<EObjectInteractionType, FModalActionConfig>& Actions)
 {
 	UWorld* World = GetWorld();
-	if (!World || !InvenzaInventorySettingsAsset) return;
-	
+	if (!World || !InvenzaInventorySettingsAsset)
+	{
+		return;
+	}
+
 	if (!ModalLayoutRef)
 	{
 		return;
 	}
-	
-	// Если в стеке уже есть окно (это не первый шаг цепочки) — скрываем его, прежде чем показать следующее.
+
+	// Hide the previous window before showing the next step in the modal chain.
 	if (ModalLayoutRef->GetStack().Num() > 0)
 	{
 		ModalLayoutRef->CollapseTop();
 	}
-	
-	UInvenzaBaseWidget* ModalDialog = ModalLayoutRef->PushContent(InvenzaInventorySettingsAsset->DefaultModalDialogClass.Get());
+
+	UInvenzaBaseWidget* ModalDialog =
+		ModalLayoutRef->PushContent(InvenzaInventorySettingsAsset->DefaultModalDialogClass.Get());
 	if (!ModalDialog)
 	{
 		return;
 	}
-	
+
 	auto ModalDialogCasted = Cast<UModalDialogBase>(ModalDialog);
 	if (!ModalDialogCasted)
+	{
 		return;
-	
+	}
+
 	if (HeaderData.HeaderType != EModalHeaderType::None)
 	{
-		const TSubclassOf<UUserWidget>* HeaderClassPtr = InvenzaInventorySettingsAsset->ModalHeaderWidgets.Find(HeaderData.HeaderType);
+		const TSubclassOf<UUserWidget>* HeaderClassPtr =
+			InvenzaInventorySettingsAsset->ModalHeaderWidgets.Find(HeaderData.HeaderType);
 		AttachChildWidget(World, ModalDialogCasted->Upper_Slot, HeaderClassPtr ? *HeaderClassPtr : nullptr);
 	}
 
@@ -142,8 +230,8 @@ void UModalWindowManager::ShowModalStep(FModalHeaderData HeaderData, EModalFoote
 	}
 	ModalDialogCasted->Configure(HeaderData, ActionKeys, AvActions);
 
-	// Запоминаем полную карту текущего шага — понадобится в HandleModalResponse,
-	// чтобы по нажатому Interaction найти соответствующий FObjectModalAction.
+	// Keep the current step's complete action map for HandleModalResponse,
+	// which resolves the selected interaction to its configured action.
 	CurrentStepActionsMap = Actions;
 
 	ModalLayoutRef->ShowTop();
@@ -165,7 +253,7 @@ void UModalWindowManager::HandleModalResponse(FModalResult Result)
 		}
 		return;
 	}
-	
+
 	if (PendingOriginalAction.StepRequirement != EModalStepRequirement::None)
 	{
 		const FModalResult OriginalResult = PendingOriginalResult;
@@ -176,7 +264,7 @@ void UModalWindowManager::HandleModalResponse(FModalResult Result)
 		if (OriginalAction.StepRequirement == EModalStepRequirement::RequiresConfirm)
 		{
 			ClearModalWindows();
-			
+
 			if (Interaction == EObjectInteractionType::Yes)
 			{
 				FinalDelegate.Execute(OriginalResult);
@@ -193,10 +281,10 @@ void UModalWindowManager::HandleModalResponse(FModalResult Result)
 		if (OriginalAction.StepRequirement == EModalStepRequirement::RequiresAmount)
 		{
 			ClearModalWindows();
-			
+
 			if (Interaction == EObjectInteractionType::Yes)
 			{
-				FModalResult FinalResult = OriginalResult; 
+				FModalResult FinalResult = OriginalResult;
 				FinalResult.HeaderResult = Result.HeaderResult;
 
 				FinalDelegate.Execute(FinalResult);
@@ -210,65 +298,66 @@ void UModalWindowManager::HandleModalResponse(FModalResult Result)
 			return;
 		}
 	}
-	
+
 	const FModalActionConfig* ActionData = CurrentStepActionsMap.Find(Interaction);
 	const EModalStepRequirement Requirement = ActionData ? ActionData->StepRequirement : EModalStepRequirement::None;
 
-	// Обычный первый шаг
+	// Handle the initial step of the modal chain.
 	switch (Requirement)
 	{
 	case EModalStepRequirement::RequiresConfirm:
-		{
-			PendingOriginalResult = Result;
-			PendingOriginalAction = *ActionData; 
+	{
+		PendingOriginalResult = Result;
+		PendingOriginalAction = *ActionData;
 
-			TMap<EObjectInteractionType, FModalActionConfig> DummyActions;
-			DummyActions.Add(EObjectInteractionType::Yes, FModalActionConfig());
-			DummyActions.Add(EObjectInteractionType::No, FModalActionConfig());
-			
-			FModalHeaderData HeaderData;
-			HeaderData.HeaderType = EModalHeaderType::SimpleText;
-			HeaderData.Title = ActionData->HeaderText;
+		TMap<EObjectInteractionType, FModalActionConfig> DummyActions;
+		DummyActions.Add(EObjectInteractionType::Yes, FModalActionConfig());
+		DummyActions.Add(EObjectInteractionType::No, FModalActionConfig());
 
-			ShowModalStep(HeaderData, EModalFooterType::Binary, DummyActions);
-			return;
-		}
+		FModalHeaderData HeaderData;
+		HeaderData.HeaderType = EModalHeaderType::SimpleText;
+		HeaderData.Title = ActionData->HeaderText;
+
+		ShowModalStep(HeaderData, EModalFooterType::Binary, DummyActions);
+		return;
+	}
 
 	case EModalStepRequirement::RequiresAmount:
+	{
+		if (!CachedContextObject)
 		{
-			if (!CachedContextObject)
-				return;
-			
-			FModalHeaderData HeaderData;
-			
-			if (CachedContextObject->GetClass()->ImplementsInterface(UObjectDataProvider::StaticClass()))
-			{
-				FVector2D MinMax = IObjectDataProvider::Execute_GetMinMaxSplit(CachedContextObject);
-				HeaderData.MinValue = MinMax[0];
-				HeaderData.MaxValue = MinMax[1];
-			}
-			else
-			{
-				UE_LOG(LogTemp, Warning, TEXT("[%hs] CachedContextObject '%s' does not implement IObjectDataProvider"),
-					__FUNCTION__, *GetNameSafe(CachedContextObject));
-				return;
-			}
-			
-			PendingOriginalResult = Result;
-			PendingOriginalAction = *ActionData;
-			
-			TMap<EObjectInteractionType, FModalActionConfig> DummyActions;
-			DummyActions.Add(EObjectInteractionType::Yes, FModalActionConfig());
-			DummyActions.Add(EObjectInteractionType::No, FModalActionConfig());
-			
-			
-			HeaderData.HeaderType = EModalHeaderType::TextWithAmountSelection;
-			HeaderData.Title = ActionData->HeaderText;
-			
-			ShowModalStep(HeaderData, EModalFooterType::Binary, DummyActions);
-			
 			return;
 		}
+
+		FModalHeaderData HeaderData;
+
+		if (CachedContextObject->GetClass()->ImplementsInterface(UObjectDataProvider::StaticClass()))
+		{
+			FVector2D MinMax = IObjectDataProvider::Execute_GetMinMaxSplit(CachedContextObject);
+			HeaderData.MinValue = MinMax[0];
+			HeaderData.MaxValue = MinMax[1];
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[%hs] CachedContextObject '%s' does not implement IObjectDataProvider"),
+				   __FUNCTION__, *GetNameSafe(CachedContextObject));
+			return;
+		}
+
+		PendingOriginalResult = Result;
+		PendingOriginalAction = *ActionData;
+
+		TMap<EObjectInteractionType, FModalActionConfig> DummyActions;
+		DummyActions.Add(EObjectInteractionType::Yes, FModalActionConfig());
+		DummyActions.Add(EObjectInteractionType::No, FModalActionConfig());
+
+		HeaderData.HeaderType = EModalHeaderType::TextWithAmountSelection;
+		HeaderData.Title = ActionData->HeaderText;
+
+		ShowModalStep(HeaderData, EModalFooterType::Binary, DummyActions);
+
+		return;
+	}
 
 	case EModalStepRequirement::None:
 	default:
@@ -280,13 +369,24 @@ void UModalWindowManager::HandleModalResponse(FModalResult Result)
 
 void UModalWindowManager::ClearModalWindows()
 {
-	if (!ModalLayoutRef) return;
+	if (ControlsHelpWindow)
+	{
+		ControlsHelpWindow->ReleaseInput();
+	}
+	ControlsHelpWindow = nullptr;
+	if (!ModalLayoutRef)
+	{
+		return;
+	}
 
 	// Slate destruction can be deferred; release requests before result callbacks.
 	const TArray<UInvenzaBaseWidget*> Windows = ModalLayoutRef->GetStack();
 	for (UInvenzaBaseWidget* Window : Windows)
 	{
-		if (!IsValid(Window)) continue;
+		if (!IsValid(Window))
+		{
+			continue;
+		}
 		if (ULocalPlayer* LocalPlayer = Window->GetOwningLocalPlayer())
 		{
 			LocalPlayer->GetSubsystem<UUIInputModeSubsystem>()->ReleaseUIInput(Window);
@@ -297,10 +397,16 @@ void UModalWindowManager::ClearModalWindows()
 
 void UModalWindowManager::AttachChildWidget(UWorld* World, UPanelWidget* Slot, TSubclassOf<UUserWidget> WidgetClass)
 {
-	if (!Slot || !WidgetClass) return;
+	if (!Slot || !WidgetClass)
+	{
+		return;
+	}
 
 	UUserWidget* ChildWidget = CreateWidget<UUserWidget>(World, WidgetClass);
-	if (!ChildWidget) return;
+	if (!ChildWidget)
+	{
+		return;
+	}
 
 	Slot->AddChild(ChildWidget);
 }

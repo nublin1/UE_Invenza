@@ -17,44 +17,42 @@ class UCurrentMaxDisplay;
 class ULabelBaseText;
 class UImageBaseWidget;
 /**
- * 
+ *
  */
 UCLASS()
-class INVENTORYSYSTEMINVENZAPLUGIN_API UReceptDetailListEntryWidget : public UInvenzaBaseWidget, public IUserObjectListEntry
+class INVENTORYSYSTEMINVENZAPLUGIN_API UReceptDetailListEntryWidget : public UInvenzaBaseWidget,
+																	  public IUserObjectListEntry
 {
 	GENERATED_BODY()
 
 public:
 	UReceptDetailListEntryWidget();
-	
-protected:
-	virtual void NativeConstruct() override;
-	virtual void NativeOnListItemObjectSet(UObject* DetailItemObject) override;
-	virtual void NativeOnEntryReleased() override;
-	void RefreshFromModel();
 
-public:	
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
+protected:
+	// Unreal overrides
+	virtual void NativeConstruct() override;
+
+	virtual void NativeOnListItemObjectSet(UObject* DetailItemObject) override;
+
+	virtual void NativeOnEntryReleased() override;
+
+public:
+	// Properties and variables
 	// Widgets
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Componets", meta = (BindWidgetOptional))
 	TObjectPtr<UVerticalBox> RequirementsContainer;
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
 
-	UFUNCTION(BlueprintCallable)
-	int GetSelectedOption() {return SelectedOption;}
+	// Functions
+	UFUNCTION(Category = "Invenza|Crafting", BlueprintCallable)
+	int GetSelectedOption() { return SelectedOption; }
 
 protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
+	// Runtime
+	// Properties and variables
 	// Config
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Config")
 	TSubclassOf<URequirementOptionEntry> RequirementOptionClass;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Config")
 	TSubclassOf<URequirementOptionEntry> RequirementOptionClassAlt;
 
@@ -67,22 +65,24 @@ protected:
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "UI|Data")
 	TMap<UUIButton*, URequirementOptionEntry*> ButtonToEntryMap;
+
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "UI|Data")
 	TMap<URequirementOptionEntry*, int> EntryToIndexMap;
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
+
+	// Functions
+	void RefreshFromModel();
+
 	UFUNCTION()
 	void HandleOptionButtonClicked(UUIButton* ClickedButton);
-	
+
 	UFUNCTION()
-	URequirementOptionEntry* CreateRequirementOptionEntry(const FRecipeRequirementResult& RequirementResult, TSubclassOf<URequirementOptionEntry> OptionClass);
-	
+	URequirementOptionEntry* CreateRequirementOptionEntry(const FRecipeRequirementResult& RequirementResult,
+														  TSubclassOf<URequirementOptionEntry> OptionClass);
+
 	UFUNCTION()
-	TArray<URequirementOptionEntry*> CreateRequirementOptionEntries(const FRecipeItemRequirementCheck& ItemRequirementCheck);	
-	
+	TArray<URequirementOptionEntry*>
+	CreateRequirementOptionEntries(const FRecipeItemRequirementCheck& ItemRequirementCheck);
+
 	UFUNCTION()
 	void RebuildMaps();
-	
 };

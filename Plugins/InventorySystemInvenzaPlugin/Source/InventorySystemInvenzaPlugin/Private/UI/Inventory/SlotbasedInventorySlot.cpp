@@ -1,6 +1,5 @@
 ﻿//  Nublin Studio 2025 All Rights Reserved.
 
-
 #include "UI/Inventory/SlotbasedInventorySlot.h"
 
 #include "Components/Image.h"
@@ -19,7 +18,7 @@ USlotbasedInventorySlot::USlotbasedInventorySlot()
 void USlotbasedInventorySlot::NativePreConstruct()
 {
 	Super::NativePreConstruct();
-	
+
 	if (SlotData)
 	{
 		SetSlotNameText(SlotData->InventorySlotInfo.SlotName.ToString());
@@ -36,14 +35,17 @@ void USlotbasedInventorySlot::UpdateVisualWithTexture(UTexture2D* NewTexture)
 {
 	Super::UpdateVisualWithTexture(NewTexture);
 
-	if (!CoreCellWidget || !CoreCellWidget->Content_Image) return;
+	if (!CoreCellWidget || !CoreCellWidget->Content_Image)
+	{
+		return;
+	}
 
 	if (!NewTexture)
 	{
 		ClearVisual();
 		return;
 	}
-	
+
 	CoreCellWidget->Content_Image->UpdateImage(NewTexture);
 }
 
@@ -51,12 +53,15 @@ void USlotbasedInventorySlot::ResetVisual()
 {
 	Super::ResetVisual();
 
-	if (!CoreCellWidget || !CoreCellWidget->Content_Image) return;
+	if (!CoreCellWidget || !CoreCellWidget->Content_Image)
+	{
+		return;
+	}
 	if (DefaultCellImage)
 	{
 		CoreCellWidget->Content_Image->UpdateImage(DefaultCellImage);
 	}
-	else 
+	else
 	{
 		ClearVisual();
 	}
@@ -65,8 +70,11 @@ void USlotbasedInventorySlot::ResetVisual()
 void USlotbasedInventorySlot::ClearVisual()
 {
 	Super::ClearVisual();
-	if (!CoreCellWidget || !CoreCellWidget->Content_Image) return;
-	
+	if (!CoreCellWidget || !CoreCellWidget->Content_Image)
+	{
+		return;
+	}
+
 	CoreCellWidget->Content_Image->UpdateImage(nullptr);
 }
 
@@ -95,9 +103,8 @@ void USlotbasedInventorySlot::SetSlotNameText(FString SlotNameText)
 			SlotName->UpdateText(FText::GetEmpty());
 			return;
 		}
-		
+
 		SlotName->UpdateText(FText::FromString(SlotNameText));
 		SlotName->SetVisibility(ESlateVisibility::Visible);
 	}
 }
-

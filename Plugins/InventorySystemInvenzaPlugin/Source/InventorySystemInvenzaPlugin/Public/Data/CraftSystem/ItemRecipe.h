@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Engine/DataTable.h"
 #include "Data/ItemDataStructures.h"
 #include "ItemRecipe.generated.h"
 
@@ -12,7 +13,7 @@ class UResourcesDT;
 UENUM(BlueprintType)
 enum class ERecipeOperatorType : uint8
 {
-	SelfProduce,  
+	SelfProduce,
 	PlayerRequired,
 	AnyRequired,
 };
@@ -20,57 +21,57 @@ enum class ERecipeOperatorType : uint8
 
 #pragma region Structs
 USTRUCT(BlueprintType)
-struct FAlternativeItem
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FAlternativeItem
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(Category = "Invenza|Crafting", EditAnywhere, BlueprintReadWrite)
 	FDataTableRowHandle Item;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(Category = "Invenza|Crafting", EditAnywhere, BlueprintReadWrite)
 	int32 Quantity = 1;
 };
 
 USTRUCT(BlueprintType)
-struct FRecipeItemRequirement
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FRecipeItemRequirement
 {
 	GENERATED_BODY()
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+
+	UPROPERTY(Category = "Invenza|Crafting", EditAnywhere, BlueprintReadWrite)
 	FDataTableRowHandle Item;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(Category = "Invenza|Crafting", EditAnywhere, BlueprintReadWrite)
 	int32 Quantity = 1;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+
+	UPROPERTY(Category = "Invenza|Crafting", EditAnywhere, BlueprintReadWrite)
 	TArray<FAlternativeItem> Alternatives;
 };
 
 #pragma endregion
 
 USTRUCT(BlueprintType)
-struct FItemRecipeRow : public FTableRowBase
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FItemRecipeRow : public FTableRowBase
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(Category = "Invenza|Crafting", EditAnywhere, BlueprintReadWrite)
 	FName ID;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(Category = "Invenza|Crafting", EditAnywhere, BlueprintReadWrite)
 	FText DisplayName;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(Category = "Invenza|Crafting", EditAnywhere, BlueprintReadWrite)
 	FText Description;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(Category = "Invenza|Crafting", EditAnywhere, BlueprintReadWrite)
 	TSoftObjectPtr<UTexture2D> RecipeIcon;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+
+	UPROPERTY(Category = "Invenza|Crafting", EditAnywhere, BlueprintReadWrite)
 	TArray<FRecipeItemRequirement> RequiredItems;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+
+	UPROPERTY(Category = "Invenza|Crafting", EditAnywhere, BlueprintReadWrite)
 	ERecipeOperatorType OperatorType = ERecipeOperatorType::SelfProduce;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(Category = "Invenza|Crafting", EditAnywhere, BlueprintReadWrite)
 	float CraftVolume = 1.f;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+
+	UPROPERTY(Category = "Invenza|Crafting", EditAnywhere, BlueprintReadWrite)
 	TArray<FInitItemsEntry> OutputItems;
 };

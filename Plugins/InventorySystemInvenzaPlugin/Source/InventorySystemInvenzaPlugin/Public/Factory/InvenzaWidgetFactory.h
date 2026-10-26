@@ -1,8 +1,9 @@
-﻿//  Nublin Studio 2026 All Rights Reserved.
+//  Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Templates/SubclassOf.h"
 #include "UObject/Object.h"
 #include "InvenzaWidgetFactory.generated.h"
 
@@ -20,20 +21,15 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UInvenzaWidgetFactory : public UObject
 	GENERATED_BODY()
 
 public:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
+	// Functions
 	UFUNCTION(blueprintCallable, Category = "InvenzaWidgetFactory")
-	static UInventoryContainerWidget* CreateConteinerInventoryWidget(APlayerController* OwningPlayer,
-		TSubclassOf<UInventoryContainerWidget> ContainerWidgetClass,
-		TSubclassOf<UUInventoryBaseWidget> InventoryWidgetClass,
-		TSubclassOf<UOperationPanelWidget> OperationPanelClass);
+	static UInventoryContainerWidget*
+	CreateConteinerInventoryWidget(APlayerController* OwningPlayer,
+								   TSubclassOf<UInventoryContainerWidget> ContainerWidgetClass,
+								   TSubclassOf<UUInventoryBaseWidget> InventoryWidgetClass,
+								   TSubclassOf<UOperationPanelWidget> OperationPanelClass);
 
 	UFUNCTION(blueprintCallable, Category = "InvenzaWidgetFactory")
 	static UInvenzaBaseWidget* CreateInvenzaWidget(APlayerController* Owner,
-		TSubclassOf<UInvenzaBaseWidget> InvenzaBaseWidgetClass);
+												   TSubclassOf<UInvenzaBaseWidget> InvenzaBaseWidgetClass);
 };

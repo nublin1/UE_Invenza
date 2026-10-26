@@ -1,0 +1,62 @@
+Key,SourceString
+Brand,INVENZA
+MenuTitle,Меню
+MenuHint,"Сохранения, настройки и сетевая игра"
+Resume,Продолжить игру
+Save,Сохранить игру
+Load,Загрузить игру
+Settings,Настройки
+Network,Сетевая игра
+LeaveSession,В главное меню
+Quit,Выйти из игры
+Back,Назад
+MenuButton,Меню
+Graphics,Графика
+Audio,Звук
+Resolution,Разрешение
+WindowMode,Режим экрана
+Quality,Качество
+FrameLimit,Частота кадров
+VSync,Вертикальная синхронизация
+MasterVolume,Общая громкость
+MusicVolume,Музыка
+EffectsVolume,Эффекты
+AudioHint,Изменения сохраняются кнопкой «Применить».
+Apply,Применить
+ResetSettings,По умолчанию
+KeepDisplay,Сохранить
+RevertDisplay,Вернуть прежние
+ConfirmDisplay,Подтверждение режима экрана
+Fullscreen,Полный экран
+Borderless,Без рамки
+Windowed,Окно
+QualityLow,Низкое
+QualityMedium,Среднее
+QualityHigh,Высокое
+QualityEpic,Эпическое
+QualityCinematic,Кинематографическое
+QualityCustom,Индивидуальное
+UnlimitedFPS,Без ограничения
+FPSValue,{0} FPS
+SettingsSaved,Настройки сохранены.
+DisplayCountdown,"Сохранить новый режим экрана?
+Автоматический возврат через {0} сек."
+SettingsRestored,Предыдущие настройки восстановлены.
+DefaultsStaged,Выбраны значения по умолчанию. Нажмите «Применить».
+HostTitle,Создать игру
+ServerName,Название игры
+PlayerCount,Игроков
+HostGame,Создать и играть
+DirectTitle,Подключиться по IP
+ConnectIP,Подключиться
+IPHint,Для подключения по IP используйте профиль LAN.
+BrowserTitle,Доступные игры
+FindGames,Найти / обновить
+CancelSearch,Отменить поиск
+SteamBackend,STEAM
+LANBackend,LAN / локальная сеть
+NetworkWhilePlaying,Для создания другой игры или подключения сначала выйдите в главное меню.
+ServerEntry,{0} · {1} · {2}/{3} →
+WaitForSave,Дождитесь завершения сохранения.
+SaveTitle,Сохранение игры
+LoadTitle,Загрузка игры

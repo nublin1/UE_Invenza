@@ -1,6 +1,5 @@
 // Nublin Studio 2026 All Rights Reserved.
 
-
 #include "UI/Core/Buttons/UIButton.h"
 
 #include "EnhancedInputComponent.h"
@@ -11,8 +10,7 @@
 #include "Engine/Texture2D.h"
 #include "Utility/InputUtility.h"
 
-
-UUIButton::UUIButton(): bIsToggleButton(false), bIsToggleOn(false), DefaultButtonBackgroundColor()
+UUIButton::UUIButton() : bIsToggleButton(false), bIsToggleOn(false), DefaultButtonBackgroundColor()
 {
 }
 
@@ -21,13 +19,15 @@ void UUIButton::NativePreConstruct()
 	Super::NativeConstruct();
 
 	if (MainButton)
+	{
 		DefaultButtonBackgroundColor = MainButton->GetBackgroundColor();
-	
+	}
+
 	if (MainLabel)
 	{
 		MainLabel->SetText(DefaultText);
 	}
-	
+
 	if (MainImage)
 	{
 		if (DefaultImage)
@@ -46,7 +46,7 @@ void UUIButton::NativeConstruct()
 	{
 		MainButton = Cast<UButton>(GetWidgetFromName(TEXT("MainButton")));
 	}
-	
+
 	Super::NativeConstruct();
 
 	if (MainButton)
@@ -78,15 +78,13 @@ void UUIButton::NativeDestruct()
 void UUIButton::SetupInput()
 {
 	UEnhancedInputComponent* Input = Cast<UEnhancedInputComponent>(GetOwningPlayer()->InputComponent);
-	if (!Input) return;
+	if (!Input)
+	{
+		return;
+	}
 
-	ClickActionHandle = UInputUtility::BindAction(
-		Input,
-		ClickAction,
-		ETriggerEvent::Started,
-		this,
-		&UUIButton::ClickButton
-	);
+	ClickActionHandle =
+		UInputUtility::BindAction(Input, ClickAction, ETriggerEvent::Started, this, &UUIButton::ClickButton);
 }
 
 void UUIButton::ClickButton()
@@ -99,27 +97,28 @@ void UUIButton::SetToggleStatus(const bool bNewStatus)
 	bIsToggleOn = bNewStatus;
 
 	OnToggled.Broadcast(bIsToggleOn);
-	
+
 	if (bIsToggleOn)
+	{
 		MainButton->SetBackgroundColor(ToggleColor);
+	}
 	else
+	{
 		MainButton->SetBackgroundColor(DefaultButtonBackgroundColor);
+	}
 }
 
 void UUIButton::UpdateUseAction(UInputAction* NewAction)
 {
 	UEnhancedInputComponent* Input = Cast<UEnhancedInputComponent>(GetOwningPlayer()->InputComponent);
-	if (!Input) return;
-	
+	if (!Input)
+	{
+		return;
+	}
+
 	ClickAction = NewAction;
-	ClickActionHandle = UInputUtility::RebindAction(
-		Input,
-		ClickActionHandle,
-		ClickAction,
-		ETriggerEvent::Started,
-		this,
-		&UUIButton::ClickButton
-	);
+	ClickActionHandle = UInputUtility::RebindAction(Input, ClickActionHandle, ClickAction, ETriggerEvent::Started, this,
+													&UUIButton::ClickButton);
 }
 
 void UUIButton::OnMainButtonClicked()
@@ -128,11 +127,17 @@ void UUIButton::OnMainButtonClicked()
 	{
 		bIsToggleOn = !bIsToggleOn;
 		if (bIsToggleOn)
+		{
 			MainButton->SetBackgroundColor(ToggleColor);
+		}
 		else
+		{
 			MainButton->SetBackgroundColor(DefaultButtonBackgroundColor);
+		}
 	}
 
 	if (OnButtonClicked.IsBound())
+	{
 		OnButtonClicked.Broadcast(this);
+	}
 }

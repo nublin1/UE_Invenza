@@ -1,11 +1,9 @@
 ﻿// Nublin Studio 2026 All Rights Reserved.
 
-
 #include "UI/Core/EditableLabelBaseText.h"
 
 #include "Components/EditableTextBox.h"
 #include "UI/UIStructs.h"
-
 
 UEditableLabelBaseText::UEditableLabelBaseText()
 {
@@ -58,11 +56,13 @@ void UEditableLabelBaseText::UpdateTextAndFont(FLabelStyle LabelStyle)
 void UEditableLabelBaseText::SyncTextAndFont()
 {
 	if (!MainEditableTextBox)
+	{
 		return;
+	}
 
 	MainEditableTextBox->SetText(Text);
 	MainEditableTextBox->SetHintText(HintText);
-	
+
 	FEditableTextBoxStyle& Style = MainEditableTextBox->WidgetStyle;
 	Style.TextStyle.SetFont(FontInfo);
 	MainEditableTextBox->SynchronizeProperties();
@@ -94,7 +94,7 @@ void UEditableLabelBaseText::HandleTextChanged(const FText& NewText)
 	}
 
 	CachedText = FText::FromString(WorkingString);
-	
+
 	Text = NewText;
 	OnEditableTextChanged.Broadcast(NewText);
 }

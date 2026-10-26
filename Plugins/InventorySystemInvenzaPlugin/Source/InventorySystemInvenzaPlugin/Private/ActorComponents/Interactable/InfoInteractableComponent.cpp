@@ -1,7 +1,8 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
-
+// Nublin Studio 2026 All Rights Reserved.
 
 #include "ActorComponents/Interactable/InfoInteractableComponent.h"
+#include "Settings/InvenzaInventoryDeveloperSettings.h"
+#include "GameFramework/Pawn.h"
 
 #include "ActorComponents/InteractionComponent.h"
 #include "Subsystems/ModalWindowManager.h"
@@ -9,13 +10,13 @@
 UInfoInteractableComponent::UInfoInteractableComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
-	
+
 	SetIsReplicatedByDefault(true);
 
 	FInteractableData Data;
 	Data.DefaultInteractableType = EInteractableType::InfoOnly;
-	Data.Name = FText::FromString(TEXT("Information"));
-	Data.Action = FText::FromString(TEXT("Read"));
+	Data.Name = GetDefault<UInvenzaInventoryDeveloperSettings>()->GetText(TEXT("InfoInteractableComponent.Literal0"));
+	Data.Action = GetDefault<UInvenzaInventoryDeveloperSettings>()->GetText(TEXT("InfoInteractableComponent.Literal1"));
 	Data.Quantity = -1;
 	Data.InteractableDuration = 0.0f;
 	Data.bHoldToInteract = false;
@@ -31,7 +32,7 @@ void UInfoInteractableComponent::HandleInteract(UInteractionComponent* Interacti
 	{
 		return;
 	}
-	
+
 	AActor* Interactor = InteractionComponent->GetOwner();
 	APlayerController* PlayerController = Cast<APlayerController>(Interactor);
 
@@ -54,14 +55,14 @@ void UInfoInteractableComponent::HandleInteract(UInteractionComponent* Interacti
 		return;
 	}
 
-	UModalWindowManager* ModalManager =	LocalPlayer->GetSubsystem<UModalWindowManager>();
+	UModalWindowManager* ModalManager = LocalPlayer->GetSubsystem<UModalWindowManager>();
 	if (!ModalManager)
 	{
 		return;
 	}
-	
-	FModalHeaderData HeaderData(EModalHeaderType::SimpleText,InformationText);
-	
+
+	FModalHeaderData HeaderData(EModalHeaderType::SimpleText, InformationText);
+
 	TMap<EObjectInteractionType, FModalActionConfig> Actions;
 	Actions.Add(EObjectInteractionType::Ok, FModalActionConfig());
 
@@ -69,20 +70,33 @@ void UInfoInteractableComponent::HandleInteract(UInteractionComponent* Interacti
 	ResultDelegate.BindDynamic(this, &UInfoInteractableComponent::HandleModalResult);
 
 	CurrentInteractionComponent = InteractionComponent;
+	ActiveModalManager = ModalManager;
 	bModalOpen = true;
 
-	ModalManager->OpenModalFlow(
-		this,
-		HeaderData,
-		EModalFooterType::Notification,
-		Actions,
-		ResultDelegate);
+	ModalManager->OpenModalFlow(this, HeaderData, EModalFooterType::Notification, Actions, ResultDelegate);
+}
+
+void UInfoInteractableComponent::HandleStopInteract(UInteractionComponent* InteractionComponent, EInteractionType Type)
+{
+	Super::HandleStopInteract(InteractionComponent, Type);
+	if (CurrentInteractionComponent != InteractionComponent)
+	{
+		return;
+	}
+	CurrentInteractionComponent = nullptr;
+	bModalOpen = false;
+	if (ActiveModalManager.IsValid())
+	{
+		ActiveModalManager->CancelModalFlowFor(this);
+	}
+	ActiveModalManager.Reset();
 }
 
 void UInfoInteractableComponent::HandleModalResult(FModalResult Result)
 {
 	bModalOpen = false;
-	
+	ActiveModalManager.Reset();
+
 	UInteractionComponent* Interactor = CurrentInteractionComponent;
 	CurrentInteractionComponent = nullptr;
 

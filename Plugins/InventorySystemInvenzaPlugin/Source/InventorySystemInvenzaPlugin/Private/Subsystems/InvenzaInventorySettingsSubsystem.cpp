@@ -1,7 +1,9 @@
 ﻿//  Nublin Studio 2026 All Rights Reserved.
 
-
 #include "Subsystems/InvenzaInventorySettingsSubsystem.h"
+#include "Engine/Engine.h"
+#include "Engine/GameInstance.h"
+#include "Engine/World.h"
 
 #include "Data/CraftSystem/CraftingStructs.h"
 #include "Data/Settings/InvenzaInventorySettingsAsset.h"
@@ -12,18 +14,18 @@ void UInvenzaInventorySettingsSubsystem::Initialize(FSubsystemCollectionBase& Co
 {
 	Super::Initialize(Collection);
 
-	 auto DevSettings = GetDefault<UInvenzaInventoryDeveloperSettings>();
+	auto DevSettings = GetDefault<UInvenzaInventoryDeveloperSettings>();
 
 	if (DevSettings && !DevSettings->InventorySettingsAsset.IsNull())
 	{
 		Settings = DevSettings->InventorySettingsAsset.LoadSynchronous();
 	}
-	
+
 	ValidateSettings();
 }
 
-const UInvenzaInventorySettingsAsset* UInvenzaInventorySettingsSubsystem::GetSettingsStatic(
-	const UObject* WorldContextObject)
+const UInvenzaInventorySettingsAsset*
+UInvenzaInventorySettingsSubsystem::GetSettingsStatic(const UObject* WorldContextObject)
 {
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 	if (!World)
@@ -31,21 +33,21 @@ const UInvenzaInventorySettingsAsset* UInvenzaInventorySettingsSubsystem::GetSet
 		UE_LOG(LogTemp, Warning, TEXT("GetSettingsStatic: Failed to get World from ContextObject."));
 		return nullptr;
 	}
-	
+
 	UGameInstance* GI = World->GetGameInstance();
 	if (!GI)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("GetSettingsStatic: GameInstance is null."));
 		return nullptr;
 	}
-	
+
 	auto* Subsystem = GI->GetSubsystem<UInvenzaInventorySettingsSubsystem>();
 	if (!Subsystem)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("GetSettingsStatic: Could not find UInvenzaInventorySettingsSubsystem."));
 		return nullptr;
 	}
-	
+
 	const UInvenzaInventorySettingsAsset* Settings = Subsystem->GetSettings();
 	if (!Settings)
 	{
@@ -109,15 +111,13 @@ void UInvenzaInventorySettingsSubsystem::ValidateSettings() const
 	{
 		if (!Reason.Tag.IsValid())
 		{
-			UE_LOG(LogTemp, Warning,
-				TEXT("[InventorySettings] BlockReason has an invalid Tag."));
+			UE_LOG(LogTemp, Warning, TEXT("[InventorySettings] BlockReason has an invalid Tag."));
 		}
 
 		if (Reason.Message.IsEmpty())
 		{
-			UE_LOG(LogTemp, Warning,
-				TEXT("[InventorySettings] BlockReason '%s' has an empty Message."),
-				Reason.Tag.IsValid() ? *Reason.Tag.ToString() : TEXT("<Invalid Tag>"));
+			UE_LOG(LogTemp, Warning, TEXT("[InventorySettings] BlockReason '%s' has an empty Message."),
+				   Reason.Tag.IsValid() ? *Reason.Tag.ToString() : TEXT("<Invalid Tag>"));
 		}
 	}
 }

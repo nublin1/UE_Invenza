@@ -7,24 +7,24 @@
 #include "Components/SizeBox.h"
 #include "UI/Core/Image/ImageBaseWidget.h"
 
-UCoreCellWidget::UCoreCellWidget(): DefaultTintColor(), DefaultColorAndOpacity(), DefaultBorderColor()
+UCoreCellWidget::UCoreCellWidget() : DefaultTintColor(), DefaultColorAndOpacity(), DefaultBorderColor()
 {
 }
 
 void UCoreCellWidget::NativePreConstruct()
 {
 	Super::NativePreConstruct();
-	
+
 	ResetBorderColor();
-	
+
 	ApplyDefaultContentImageStyle();
-	
+
 	if (SizeBox)
 	{
-		float W = SizeBox->WidthOverride;
-		float H = SizeBox->HeightOverride;
+		float W = SizeBox->GetWidthOverride();
+		float H = SizeBox->GetHeightOverride();
 
-		if (SizeBox->bOverride_WidthOverride && SizeBox->bOverride_HeightOverride)
+		if (SizeBox->IsWidthOverride() && SizeBox->IsHeightOverride())
 		{
 			CurrentSlotSize = FVector2D(W, H);
 		}
@@ -33,8 +33,11 @@ void UCoreCellWidget::NativePreConstruct()
 
 void UCoreCellWidget::ResetBorderColor()
 {
-	if (!Left_Border || !Right_Border || !Top_Border || !BottomBorder) return;
-	
+	if (!Left_Border || !Right_Border || !Top_Border || !BottomBorder)
+	{
+		return;
+	}
+
 	Left_Border->SetBrushColor(DefaultBorderColor);
 	Right_Border->SetBrushColor(DefaultBorderColor);
 	Top_Border->SetBrushColor(DefaultBorderColor);
@@ -61,26 +64,35 @@ void UCoreCellWidget::SetSlotSize(const FVector2D& NewSize)
 
 void UCoreCellWidget::SetContentImage(UTexture2D* NewTexture)
 {
-	if (!Content_Image || !NewTexture) return;
-	
+	if (!Content_Image || !NewTexture)
+	{
+		return;
+	}
+
 	Content_Image->UpdateImage(NewTexture);
 	Content_Image->SetColorAndOpacity(DefaultColorAndOpacity);
 }
 
 void UCoreCellWidget::SetImageRotationAngle(const float Angle)
 {
-	if (!Content_Image) return;
-	
+	if (!Content_Image)
+	{
+		return;
+	}
+
 	const float NormalizedAngle = FMath::Fmod(Angle, 360.f) / 360.f;
 	Content_Image->SetMaterialScalarParam(FName("RotationAngle"), NormalizedAngle);
 }
 
 void UCoreCellWidget::ApplyDefaultContentImageStyle()
 {
-	if (!Content_Image || !DefaultContent_Image) return;
-	
+	if (!Content_Image || !DefaultContent_Image)
+	{
+		return;
+	}
+
 	Content_Image->UpdateImage(DefaultContent_Image);
 	Content_Image->SetColorAndOpacity(DefaultColorAndOpacity);
-	
+
 	SetImageRotationAngle(0.0f);
 }

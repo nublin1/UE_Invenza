@@ -20,48 +20,47 @@ UCLASS()
 class INVENTORYSYSTEMINVENZAPLUGIN_API UCraftRecipesList : public USimpleUserObjectList
 {
 	GENERATED_BODY()
-	
-	
+
 public:
 	UCraftRecipesList();
 
 protected:
+	// Unreal overrides
 	virtual void NativePreConstruct() override;
+
 	virtual void NativeConstruct() override;
 
 public:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
+	// Properties and variables
 	//Data
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Data")
 	TSubclassOf<URecipeListEntryObject> RecipeEntryObjectClass;
+
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Inventory|Data")
 	TArray<TObjectPtr<URecipeListEntryObject>> ItemsArray;
+
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Inventory|Data")
 	TArray<TObjectPtr<URecipeListEntryObject>> FilteredItemsArray;
-	UPROPERTY(BlueprintReadOnly, Category="UI|Components", meta=(BindWidgetOptional))
+
+	UPROPERTY(BlueprintReadOnly, Category = "UI|Components", meta = (BindWidgetOptional))
 	TObjectPtr<ULabelBaseText> EmptyRecipesText;
-		
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
+
+	// Functions
 	void SetRecipes(const TArray<FItemRecipeRow>& Recipes);
+
 	void RefreshList();
-	
+
 protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
+	// Runtime
+	// Properties and variables
 	//Data
 	UPROPERTY()
 	TArray<FItemRecipeRow> RecipesData;
+
 	FText ActiveSearchText;
+
+	// Functions
 	void ApplySearch();
 
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
-	
 	virtual void SearchTextChanged(const FText& NewText) override;
 };

@@ -1,6 +1,5 @@
 ﻿// Nublin Studio 2026 All Rights Reserved.
 
-
 #include "UI/Interaction/InteractionRowWidget.h"
 
 void UInteractionRowWidget::SetRowData(const FText& KeyLabel, const FInteractableData& Data, bool bHoldToInteract)

@@ -1,12 +1,10 @@
 ﻿// Nublin Studio 2026 All Rights Reserved.
 
-
 #include "UI/Craft/Lists/QueueCraftList.h"
 
 #include "Components/ListView.h"
 #include "Data/CraftSystem/Entries/ProductionQueueListEntryObject.h"
 #include "UI/Craft/Lists/QueueCraftListEntryWidget.h"
-
 
 UQueueCraftList::UQueueCraftList()
 {
@@ -16,8 +14,7 @@ void UQueueCraftList::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	QueueList->OnEntryWidgetGenerated().AddUObject(
-	this, &UQueueCraftList::OnEntryGenerated);
+	QueueList->OnEntryWidgetGenerated().AddUObject(this, &UQueueCraftList::OnEntryGenerated);
 }
 
 void UQueueCraftList::SetNewProductionQueueList(const TArray<FQueuedRecipe>& InRecipeQueue)
@@ -29,13 +26,15 @@ void UQueueCraftList::SetNewProductionQueueList(const TArray<FQueuedRecipe>& InR
 	{
 		return;
 	}
-	
+
 	auto RecipeQueue = InRecipeQueue;
-	
-	RecipeQueue.Sort([](const FQueuedRecipe& A, const FQueuedRecipe& B) {
-		return A.SortOrder < B.SortOrder;
-	});
-	
+
+	RecipeQueue.Sort(
+		[](const FQueuedRecipe& A, const FQueuedRecipe& B)
+		{
+			return A.SortOrder < B.SortOrder;
+		});
+
 	for (const FQueuedRecipe& Recipe : RecipeQueue)
 	{
 		UProductionQueueListEntryObject* NewEntry = NewObject<UProductionQueueListEntryObject>(this);
@@ -44,7 +43,7 @@ void UQueueCraftList::SetNewProductionQueueList(const TArray<FQueuedRecipe>& InR
 
 		ProductionQueueList.Add(NewEntry);
 	}
-	
+
 	UpdateProductionQueueList();
 }
 
@@ -54,8 +53,7 @@ void UQueueCraftList::UpdateDataInRecipe(const FQueuedRecipe& UpdatedRecipe)
 		[&UpdatedRecipe](const TObjectPtr<UProductionQueueListEntryObject>& Entry)
 		{
 			return Entry && Entry->GetQueuedRecipeData().QueueEntryId == UpdatedRecipe.QueueEntryId;
-		}
-	);
+		});
 
 	if (FoundEntryPtr && *FoundEntryPtr)
 	{
@@ -66,8 +64,8 @@ void UQueueCraftList::UpdateDataInRecipe(const FQueuedRecipe& UpdatedRecipe)
 void UQueueCraftList::UpdateProductionQueueList()
 {
 	QueueList->ClearListItems();
-	
-	for (int i = 0; i< ProductionQueueList.Num(); i++)
+
+	for (int i = 0; i < ProductionQueueList.Num(); i++)
 	{
 		QueueList->AddItem(ProductionQueueList[i]);
 	}
@@ -76,18 +74,23 @@ void UQueueCraftList::UpdateProductionQueueList()
 void UQueueCraftList::HandleMoveItemRequest(UObject* Item, bool bMoveUp)
 {
 	UProductionQueueListEntryObject* EntryObj = Cast<UProductionQueueListEntryObject>(Item);
-	if (!EntryObj || EntryObj->GetQueuedRecipeData().ItemRecipeRow.ID.IsNone()) return;
+	if (!EntryObj || EntryObj->GetQueuedRecipeData().ItemRecipeRow.ID.IsNone())
+	{
+		return;
+	}
 
 	int32 FoundIndex = ProductionQueueList.IndexOfByKey(EntryObj);
-	
+
 	OnQueueOrderChangeRequested.Broadcast(EntryObj->GetQueuedRecipeData().ItemRecipeRow.ID, FoundIndex, bMoveUp);
-	
 }
 
 void UQueueCraftList::HandleDeleteWithIndexRequest(UObject* Item)
 {
 	UProductionQueueListEntryObject* EntryObj = Cast<UProductionQueueListEntryObject>(Item);
-	if (!EntryObj) return;
+	if (!EntryObj)
+	{
+		return;
+	}
 	int32 FoundIndex = ProductionQueueList.IndexOfByKey(EntryObj);
 
 	if (FoundIndex != INDEX_NONE)
@@ -98,11 +101,9 @@ void UQueueCraftList::HandleDeleteWithIndexRequest(UObject* Item)
 
 void UQueueCraftList::OnEntryGenerated(UUserWidget& UserWidget)
 {
-	if (UQueueCraftListEntryWidget* Entry =
-			Cast<UQueueCraftListEntryWidget>(&UserWidget))
+	if (UQueueCraftListEntryWidget* Entry = Cast<UQueueCraftListEntryWidget>(&UserWidget))
 	{
-		Entry->OnMoveRequested.AddUniqueDynamic(
-			this, &UQueueCraftList::HandleMoveItemRequest);
+		Entry->OnMoveRequested.AddUniqueDynamic(this, &UQueueCraftList::HandleMoveItemRequest);
 
 		Entry->OnDeleteRequested.AddUniqueDynamic(this, &UQueueCraftList::HandleDeleteWithIndexRequest);
 	}

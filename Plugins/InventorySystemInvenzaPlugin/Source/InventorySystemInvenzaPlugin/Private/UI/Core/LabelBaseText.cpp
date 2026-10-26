@@ -45,8 +45,10 @@ void ULabelBaseText::UpdateTextAndFont(FLabelStyle LabelStyle)
 void ULabelBaseText::SyncTextAndFont()
 {
 	if (!MainTextBlock)
+	{
 		return;
-	
+	}
+
 	MainTextBlock->SetText(Text);
 	MainTextBlock->SetFont(FontInfo);
 	MainTextBlock->SetColorAndOpacity(Color);

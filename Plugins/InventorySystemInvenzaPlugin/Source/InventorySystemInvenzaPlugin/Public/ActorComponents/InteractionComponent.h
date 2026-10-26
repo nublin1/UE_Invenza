@@ -16,125 +16,187 @@ class UInputAction;
 class IInteractableData;
 class UCameraComponent;
 
-UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
+UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class INVENTORYSYSTEMINVENZAPLUGIN_API UInteractionComponent : public UActorComponent
 {
 	GENERATED_BODY()
-
-#pragma region delegates
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBeginFocus, const TArray<FInteractionDisplayEntry>&, Entries);
-
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEndFocus, const TArray<FInteractionDisplayEntry>&, Entries);
-
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnInteract, UInteractableComponent*, TargetInteractableComponent, EInteractionType, Type);
-
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnStopInteract, UInteractableComponent*, TargetInteractableComponent, EInteractionType, Type);
-
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEndInteract, UInteractableComponent*, TargetInteractableComponent);
-
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInteractionProgress, float, Progress);
-	
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInteractionDisplayChanged, const TArray<FInteractionDisplayEntry>&, Entries);
-
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInteractableBusy);
-	
-#pragma endregion
 
 public:
 	UInteractionComponent();
 
 protected:
+	// Unreal overrides
 	virtual void BeginPlay() override;
+
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
-	                           FActorComponentTickFunction* ThisTickFunction) override;
+							   FActorComponentTickFunction* ThisTickFunction) override;
 
 public:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
+#pragma region Delegates
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBeginFocus, const TArray<FInteractionDisplayEntry>&, Entries);
+
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEndFocus, const TArray<FInteractionDisplayEntry>&, Entries);
+
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnInteract, UInteractableComponent*, TargetInteractableComponent,
+												 EInteractionType, Type);
+
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnStopInteract, UInteractableComponent*, TargetInteractableComponent,
+												 EInteractionType, Type);
+
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEndInteract, UInteractableComponent*, TargetInteractableComponent);
+
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInteractionProgress, float, Progress);
+
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInteractionDisplayChanged, const TArray<FInteractionDisplayEntry>&,
+												Entries);
+
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInteractableBusy);
+#pragma endregion Delegates
+
+	// Properties and variables
 	//Delegates
-	UPROPERTY(BlueprintAssignable, Category="Interaction|Events")
+	UPROPERTY(BlueprintAssignable, Category = "Interaction|Events")
 	FOnBeginFocus OnBeginFocus;
-	UPROPERTY(BlueprintAssignable, Category="Interaction|Events")
+
+	UPROPERTY(BlueprintAssignable, Category = "Interaction|Events")
 	FOnEndFocus OnEndFocus;
-	UPROPERTY(BlueprintAssignable, Category="Interaction|Events")
+
+	UPROPERTY(BlueprintAssignable, Category = "Interaction|Events")
 	FOnInteract OnInteract;
-	UPROPERTY(BlueprintAssignable, Category="Interaction|Events")
+
+	UPROPERTY(BlueprintAssignable, Category = "Interaction|Events")
 	FOnStopInteract OnStopInteract;
-	UPROPERTY(BlueprintAssignable, Category="Interaction|Events")
+
+	UPROPERTY(BlueprintAssignable, Category = "Interaction|Events")
 	FOnEndInteract OnEndInteract;
-	UPROPERTY(BlueprintAssignable, Category="Interaction|Events")
+
+	UPROPERTY(BlueprintAssignable, Category = "Interaction|Events")
 	FOnInteractionProgress OnInteractionProgress;
+
 	UPROPERTY(BlueprintAssignable, Category = "Interaction|Events")
 	FOnInteractionDisplayChanged OnInteractionDisplayChanged;
-	UPROPERTY(BlueprintAssignable, Category="Interaction|Events")
+
+	UPROPERTY(BlueprintAssignable, Category = "Interaction|Events")
 	FOnInteractableBusy OnInteractableBusy;
 
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
+	// Functions
 	UFUNCTION()
 	void InitInteractionComponent();
-	
+
 	UFUNCTION()
 	FInteractableData GetDefaultInteractionData() { return DefaultInteractionData; };
 
+	UInteractableComponent* GetActiveInteractable() const { return CurrentInteractableComponent; }
+
+	const TArray<FInteractionKeyBinding>& GetKeyBindings() const { return KeyBindings; }
+
+	EInteractionType GetActiveInteractionType() const { return ActiveInteractionType; }
+
+	bool IsNotifyingStop() const { return bNotifyingStop; }
+
+	static bool IsWithinInteractionDistance(const AActor* Interactor, const UInteractableComponent* Target);
+
+	/** Registers a successfully opened server-side interaction, including AI interactions. */
+	void TrackActiveInteraction(UInteractableComponent* Target, EInteractionType Type);
+
+	/**
+	* Stops an already active interaction with the current interactable.
+	* Used when:
+	* - pawn interacts again with the same object
+	* - interaction needs to be forcefully stopped
+	* Calls InteractableComponent->StopInteract().
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Interaction")
+	void StopInteract();
+
 protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-#pragma region Settings
+	// Runtime
+	// Properties and variables
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction|Trace")
 	float InteractionCheckInterval;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction|Trace")
 	float InteractionCheckDistance;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction|Trace")
 	TEnumAsByte<ECollisionChannel> TraceChannel;
-#pragma endregion
 
- #pragma region Input
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interaction|Input")
 	TArray<FInteractionKeyBinding> KeyBindings;
-#pragma endregion
 
 	//
 	UPROPERTY()
 	FTimerHandle TimerHandle_Interaction;
-	UPROPERTY(BlueprintReadOnly)
+
+	UPROPERTY(Category = "Invenza|Interaction", BlueprintReadOnly)
 	float InteractionStartTime = 0.0f;
-	UPROPERTY(BlueprintReadOnly)
+
+	UPROPERTY(Category = "Invenza|Interaction", BlueprintReadOnly)
 	FInteractionData InteractionData;
+
 	UPROPERTY(VisibleAnywhere, Category = "Interaction|State")
 	UInteractableComponent* TargetInteractableComponent;
+
 	UPROPERTY(VisibleAnywhere, Category = "Interaction|State")
 	UInteractableComponent* CurrentInteractableComponent;
-	
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category="Interaction")
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Interaction")
 	TArray<FInteractableData> AvailableInteractions;
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category="Interaction")
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Interaction")
 	FInteractableData DefaultInteractionData;
 
 	//Refs
-	UPROPERTY(BlueprintReadWrite)
-	TObjectPtr<UCameraComponent> CameraComponent;	
-	
-	// Runtime
+	UPROPERTY(Category = "Invenza|Interaction", BlueprintReadWrite)
+	TObjectPtr<UCameraComponent> CameraComponent;
+
 	EInteractionType PendingInteractionType = EInteractionType::Primary;
+
 	EInteractionType ActiveInteractionType = EInteractionType::Primary;
 
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
+	uint32 ActiveInteractionSerial = 0;
+
+	bool bNotifyingStop = false;
+
+	bool bApplyingServerStop = false;
+
+	FTimerHandle InteractionRangeTimer;
+
+	FTimerHandle InteractionInitTimer;
+
+	// Functions
+	void StartInteractionRangeTimer();
+
+	void CheckInteractionRange();
+
+	void CompleteInteraction(bool bNotify);
+
+	UFUNCTION(Server, Reliable)
+	void Server_TrackInteraction(UInteractableComponent* Target, EInteractionType Type, uint32 Serial);
+
+	UFUNCTION(Server, Reliable)
+	void Server_StopInteraction(UInteractableComponent* Target, EInteractionType Type, uint32 Serial);
+
+	UFUNCTION(Client, Reliable)
+	void Client_ConfirmInteraction(UInteractableComponent* Target, EInteractionType Type, uint32 Serial);
+
+	UFUNCTION(Client, Reliable)
+	void Client_StopInteraction(UInteractableComponent* Target, EInteractionType Type, uint32 Serial);
+
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
 	void RefreshInteractionDisplay();
-	
+
 	UFUNCTION()
 	void PerformInteractionCheck();
+
 	UFUNCTION()
 	void FoundInteractable(AActor* NewInteractable, UInteractableComponent* NewInteractableComp);
+
 	UFUNCTION()
 	void NotFoundInteractable();
-	
+
 	/* Called when player presses the interact input.
 	 * Starts interaction with the currently focused interactable.
 	 * Behaviour:
@@ -143,7 +205,7 @@ protected:
 	 */
 	UFUNCTION()
 	void BeginInteract(EInteractionType Type);
-	
+
 	/**
 	* Called when player releases the interact input.
 	* Only affects interactables that require holding the button
@@ -155,37 +217,25 @@ protected:
 	void EndInteract(EInteractionType Type);
 
 	/**
- 	* Executes the interaction once its duration timer finishes
- 	* or immediately for instant interactions.
- 	* This calls InteractableComponent->Interact().
- 	*/
+	* Executes the interaction once its duration timer finishes
+	* or immediately for instant interactions.
+	* This calls InteractableComponent->Interact().
+	*/
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
 	void Interact();
 
-
-public:
-	/**
- 	* Stops an already active interaction with the current interactable.
- 	* Used when:
- 	* - pawn interacts again with the same object
- 	* - interaction needs to be forcefully stopped
- 	* Calls InteractableComponent->StopInteract().
- 	*/
-	UFUNCTION(BlueprintCallable, Category = "Interaction")
-	void StopInteract();
-
-protected:
 	UFUNCTION()
 	void InteractNotify();
+
 	UFUNCTION()
 	void EndInteractNotify();
 
 	UFUNCTION()
 	void BusyNotify();
-	
-	UFUNCTION(BlueprintCallable)
+
+	UFUNCTION(Category = "Invenza|Interaction", BlueprintCallable)
 	void CollectInteractionActions();
-	
-	UFUNCTION(BlueprintCallable, BlueprintPure)
+
+	UFUNCTION(Category = "Invenza|Interaction", BlueprintCallable, BlueprintPure)
 	TArray<FInteractionDisplayEntry> BuildDisplayEntries(UInteractableComponent* Target) const;
 };

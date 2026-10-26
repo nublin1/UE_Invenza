@@ -1,4 +1,4 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -15,28 +15,15 @@ UCLASS()
 class INVENTORYSYSTEMINVENZAPLUGIN_API UModalButtonsPanelBase : public UInvenzaBaseWidget, public IUIInterface
 {
 	GENERATED_BODY()
-	
+
 public:
 	UModalButtonsPanelBase() {}
-	
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
+
+public:
+	// Properties and variables
 	UPROPERTY(BlueprintReadWrite, Category = "UI|Components", meta = (BindWidget))
 	TObjectPtr<UPanelWidget> Panel_Container;
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
 
-	TArray<UUIButton*> GetButtons_Implementation();
-	
-protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
+	// Functions
+	virtual TArray<UUIButton*> GetButtons_Implementation() const override;
 };

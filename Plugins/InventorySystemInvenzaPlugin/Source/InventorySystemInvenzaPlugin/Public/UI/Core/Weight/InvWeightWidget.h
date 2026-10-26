@@ -14,28 +14,16 @@ UCLASS()
 class INVENTORYSYSTEMINVENZAPLUGIN_API UInvWeightWidget : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
-	
+
 public:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-	// Widgets
-	UPROPERTY(meta=(BindWidgetOptional))
-	TObjectPtr<UTextBlock> WeightText;
-	UPROPERTY(meta=(BindWidgetOptional))
-	TObjectPtr<UTextBlock> WeightInfo;
-
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
 	UInvWeightWidget();
-	
-protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
 
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
+public:
+	// Properties and variables
+	// Widgets
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> WeightText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> WeightInfo;
 };

@@ -1,4 +1,4 @@
-﻿//  Nublin Studio 2026 All Rights Reserved.
+//  Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -9,13 +9,13 @@
 class UCraftingComponent;
 // This class does not need to be modified.
 UINTERFACE()
-class UCraftProvider : public UInterface
+class INVENTORYSYSTEMINVENZAPLUGIN_API UCraftProvider : public UInterface
 {
 	GENERATED_BODY()
 };
 
 /**
- * 
+ *
  */
 class INVENTORYSYSTEMINVENZAPLUGIN_API ICraftProvider
 {

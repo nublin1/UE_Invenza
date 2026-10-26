@@ -1,8 +1,13 @@
 //  Nublin Studio 2026 All Rights Reserved.
 
 #include "ActorComponents/Crafting/CraftingComponent.h"
+#include "GameFramework/Actor.h"
+#include "Engine/World.h"
+#include "Engine/Engine.h"
+#include "Subsystems/InvenzaSaveSubsystem.h"
+#include "Engine/GameInstance.h"
 
-#include "ActorComponents/ItemCollection.h"
+#include "ActorComponents/InventoryCollectionComponent.h"
 #include "Data/ItemData.h"
 #include "Data/CraftSystem/ItemRecipe.h"
 #include "Data/Inventory/InventoryBase.h"
@@ -22,9 +27,22 @@ UCraftingComponent::UCraftingComponent()
 void UCraftingComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	if (InputInventory)
+
+	if (InputInventory || FuelInventory)
+	{
 		OnRep_InventoryUpdated();
+	}
+}
+
+void UCraftingComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	UnbindFuelInventoryEvents();
+	if (GetWorld())
+	{
+		GetWorld()->GetTimerManager().ClearTimer(FuelStateRefreshTimer);
+	}
+	bFuelStateRefreshScheduled = false;
+	Super::EndPlay(EndPlayReason);
 }
 
 void UCraftingComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -41,14 +59,15 @@ void UCraftingComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	DOREPLIFETIME(UCraftingComponent, InteractorInventory);
 	DOREPLIFETIME(UCraftingComponent, CachedRecipeResults);
 	DOREPLIFETIME(UCraftingComponent, AvailableRecipes);
+	DOREPLIFETIME(UCraftingComponent, bAllowAutomaticCrafting);
 }
 
-void UCraftingComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+void UCraftingComponent::TickComponent(float DeltaTime, ELevelTick TickType,
+									   FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-	
-	if (!GetOwner() || !GetOwner()->HasAuthority()
-		|| bCraftMutation || PendingDeliveries.IsEmpty())
+
+	if (!GetOwner() || !GetOwner()->HasAuthority() || bCraftMutation || PendingDeliveries.IsEmpty())
 	{
 		return;
 	}
@@ -67,8 +86,7 @@ void UCraftingComponent::TickComponent(float DeltaTime, ELevelTick TickType, FAc
 		HandleRecalculateAvailableRecipes();
 	}
 
-	if (PendingDeliveries.IsEmpty()
-		&& !GetWorld()->GetTimerManager().IsTimerActive(CraftTimerHandle))
+	if (PendingDeliveries.IsEmpty() && !GetWorld()->GetTimerManager().IsTimerActive(CraftTimerHandle))
 	{
 		TryStartNext();
 	}
@@ -98,78 +116,129 @@ void UCraftingComponent::HandleInitCraftingComponent()
 		UE_LOG(LogTemp, Warning, TEXT("StartingRecipes is empty on %s."), *GetOwner()->GetName());
 		return;
 	}
-    
+
 	AvailableRecipes.Empty();
-    
+
 	for (auto RecipeHandle : StartingRecipes)
 	{
 		if (!RecipeHandle.DataTable)
+		{
 			continue;
+		}
 
-		const FItemRecipeRow* RecipeRow = RecipeHandle.DataTable->FindRow<FItemRecipeRow>(
-		   RecipeHandle.RowName, TEXT("CanCraft"));
+		const FItemRecipeRow* RecipeRow =
+			RecipeHandle.DataTable->FindRow<FItemRecipeRow>(RecipeHandle.RowName, TEXT("CanCraft"));
 		if (!RecipeRow)
+		{
 			continue;
+		}
 
 		AvailableRecipes.Add(*RecipeRow);
 	}
-	
+
 	RequestRecalculateAvailableRecipes();
 	UpdateFuelBlockState();
+	UpdateOperatorBlockState();
+}
+
+void UCraftingComponent::SetAllowAutomaticCrafting(bool bAutomatic)
+{
+	if (!IsValid(GetOwner()) || !GetOwner()->HasAuthority() || bAllowAutomaticCrafting == bAutomatic)
+	{
+		return;
+	}
+
+	GetOwner()->FlushNetDormancy();
+	bAllowAutomaticCrafting = bAutomatic;
+	UpdateOperatorBlockState();
+	OnRep_AutomaticCrafting();
+	GetOwner()->ForceNetUpdate();
+}
+
+void UCraftingComponent::OnRep_AutomaticCrafting()
+{
+	OnAutomaticCraftingChanged.Broadcast(bAllowAutomaticCrafting);
 }
 
 void UCraftingComponent::AddOperator()
 {
 	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
 		return;
+	}
 
 	OperatorCount++;
 	if (OperatorCount >= 1)
+	{
 		UpdateOperatorBlockState();
+	}
 }
 
 void UCraftingComponent::RemoveOperator()
 {
 	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
 		return;
+	}
 
 	OperatorCount = FMath::Max(0, OperatorCount - 1);
 	if (OperatorCount == 0)
+	{
 		UpdateOperatorBlockState();
+	}
 }
 
 bool UCraftingComponent::HasFuelAvailable() const
 {
-	if (!bRequiresFuel) return true;
-	if (!FuelInventory || !FuelInventory->GetItemCollectionLinked()) return false;
-
-	auto Aggregated = FuelInventory->GetItemCollectionLinked()->CollectItemsAggregated(
-		FuelInventory->GetInventoryContainerID());
-
-	for (const FItemIDEntry& Entry : Aggregated)
+	if (!bRequiresFuel)
 	{
-		if (Entry.Amount > 0) return true;
+		return true;
+	}
+	if (!FuelItemTag.IsValid() || !FMath::IsFinite(FuelUnitsPerMinute) || FuelUnitsPerMinute <= 0.f ||
+		!IsResourceInventory(FuelInventory))
+	{
+		return false;
+	}
+
+	for (UObject* Item : FuelInventory->GetItemCollectionLinked()->GetAllItemsByContainer(
+		FuelInventory->GetInventoryContainerID()))
+	{
+		if (IsFuelItem(Item))
+		{
+			return true;
+		}
 	}
 	return false;
 }
 
-void UCraftingComponent::SetInventories_Implementation(UInventoryBase* NewInputInventory, UInventoryBase* NewOutputInventory, UInventoryBase* NewFuelInventory)
+bool UCraftingComponent::IsFuelItem(UObject* Item) const
+{
+	return IsValid(Item) && FuelItemTag.IsValid() && UInterfaceUtils::ImplementsObjectDataProvider(Item) &&
+		IObjectDataProvider::Execute_GetQuantity(Item) > 0 &&
+		IObjectDataProvider::Execute_GetItemRef(Item).ItemTags.HasTag(FuelItemTag);
+}
+
+void UCraftingComponent::SetInventories_Implementation(UInventoryBase* NewInputInventory,
+													   UInventoryBase* NewOutputInventory,
+													   UInventoryBase* NewFuelInventory)
 {
 	if (bCraftMutation)
 	{
 		return;
 	}
-	
-	if (!GetOwner())
-		return;
 
-	const bool bChanged =
-		InputInventory != NewInputInventory ||
-		OutputInventory != NewOutputInventory ||
-		FuelInventory != NewFuelInventory;
+	if (!GetOwner())
+	{
+		return;
+	}
+
+	const bool bChanged = InputInventory != NewInputInventory || OutputInventory != NewOutputInventory ||
+						  FuelInventory != NewFuelInventory;
 
 	if (!bChanged)
+	{
 		return;
+	}
 
 	InputInventory = NewInputInventory;
 	OutputInventory = NewOutputInventory;
@@ -180,8 +249,11 @@ void UCraftingComponent::SetInventories_Implementation(UInventoryBase* NewInputI
 
 void UCraftingComponent::SetInputInventory_Implementation(UInventoryBase* NewInputInventory)
 {
-	if (!GetOwner()) return;
-	
+	if (!GetOwner())
+	{
+		return;
+	}
+
 	if (bCraftMutation)
 	{
 		return;
@@ -196,7 +268,10 @@ void UCraftingComponent::SetInputInventory_Implementation(UInventoryBase* NewInp
 
 void UCraftingComponent::SetOutputInventory_Implementation(UInventoryBase* NewOutputInventory)
 {
-	if (!GetOwner()) return;
+	if (!GetOwner())
+	{
+		return;
+	}
 	if (bCraftMutation)
 	{
 		return;
@@ -211,7 +286,10 @@ void UCraftingComponent::SetOutputInventory_Implementation(UInventoryBase* NewOu
 
 void UCraftingComponent::SetFuelInventory_Implementation(UInventoryBase* NewFuelInventory)
 {
-	if (!GetOwner()) return;
+	if (!GetOwner())
+	{
+		return;
+	}
 	if (bCraftMutation)
 	{
 		return;
@@ -226,7 +304,10 @@ void UCraftingComponent::SetFuelInventory_Implementation(UInventoryBase* NewFuel
 
 void UCraftingComponent::SetInteractorInventory_Implementation(UInventoryBase* NewInteractorInventory)
 {
-	if (!GetOwner()) return;
+	if (!GetOwner())
+	{
+		return;
+	}
 	if (bCraftMutation)
 	{
 		return;
@@ -262,10 +343,10 @@ void UCraftingComponent::HandleRecalculateAvailableRecipes()
 	for (const FItemRecipeRow& Recipe : AvailableRecipes)
 	{
 		TArray<int32> EmptyOptions;
-		FRecipeCheckResult CheckResult = CanCraft(Recipe, EmptyOptions, 1); 
+		FRecipeCheckResult CheckResult = CanCraft(Recipe, EmptyOptions, 1);
 		CachedRecipeResults.Add(FCachedRecipeResult(Recipe.ID, CheckResult));
 	}
-	
+
 	OnRep_CachedRecipes();
 }
 
@@ -276,12 +357,16 @@ void UCraftingComponent::SetBlockStateRequest(const FBlockReasonData& BlockReaso
 		UE_LOG(LogTemp, Warning, TEXT("SetBlockState: Invalid block tag."));
 		return;
 	}
-	
+
 	if (!GetOwner())
+	{
 		return;
-	
+	}
+
 	if (GetOwner()->HasAuthority())
+	{
 		HandleSetBlockState(BlockReason, bBlocked);
+	}
 	else
 	{
 		Server_SetBlockState(BlockReason, bBlocked);
@@ -296,14 +381,16 @@ void UCraftingComponent::Server_SetBlockState_Implementation(const FBlockReasonD
 void UCraftingComponent::HandleSetBlockState(const FBlockReasonData& BlockReason, bool bBlocked)
 {
 	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
 		return;
-	
+	}
+
 	if (!BlockReason.Tag.IsValid())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("HandleSetBlockState: Invalid block tag."));
 		return;
 	}
-	
+
 	if (bBlocked)
 	{
 		ActiveBlocksReasons.AddUnique(BlockReason);
@@ -313,19 +400,23 @@ void UCraftingComponent::HandleSetBlockState(const FBlockReasonData& BlockReason
 	{
 		ActiveBlocksReasons.Remove(BlockReason);
 	}
-	
+
 	OnRep_Blocks();
 }
 
 void UCraftingComponent::SetNoResourcesRequest(bool bNewValue)
 {
 	if (!GetOwner())
+	{
 		return;
+	}
 
 	const auto* MySettings = UInvenzaInventorySettingsSubsystem::GetSettingsStatic(this);
 	if (!MySettings)
+	{
 		return;
-	
+	}
+
 	const FGameplayTag BlockTag = MySettings->Block_NoResources;
 	if (!BlockTag.IsValid())
 	{
@@ -334,14 +425,18 @@ void UCraftingComponent::SetNoResourcesRequest(bool bNewValue)
 	}
 
 	if (const FBlockReasonData* BlockReason = MySettings->FindBlockReason(BlockTag))
+	{
 		SetBlockStateRequest(*BlockReason, bNewValue);
+	}
 }
 
 bool UCraftingComponent::GetCachedResultForRecipe(FName RecipeID, FRecipeCheckResult& OutResult) const
 {
-	const FCachedRecipeResult* Found = CachedRecipeResults.FindByPredicate([RecipeID](const FCachedRecipeResult& Item) {
-		return Item.RecipeID == RecipeID;
-	});
+	const FCachedRecipeResult* Found = CachedRecipeResults.FindByPredicate(
+		[RecipeID](const FCachedRecipeResult& Item)
+		{
+			return Item.RecipeID == RecipeID;
+		});
 
 	if (Found)
 	{
@@ -352,55 +447,72 @@ bool UCraftingComponent::GetCachedResultForRecipe(FName RecipeID, FRecipeCheckRe
 	return false;
 }
 
-FRecipeCheckResult UCraftingComponent::CanCraft(const FItemRecipeRow& RecipeRow, const TArray<int32>& SelectedOptions, int32 Amount) const
+FRecipeCheckResult UCraftingComponent::CanCraft(const FItemRecipeRow& RecipeRow, const TArray<int32>& SelectedOptions,
+												int32 Amount) const
 {
 	TArray<FItemIDEntry> Items;
 
 	for (UInventoryBase* Inventory : GetResourceInventories())
 	{
-		Items.Append(Inventory->GetItemCollectionLinked()->CollectItemsAggregated(Inventory->GetInventoryContainerID()));
+		Items.Append(
+			Inventory->GetItemCollectionLinked()->CollectItemsAggregated(Inventory->GetInventoryContainerID()));
 	}
 
 	return CheckRecipe(RecipeRow, Items, SelectedOptions, Amount);
 }
 
-FRecipeCheckResult UCraftingComponent::CanCraftWithItems(const FItemRecipeRow& RecipeRow, const TArray<FItemIDEntry>& InventoryItems, int32 Amount)
+FRecipeCheckResult UCraftingComponent::CanCraftWithItems(const FItemRecipeRow& RecipeRow,
+														 const TArray<FItemIDEntry>& InventoryItems, int32 Amount)
 {
 	return CheckRecipe(RecipeRow, InventoryItems, TArray<int32>(), Amount);
 }
 
 FRecipeCheckResult UCraftingComponent::CanCraftWithItemsOptions(const FItemRecipeRow& RecipeRow,
-                                                                const TArray<FItemIDEntry>& InventoryItems,
-                                                                const TArray<int32>& SelectedOptions, int32 Amount)
+																const TArray<FItemIDEntry>& InventoryItems,
+																const TArray<int32>& SelectedOptions, int32 Amount)
 {
 	return CheckRecipe(RecipeRow, InventoryItems, SelectedOptions, Amount);
 }
 
-int32 UCraftingComponent::GetMaxCraftAmount(const FItemRecipeRow& RecipeRow,
-	const TArray<int32>& SelectedOptions) const
+int32 UCraftingComponent::GetMaxCraftAmount(const FItemRecipeRow& RecipeRow, const TArray<int32>& SelectedOptions) const
 {
 	TArray<FItemIDEntry> Items;
 	for (UInventoryBase* Inventory : GetResourceInventories())
-		Items.Append(Inventory->GetItemCollectionLinked()->CollectItemsAggregated(Inventory->GetInventoryContainerID()));
+	{
+		Items.Append(
+			Inventory->GetItemCollectionLinked()->CollectItemsAggregated(Inventory->GetInventoryContainerID()));
+	}
 	return GetMaxCraftAmountWithItems(RecipeRow, Items, SelectedOptions);
 }
 
-int32 UCraftingComponent::GetMaxCraftAmountWithItems(const FItemRecipeRow& RecipeRow,
-	const TArray<FItemIDEntry>& Items, const TArray<int32>& SelectedOptions)
+int32 UCraftingComponent::GetMaxCraftAmountWithItems(const FItemRecipeRow& RecipeRow, const TArray<FItemIDEntry>& Items,
+													 const TArray<int32>& SelectedOptions)
 {
-	if (RecipeRow.RequiredItems.IsEmpty()) return 0;
+	if (RecipeRow.RequiredItems.IsEmpty())
+	{
+		return 0;
+	}
 	// Match the UI's default selection (Primary), never auto-pick another alternative.
 	TArray<int32> Options = SelectedOptions;
-	if (Options.IsEmpty()) Options.Init(0, RecipeRow.RequiredItems.Num());
+	if (Options.IsEmpty())
+	{
+		Options.Init(0, RecipeRow.RequiredItems.Num());
+	}
 	const FRecipeCheckResult Single = CheckRecipe(RecipeRow, Items, Options, 1);
-	if (!Single.bCanCraft) return 0;
+	if (!Single.bCanCraft)
+	{
+		return 0;
+	}
 	int32 Upper = MAX_int32;
 	for (int32 Index = 0; Index < Single.Requirements.Num(); ++Index)
 	{
 		const auto& Requirement = Single.Requirements[Index];
 		const int32 Selected = Options.IsValidIndex(Index) ? Options[Index] : 0;
 		const auto& Option = Selected == 0 ? Requirement.Primary : Requirement.Alternatives[Selected - 1];
-		if (Option.AmountNeed <= 0) return 0;
+		if (Option.AmountNeed <= 0)
+		{
+			return 0;
+		}
 		Upper = FMath::Min(Upper, Option.AmountHave / Option.AmountNeed);
 	}
 	// The shared check reserves resources across requirements, including duplicate ItemIDs.
@@ -408,22 +520,34 @@ int32 UCraftingComponent::GetMaxCraftAmountWithItems(const FItemRecipeRow& Recip
 	while (Lower < Upper)
 	{
 		const int32 Mid = Lower + static_cast<int32>((static_cast<int64>(Upper) - Lower + 1) / 2);
-		if (CheckRecipe(RecipeRow, Items, Options, Mid).bCanCraft) Lower = Mid;
-		else Upper = Mid - 1;
+		if (CheckRecipe(RecipeRow, Items, Options, Mid).bCanCraft)
+		{
+			Lower = Mid;
+		}
+		else
+		{
+			Upper = Mid - 1;
+		}
 	}
 	return Lower;
 }
 
-void UCraftingComponent::EnqueueRecipeRequest(FItemRecipeRow ItemRecipeRow, const TArray<int32>& SelectedOptions, int32 Count)
+void UCraftingComponent::EnqueueRecipeRequest(FItemRecipeRow ItemRecipeRow, const TArray<int32>& SelectedOptions,
+											  int32 Count)
 {
-	if (!GetOwner()) return;
+	if (!GetOwner())
+	{
+		return;
+	}
 
 	if (Count <= 0)
+	{
 		return;
+	}
 
 	if (GetOwner()->HasAuthority())
 	{
-		HandleEnqueueRecipe(ItemRecipeRow,SelectedOptions, Count);
+		HandleEnqueueRecipe(ItemRecipeRow, SelectedOptions, Count);
 	}
 	else
 	{
@@ -433,7 +557,10 @@ void UCraftingComponent::EnqueueRecipeRequest(FItemRecipeRow ItemRecipeRow, cons
 
 void UCraftingComponent::CancelRecipeRequest(int32 QueueIndex)
 {
-	if (!GetOwner()) return;
+	if (!GetOwner())
+	{
+		return;
+	}
 
 	if (!GetOwner()->HasAuthority())
 	{
@@ -447,7 +574,10 @@ void UCraftingComponent::CancelRecipeRequest(int32 QueueIndex)
 
 void UCraftingComponent::RequestMoveQueueItem(FName RecipeID, int32 QueueIndex, bool bMoveUp)
 {
-	if (!GetOwner()) return;
+	if (!GetOwner())
+	{
+		return;
+	}
 	if (GetOwner()->HasAuthority())
 	{
 		Handle_MoveQueueItem(RecipeID, QueueIndex, bMoveUp);
@@ -458,21 +588,20 @@ void UCraftingComponent::RequestMoveQueueItem(FName RecipeID, int32 QueueIndex, 
 	}
 }
 
-void UCraftingComponent::Server_EnqueueRecipe_Implementation(FItemRecipeRow ItemRecipeRow, const TArray<int32>& SelectedOptions, int32 Count)
+void UCraftingComponent::Server_EnqueueRecipe_Implementation(FItemRecipeRow ItemRecipeRow,
+															 const TArray<int32>& SelectedOptions, int32 Count)
 {
-	HandleEnqueueRecipe(ItemRecipeRow,SelectedOptions, Count);
+	HandleEnqueueRecipe(ItemRecipeRow, SelectedOptions, Count);
 }
 
 void UCraftingComponent::HandleEnqueueRecipe(FItemRecipeRow ItemRecipeRow, const TArray<int32>& SelectedOptions,
-                                             int32 Count)
+											 int32 Count)
 {
-	if (!GetOwner() || !GetOwner()->HasAuthority()
-		|| bCraftMutation || Count <= 0
-		|| ItemRecipeRow.ID.IsNone())
+	if (!GetOwner() || !GetOwner()->HasAuthority() || bCraftMutation || Count <= 0 || ItemRecipeRow.ID.IsNone())
 	{
 		return;
 	}
-	
+
 	{
 		TGuardValue<bool> MutationGuard(bCraftMutation, true);
 
@@ -512,9 +641,7 @@ void UCraftingComponent::Server_CancelRecipe_Implementation(int32 QueueIndex)
 
 void UCraftingComponent::HandleCancelRecipe(int32 QueueIndex)
 {
-	if (!GetOwner() || !GetOwner()->HasAuthority()
-		|| bCraftMutation
-		|| !RecipeQueue.Items.IsValidIndex(QueueIndex))
+	if (!GetOwner() || !GetOwner()->HasAuthority() || bCraftMutation || !RecipeQueue.Items.IsValidIndex(QueueIndex))
 	{
 		return;
 	}
@@ -525,8 +652,7 @@ void UCraftingComponent::HandleCancelRecipe(int32 QueueIndex)
 		const FQueuedRecipe Item = RecipeQueue.Items[QueueIndex];
 		const int32 TargetRepID = Item.ReplicationID;
 
-		const bool bWasCurrent =
-			CurrentCraftingRecipe.QueueEntryId == Item.QueueEntryId;
+		const bool bWasCurrent = CurrentCraftingRecipe.QueueEntryId == Item.QueueEntryId;
 
 		if (bWasCurrent)
 		{
@@ -534,20 +660,22 @@ void UCraftingComponent::HandleCancelRecipe(int32 QueueIndex)
 			CurrentCraftingRecipe = FQueuedRecipe();
 		}
 
-		FCraftAdditionalData* AddData =	QueueAdditionalData.FindByPredicate([TargetRepID](const FCraftAdditionalData& Data)
-		{
-			return Data.TargetRepID == TargetRepID;
-		});
+		FCraftAdditionalData* AddData = QueueAdditionalData.FindByPredicate(
+			[TargetRepID](const FCraftAdditionalData& Data)
+			{
+				return Data.TargetRepID == TargetRepID;
+			});
 
 		FCraftAdditionalData DummyData;
 		RefundResourcesForRecipe(Item, Item.Count, AddData ? *AddData : DummyData);
 		RecipeQueue.Items.RemoveAt(QueueIndex);
 		RecalculateSortOrders();
 
-		QueueAdditionalData.RemoveAll([TargetRepID](const FCraftAdditionalData& Data)
-		{
-			return Data.TargetRepID == TargetRepID;
-		});
+		QueueAdditionalData.RemoveAll(
+			[TargetRepID](const FCraftAdditionalData& Data)
+			{
+				return Data.TargetRepID == TargetRepID;
+			});
 
 		FlushPendingDeliveries();
 		HandleRecalculateAvailableRecipes();
@@ -562,7 +690,14 @@ void UCraftingComponent::HandleCancelRecipe(int32 QueueIndex)
 
 void UCraftingComponent::ProcessCraftTick()
 {
-	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
+	if (GetWorld()->GetGameInstance()->GetSubsystem<UInvenzaSaveSubsystem>()->IsApplyingSnapshot())
+	{
+		return;
+	}
+	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
+		return;
+	}
 	if (bCraftMutation)
 	{
 		return;
@@ -573,9 +708,18 @@ void UCraftingComponent::ProcessCraftTick()
 	{
 		return;
 	}
-	
-	if (CurrentCraftingRecipe.ItemRecipeRow.ID.IsNone()) return;
-	
+
+	if (CurrentCraftingRecipe.ItemRecipeRow.ID.IsNone())
+	{
+		return;
+	}
+
+	UpdateFuelBlockState();
+	if (!ActiveBlocksReasons.IsEmpty() || !HasFuelAvailable())
+	{
+		return;
+	}
+
 	if (bRequiresFuel)
 	{
 		FuelAccumulatedTime += ProcessCraftTickTime;
@@ -584,7 +728,6 @@ void UCraftingComponent::ProcessCraftTick()
 		{
 			if (!ConsumeFuelUnit())
 			{
-				FuelAccumulatedTime = 0.f;
 				UpdateFuelBlockState();
 				return;
 			}
@@ -592,16 +735,16 @@ void UCraftingComponent::ProcessCraftTick()
 			FuelAccumulatedTime -= SecondsPerFuelUnit;
 		}
 	}
-    
+
 	auto EffectiveSpeed = CraftingSpeed * ProcessCraftTickTime;
 	CurrentCraftingRecipe.CurrentProgress += EffectiveSpeed;
 
-	if (RecipeQueue.Items.Num() > 0	&& RecipeQueue.Items[0].QueueEntryId == CurrentCraftingRecipe.QueueEntryId)
+	if (RecipeQueue.Items.Num() > 0 && RecipeQueue.Items[0].QueueEntryId == CurrentCraftingRecipe.QueueEntryId)
 	{
 		RecipeQueue.Items[0].CurrentProgress = CurrentCraftingRecipe.CurrentProgress;
 		RecipeQueue.MarkItemDirty(RecipeQueue.Items[0]);
 	}
-	
+
 	OnRep_CurrentRecipe();
 
 	if (CurrentCraftingRecipe.CurrentProgress >= CurrentCraftingRecipe.ItemRecipeRow.CraftVolume)
@@ -612,12 +755,18 @@ void UCraftingComponent::ProcessCraftTick()
 
 void UCraftingComponent::TryStartNext()
 {
-	if (!GetOwner() || !GetOwner()->HasAuthority()
-		|| bCraftMutation
-		|| !ActiveBlocksReasons.IsEmpty()
-		|| !PendingDeliveries.IsEmpty()
-		|| RecipeQueue.Items.IsEmpty()
-		|| GetWorld()->GetTimerManager().IsTimerActive(CraftTimerHandle))
+	if (GetWorld()->GetGameInstance()->GetSubsystem<UInvenzaSaveSubsystem>()->IsApplyingSnapshot())
+	{
+		return;
+	}
+	if (GetOwner() && GetOwner()->HasAuthority() && !bCraftMutation)
+	{
+		UpdateFuelBlockState();
+	}
+	if (!GetOwner() || !GetOwner()->HasAuthority() || bCraftMutation || !ActiveBlocksReasons.IsEmpty() ||
+		!HasFuelAvailable() ||
+		!PendingDeliveries.IsEmpty() || RecipeQueue.Items.IsEmpty() ||
+		GetWorld()->GetTimerManager().IsTimerActive(CraftTimerHandle))
 	{
 		return;
 	}
@@ -627,28 +776,30 @@ void UCraftingComponent::TryStartNext()
 
 void UCraftingComponent::StartCurrentRecipe(FQueuedRecipe& Item)
 {
-	if (!GetOwner() || !GetOwner()->HasAuthority()
-		|| bCraftMutation || Item.Count <= 0
-		|| ProcessCraftTickTime <= 0.f)
+	if (!GetOwner() || !GetOwner()->HasAuthority() || bCraftMutation || Item.Count <= 0 || ProcessCraftTickTime <= 0.f)
 	{
+		return;
+	}
+	if (!HasFuelAvailable())
+	{
+		UpdateFuelBlockState();
 		return;
 	}
 
 	TGuardValue<bool> MutationGuard(bCraftMutation, true);
 
-	FCraftAdditionalData* AddData =	QueueAdditionalData.FindByPredicate(
-			[&Item](const FCraftAdditionalData& Data)
-			{
-				return Data.TargetRepID == Item.ReplicationID;
-			});
+	FCraftAdditionalData* AddData = QueueAdditionalData.FindByPredicate(
+		[&Item](const FCraftAdditionalData& Data)
+		{
+			return Data.TargetRepID == Item.ReplicationID;
+		});
 
 	if (!AddData)
 	{
 		return;
 	}
 
-	if (ConsumePolicy == ECraftingResourceConsumePolicy::OnCraftStart
-		&& !CraftReservations.Contains(Item.QueueEntryId))
+	if (ConsumePolicy == ECraftingResourceConsumePolicy::OnCraftStart && !CraftReservations.Contains(Item.QueueEntryId))
 	{
 		if (!ConsumeResourcesForRecipe(Item, 1, *AddData))
 		{
@@ -657,26 +808,20 @@ void UCraftingComponent::StartCurrentRecipe(FQueuedRecipe& Item)
 		}
 	}
 
-	if (ConsumePolicy == ECraftingResourceConsumePolicy::OnQueueAdd
-		&& !CraftReservations.Contains(Item.QueueEntryId))
+	if (ConsumePolicy == ECraftingResourceConsumePolicy::OnQueueAdd && !CraftReservations.Contains(Item.QueueEntryId))
 	{
 		// Do not manufacture an unpaid queued batch.
 		return;
 	}
 
-	if (!ActiveBlocksReasons.IsEmpty()
-		|| !PendingDeliveries.IsEmpty())
+	if (!ActiveBlocksReasons.IsEmpty() || !PendingDeliveries.IsEmpty())
 	{
 		return;
 	}
 
 	CurrentCraftingRecipe = Item;
-	GetWorld()->GetTimerManager().SetTimer(
-		CraftTimerHandle,
-		this,
-		&UCraftingComponent::ProcessCraftTick,
-		ProcessCraftTickTime,
-		true);
+	GetWorld()->GetTimerManager().SetTimer(CraftTimerHandle, this, &UCraftingComponent::ProcessCraftTick,
+										   ProcessCraftTickTime, true);
 
 	OnRep_CurrentRecipe();
 }
@@ -692,10 +837,11 @@ void UCraftingComponent::FinishCurrentRecipe()
 	{
 		TGuardValue<bool> MutationGuard(bCraftMutation, true);
 
-		const int32 QueueIndex = RecipeQueue.Items.IndexOfByPredicate([this](const FQueuedRecipe& Item)
-		{
-			return Item.QueueEntryId == CurrentCraftingRecipe.QueueEntryId;
-		});
+		const int32 QueueIndex = RecipeQueue.Items.IndexOfByPredicate(
+			[this](const FQueuedRecipe& Item)
+			{
+				return Item.QueueEntryId == CurrentCraftingRecipe.QueueEntryId;
+			});
 
 		if (QueueIndex == INDEX_NONE)
 		{
@@ -703,10 +849,11 @@ void UCraftingComponent::FinishCurrentRecipe()
 		}
 
 		FQueuedRecipe& Item = RecipeQueue.Items[QueueIndex];
-		FCraftAdditionalData* AddData =	QueueAdditionalData.FindByPredicate([&Item](const FCraftAdditionalData& Data)
-		{
-			return Data.TargetRepID == Item.ReplicationID;
-		});
+		FCraftAdditionalData* AddData = QueueAdditionalData.FindByPredicate(
+			[&Item](const FCraftAdditionalData& Data)
+			{
+				return Data.TargetRepID == Item.ReplicationID;
+			});
 
 		if (!AddData)
 		{
@@ -718,15 +865,14 @@ void UCraftingComponent::FinishCurrentRecipe()
 		// Prepare every output before committing the paid resources.
 		if (!PrepareCraftOutput(Item.ItemRecipeRow, Output))
 		{
-			UE_LOG(LogTemp, Error,
-			       TEXT("Cannot prepare output for recipe %s"),
-			       *Item.ItemRecipeRow.ID.ToString());
+			UE_LOG(LogTemp, Error, TEXT("Cannot prepare output for recipe %s"), *Item.ItemRecipeRow.ID.ToString());
 			return;
 		}
 
 		if (!CraftReservations.Contains(Item.QueueEntryId))
 		{
-			if (ConsumePolicy != ECraftingResourceConsumePolicy::OnCraftFinish || !ConsumeResourcesForRecipe(Item, 1, *AddData))
+			if (ConsumePolicy != ECraftingResourceConsumePolicy::OnCraftFinish ||
+				!ConsumeResourcesForRecipe(Item, 1, *AddData))
 			{
 				SetNoResourcesRequest(true);
 				return;
@@ -776,165 +922,173 @@ void UCraftingComponent::FinishCurrentRecipe()
 
 bool UCraftingComponent::ConsumeFuelUnit()
 {
-	if (!FuelInventory || !FuelInventory->GetItemCollectionLinked())
+	if (!GetOwner() || !GetOwner()->HasAuthority() || !IsResourceInventory(FuelInventory))
+	{
 		return false;
+	}
 
-	TArray<UObject*> FuelItems = FuelInventory->GetItemCollectionLinked()->GetAllItemsByContainer(
-		FuelInventory->GetInventoryContainerID());
+	TArray<UObject*> FuelItems =
+		FuelInventory->GetItemCollectionLinked()->GetAllItemsByContainer(FuelInventory->GetInventoryContainerID());
 
 	for (UObject* Item : FuelItems)
 	{
-		if (!UInterfaceUtils::ImplementsObjectDataProvider(Item)) continue;
-		if (IObjectDataProvider::Execute_GetQuantity(Item) <= 0) continue;
+		if (!IsFuelItem(Item))
+		{
+			continue;
+		}
 
-		FuelInventory->HandleRemoveItem(Item, 1);
-		return true;
+		const FName ItemID = IObjectDataProvider::Execute_GetItemID(Item);
+		const int32 Before = CountItem(FuelInventory, ItemID);
+		{
+			TGuardValue<bool> MutationGuard(bCraftMutation, true);
+			FuelInventory->HandleRemoveItem(Item, 1);
+		}
+		if (Before - CountItem(FuelInventory, ItemID) == 1)
+		{
+			return true;
+		}
 	}
 
 	return false;
 }
 
-bool UCraftingComponent::ConsumeResourcesForRecipe(FQueuedRecipe& Item, int32 Count, FCraftAdditionalData& AddData) 
+bool UCraftingComponent::ConsumeResourcesForRecipe(FQueuedRecipe& Item, int32 Count, FCraftAdditionalData& AddData)
 {
 	if (Count <= 0)
-    {
-        return false;
-    }
+	{
+		return false;
+	}
 
-    if (const FCraftReservation* Existing = CraftReservations.Find(Item.QueueEntryId))
-    {
-        return Existing->PaidIterations >= Count;
-    }
+	if (const FCraftReservation* Existing = CraftReservations.Find(Item.QueueEntryId))
+	{
+		return Existing->PaidIterations >= Count;
+	}
 
-    const FRecipeCheckResult Check = CanCraft(Item.ItemRecipeRow, AddData.SelectedOptions, Count);
+	const FRecipeCheckResult Check = CanCraft(Item.ItemRecipeRow, AddData.SelectedOptions, Count);
 	if (!Check.bCanCraft)
-    {
-        return false;
-    }
+	{
+		return false;
+	}
 
-    FCraftReservation Reservation;
-    const TArray<UInventoryBase*> Sources = GetResourceInventories();
+	FCraftReservation Reservation;
+	const TArray<UInventoryBase*> Sources = GetResourceInventories();
 
-    auto Rollback = [&]()
-    {
-        // Keep actual removed resources until they can be returned.
-        PendingDeliveries.Append(Reservation.Resources);
-        return false;
-    };
+	auto Rollback = [&]()
+	{
+		// Keep actual removed resources until they can be returned.
+		PendingDeliveries.Append(Reservation.Resources);
+		return false;
+	};
 
-    for (const FInitItemsEntry& Cost : Check.ResourcesToConsume)
-    {
-        const FItemData* Row = Cost.Item.DataTable
-            ? Cost.Item.DataTable->FindRow<FItemData>(Cost.Item.RowName, TEXT("CraftConsume"))
-            : nullptr;
+	for (const FInitItemsEntry& Cost : Check.ResourcesToConsume)
+	{
+		const FItemData* Row = Cost.Item.DataTable
+								   ? Cost.Item.DataTable->FindRow<FItemData>(Cost.Item.RowName, TEXT("CraftConsume"))
+								   : nullptr;
 
-        if (!Row || Cost.Amount <= 0 || Cost.Amount % Count != 0)
-        {
-            return Rollback();
-        }
+		if (!Row || Cost.Amount <= 0 || Cost.Amount % Count != 0)
+		{
+			return Rollback();
+		}
 
-        FInitItemsEntry UnitCost = Cost;
-        UnitCost.Amount /= Count;
-        Reservation.UnitCost.Add(UnitCost);
+		FInitItemsEntry UnitCost = Cost;
+		UnitCost.Amount /= Count;
+		Reservation.UnitCost.Add(UnitCost);
 
-        int32 Remaining = Cost.Amount;
+		int32 Remaining = Cost.Amount;
 
-        for (UInventoryBase* Source : Sources)
-        {
-            const TArray<UObject*> SourceItems = Source->GetItemCollectionLinked()->GetAllItemsByContainer(
-                    Source->GetInventoryContainerID());
+		for (UInventoryBase* Source : Sources)
+		{
+			const TArray<UObject*> SourceItems =
+				Source->GetItemCollectionLinked()->GetAllItemsByContainer(Source->GetInventoryContainerID());
 
-            TSet<UObject*> Seen;
-            for (UObject* SourceItem : SourceItems)
-            {
-                if (Remaining == 0)
-                {
-                    break;
-                }
+			TSet<UObject*> Seen;
+			for (UObject* SourceItem : SourceItems)
+			{
+				if (Remaining == 0)
+				{
+					break;
+				}
 
-                if (!IsValid(SourceItem) || Seen.Contains(SourceItem)
-                    || !UInterfaceUtils::ImplementsObjectDataProvider(
-                        SourceItem))
-                {
-                    continue;
-                }
+				if (!IsValid(SourceItem) || Seen.Contains(SourceItem) ||
+					!UInterfaceUtils::ImplementsObjectDataProvider(SourceItem))
+				{
+					continue;
+				}
 
-                Seen.Add(SourceItem);
+				Seen.Add(SourceItem);
 
-                if (IObjectDataProvider::Execute_GetItemID(SourceItem)
-                    != Row->ID)
-                {
-                    continue;
-                }
+				if (IObjectDataProvider::Execute_GetItemID(SourceItem) != Row->ID)
+				{
+					continue;
+				}
 
-                const int32 Requested = FMath::Min(
-                    Remaining,FMath::Max(0,IObjectDataProvider::Execute_GetQuantity(SourceItem)));
+				const int32 Requested =
+					FMath::Min(Remaining, FMath::Max(0, IObjectDataProvider::Execute_GetQuantity(SourceItem)));
 
-                if (Requested == 0)
-                {
-                    continue;
-                }
+				if (Requested == 0)
+				{
+					continue;
+				}
 
-                UObject* Snapshot = IObjectDataProvider::Execute_DuplicateItem(SourceItem);
+				UObject* Snapshot = IObjectDataProvider::Execute_DuplicateItem(SourceItem);
 
-                if (!IsValid(Snapshot)
-                    || Snapshot == SourceItem
-                    || !UInterfaceUtils::ImplementsObjectDataProvider(
-                        Snapshot))
-                {
-                    return Rollback();
-                }
+				if (!IsValid(Snapshot) || Snapshot == SourceItem ||
+					!UInterfaceUtils::ImplementsObjectDataProvider(Snapshot))
+				{
+					return Rollback();
+				}
 
-                const int32 Before = CountItem(Source, Row->ID);
+				const int32 Before = CountItem(Source, Row->ID);
 
-                Source->HandleRemoveItem(SourceItem, Requested);
+				Source->HandleRemoveItem(SourceItem, Requested);
 
-                const int32 After = CountItem(Source, Row->ID);
+				const int32 After = CountItem(Source, Row->ID);
 
-                const int32 Removed = FMath::Clamp(Before - After, 0, Requested);
+				const int32 Removed = FMath::Clamp(Before - After, 0, Requested);
 
-                if (Removed > 0)
-                {
-                    IObjectDataProvider::Execute_SetQuantity(Snapshot, Removed);
+				if (Removed > 0)
+				{
+					IObjectDataProvider::Execute_SetQuantity(Snapshot, Removed);
 
-                    FCraftItemBatch Batch;
-                    Batch.Inventory = Source;
-                    Batch.Sample = Snapshot;
-                    Batch.ItemID = Row->ID;
-                    Batch.Amount = Removed;
+					FCraftItemBatch Batch;
+					Batch.Inventory = Source;
+					Batch.Sample = Snapshot;
+					Batch.ItemID = Row->ID;
+					Batch.Amount = Removed;
 
-                    Reservation.Resources.Add(Batch);
-                    Remaining -= Removed;
-                }
+					Reservation.Resources.Add(Batch);
+					Remaining -= Removed;
+				}
 
-                if (Removed != Requested)
-                {
-                    return Rollback();
-                }
-            }
+				if (Removed != Requested)
+				{
+					return Rollback();
+				}
+			}
 
-            if (Remaining == 0)
-            {
-                break;
-            }
-        }
+			if (Remaining == 0)
+			{
+				break;
+			}
+		}
 
-        if (Remaining != 0)
-        {
-            return Rollback();
-        }
-    }
+		if (Remaining != 0)
+		{
+			return Rollback();
+		}
+	}
 
-    Reservation.PaidIterations = Count;
-    CraftReservations.Add(Item.QueueEntryId, MoveTemp(Reservation));
+	Reservation.PaidIterations = Count;
+	CraftReservations.Add(Item.QueueEntryId, MoveTemp(Reservation));
 
-    Item.bResourcesWasConsumed = true;
-    RecipeQueue.MarkItemDirty(Item);
+	Item.bResourcesWasConsumed = true;
+	RecipeQueue.MarkItemDirty(Item);
 
-    // The old array no longer represents refundable resources.
-    AddData.ConsumedResources.Reset();
+	// The old array no longer represents refundable resources.
+	AddData.ConsumedResources.Reset();
 
-    return true;
+	return true;
 }
 
 void UCraftingComponent::RefundResourcesForRecipe(const FQueuedRecipe& Item, int32 Count, FCraftAdditionalData& AddData)
@@ -985,8 +1139,7 @@ bool UCraftingComponent::PrepareCraftOutput(const FItemRecipeRow& Recipe, TArray
 
 		UObject* Sample = UItemFactory::CreateItemByHandle(this, Output.Item, 1);
 
-		if (!IsValid(Sample)
-			|| !UInterfaceUtils::ImplementsObjectDataProvider(Sample))
+		if (!IsValid(Sample) || !UInterfaceUtils::ImplementsObjectDataProvider(Sample))
 		{
 			OutBatches.Reset();
 			return false;
@@ -1008,28 +1161,22 @@ void UCraftingComponent::FlushPendingDeliveries()
 {
 	for (FCraftItemBatch& Batch : PendingDeliveries)
 	{
-		if (!IsResourceInventory(Batch.Inventory)
-			|| !IsValid(Batch.Sample))
+		if (!IsResourceInventory(Batch.Inventory) || !IsValid(Batch.Sample))
 		{
 			continue;
 		}
 
 		// Bound the work per retry for large batches.
-		for (int32 Attempt = 0;
-			 Attempt < 32 && Batch.Amount > 0;
-			 ++Attempt)
+		for (int32 Attempt = 0; Attempt < 32 && Batch.Amount > 0; ++Attempt)
 		{
 			const bool bStackable = IObjectDataProvider::Execute_IsStackable(Batch.Sample);
 			const FItemMetaData Meta = IObjectDataProvider::Execute_GetItemRef(Batch.Sample);
-			const int32 MaxStack = bStackable
-				? FMath::Max(1, Meta.ItemNumeraticData.MaxStackSizeInCharacter)
-				: 1;
+			const int32 MaxStack = bStackable ? FMath::Max(1, Meta.ItemNumeraticData.MaxStackSizeInCharacter) : 1;
 
 			const int32 Requested = FMath::Min(Batch.Amount, MaxStack);
 			UObject* Item = IObjectDataProvider::Execute_DuplicateItem(Batch.Sample);
 
-			if (!IsValid(Item) || Item == Batch.Sample
-				|| !UInterfaceUtils::ImplementsObjectDataProvider(Item))
+			if (!IsValid(Item) || Item == Batch.Sample || !UInterfaceUtils::ImplementsObjectDataProvider(Item))
 			{
 				break;
 			}
@@ -1058,7 +1205,6 @@ void UCraftingComponent::FlushPendingDeliveries()
 		});
 }
 
-
 void UCraftingComponent::CommitReservedIteration(FQueuedRecipe& Item)
 {
 	FCraftReservation* Reservation = CraftReservations.Find(Item.QueueEntryId);
@@ -1068,8 +1214,8 @@ void UCraftingComponent::CommitReservedIteration(FQueuedRecipe& Item)
 	for (const FInitItemsEntry& Cost : Reservation->UnitCost)
 	{
 		const FItemData* Row = Cost.Item.DataTable
-			? Cost.Item.DataTable->FindRow<FItemData>(Cost.Item.RowName, TEXT("CraftCommit"))
-			: nullptr;
+								   ? Cost.Item.DataTable->FindRow<FItemData>(Cost.Item.RowName, TEXT("CraftCommit"))
+								   : nullptr;
 
 		check(Row);
 		int32 Remaining = Cost.Amount;
@@ -1112,6 +1258,10 @@ void UCraftingComponent::CommitReservedIteration(FQueuedRecipe& Item)
 
 void UCraftingComponent::OnRep_Queue()
 {
+	if (GetOwner()->HasAuthority() && GetWorld()->GetGameInstance())
+	{
+		GetWorld()->GetGameInstance()->GetSubsystem<UInvenzaSaveSubsystem>()->MarkSessionChanged();
+	}
 	/*RecipeQueue.Items.Sort([](const FQueuedRecipe& A, const FQueuedRecipe& B) {
 		return A.SortOrder < B.SortOrder;
 	});*/
@@ -1120,11 +1270,16 @@ void UCraftingComponent::OnRep_Queue()
 
 void UCraftingComponent::OnRep_CurrentRecipe()
 {
+	if (GetOwner()->HasAuthority() && GetWorld()->GetGameInstance())
+	{
+		GetWorld()->GetGameInstance()->GetSubsystem<UInvenzaSaveSubsystem>()->MarkSessionChanged();
+	}
 	OnCurrentCraftDataChanged.Broadcast(CurrentCraftingRecipe);
 }
 
 void UCraftingComponent::OnRep_InventoryUpdated()
 {
+	BindFuelInventoryEvents();
 	if (InputInventory)
 	{
 		if (GetOwner() && GetOwner()->HasAuthority())
@@ -1132,7 +1287,7 @@ void UCraftingComponent::OnRep_InventoryUpdated()
 			HandleRecalculateAvailableRecipes();
 		}
 	}
-	
+
 	if (GetOwner() && GetOwner()->HasAuthority())
 	{
 		UpdateFuelBlockState();
@@ -1150,15 +1305,21 @@ void UCraftingComponent::OnRep_AvailableRecipes()
 	{
 		UE_LOG(LogTemp, Log, TEXT("Available Recipes replicated to client. Count: %d"), AvailableRecipes.Num());
 	}
-	
+
 	OnAvailableRecipesChanged.Broadcast();
 }
 
 void UCraftingComponent::OnRep_Blocks()
 {
+	if (GetOwner()->HasAuthority() && GetWorld()->GetGameInstance())
+	{
+		GetWorld()->GetGameInstance()->GetSubsystem<UInvenzaSaveSubsystem>()->MarkSessionChanged();
+	}
 	Multicast_OnBlocksUpdated(ActiveBlocksReasons);
 	if (ActiveBlocksReasons.IsEmpty())
+	{
 		TryStartNext();
+	}
 }
 
 void UCraftingComponent::Multicast_OnBlocksUpdated_Implementation(const TArray<FBlockReasonData>& BlocksActive)
@@ -1195,21 +1356,19 @@ void UCraftingComponent::Handle_MoveQueueItem(FName RecipeID, int32 QueueIndex, 
 	{
 		return;
 	}
-	
-	if (!RecipeQueue.Items.IsValidIndex(QueueIndex)) 
+
+	if (!RecipeQueue.Items.IsValidIndex(QueueIndex))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Handle_MoveQueueItem: Invalid queue index received: %d"), QueueIndex);
 		return;
 	}
-	
+
 	const int32 NewIndex = bMoveUp ? QueueIndex - 1 : QueueIndex + 1;
 	if (!RecipeQueue.Items.IsValidIndex(NewIndex))
 	{
 		UE_LOG(LogTemp, Warning,
-			TEXT("Handle_MoveQueueItem: Cannot move recipe '%s' %s. It is already at the %s of the queue."),
-			*RecipeID.ToString(),
-			bMoveUp ? TEXT("up") : TEXT("down"),
-			bMoveUp ? TEXT("top") : TEXT("bottom"));
+			   TEXT("Handle_MoveQueueItem: Cannot move recipe '%s' %s. It is already at the %s of the queue."),
+			   *RecipeID.ToString(), bMoveUp ? TEXT("up") : TEXT("down"), bMoveUp ? TEXT("top") : TEXT("bottom"));
 
 		return;
 	}
@@ -1217,7 +1376,7 @@ void UCraftingComponent::Handle_MoveQueueItem(FName RecipeID, int32 QueueIndex, 
 	//SaveCurrentProgressToQueue();
 
 	GetWorld()->GetTimerManager().ClearTimer(CraftTimerHandle);
-	
+
 	FQueuedRecipe MovingItem = RecipeQueue.Items[QueueIndex];
 	RecipeQueue.Items.RemoveAt(QueueIndex);
 	RecipeQueue.Items.Insert(MovingItem, NewIndex);
@@ -1253,20 +1412,20 @@ void UCraftingComponent::LogQueueState(const FString& Context) const
 	for (int32 i = 0; i < RecipeQueue.Items.Num(); ++i)
 	{
 		const FQueuedRecipe& Item = RecipeQueue.Items[i];
-		ItemsStr += FString::Printf(TEXT("\n   [%d] ID=%s Count=%d Progress=%.2f Consumed=%d RepID=%d RepKey=%d"),
-			i, *Item.ItemRecipeRow.ID.ToString(), Item.Count, Item.CurrentProgress, Item.bResourcesWasConsumed,
-			Item.ReplicationID, Item.ReplicationKey);
+		ItemsStr += FString::Printf(TEXT("\n   [%d] ID=%s Count=%d Progress=%.2f Consumed=%d RepID=%d RepKey=%d"), i,
+									*Item.ItemRecipeRow.ID.ToString(), Item.Count, Item.CurrentProgress,
+									Item.bResourcesWasConsumed, Item.ReplicationID, Item.ReplicationKey);
 	}
 
-	const FString Msg = FString::Printf(TEXT("[%s][%s] %s | Num=%d%s"),
-		*Role, *Context, *GetOwner()->GetName(), RecipeQueue.Items.Num(), *ItemsStr);
+	const FString Msg = FString::Printf(TEXT("[%s][%s] %s | Num=%d%s"), *Role, *Context, *GetOwner()->GetName(),
+										RecipeQueue.Items.Num(), *ItemsStr);
 
 	UE_LOG(LogTemp, Warning, TEXT("%s"), *Msg);
 
 	if (GEngine)
 	{
-		// Уникальный key на каждый Role+Context, чтобы строки не перетирали друг друга,
-		// но обновлялись (а не плодились бесконечно) при повторном вызове.
+		// Use a unique key per role and context to keep diagnostic messages distinct,
+		// while updating the same message instead of adding duplicates on repeated calls.
 		const int32 OnScreenKey = GetTypeHash(Role + Context);
 		GEngine->AddOnScreenDebugMessage(OnScreenKey, 8.f, Color, Msg);
 	}
@@ -1287,39 +1446,150 @@ void UCraftingComponent::RecalculateSortOrders()
 
 void UCraftingComponent::UpdateOperatorBlockState()
 {
-	if (bAllowAutomaticCrafting)
-		return; 
+	if (!IsValid(GetOwner()) || !GetOwner()->HasAuthority())
+	{
+		return;
+	}
 
 	const auto* MySettings = UInvenzaInventorySettingsSubsystem::GetSettingsStatic(this);
-	if (!MySettings) return;
+	if (!MySettings)
+	{
+		return;
+	}
 
-	const FGameplayTag BlockTag = MySettings->Block_NoOperator; 
-	if (!BlockTag.IsValid()) return;
+	const FGameplayTag BlockTag = MySettings->Block_NoOperator;
+	if (!BlockTag.IsValid())
+	{
+		return;
+	}
 
 	if (const FBlockReasonData* BlockReason = MySettings->FindBlockReason(BlockTag))
 	{
-		HandleSetBlockState(*BlockReason, OperatorCount == 0);
+		const bool bNeedsOperator = !bAllowAutomaticCrafting && OperatorCount == 0;
+		const bool bBlocked = ActiveBlocksReasons.ContainsByPredicate(
+			[BlockTag](const FBlockReasonData& Reason)
+			{
+				return Reason.Tag == BlockTag;
+			});
+		if (bNeedsOperator != bBlocked)
+		{
+			HandleSetBlockState(*BlockReason, bNeedsOperator);
+		}
 	}
 }
 
 void UCraftingComponent::UpdateFuelBlockState()
 {
-	if (!GetOwner() || !GetOwner()->HasAuthority() || !bRequiresFuel)
+	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
 		return;
+	}
+	SecondsPerFuelUnit = FMath::IsFinite(FuelUnitsPerMinute) && FuelUnitsPerMinute > 0.f
+		? 60.f / FuelUnitsPerMinute : 0.f;
 
 	const auto* MySettings = UInvenzaInventorySettingsSubsystem::GetSettingsStatic(this);
-	if (!MySettings) return;
+	if (!MySettings)
+	{
+		return;
+	}
 
 	const FBlockReasonData* BlockReason = MySettings->FindBlockReason(MySettings->Block_NoFuel);
-	if (!BlockReason) return;
+	if (!BlockReason)
+	{
+		return;
+	}
 
-	HandleSetBlockState(*BlockReason, !HasFuelAvailable());
+	const bool bNeedsFuel = !HasFuelAvailable();
+	const bool bBlocked = ActiveBlocksReasons.ContainsByPredicate(
+		[BlockReason](const FBlockReasonData& Reason)
+		{
+			return Reason.Tag == BlockReason->Tag;
+		});
+	if (bNeedsFuel != bBlocked)
+	{
+		HandleSetBlockState(*BlockReason, bNeedsFuel);
+	}
+}
+
+void UCraftingComponent::BindFuelInventoryEvents()
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority() || ObservedFuelInventory.Get() == FuelInventory)
+	{
+		return;
+	}
+	UnbindFuelInventoryEvents();
+	ObservedFuelInventory = FuelInventory;
+	if (!IsValid(FuelInventory))
+	{
+		return;
+	}
+	FuelInventory->OnAddItemDelegate.AddUniqueDynamic(this, &ThisClass::HandleFuelItemAdded);
+	FuelInventory->OnItemRemovedDelegate.AddUniqueDynamic(this, &ThisClass::HandleFuelItemRemoved);
+	FuelInventory->OnItemReplaceDelegate.AddUniqueDynamic(this, &ThisClass::HandleFuelItemReplaced);
+	FuelInventory->OnStackedItemDelegate.AddUniqueDynamic(this, &ThisClass::HandleFuelQuantityChanged);
+	FuelInventory->OnUnstackedItemDelegate.AddUniqueDynamic(this, &ThisClass::HandleFuelQuantityChanged);
+	FuelInventory->OnInventoryRedrawRequested.AddUniqueDynamic(this, &ThisClass::RequestFuelStateRefresh);
+	FuelInventory->OnConfigurationChanged.AddUniqueDynamic(this, &ThisClass::RequestFuelStateRefresh);
+}
+
+void UCraftingComponent::UnbindFuelInventoryEvents()
+{
+	if (UInventoryBase* Inventory = ObservedFuelInventory.Get())
+	{
+		Inventory->OnAddItemDelegate.RemoveAll(this);
+		Inventory->OnItemRemovedDelegate.RemoveAll(this);
+		Inventory->OnItemReplaceDelegate.RemoveAll(this);
+		Inventory->OnStackedItemDelegate.RemoveAll(this);
+		Inventory->OnUnstackedItemDelegate.RemoveAll(this);
+		Inventory->OnInventoryRedrawRequested.RemoveAll(this);
+		Inventory->OnConfigurationChanged.RemoveAll(this);
+	}
+	ObservedFuelInventory.Reset();
+}
+
+void UCraftingComponent::RequestFuelStateRefresh()
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority() || !GetWorld() || GetWorld()->bIsTearingDown ||
+		bFuelStateRefreshScheduled)
+	{
+		return;
+	}
+	// Inventory delegates can run inside a removal transaction; inspect its final state next frame.
+	bFuelStateRefreshScheduled = true;
+	FuelStateRefreshTimer = GetWorld()->GetTimerManager().SetTimerForNextTick(
+		this, &ThisClass::RefreshFuelStateAfterInventoryChange);
+}
+
+void UCraftingComponent::RefreshFuelStateAfterInventoryChange()
+{
+	bFuelStateRefreshScheduled = false;
+	UpdateFuelBlockState();
+}
+
+void UCraftingComponent::HandleFuelItemAdded(FItemMapping& Mapping, UObject* Item)
+{
+	RequestFuelStateRefresh();
+}
+
+void UCraftingComponent::HandleFuelItemRemoved(FItemMapping Mapping, UObject* Item)
+{
+	RequestFuelStateRefresh();
+}
+
+void UCraftingComponent::HandleFuelQuantityChanged(UObject* Item)
+{
+	RequestFuelStateRefresh();
+}
+
+void UCraftingComponent::HandleFuelItemReplaced(TArray<UInventorySlotData*> OldSlots, FItemMapping& Mapping, UObject* Item)
+{
+	RequestFuelStateRefresh();
 }
 
 bool UCraftingComponent::IsResourceInventory(UInventoryBase* Inventory)
 {
-	return IsValid(Inventory) && IsValid(Inventory->GetItemCollectionLinked())
-			&& !Inventory->GetInventorySettings().bIsReferenceContainer;
+	return IsValid(Inventory) && IsValid(Inventory->GetItemCollectionLinked()) &&
+		   !Inventory->GetInventorySettings().bIsReferenceContainer;
 }
 
 int32 UCraftingComponent::CountItem(UInventoryBase* Inventory, FName ItemID)
@@ -1332,11 +1602,10 @@ int32 UCraftingComponent::CountItem(UInventoryBase* Inventory, FName ItemID)
 	int64 Total = 0;
 	TSet<UObject*> Seen;
 
-	for (UObject* Item : Inventory->GetItemCollectionLinked()->GetAllItemsByContainer(
-			Inventory->GetInventoryContainerID()))
+	for (UObject* Item :
+		 Inventory->GetItemCollectionLinked()->GetAllItemsByContainer(Inventory->GetInventoryContainerID()))
 	{
-		if (!IsValid(Item) || Seen.Contains(Item)
-			|| !UInterfaceUtils::ImplementsObjectDataProvider(Item))
+		if (!IsValid(Item) || Seen.Contains(Item) || !UInterfaceUtils::ImplementsObjectDataProvider(Item))
 		{
 			continue;
 		}
@@ -1352,7 +1621,7 @@ int32 UCraftingComponent::CountItem(UInventoryBase* Inventory, FName ItemID)
 }
 
 FRecipeCheckResult UCraftingComponent::CheckRecipe(const FItemRecipeRow& Recipe, const TArray<FItemIDEntry>& Items,
-                                                   const TArray<int32>& SelectedOptions, int32 Amount)
+												   const TArray<int32>& SelectedOptions, int32 Amount)
 {
 	FRecipeCheckResult Result;
 	if (Amount <= 0)
@@ -1382,13 +1651,11 @@ FRecipeCheckResult UCraftingComponent::CheckRecipe(const FItemRecipeRow& Recipe,
 		{
 			FCraftIngredientOption Option;
 			Option.Handle = Handle;
-			const FItemData* Row = Handle.DataTable ? Handle.DataTable->FindRow<FItemData>(Handle.RowName, TEXT("CraftCheck")): nullptr;
+			const FItemData* Row =
+				Handle.DataTable ? Handle.DataTable->FindRow<FItemData>(Handle.RowName, TEXT("CraftCheck")) : nullptr;
 			const int64 Required = static_cast<int64>(Quantity) * Amount;
 
-			if (Row && !Row->ID.IsNone()
-				&& Quantity > 0
-				&& Required > 0
-				&& Required <= MAX_int32)
+			if (Row && !Row->ID.IsNone() && Quantity > 0 && Required > 0 && Required <= MAX_int32)
 			{
 				Option.bValid = true;
 				Option.ItemID = Row->ID;
@@ -1406,13 +1673,13 @@ FRecipeCheckResult UCraftingComponent::CheckRecipe(const FItemRecipeRow& Recipe,
 			RowOptions.Add(Option);
 		};
 
-		AddOption(Requirement.Item,	Requirement.Quantity,Display.Primary);
+		AddOption(Requirement.Item, Requirement.Quantity, Display.Primary);
 		bInvalidPrimary |= !RowOptions[0].bValid;
 
 		for (const FAlternativeItem& Alternative : Requirement.Alternatives)
 		{
 			FRecipeRequirementResult AlternativeDisplay;
-			AddOption(Alternative.Item, Alternative.Quantity,AlternativeDisplay);
+			AddOption(Alternative.Item, Alternative.Quantity, AlternativeDisplay);
 			Display.Alternatives.Add(AlternativeDisplay);
 		}
 
@@ -1447,8 +1714,7 @@ FRecipeCheckResult UCraftingComponent::CheckRecipe(const FItemRecipeRow& Recipe,
 
 			const FCraftIngredientOption& Option = Candidates[OptionIndex];
 
-			if (!Option.bValid
-				|| Available.FindRef(Option.ItemID) < Option.Amount)
+			if (!Option.bValid || Available.FindRef(Option.ItemID) < Option.Amount)
 			{
 				return false;
 			}
@@ -1471,9 +1737,7 @@ FRecipeCheckResult UCraftingComponent::CheckRecipe(const FItemRecipeRow& Recipe,
 			// Preserve the existing convention:
 			// missing selections mean Primary.
 			const int32 Selected =
-				SelectedOptions.IsValidIndex(RequirementIndex)
-					? SelectedOptions[RequirementIndex]
-					: 0;
+				SelectedOptions.IsValidIndex(RequirementIndex) ? SelectedOptions[RequirementIndex] : 0;
 
 			return TryOption(Selected);
 		}
@@ -1507,4 +1771,3 @@ FRecipeCheckResult UCraftingComponent::CheckRecipe(const FItemRecipeRow& Recipe,
 
 	return Result;
 }
-

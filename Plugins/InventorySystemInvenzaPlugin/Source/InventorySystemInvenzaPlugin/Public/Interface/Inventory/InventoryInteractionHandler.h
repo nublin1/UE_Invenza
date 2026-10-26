@@ -1,4 +1,4 @@
-﻿//  Nublin Studio 2026 All Rights Reserved.
+//  Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -10,13 +10,13 @@
 struct FItemMoveData;
 // This class does not need to be modified.
 UINTERFACE()
-class UInventoryInteractionHandler : public UInterface
+class INVENTORYSYSTEMINVENZAPLUGIN_API UInventoryInteractionHandler : public UInterface
 {
 	GENERATED_BODY()
 };
 
 /**
- * 
+ *
  */
 class INVENTORYSYSTEMINVENZAPLUGIN_API IInventoryInteractionHandler
 {
@@ -24,19 +24,18 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API IInventoryInteractionHandler
 
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
-
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Inventory")
 	void OnQuickTransferItem(FItemMoveData InData);
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Inventory")
 	void OnQuickTransferAllSameItems(FItemMoveData ItemMoveData);
-	
+
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Inventory")
 	void ItemContextMenuRequest(const FString& FromInventory, FGuid SlotGuid, UObject* Item);
-	
+
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Inventory")
 	void TransferItemArray(UInventoryBase* SourceInventory, UInventoryBase* TargetInventory);
-	
+
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Inventory")
 	void ItemTransferRequest(FItemMoveData ItemMoveData);
 
@@ -45,10 +44,10 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Inventory")
 	void ItemDropRequest(FItemDropData DropData);
-	
+
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Inventory")
 	void ItemDeleteRequest(const FString& FromInventory, UObject* Item);
-	
+
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Inventory")
 	void ItemEquipRequest(UObject* Item);
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Inventory")
@@ -63,4 +62,3 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Inventory")
 	FInventoryModifierState GetInventoryModifierStates() const;
 };
- 

@@ -1,6 +1,5 @@
 ﻿// Nublin Studio 2026 All Rights Reserved.
 
-
 #include "UI/Core/Progress/GenericProgress.h"
 
 #include "Data/CraftSystem/CraftingStructs.h"
@@ -17,7 +16,7 @@ UGenericProgress::UGenericProgress()
 void UGenericProgress::SetNewCraft(const FQueuedRecipe& NewQueuedRecipe)
 {
 	CurrentItemRecipeRow = NewQueuedRecipe.ItemRecipeRow;
-	
+
 	if (Icon && NewQueuedRecipe.ItemRecipeRow.RecipeIcon)
 	{
 		Icon->UpdateImage(CurrentItemRecipeRow.RecipeIcon.Get());
@@ -47,9 +46,8 @@ void UGenericProgress::SetNewCraft(const FQueuedRecipe& NewQueuedRecipe)
 void UGenericProgress::UpdateProgress(float NewValue)
 {
 	auto MaxValue = CurrentItemRecipeRow.CraftVolume;
-	auto CurrentWorkAmount   =NewValue;
+	auto CurrentWorkAmount = NewValue;
 	auto Percent = (CurrentWorkAmount / MaxValue) * 100.f;
 	FString PercentString = FString::Printf(TEXT("%f%%"), Percent);
 	ProgressPercentTimerWidget->SetProgressPercent(PercentString);
 }
-

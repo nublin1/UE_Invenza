@@ -2,14 +2,13 @@
 
 #include "ActorComponents/Visualizer/InventoryVisualizer.h"
 
-#include "ActorComponents/ItemCollection.h"
+#include "ActorComponents/InventoryCollectionComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Data/Inventory/InventoryBase.h"
-#include "Data/Items/ItemBase.h"
+#include "Data/Items/itemBase.h"
 #include "Net/UnrealNetwork.h"
 #include "Utility/InterfaceUtils.h"
-
 
 UInventoryVisualizer::UInventoryVisualizer()
 {
@@ -25,7 +24,7 @@ void UInventoryVisualizer::BeginPlay()
 
 	if (GetNetMode() != NM_DedicatedServer)
 	{
-		ObservedCollection = GetOwner()->FindComponentByClass<UItemCollection>();
+		ObservedCollection = GetOwner()->FindComponentByClass<UInventoryCollectionComponent>();
 		if (ObservedCollection.IsValid())
 		{
 			ObservedCollection->OnInventoryItemsChanged.AddUniqueDynamic(
@@ -48,8 +47,8 @@ void UInventoryVisualizer::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	UnbindInventoryEvents();
 	if (ObservedCollection.IsValid())
 	{
-		ObservedCollection->OnInventoryItemsChanged.RemoveDynamic(
-			this, &UInventoryVisualizer::HandleInventoryItemsChanged);
+		ObservedCollection->OnInventoryItemsChanged.RemoveDynamic(this,
+																  &UInventoryVisualizer::HandleInventoryItemsChanged);
 	}
 	ObservedCollection.Reset();
 	Super::EndPlay(EndPlayReason);
@@ -79,11 +78,17 @@ void UInventoryVisualizer::UnbindInventoryEvents()
 void UInventoryVisualizer::OnRep_TargetInventories()
 {
 	UnbindInventoryEvents();
-	if (GetNetMode() == NM_DedicatedServer) return;
+	if (GetNetMode() == NM_DedicatedServer)
+	{
+		return;
+	}
 
 	for (UInventoryBase* Inventory : TargetInventories)
 	{
-		if (!IsValid(Inventory)) continue;
+		if (!IsValid(Inventory))
+		{
+			continue;
+		}
 		Inventory->OnAddItemDelegate.AddUniqueDynamic(this, &UInventoryVisualizer::AddItemVisual);
 		Inventory->OnItemRemovedDelegate.AddUniqueDynamic(this, &UInventoryVisualizer::RemoveItemVisual);
 		BoundInventories.Add(Inventory);
@@ -106,9 +111,12 @@ void UInventoryVisualizer::HandleInventoryItemsChanged(const FString& InventoryI
 void UInventoryVisualizer::InitializeInventoriesByTag(FGameplayTag ContainerTag, bool bTrackAll)
 {
 	AActor* Owner = GetOwner();
-	if (!Owner) return;
-	
-	UItemCollection* ItemCollection = Owner->FindComponentByClass<UItemCollection>();
+	if (!Owner)
+	{
+		return;
+	}
+
+	UInventoryCollectionComponent* ItemCollection = Owner->FindComponentByClass<UInventoryCollectionComponent>();
 	if (!ItemCollection)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Visualizer: Collection not found on %s"), *Owner->GetName());
@@ -121,7 +129,10 @@ void UInventoryVisualizer::InitializeInventoriesByTag(FGameplayTag ContainerTag,
 
 	for (UInventoryBase* Inv : FoundInventories)
 	{
-		if (!Inv) continue;
+		if (!Inv)
+		{
+			continue;
+		}
 		if (bTrackAll || Inv->GetInventorySettings().InventoryTag.MatchesTag(ContainerTag))
 		{
 			TargetInventories.Add(Inv);
@@ -134,7 +145,10 @@ void UInventoryVisualizer::InitializeInventoriesByTag(FGameplayTag ContainerTag,
 void UInventoryVisualizer::InitializeCachedSlots()
 {
 	CachedSlots.Empty();
-	if (!ParentMeshPtr) return;
+	if (!ParentMeshPtr)
+	{
+		return;
+	}
 
 	TArray<FName> AllSockets = ParentMeshPtr->GetAllSocketNames();
 	for (FName SocketName : AllSockets)
@@ -163,8 +177,11 @@ void UInventoryVisualizer::InitializeCachedSlots()
 
 void UInventoryVisualizer::RefreshVisuals()
 {
-	if (GetNetMode() == NM_DedicatedServer) return;
-	
+	if (GetNetMode() == NM_DedicatedServer)
+	{
+		return;
+	}
+
 	if (DisplayMode == EVisualizerMode::OccupancyMeshSwap)
 	{
 		UpdateOccupancyMesh();
@@ -178,13 +195,19 @@ void UInventoryVisualizer::RefreshVisuals()
 void UInventoryVisualizer::AddItemVisual(FItemMapping& ItemSlots, UObject* Item)
 {
 	if (GetNetMode() == NM_DedicatedServer || !Item)
+	{
 		return;
+	}
 
 	if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(Item, TEXT("AddItemVisual")))
+	{
 		return;
+	}
 
 	if (TrackedVisuals.Contains(Item))
+	{
 		return;
+	}
 
 	if (DisplayMode == EVisualizerMode::OccupancyMeshSwap)
 	{
@@ -193,7 +216,9 @@ void UInventoryVisualizer::AddItemVisual(FItemMapping& ItemSlots, UObject* Item)
 	}
 
 	if (!IsValid(ParentMeshPtr))
+	{
 		return;
+	}
 
 	int32 FreeIndex = GetFirstFreeSocketIndex();
 	if (FreeIndex == INDEX_NONE)
@@ -201,10 +226,12 @@ void UInventoryVisualizer::AddItemVisual(FItemMapping& ItemSlots, UObject* Item)
 		UE_LOG(LogTemp, Warning, TEXT("Visualizer: No free sockets for item %s"), *Item->GetName());
 		return;
 	}
-	
+
 	UStaticMesh* SM_Item = IObjectDataProvider::Execute_GetItemRef(Item).ItemAssetData.Mesh;
 	if (!SM_Item)
+	{
 		return;
+	}
 
 	UStaticMeshComponent* NewItemMesh = NewObject<UStaticMeshComponent>(GetOwner());
 	NewItemMesh->SetStaticMesh(SM_Item);
@@ -219,14 +246,17 @@ void UInventoryVisualizer::AddItemVisual(FItemMapping& ItemSlots, UObject* Item)
 
 void UInventoryVisualizer::RemoveItemVisual(FItemMapping ItemSlots, UObject* Item)
 {
-	if (!Item) return;
+	if (!Item)
+	{
+		return;
+	}
 
 	if (DisplayMode == EVisualizerMode::OccupancyMeshSwap)
 	{
 		UpdateOccupancyMesh();
 		return;
 	}
-	
+
 	if (TObjectPtr<UStaticMeshComponent>* FoundMesh = TrackedVisuals.Find(Item))
 	{
 		if (*FoundMesh)
@@ -244,7 +274,10 @@ void UInventoryVisualizer::RemoveItemVisual(FItemMapping ItemSlots, UObject* Ite
 
 float UInventoryVisualizer::GetTotalOccupancy() const
 {
-	if (TargetInventories.Num() == 0) return 0.0f;
+	if (TargetInventories.Num() == 0)
+	{
+		return 0.0f;
+	}
 
 	float CombinedOccupancy = 0.0f;
 	int32 ReadyInventoryCount = 0;
@@ -274,7 +307,10 @@ int32 UInventoryVisualizer::GetFirstFreeSocketIndex() const
 void UInventoryVisualizer::UpdateOccupancyMesh()
 {
 	UStaticMeshComponent* SMC = Cast<UStaticMeshComponent>(ParentMeshPtr);
-	if (!SMC) return;
+	if (!SMC)
+	{
+		return;
+	}
 
 	// Inventory APIs return 0..100; mesh thresholds use 0..1.
 	const float AvgPerc = FMath::Clamp(GetTotalOccupancy() / 100.0f, 0.0f, 1.0f);
@@ -294,14 +330,17 @@ void UInventoryVisualizer::UpdateOccupancyMesh()
 	if (BestMesh && SMC->GetStaticMesh() != BestMesh)
 	{
 		SMC->SetStaticMesh(BestMesh);
-		InitializeCachedSlots(); 
+		InitializeCachedSlots();
 	}
 }
 
 void UInventoryVisualizer::UpdateIndividualItems()
 {
-	if (CachedSlots.Num() == 0 || !ParentMeshPtr) return;
-	
+	if (CachedSlots.Num() == 0 || !ParentMeshPtr)
+	{
+		return;
+	}
+
 	TArray<UObject*> CurrentItems;
 	for (auto Inv : TargetInventories)
 	{
@@ -310,7 +349,7 @@ void UInventoryVisualizer::UpdateIndividualItems()
 			CurrentItems.Append(Inv->GetItemCollectionLinked()->GetAllItemsByContainer(Inv->GetInventoryContainerID()));
 		}
 	}
-	
+
 	TArray<UObject*> VisualsToRemove;
 	for (auto& Pair : TrackedVisuals)
 	{
@@ -325,7 +364,7 @@ void UInventoryVisualizer::UpdateIndividualItems()
 		FItemMapping ItemSlots;
 		RemoveItemVisual(ItemSlots, ItemToRemove);
 	}
-	
+
 	for (UObject* Item : CurrentItems)
 	{
 		FItemMapping ItemSlots;
@@ -336,12 +375,14 @@ void UInventoryVisualizer::UpdateIndividualItems()
 void UInventoryVisualizer::FindParentMesh()
 {
 	AActor* Owner = GetOwner();
-	if (!Owner) return;
-	
+	if (!Owner)
+	{
+		return;
+	}
+
 	ParentMeshPtr = Owner->FindComponentByClass<USkeletalMeshComponent>();
 	if (!ParentMeshPtr)
 	{
 		ParentMeshPtr = Owner->FindComponentByClass<UStaticMeshComponent>();
 	}
 }
-

@@ -1,4 +1,4 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -14,19 +14,18 @@ UCLASS()
 class INVENTORYSYSTEMINVENZAPLUGIN_API UInterfaceUtils : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
-	
+
 public:
-	
+	// Functions
 	// If the function is owned by the interface itself (i.e. the default
 	// BlueprintNativeEvent stub), the object has not overridden it.
 	// Otherwise, the function is implemented either in C++ or in a Blueprint class.
-	UFUNCTION(BlueprintCallable, Category="Utils|Interface")
+	UFUNCTION(BlueprintCallable, Category = "Utils|Interface")
 	static bool IsFunctionOverridden(UObject* Target, FName FunctionName, UClass* InterfaceClass);
-	
-	template <typename TInterface>
-	UFUNCTION(BlueprintCallable, Category="Utils|Interface")
+
+	template <typename TInterface> UFUNCTION(BlueprintCallable, Category = "Utils|Interface")
 	static bool ValidateImplementsInterface(const UObject* Item, const FString& ContextName);
-	
+
 	FORCEINLINE static bool ImplementsObjectDataProvider(const UObject* Item)
 	{
 		return Item && Item->GetClass()->ImplementsInterface(UObjectDataProvider::StaticClass());
@@ -44,11 +43,10 @@ bool UInterfaceUtils::ValidateImplementsInterface(const UObject* Item, const FSt
 
 	if (!Item->GetClass()->ImplementsInterface(TInterface::UClassType::StaticClass()))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("%s: Item '%s' does NOT implement %s"),
-			*ContextName, *Item->GetName(), *TInterface::UClassType::StaticClass()->GetName());
+		UE_LOG(LogTemp, Warning, TEXT("%s: Item '%s' does NOT implement %s"), *ContextName, *Item->GetName(),
+			   *TInterface::UClassType::StaticClass()->GetName());
 		return false;
 	}
 
 	return true;
 }
-

@@ -1,5 +1,4 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
-
+// Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -16,34 +15,22 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UCurrentMaxDisplay : public UInvenzaBaseW
 {
 	GENERATED_BODY()
 
-public:
+protected:
+	// Unreal overrides
 	virtual void NativePreConstruct() override;
-	
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
+
+public:
+	// Properties and variables
 	// Widgets
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
 	TObjectPtr<ULabelBaseText> PrefixText;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
 	TObjectPtr<ULabelBaseText> CurrentValue;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
 	TObjectPtr<ULabelBaseText> SeparatorSymbol;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
 	TObjectPtr<ULabelBaseText> MaxValue;
-
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
-
-protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-	
-	
-
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
 };

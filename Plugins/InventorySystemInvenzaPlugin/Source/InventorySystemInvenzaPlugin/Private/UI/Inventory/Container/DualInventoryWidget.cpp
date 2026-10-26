@@ -1,6 +1,5 @@
 ﻿// Nublin Studio 2026 All Rights Reserved.
 
-
 #include "UI/Inventory/Container/DualInventoryWidget.h"
 
 #include "Components/CanvasPanel.h"
@@ -9,7 +8,7 @@
 #include "DragDrop/InvContainerDragDropOperation.h"
 
 void UDualInventoryWidget::SetInventoriesContainers(UInventoryContainerWidget* FirstInventoryContainerWidget,
-                                                    UInventoryContainerWidget* SecondInventoryContainerWidget)
+													UInventoryContainerWidget* SecondInventoryContainerWidget)
 {
 	SetLeftInventoryContainer(FirstInventoryContainerWidget);
 	SetRightInventoryContainer(SecondInventoryContainerWidget);
@@ -17,7 +16,10 @@ void UDualInventoryWidget::SetInventoriesContainers(UInventoryContainerWidget* F
 
 void UDualInventoryWidget::SetLeftInventoryContainer(UInventoryContainerWidget* InContainer)
 {
-	if (!RootCanvas || !InContainer) return;
+	if (!RootCanvas || !InContainer)
+	{
+		return;
+	}
 
 	if (InContainer->GetParent())
 	{
@@ -27,13 +29,16 @@ void UDualInventoryWidget::SetLeftInventoryContainer(UInventoryContainerWidget* 
 	RootCanvas->AddChildToCanvas(InContainer);
 	LeftContainer = InContainer;
 	bLeftPinned = true;
-	
+
 	LeftContainer->ReDrawRequest();
 }
 
 void UDualInventoryWidget::SetRightInventoryContainer(UInventoryContainerWidget* InContainer)
 {
-	if (!RootCanvas || !InContainer) return;
+	if (!RootCanvas || !InContainer)
+	{
+		return;
+	}
 
 	if (InContainer->GetParent())
 	{
@@ -43,18 +48,18 @@ void UDualInventoryWidget::SetRightInventoryContainer(UInventoryContainerWidget*
 	RootCanvas->AddChildToCanvas(InContainer);
 	RightContainer = InContainer;
 	bRightPinned = true;
-	
+
 	RightContainer->ReDrawRequest();
 }
 
 bool UDualInventoryWidget::AddFloatingInventory(UObject* Key, UInventoryContainerWidget* ExistingWidget,
-	FVector2D ScreenPosition, FVector2D Alignment)
+												FVector2D ScreenPosition, FVector2D Alignment)
 {
 	if (!Key || !ExistingWidget || !FloatingLayer)
 	{
 		return false;
 	}
-	
+
 	if (UInventoryContainerWidget* Existing = FindFloatingInventory(Key))
 	{
 		if (UCanvasPanelSlot* PanelSlot = Cast<UCanvasPanelSlot>(Existing->Slot))
@@ -64,7 +69,7 @@ bool UDualInventoryWidget::AddFloatingInventory(UObject* Key, UInventoryContaine
 		}
 		return Existing == ExistingWidget;
 	}
-	
+
 	if (ExistingWidget->GetParent())
 	{
 		ExistingWidget->RemoveFromParent();
@@ -88,7 +93,10 @@ bool UDualInventoryWidget::AddFloatingInventory(UObject* Key, UInventoryContaine
 
 bool UDualInventoryWidget::RemoveFloatingInventory(UObject* Key)
 {
-	if (!Key) return false;
+	if (!Key)
+	{
+		return false;
+	}
 
 	if (TObjectPtr<UInventoryContainerWidget>* Found = FloatingInventories.Find(Key))
 	{
@@ -106,7 +114,7 @@ void UDualInventoryWidget::ClearAll()
 {
 	LeftContainer = nullptr;
 	RightContainer = nullptr;
-	
+
 	ClearFloatingInventories();
 }
 
@@ -114,7 +122,10 @@ void UDualInventoryWidget::ClearFloatingInventories()
 {
 	for (auto& Pair : FloatingInventories)
 	{
-		if (Pair.Value) Pair.Value->RemoveFromParent();
+		if (Pair.Value)
+		{
+			Pair.Value->RemoveFromParent();
+		}
 	}
 	FloatingInventories.Empty();
 }
@@ -131,7 +142,7 @@ void UDualInventoryWidget::ApplyCornerAlignment()
 			LeftSlot->SetAutoSize(true);
 		}
 	}
-	
+
 	if (bRightPinned && RightContainer)
 	{
 		if (UCanvasPanelSlot* RightSlot = Cast<UCanvasPanelSlot>(RightContainer->Slot))
@@ -154,7 +165,7 @@ UInventoryContainerWidget* UDualInventoryWidget::FindFloatingInventory(UObject* 
 }
 
 bool UDualInventoryWidget::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent,
-									 UDragDropOperation* InOperation)
+										UDragDropOperation* InOperation)
 {
 	if (UInvContainerDragDropOperation* DragOp = Cast<UInvContainerDragDropOperation>(InOperation))
 	{

@@ -14,29 +14,17 @@ UCLASS()
 class INVENTORYSYSTEMINVENZAPLUGIN_API UInvContainerDragDropOperation : public UDragDropOperation
 {
 	GENERATED_BODY()
-	
+
 public:
 	UInvContainerDragDropOperation();
-	
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
+
+public:
+	// Properties and variables
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Drag & Drop")
 	FVector2D DragOffset;
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
+
+	// Functions
 	virtual void Drop_Implementation(const FPointerEvent& PointerEvent) override;
 
 	virtual void DragCancelled_Implementation(const FPointerEvent& PointerEvent) override;
-
-protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-	
-	//===================================================================
-	// FUNCTIONS
-	//====================================================================
 };

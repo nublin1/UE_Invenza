@@ -1,134 +1,73 @@
-// Nublin Studio 2025 All Rights Reserved.
-
+//  Nublin Studio 2026 All Rights Reserved.
 
 #include "ActorComponents/SaveLoad/InvenzaSaveManager.h"
-
-#include "EnhancedInputComponent.h"
-#include "JsonObjectConverter.h"
-#include "ActorComponents/ItemCollection.h"
 #include "ActorComponents/UIInventoryManager.h"
-#include "Kismet/GameplayStatics.h"
-#include "Misc/FileHelper.h"
-#include "Misc/Paths.h"
-#include "SaveLoad/InvenzaSaveGame.h"
+#include "Subsystems/InvenzaSaveSubsystem.h"
+#include "SaveLoad/InvenzaSaveSettings.h"
+#include "Engine/GameInstance.h"
+#include "Engine/World.h"
+#include "GameFramework/Pawn.h"
+#include "GameFramework/PlayerController.h"
 
 UInvenzaSaveManager::UInvenzaSaveManager()
 {
+	PrimaryComponentTick.bCanEverTick = false;
 }
 
 void UInvenzaSaveManager::BeginPlay()
 {
 	Super::BeginPlay();
-
-	APlayerController* PC = GetWorld()->GetFirstPlayerController();
-	if (!PC) return;
-	
-	if (UEnhancedInputComponent* EnhancedInput = Cast<UEnhancedInputComponent>(PC->InputComponent))
+	GetWorld()->GetGameInstance()->GetSubsystem<UInvenzaSaveSubsystem>()->OnSessionLoaded.AddUniqueDynamic(
+		this, &ThisClass::SessionLoaded);
+	if (auto* Manager = GetOwner()->FindComponentByClass<UIInventoryManager>())
 	{
-		if (SaveAction)
-		{
-			EnhancedInput->BindAction(SaveAction, ETriggerEvent::Started, this, &UInvenzaSaveManager::HandleSaveInput);
-		}
-		if (LoadAction)
-		{
-			EnhancedInput->BindAction(LoadAction, ETriggerEvent::Started, this, &UInvenzaSaveManager::HandleLoadInput);
-		}
+		Manager->OnInitializationCompleteDelegate.AddUniqueDynamic(this, &ThisClass::OnInitializationComplete);
 	}
+}
 
-	auto InvManager = GetOwner()->FindComponentByClass<UIInventoryManager>();
-	if (!InvManager) return;
-
-	InvManager->OnInitializationCompleteDelegate.AddDynamic(this, &UInvenzaSaveManager::OnInitializationComplete);
-
-	//LoadGame_Implementation(false);
+void UInvenzaSaveManager::EndPlay(const EEndPlayReason::Type Reason)
+{
+	if (auto* Manager = GetOwner()->FindComponentByClass<UIInventoryManager>())
+	{
+		Manager->OnInitializationCompleteDelegate.RemoveDynamic(this, &ThisClass::OnInitializationComplete);
+	}
+	if (GetWorld() && GetWorld()->GetGameInstance())
+	{
+		GetWorld()->GetGameInstance()->GetSubsystem<UInvenzaSaveSubsystem>()->OnSessionLoaded.RemoveDynamic(
+			this, &ThisClass::SessionLoaded);
+	}
+	Super::EndPlay(Reason);
 }
 
 void UInvenzaSaveManager::OnInitializationComplete()
 {
-	LoadGame_Implementation(false);
+	if (GetOwner()->HasAuthority())
+	{
+		GetWorld()->GetGameInstance()->GetSubsystem<UInvenzaSaveSubsystem>()->NotifyPlayerReady();
+	}
+}
+
+void UInvenzaSaveManager::ShowSaveMenu()
+{
+	if (auto* Pawn = Cast<APawn>(GetOwner()))
+	{
+		GetWorld()->GetGameInstance()->GetSubsystem<UInvenzaSaveSubsystem>()->ShowSaveMenu(
+			Cast<APlayerController>(Pawn->GetController()));
+	}
 }
 
 void UInvenzaSaveManager::SaveGame_Implementation(bool Async)
 {
-	if (Async)
-	{
-		UGameplayStatics::AsyncSaveGameToSlot(LoadedSaveData,SaveSlotName.ToString(), SaveUserIndex );
-	}
-	else
-	{
-		UGameplayStatics::SaveGameToSlot(LoadedSaveData,SaveSlotName.ToString(), SaveUserIndex);
-		UE_LOG(LogTemp, Warning, TEXT("Saved to slot: %s"), *SaveSlotName.ToString());
-	}
+	GetWorld()->GetGameInstance()->GetSubsystem<UInvenzaSaveSubsystem>()->SaveSession(TEXT("Quick"), Async);
 }
 
 void UInvenzaSaveManager::LoadGame_Implementation(bool Async)
 {
-	bool bExists = UGameplayStatics::DoesSaveGameExist(SaveSlotName.ToString(), SaveUserIndex);
-
-	if (!bExists)
-	{
-		TObjectPtr<UInvenzaSaveGame> InvenzaSaveGame = Cast<UInvenzaSaveGame>(
-		UGameplayStatics::CreateSaveGameObject(UInvenzaSaveGame::StaticClass()));
-
-		LoadedSaveData = InvenzaSaveGame;
-		UGameplayStatics::SaveGameToSlot(InvenzaSaveGame.Get(), SaveSlotName.ToString(), SaveUserIndex);
-	}
-
-	if (Async)
-	{
-		UGameplayStatics::AsyncLoadGameFromSlot(
-		SaveSlotName.ToString(),
-		SaveUserIndex,
-		FAsyncLoadGameFromSlotDelegate::CreateUObject(this, &UInvenzaSaveManager::OnSaveGameLoaded));
-	}
-	else
-	{
-		auto Savegame = UGameplayStatics::LoadGameFromSlot(SaveSlotName.ToString(), SaveUserIndex);
-		OnSaveGameLoaded(SaveSlotName.ToString(), SaveUserIndex, Savegame);
-	}
-	
+	GetWorld()->GetGameInstance()->GetSubsystem<UInvenzaSaveSubsystem>()->LoadSession();
 }
 
-void UInvenzaSaveManager::OnSaveGameLoaded(const FString& SlotName, const int32 UserIndex, USaveGame* LoadedGame)
+void UInvenzaSaveManager::SessionLoaded()
 {
-	UInvenzaSaveGame* Loaded = Cast<UInvenzaSaveGame>(LoadedGame);
-	if (!Loaded){
-		UE_LOG(LogTemp, Error, TEXT("Failed to load save or incorrect class."));
-		return;
-	}
-
-	UE_LOG(LogTemp, Log, TEXT("Save loaded from slot: %s"), *SlotName);
-	LoadedSaveData = Loaded;
-
-	auto Collection = GetOwner()->FindComponentByClass<UItemCollection>();
-	if (!Collection)
-	{
-		return;
-	}
-
-	/*if (!LoadedSaveData->PlayerSavedInventories.SavedItemLocations.IsEmpty())
-	{
-		Collection->DeserializeFromSave(LoadedSaveData->PlayerSavedInventories.SavedItemLocations);
-	}*/
-
-	if (OnGameLoaded.IsBound())
-		OnGameLoaded.Broadcast();
-
-}
-
-void UInvenzaSaveManager::HandleSaveInput()
-{
-	auto Collection = GetOwner()->FindComponentByClass<UItemCollection>();
-	if (!Collection)
-	{
-		return;
-	}
-
-	//Collection->SerializeForSave(LoadedSaveData->PlayerSavedInventories.SavedItemLocations);
-	SaveGame_Implementation(false);
-}
-
-void UInvenzaSaveManager::HandleLoadInput()
-{
-	LoadGame_Implementation(false);
+	LoadedSaveData = GetWorld()->GetGameInstance()->GetSubsystem<UInvenzaSaveSubsystem>()->GetLoadedSnapshot();
+	OnGameLoaded.Broadcast();
 }

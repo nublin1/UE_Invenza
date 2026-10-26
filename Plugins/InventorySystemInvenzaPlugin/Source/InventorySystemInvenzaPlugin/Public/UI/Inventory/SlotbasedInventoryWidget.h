@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Layout/SlateRect.h"
 #include "Data/Inventory/InventoryTypes.h"
 #include "UInventoryBaseWidget.h"
 #include "Components/ActorComponent.h"
@@ -13,7 +14,7 @@
 class UFiltersPanel;
 class UUIButton;
 class UButton;
-class UItemCollection;
+class UInventoryCollectionComponent;
 class UScrollBox;
 class UTextBlock;
 class UCanvasPanel;
@@ -30,170 +31,216 @@ public:
 	USlotbasedInventoryWidget();
 
 protected:
+	// Unreal overrides
 	virtual void NativeConstruct() override;
+
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
+	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+
+	virtual FReply NativeOnMouseButtonDoubleClick(const FGeometry& InGeometry,
+												  const FPointerEvent& InMouseEvent) override;
+
+	virtual FReply NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+
+	virtual void NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent,
+									  UDragDropOperation*& OutOperation) override;
+
+	virtual void NativeOnDragEnter(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent,
+								   UDragDropOperation* InOperation) override;
+
+	virtual void NativeOnDragLeave(const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
+
+	virtual bool NativeOnDragOver(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent,
+								  UDragDropOperation* InOperation) override;
+
+	virtual bool NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent,
+							  UDragDropOperation* InOperation) override;
+
+	virtual void NativeOnDragCancelled(const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
+
 public:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-	
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
+	// Functions
 	virtual void InitializeInventoryWidget() override;
+
 	virtual void InitializeInventoryWidgetWithSettings() override;
+
 	virtual void BindDelegated() override;
+
 	UFUNCTION()
 	virtual void UpdateViewportSize();
+
 	UFUNCTION()
 	virtual void ReDrawInvSlots();
+
 	virtual void ReDrawAllItems() override;
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(Category = "Invenza|UI|Inventory", BlueprintCallable)
 	virtual FSlotBasedInventoryWidgetInitData CollectInitSlotsDataFromWidget();
-	
-	virtual FIntPoint GetNumberRowsAndColumns() {return FIntPoint(NumberRows, NumColumns);}
+
+	virtual FIntPoint GetNumberRowsAndColumns() { return FIntPoint(NumberRows, NumColumns); }
+
 	virtual TArray<UInventorySlotData*> GetSlotData();
 
 	virtual void SetInventoryBaseRef(UInventoryBase* NewInventoryRef) override;
 
+	bool DoesItemFootprintFitGrid(UObject* Item, EItemOrientationType Orientation, FIntPoint Pivot) const;
+
+	virtual void AddItemToPanel(FItemMapping& ItemSlots, UObject* Item) override;
+
+	virtual void ReplaceItemInPanel(TArray<UInventorySlotData*> OldItemSlots, FItemMapping& NewItemSlots,
+									UObject* Item) override;
+
+	virtual void UpdateItem(UObject* Item) override;
+
+	virtual void UpdateSlotInPanel(FItemMapping FromSlots, UObject* Item);
+
+	virtual void RemoveItemFromPanel(FItemMapping FromSlots, UObject* Item) override;
+
 protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
+	// Runtime
+	// Properties and variables
 	// Widgets
-	UPROPERTY(meta=(BindWidgetOptional))
+	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<USizeBox> GridSizeBox;
-	UPROPERTY(meta=(BindWidgetOptional))
+
+	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UScrollBox> ScrollBox;
-	UPROPERTY(meta=(BindWidget))
+
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UUniformGridPanel> SlotsGridPanel;
-	UPROPERTY(meta=(BindWidgetOptional))
+
+	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UCanvasPanel> ItemsVisualsPanel;
-	UPROPERTY(meta=(BindWidgetOptional))
+
+	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UCanvasPanel> HighlightVisualsPanel;
 
-	UPROPERTY(meta=(BindWidgetOptional))
+	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UButton> Button_TakeAll;
 
 	UPROPERTY()
 	TObjectPtr<UHighlightSlotWidget> HighlightWidgetPreview = nullptr;
-	
+
 	// Refs
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UPROPERTY(Category = "Invenza|UI|Inventory", VisibleAnywhere, BlueprintReadWrite)
 	TObjectPtr<USlotbasedInventory> SlotBasedInventoryRef;
 
 	// Settings
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|Viewport")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Viewport")
 	FVector2D ViewportMaxSize = FVector2D(400.f, 400.f);
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|Viewport")
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Viewport")
 	FIntPoint VisibleRowsColumns = FIntPoint(4, 10);
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
 	bool bHasSlotSpacing = false;
-	
+
 	/** Default image used for slot background when not overridden by individual slots. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
 	TObjectPtr<UTexture2D> DefaultCellImage = nullptr;
+
 	/**
 	 *  If true, the background image of the slot will be hidden when it contains an item.
 	 *  * When enabled, the OccupiedCellImage will not be used.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory", meta = (
-		ToolTip = "If true, hides the slot background image when an item is present. Disables OccupiedCellImage."))
+	UPROPERTY(
+		EditAnywhere, BlueprintReadWrite, Category = "Inventory",
+		meta =
+			(ToolTip = "If true, hides the slot background image when an item is present. Disables OccupiedCellImage."))
 	bool bHideBackgroundWhenOccupied = false;
+
 	/**
 	 *  Image displayed when this slot contains an item.
 	 *  Overrides the default background image when the slot is not empty.
 	 */
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory", meta = (
-		EditCondition = "!bHideBackgroundWhenOccupied",
-		ToolTip = "Image to display when this slot contains an item. Used instead of the default cell image."))
+
+	UPROPERTY(
+		EditAnywhere, BlueprintReadWrite, Category = "Inventory",
+		meta = (EditCondition = "!bHideBackgroundWhenOccupied",
+				ToolTip = "Image to display when this slot contains an item. Used instead of the default cell image."))
 	TObjectPtr<UTexture2D> OccupiedCellImage;
 
 	// Data
 	UPROPERTY()
 	int NumberRows = 0;
+
 	UPROPERTY()
 	int NumColumns = 0;
+
 	UPROPERTY()
 	FMargin SlotSpacing;
+
 	UPROPERTY()
 	mutable FVector2D InvCellSize = FVector2D(64.0f, 64.0f);
 
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly)
+	UPROPERTY(Category = "Invenza|UI|Inventory", VisibleInstanceOnly, BlueprintReadOnly)
 	TArray<TObjectPtr<UInventorySlot>> InventorySlots;
-	
+
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<USlotbasedInventorySlot>> CachedInvSlots;
-	
+
+	bool bUsesAuthoredSlotLayout = false;
+
 	mutable bool bCellSizeCollected = false;
+
+	FVector2D CollectedLayoutSize = FVector2D::ZeroVector;
+
+	FVector2D CollectedGridSize = FVector2D::ZeroVector;
+
+	TMap<FIntPoint, FSlateRect> AuthoredCellRects;
 
 	UPROPERTY()
 	bool bIsNeedToReDrawItems = false;
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
+
+	// Functions
 	virtual void ApplyInventorySettings() override;
-	
-	UFUNCTION(BlueprintCallable)
+
+	UFUNCTION(Category = "Invenza|UI|Inventory", BlueprintCallable)
 	virtual void BuildInventorySlots();
-	
 
 	//
 	virtual void ClearFilters() override;
+
 	virtual void OnFilterStatusChanged(UUIButton* ItemCategoryButton) override;
+
 	virtual void RefreshFilteredItemsList() override;
+
 	virtual void SearchTextChanged(const FText& NewText) override;
 
 	//
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(Category = "Invenza|UI|Inventory", BlueprintCallable)
 	virtual void ResetItemVisual(UObject* ItemToReset);
 
 	//
 	virtual UInventorySlot* GetSlotByPosition(FIntPoint SlotPosition);
+
 	virtual bool bIsGridPositionValid(FIntPoint& GridPosition);
 
 	UFUNCTION()
 	FVector2D CalculateItemVisualPosition(FIntPoint SlotPosition) const;
 
-public:
-	virtual void AddItemToPanel(FItemMapping& ItemSlots, UObject* Item) override;
-	virtual void ReplaceItemInPanel(TArray<UInventorySlotData*> OldItemSlots, FItemMapping& NewItemSlots, UObject* Item) override;
-	virtual void UpdateItem(UObject* Item) override;
-	virtual void UpdateSlotInPanel(FItemMapping FromSlots, UObject* Item);
-	virtual void RemoveItemFromPanel(FItemMapping FromSlots, UObject* Item) override;
-	
-protected:
-	UFUNCTION(BlueprintCallable)
+	void CalculateItemVisualRect(UObject* Item, EItemOrientationType Orientation, FIntPoint SlotPosition,
+								 UCanvasPanel* VisualPanel, FVector2D& OutPosition, FVector2D& OutSize) const;
+
+	bool CollectAuthoredCellGeometry();
+
+	UFUNCTION(Category = "Invenza|UI|Inventory", BlueprintCallable)
 	bool TryCollectCellSizeFromSlate(FVector2D& OutCellSize) const;
-	
+
 	UFUNCTION()
 	virtual void UsedItemInPanel(UInventorySlotData* UsedSlot);
-	
+
 	virtual void UpdateWeightInfo(float InventoryTotalWeight) override;
+
 	virtual void UpdateMoneyInfo(int32 InventoryTotalMoney) override;
 
-	UFUNCTION(BlueprintCallable)
-	virtual void UpdateTradeContext() ;
+	UFUNCTION(Category = "Invenza|UI|Inventory", BlueprintCallable)
+	virtual void UpdateTradeContext();
 
 	UFUNCTION()
 	virtual void CreateHighlightWidget();
-	
+
 	UFUNCTION()
 	virtual FIntPoint CalculateGridPosition(const FGeometry& Geometry, const FVector2D& ScreenCursorPos) const;
-	
-	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
-	virtual FReply NativeOnMouseButtonDoubleClick(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
-	virtual FReply NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
-	virtual void NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation) override;
-	virtual void NativeOnDragEnter(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
-	virtual void NativeOnDragLeave(const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
-	virtual bool NativeOnDragOver(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
-	virtual bool NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
-	virtual void NativeOnDragCancelled(const FDragDropEvent& InDragDropEvent,UDragDropOperation* InOperation) override;
 };

@@ -1,8 +1,9 @@
 //  Nublin Studio 2025 All Rights Reserved.
 
 #include "ActorComponents/Interactable/VendorComponent.h"
+#include "Settings/InvenzaInventoryDeveloperSettings.h"
 #include "ActorComponents/InteractionComponent.h"
-#include "ActorComponents/ItemCollection.h"
+#include "ActorComponents/InventoryCollectionComponent.h"
 #include "ActorComponents/UIInventoryManager.h"
 #include "Data/Inventory/InventoryBase.h"
 #include "Data/Inventory/Simulator/InventorySimulator.h"
@@ -32,15 +33,18 @@ void UVendorComponent::OnRegister()
 void UVendorComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 	UpdateInteractableData();
 
-	if (auto ItemCollection = GetOwner()->FindComponentByClass<UItemCollection>())
+	if (auto ItemCollection = GetOwner()->FindComponentByClass<UInventoryCollectionComponent>())
+	{
 		ItemCollectionRef = ItemCollection;
+	}
 
 	if (auto InventoryManager = GetOwner()->FindComponentByClass<UIInventoryManager>())
 	{
-		InventoryManager->OnInitializationCompleteDelegate.AddDynamic(this, &UVendorComponent::InitializeVendorStartupData);
+		InventoryManager->OnInitializationCompleteDelegate.AddDynamic(this,
+																	  &UVendorComponent::InitializeVendorStartupData);
 	}
 }
 
@@ -66,28 +70,30 @@ void UVendorComponent::HandleInteract(UInteractionComponent* InteractionComponen
 	Super::HandleInteract(InteractionComponent);
 
 	if (!ItemCollectionRef)
+	{
 		return;
-	
+	}
+
 	if (!bIsInteracting)
 	{
 		SetInteracting(true);
 		return;
 	}
-	
+
 	SetInteracting(false);
 }
 
 void UVendorComponent::HandleStopInteract(UInteractionComponent* InteractionComponent, EInteractionType Type)
 {
 	Super::HandleStopInteract(InteractionComponent, Type);
-	
+
 	SetInteracting(false);
 }
 
 FTradeResult UVendorComponent::ProcessTradeRequest(const FItemMoveData& TradeData)
 {
 	FTradeResult Result;
-	
+
 	if (!GetOwner()->HasAuthority())
 	{
 		Server_ProcessTradeRequest(TradeData);
@@ -96,7 +102,7 @@ FTradeResult UVendorComponent::ProcessTradeRequest(const FItemMoveData& TradeDat
 	{
 		Result = HandleProcessTrade(TradeData);
 	}
-	
+
 	return Result;
 }
 
@@ -109,8 +115,8 @@ FTradeResult UVendorComponent::HandleProcessTrade(const FItemMoveData& TradeData
 {
 	FTradeResult Result;
 
-	if (!TradeData.SourceItem ||
-		!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(TradeData.SourceItem, TEXT("HandleProcessTrade")))
+	if (!TradeData.SourceItem || !UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(
+									 TradeData.SourceItem, TEXT("HandleProcessTrade")))
 	{
 		return FTradeResult::Failed(FText::FromString("Invalid item"));
 	}
@@ -121,23 +127,21 @@ FTradeResult UVendorComponent::HandleProcessTrade(const FItemMoveData& TradeData
 	{
 		return FTradeResult::Failed(FText::FromString("Try transfer money"));
 	}
-	
+
 	bool bIsBuyingFromVendor = (TradeData.SourceInventory == MainVendorLootInventory);
-	int Price = bIsBuyingFromVendor
-		? CalculateTotalSellPrice(TradeData.SourceItem)
-		: CalculateTotalBuyPrice(TradeData.SourceItem);
-	
-	int AvailableMoney = bIsBuyingFromVendor
-		? TradePartnerItemCollection->CalculateAvailableMoney()
-		: ItemCollectionRef->CalculateAvailableMoney();
+	int Price = bIsBuyingFromVendor ? CalculateTotalSellPrice(TradeData.SourceItem)
+									: CalculateTotalBuyPrice(TradeData.SourceItem);
+
+	int AvailableMoney = bIsBuyingFromVendor ? TradePartnerItemCollection->CalculateAvailableMoney()
+											 : ItemCollectionRef->CalculateAvailableMoney();
 
 	if (Price > 0 && AvailableMoney < Price)
 	{
 		FString Who = bIsBuyingFromVendor ? TEXT("Player") : TEXT("Vendor");
 		float Deficit = Price - AvailableMoney;
-		return FTradeResult::NotEnoughMoney(
-			FText::FromString(FString::Printf(TEXT("%s doesn't have enough money. Need: %.0i, Has: %.0i, Missing: %.0f"),
-				*Who, Price, AvailableMoney, Deficit)));
+		return FTradeResult::NotEnoughMoney(FText::FromString(
+			FString::Printf(TEXT("%s doesn't have enough money. Need: %.0i, Has: %.0i, Missing: %.0f"), *Who, Price,
+							AvailableMoney, Deficit)));
 	}
 
 	auto* Settings = UInvenzayUtility::GetInvenzaGlobalSettings(GetWorld());
@@ -145,15 +149,14 @@ FTradeResult UVendorComponent::HandleProcessTrade(const FItemMoveData& TradeData
 	{
 		return FTradeResult::Failed(FText::FromString("Settings not found"));
 	}
-	
+
 	const FDataTableRowHandle& ItemHandle = Settings->CurrencyItemClass;
 	if (!ItemHandle.DataTable || ItemHandle.RowName.IsNone())
 	{
 		return FTradeResult::Failed(FText::FromString("CurrencyItemClass is not set"));
 	}
 	UObject* CurrencyItem = UItemFactory::CreateItemByHandle(this, ItemHandle, Price);
-	
-	
+
 	FTradeResult SimulationResult;
 	if (!SimulateTrade(TradeData, Price, bIsBuyingFromVendor, CurrencyItem, SimulationResult))
 	{
@@ -163,17 +166,14 @@ FTradeResult UVendorComponent::HandleProcessTrade(const FItemMoveData& TradeData
 	// FINAL TRADE EXECUTION
 	UInventoryBase* PlayerInventory = ResolvePlayerInventory(TradeData, bIsBuyingFromVendor);
 	FTradeTransaction Transaction = ExecuteTrade(TradeData, Price, bIsBuyingFromVendor, PlayerInventory, CurrencyItem);
-	
+
 	const int32 Quantity = IObjectDataProvider::Execute_GetQuantity(TradeData.SourceItem);
 	Result = FTradeResult::Success(
-			Quantity,
-			bIsBuyingFromVendor ? Price : 0,   // MoneySpent 
-			bIsBuyingFromVendor ? 0 : Price,   // MoneyReceived
-			FText::Format(
-				NSLOCTEXT("Vendor", "TradeSuccess", "Traded {0}x item for {1}"),
-				FText::AsNumber(Quantity),
-				FText::AsNumber(Price))
-		);
+		Quantity,
+		bIsBuyingFromVendor ? Price : 0, // MoneySpent
+		bIsBuyingFromVendor ? 0 : Price, // MoneyReceived
+		FText::Format(GetDefault<UInvenzaInventoryDeveloperSettings>()->GetText(TEXT("Vendor.TradeSuccess")),
+					  FText::AsNumber(Quantity), FText::AsNumber(Price)));
 
 	Result.Transaction = Transaction;
 	Result.bWasBuyingFromVendor = bIsBuyingFromVendor;
@@ -189,17 +189,17 @@ const TObjectPtr<UInventoryBase>& UVendorComponent::GetVendorLootContainer() con
 void UVendorComponent::InitializeInteractionComponent()
 {
 	Super::InitializeInteractionComponent();
-	
+
 	UpdateInteractableData();
 }
 
 void UVendorComponent::UpdateInteractableData()
 {
 	Super::UpdateInteractableData();
-	
+
 	FInteractableData PrimaryData;
 	PrimaryData.DefaultInteractableType = EInteractableType::Vendor;
-	PrimaryData.Action = FText::FromString(TEXT("Trade"));
+	PrimaryData.Action = GetDefault<UInvenzaInventoryDeveloperSettings>()->GetText(TEXT("VendorComponent.Literal0"));
 	PrimaryData.Quantity = -1;
 	InteractableDataMap.Add(EInteractionType::Primary, PrimaryData);
 }
@@ -213,8 +213,10 @@ void UVendorComponent::InitializeVendorStartupData()
 	}
 
 	if (!ItemCollectionRef)
+	{
 		return;
-	
+	}
+
 	if (auto FindResult = ItemCollectionRef->GetInventoryByTag(MainVendorContainerInvTag))
 	{
 		MainVendorLootInventory = FindResult;
@@ -223,11 +225,10 @@ void UVendorComponent::InitializeVendorStartupData()
 	{
 		UE_LOG(LogTemp, Warning, TEXT("MainVendorContainerInvTag is invalid"));
 	}
-	
 }
 
 bool UVendorComponent::SimulateTrade(const FItemMoveData& TradeData, int32 Price, bool bIsBuyingFromVendor,
-	UObject* CurrencyItem, FTradeResult& OutResult)
+									 UObject* CurrencyItem, FTradeResult& OutResult)
 {
 	UInventoryBase* PlayerInventory = ResolvePlayerInventory(TradeData, bIsBuyingFromVendor);
 	UInventoryBase* MoneyTargetInventory = bIsBuyingFromVendor ? MainVendorLootInventory.Get() : PlayerInventory;
@@ -236,14 +237,13 @@ bool UVendorComponent::SimulateTrade(const FItemMoveData& TradeData, int32 Price
 	// create simulators
 	UInventorySimulator* MoneySim = NewObject<UInventorySimulator>(this);
 	UInventorySimulator* ItemSim = NewObject<UInventorySimulator>(this);
-	
 
 	MoneySim->DuplicateInventoryForSimulation(MoneyTargetInventory);
 	ItemSim->DuplicateInventoryForSimulation(ItemTargetInventory);
-	
+
 	// MONEY TRANSFER SIMULATION
 	MoneySim->TransferRequestSimulateQuantity(CurrencyItem, Price);
-	
+
 	if (!MoneySim->AreAllOperationsSuccessful())
 	{
 		FString Who = bIsBuyingFromVendor ? TEXT("Vendor") : TEXT("Player");
@@ -253,7 +253,7 @@ bool UVendorComponent::SimulateTrade(const FItemMoveData& TradeData, int32 Price
 
 		return false;
 	}
-	
+
 	// ITEM TRANSFER SIMULATION
 	FItemMoveData ItemMoveData;
 	ItemMoveData.SourceItem = TradeData.SourceItem;
@@ -278,71 +278,75 @@ bool UVendorComponent::SimulateTrade(const FItemMoveData& TradeData, int32 Price
 }
 
 FTradeTransaction UVendorComponent::ExecuteTrade(const FItemMoveData& TradeData, int32 Price, bool bIsBuyingFromVendor,
-	UInventoryBase* PlayerInventory, UObject* CurrencyItem)
+												 UInventoryBase* PlayerInventory, UObject* CurrencyItem)
 {
 	FTradeTransaction Transaction;
-    Transaction.bSuccess = true;
-    Transaction.bIsBuyingFromVendor = bIsBuyingFromVendor;
-    Transaction.TotalPrice = Price;
+	Transaction.bSuccess = true;
+	Transaction.bIsBuyingFromVendor = bIsBuyingFromVendor;
+	Transaction.TotalPrice = Price;
 
-    if (!TradeData.SourceItem ||
-        !UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(TradeData.SourceItem, TEXT("ExecuteTrade")))
-        return Transaction;
+	if (!TradeData.SourceItem ||
+		!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(TradeData.SourceItem, TEXT("ExecuteTrade")))
+	{
+		return Transaction;
+	}
 
-    const int32 Quantity = IObjectDataProvider::Execute_GetQuantity(TradeData.SourceItem);
+	const int32 Quantity = IObjectDataProvider::Execute_GetQuantity(TradeData.SourceItem);
 
-    if (bIsBuyingFromVendor)
-    {
-        // PLAYER PAYS
-        PlayerInventory->HandleRemoveItemsBySample(CurrencyItem, Price);
-        Transaction.Entries.Add({ PlayerInventory, CurrencyItem, -Price, true });
+	if (bIsBuyingFromVendor)
+	{
+		// PLAYER PAYS
+		PlayerInventory->HandleRemoveItemsBySample(CurrencyItem, Price);
+		Transaction.Entries.Add({PlayerInventory, CurrencyItem, -Price, true});
 
-        // VENDOR RECEIVES
-        UInvenzayUtility::AddItemQuantityBySample(this, MainVendorLootInventory, CurrencyItem, Price);
-        Transaction.Entries.Add({ MainVendorLootInventory, CurrencyItem, +Price, true });
+		// VENDOR RECEIVES
+		UInvenzayUtility::AddItemQuantityBySample(this, MainVendorLootInventory, CurrencyItem, Price);
+		Transaction.Entries.Add({MainVendorLootInventory, CurrencyItem, +Price, true});
 
-        // REMOVE ITEM FROM VENDOR
-        if (TradeSettings.RemoveItemAfterPurchase)
-        {
-            MainVendorLootInventory->HandleRemoveItem(TradeData.SourceItem, Quantity);
-            Transaction.Entries.Add({ MainVendorLootInventory, TradeData.SourceItem, -Quantity, false });
-        }
+		// REMOVE ITEM FROM VENDOR
+		if (TradeSettings.RemoveItemAfterPurchase)
+		{
+			MainVendorLootInventory->HandleRemoveItem(TradeData.SourceItem, Quantity);
+			Transaction.Entries.Add({MainVendorLootInventory, TradeData.SourceItem, -Quantity, false});
+		}
 
-        // ADD ITEM TO PLAYER
-        UInvenzayUtility::AddItemQuantityBySample(this, PlayerInventory, TradeData.SourceItem, Quantity);
-        Transaction.Entries.Add({ PlayerInventory, TradeData.SourceItem, +Quantity, false });
-    }
-    else
-    {
-        // REMOVE ITEM FROM PLAYER
-        PlayerInventory->HandleRemoveItem(TradeData.SourceItem, Quantity);
-        Transaction.Entries.Add({ PlayerInventory, TradeData.SourceItem, -Quantity, false });
+		// ADD ITEM TO PLAYER
+		UInvenzayUtility::AddItemQuantityBySample(this, PlayerInventory, TradeData.SourceItem, Quantity);
+		Transaction.Entries.Add({PlayerInventory, TradeData.SourceItem, +Quantity, false});
+	}
+	else
+	{
+		// REMOVE ITEM FROM PLAYER
+		PlayerInventory->HandleRemoveItem(TradeData.SourceItem, Quantity);
+		Transaction.Entries.Add({PlayerInventory, TradeData.SourceItem, -Quantity, false});
 
-        // PLAYER RECEIVES MONEY
-        UInvenzayUtility::AddItemQuantityBySample(this, PlayerInventory, CurrencyItem, Price);
-        Transaction.Entries.Add({ PlayerInventory, CurrencyItem, +Price, true });
+		// PLAYER RECEIVES MONEY
+		UInvenzayUtility::AddItemQuantityBySample(this, PlayerInventory, CurrencyItem, Price);
+		Transaction.Entries.Add({PlayerInventory, CurrencyItem, +Price, true});
 
-        // VENDOR PAYS
-        MainVendorLootInventory->HandleRemoveItemsBySample(CurrencyItem, Price);
-        Transaction.Entries.Add({ MainVendorLootInventory, CurrencyItem, -Price, true });
+		// VENDOR PAYS
+		MainVendorLootInventory->HandleRemoveItemsBySample(CurrencyItem, Price);
+		Transaction.Entries.Add({MainVendorLootInventory, CurrencyItem, -Price, true});
 
-        // VENDOR RECEIVES ITEM
-        if (TradeSettings.bAddPurchasedItemsToVendorDisplay)
-        {
-            UInvenzayUtility::AddItemQuantityBySample(this, MainVendorLootInventory, TradeData.SourceItem, Quantity);
-            Transaction.Entries.Add({ MainVendorLootInventory, TradeData.SourceItem, +Quantity, false });
-        }
-    }
+		// VENDOR RECEIVES ITEM
+		if (TradeSettings.bAddPurchasedItemsToVendorDisplay)
+		{
+			UInvenzayUtility::AddItemQuantityBySample(this, MainVendorLootInventory, TradeData.SourceItem, Quantity);
+			Transaction.Entries.Add({MainVendorLootInventory, TradeData.SourceItem, +Quantity, false});
+		}
+	}
 
-    OnTradeExecuted.Broadcast(Transaction);
-    return Transaction;
+	OnTradeExecuted.Broadcast(Transaction);
+	return Transaction;
 }
 
 float UVendorComponent::CalculateTotalBuyPrice(UObject* ItemToBuy)
 {
 	if (!ItemToBuy ||
-	   !UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(ItemToBuy, TEXT("CalculateTotalBuyPrice")))
+		!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(ItemToBuy, TEXT("CalculateTotalBuyPrice")))
+	{
 		return 0.f;
+	}
 
 	const FItemMetaData Meta = IObjectDataProvider::Execute_GetItemRef(ItemToBuy);
 	const int32 Quantity = IObjectDataProvider::Execute_GetQuantity(ItemToBuy);
@@ -352,9 +356,11 @@ float UVendorComponent::CalculateTotalBuyPrice(UObject* ItemToBuy)
 
 float UVendorComponent::CalculateTotalSellPrice(UObject* ItemsToSell)
 {
-	if (!ItemsToSell ||
-	   !UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(ItemsToSell, TEXT("CalculateTotalSellPrice")))
+	if (!ItemsToSell || !UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(
+							ItemsToSell, TEXT("CalculateTotalSellPrice")))
+	{
 		return 0.f;
+	}
 
 	const FItemMetaData Meta = IObjectDataProvider::Execute_GetItemRef(ItemsToSell);
 	const int32 Quantity = IObjectDataProvider::Execute_GetQuantity(ItemsToSell);
@@ -374,7 +380,7 @@ UInventoryBase* UVendorComponent::ResolvePlayerInventory(const FItemMoveData& Tr
 
 		return TradePartnerMainInventory;
 	}
-	
+
 	// Player sells → item comes from SourceInventory
 	if (TradeData.SourceInventory && !TradeData.SourceInventory->GetInventorySettings().bIsReferenceContainer)
 	{
@@ -382,6 +388,4 @@ UInventoryBase* UVendorComponent::ResolvePlayerInventory(const FItemMoveData& Tr
 	}
 
 	return TradePartnerMainInventory;
-	
 }
-

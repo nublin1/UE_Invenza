@@ -1,4 +1,4 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -14,25 +14,22 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UGridStorageCell : public UObject
 public:
 	UGridStorageCell();
 
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
+public:
+	// Properties and variables
 	/** Coordinates in the grid. */
 	UPROPERTY(Transient, VisibleAnywhere, BlueprintReadOnly, Category = "Grid")
 	FIntPoint Coordinates = FIntPoint::ZeroValue;
-	
+
 	UPROPERTY(Transient, VisibleAnywhere, BlueprintReadOnly, Category = "Grid")
 	int32 InstanceIndex = INDEX_NONE;
-	
+
 	UPROPERTY(Transient, VisibleAnywhere, BlueprintReadOnly, Category = "Grid")
 	FTransform LocalTransform = FTransform::Identity;
-	
+
 	UPROPERTY(Transient, VisibleAnywhere, BlueprintReadOnly, Category = "Grid")
 	FVector LocalCenter = FVector::ZeroVector;
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
+
+	// Functions
 	UFUNCTION(BlueprintPure, Category = "Grid")
 	bool IsCellValid() const;
 
@@ -41,17 +38,10 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Grid")
 	FVector GetWorldCenter() const;
-	
+
 protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
-	
-private:
+	// Runtime
+	// Properties and variables
 	friend class UStorageGridVisualizer;
 
 	TWeakObjectPtr<UStorageGridVisualizer> Visualizer;

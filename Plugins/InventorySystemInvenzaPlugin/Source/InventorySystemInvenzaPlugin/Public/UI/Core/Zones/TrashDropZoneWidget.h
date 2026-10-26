@@ -15,40 +15,35 @@ UCLASS()
 class INVENTORYSYSTEMINVENZAPLUGIN_API UTrashDropZoneWidget : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
-	
+
 public:
 	UTrashDropZoneWidget();
-	
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
 
 protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
+	// Unreal overrides
+	virtual void NativeOnInitialized() override;
+
+	virtual bool NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent,
+							  UDragDropOperation* InOperation) override;
+
+protected:
+	// Runtime
+	// Properties and variables
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI", meta = (BindWidget))
 	TObjectPtr<UBorder> TrashBorder;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI", meta=(BindWidgetOptional))
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI", meta = (BindWidgetOptional))
 	TObjectPtr<UImage> MainImage;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Visuals")
 	FLinearColor ColorByDefault;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Visuals")
 	FLinearColor ColorOnDrag = FLinearColor::Red;
 
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
-	virtual void NativeOnInitialized() override;
-	
-	virtual bool NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
+	// Functions
 	void NativeOnDragEnter(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent,
-	                       UDragDropOperation* InOperation);
+						   UDragDropOperation* InOperation);
+
 	void NativeOnDragLeave(const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation);
 };

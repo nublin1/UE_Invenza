@@ -1,15 +1,14 @@
-﻿//  Nublin Studio 2026 All Rights Reserved.
+//  Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Data/Inventory/InventoryTypes.h"
 #include "UObject/Object.h"
 #include "InventorySimulator.generated.h"
 
 class UObject;
-struct FInventorySimulationOperation;
-struct FItemMoveData;
-class UItemCollection;
+class UInventoryCollectionComponent;
 class UInventoryBase;
 
 /**
@@ -31,53 +30,47 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UInventorySimulator : public UObject
 
 public:
 	UInventorySimulator();
-	
+
+public:
+	// Functions
 	virtual bool IsSupportedForNetworking() const override { return true; }
-	
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
-	UFUNCTION(BlueprintCallable, Category="Inventory|Simulation|Setup")
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Simulation|Setup")
 	void DuplicateInventoryForSimulation(UInventoryBase* InInventory);
 
-	UFUNCTION(BlueprintCallable, Category="Inventory|Simulation")
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Simulation")
 	void TransferRequestSimulateQuantity(UObject* ItemSample, int32 ToatalQuantity);
-	UFUNCTION(BlueprintCallable, Category="Inventory|Simulation")
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Simulation")
 	void TransferRequestSimulate(FItemMoveData ItemMoveData);
 
-	UFUNCTION(BlueprintPure, Category="Inventory|Simulation")
-	UInventoryBase* GetSimulationInventory() {return SimulationInventory;}
-	UFUNCTION(BlueprintPure, Category="Inventory|Simulation|History")
-	const TArray<FInventorySimulationOperation>& GetOperationHistory() const { return OperationHistory; }
-	UFUNCTION(BlueprintPure, Category="Inventory|Simulation|History")
-	bool AreAllOperationsSuccessful() const;
-	UFUNCTION(BlueprintPure, Category="Inventory|Simulation|History")
-	bool WasLastOperationSuccessful();
-	
-	UFUNCTION(BlueprintCallable, Category="Inventory|Simulation|History")
-	void ClearHistory() {OperationHistory.Reset();}
+	UFUNCTION(BlueprintPure, Category = "Inventory|Simulation")
+	UInventoryBase* GetSimulationInventory() { return SimulationInventory; }
 
-protected:	
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-	UPROPERTY(BlueprintReadOnly, Category="Inventory|Simulation")
+	UFUNCTION(BlueprintPure, Category = "Inventory|Simulation|History")
+	const TArray<FInventorySimulationOperation>& GetOperationHistory() const { return OperationHistory; }
+
+	UFUNCTION(BlueprintPure, Category = "Inventory|Simulation|History")
+	bool AreAllOperationsSuccessful() const;
+
+	UFUNCTION(BlueprintPure, Category = "Inventory|Simulation|History")
+	bool WasLastOperationSuccessful();
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Simulation|History")
+	void ClearHistory() { OperationHistory.Reset(); }
+
+protected:
+	// Runtime
+	// Properties and variables
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Simulation")
 	TObjectPtr<UInventoryBase> SourceInventory;
 
-	UPROPERTY(BlueprintReadOnly, Category="Inventory|Simulation")
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Simulation")
 	TObjectPtr<UInventoryBase> SimulationInventory;
 
-	UPROPERTY(BlueprintReadOnly, Category="Inventory|Simulation")
-	TObjectPtr<UItemCollection> SimulationCollection;
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Simulation")
+	TObjectPtr<UInventoryCollectionComponent> SimulationCollection;
 
-	UPROPERTY(BlueprintReadOnly, Category="Inventory|Simulation|History")
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Simulation|History")
 	TArray<FInventorySimulationOperation> OperationHistory;
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
 };

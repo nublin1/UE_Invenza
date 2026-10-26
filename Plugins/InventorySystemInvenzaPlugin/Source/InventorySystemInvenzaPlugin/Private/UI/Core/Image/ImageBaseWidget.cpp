@@ -1,7 +1,8 @@
 ﻿// Nublin Studio 2026 All Rights Reserved.
 
-
 #include "UI/Core/Image/ImageBaseWidget.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "Engine/Texture2D.h"
 
 #include "Components/Image.h"
 
@@ -30,10 +31,13 @@ void UImageBaseWidget::NativeConstruct()
 
 void UImageBaseWidget::SetNewMaterial(UMaterialInterface* NewMaterial)
 {
-	if (BaseMaterial == NewMaterial) return;
+	if (BaseMaterial == NewMaterial)
+	{
+		return;
+	}
 
 	BaseMaterial = NewMaterial;
-	DynamicMaterial = nullptr; 
+	DynamicMaterial = nullptr;
 	EnsureDynamicMaterial();
 }
 
@@ -87,7 +91,10 @@ void UImageBaseWidget::UpdateBrush(FSlateBrush NewBrush)
 
 void UImageBaseWidget::SyncImage()
 {
-	if (!MainImage) return;
+	if (!MainImage)
+	{
+		return;
+	}
 	if (DynamicMaterial)
 	{
 		MainImage->SetBrushFromMaterial(DynamicMaterial);
@@ -96,14 +103,17 @@ void UImageBaseWidget::SyncImage()
 	{
 		MainImage->SetBrush(BrushStyle.Brush);
 	}
-    
+
 	MainImage->SetColorAndOpacity(BrushStyle.BrushColor);
 }
 
 void UImageBaseWidget::EnsureDynamicMaterial()
 {
-	if (!MainImage || !BaseMaterial) return;
-	
+	if (!MainImage || !BaseMaterial)
+	{
+		return;
+	}
+
 	if (!DynamicMaterial)
 	{
 		DynamicMaterial = UMaterialInstanceDynamic::Create(BaseMaterial, this);

@@ -19,48 +19,46 @@ enum class EInteractionType : uint8
 };
 
 USTRUCT(BlueprintType)
-struct FInteractionKeyBinding
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FInteractionKeyBinding
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(Category = "Invenza|Interaction", EditDefaultsOnly)
 	TObjectPtr<UInputAction> Action;
-	
 
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(Category = "Invenza|Interaction", EditDefaultsOnly)
 	EInteractionType Type = EInteractionType::Primary;
 };
 
 UENUM(BlueprintType)
-enum class EInteractableType: uint8 
+enum class EInteractableType : uint8
 {
-	None		UMETA(DisplayName = "None"),
-	Pickup		UMETA(DisplayName = "Pickup"),
-	NPC			UMETA(DisplayName = "NPC"),
-	Craft		UMETA(DisplayName = "Craft"),
-	Toggle		UMETA(DisplayName = "Toggle"),
-	Container	UMETA(DisplayName = "Container"),
-	InfoOnly    UMETA(DisplayName = "Informational"),
-	Vendor		UMETA(DisplayName = "Vending machine"),
+	None UMETA(DisplayName = "None"),
+	Pickup UMETA(DisplayName = "Pickup"),
+	NPC UMETA(DisplayName = "NPC"),
+	Craft UMETA(DisplayName = "Craft"),
+	Toggle UMETA(DisplayName = "Toggle"),
+	Container UMETA(DisplayName = "Container"),
+	InfoOnly UMETA(DisplayName = "Informational"),
+	Vendor UMETA(DisplayName = "Vending machine"),
+	StorageAccess UMETA(DisplayName = "Storage access point"),
 };
 
 USTRUCT(Blueprintable, BlueprintType)
-struct FInteractableData
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FInteractableData
 {
 	GENERATED_USTRUCT_BODY()
 
-	FInteractableData() :
-		DefaultInteractableType(EInteractableType::Pickup),
-		Name(FText::GetEmpty()),
-		Action(FText::GetEmpty()),
-		Quantity(0), InteractableDuration(0.0f)
+	FInteractableData()
+		: DefaultInteractableType(EInteractableType::Pickup), Name(FText::GetEmpty()), Action(FText::GetEmpty()),
+		  Quantity(0), InteractableDuration(0.0f)
 	{
 	}
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interactable")
 	EInteractableType DefaultInteractableType;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interactable")
-	FText Name;	
+	FText Name;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interactable")
 	FText Action;
 	// Empty means: keep displaying Action.
@@ -72,8 +70,6 @@ struct FInteractableData
 	float InteractableDuration;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interactable")
 	bool bHoldToInteract = false;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Interactable")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interactable")
 	FGameplayTag ActionTag;
-
 };
-

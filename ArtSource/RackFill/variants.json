@@ -1,0 +1,35 @@
+[
+  {
+    "name": "SM_Rack_Fill_25",
+    "percent": 25,
+    "boxes": 4,
+    "triangles": 120,
+    "dimensions_m": [
+      3.0,
+      0.8000003099441528,
+      2.0
+    ]
+  },
+  {
+    "name": "SM_Rack_Fill_50",
+    "percent": 50,
+    "boxes": 8,
+    "triangles": 168,
+    "dimensions_m": [
+      3.0,
+      0.8000003099441528,
+      2.0
+    ]
+  },
+  {
+    "name": "SM_Rack_Fill_75",
+    "percent": 75,
+    "boxes": 11,
+    "triangles": 204,
+    "dimensions_m": [
+      3.0,
+      0.8000003099441528,
+      2.0
+    ]
+  }
+]

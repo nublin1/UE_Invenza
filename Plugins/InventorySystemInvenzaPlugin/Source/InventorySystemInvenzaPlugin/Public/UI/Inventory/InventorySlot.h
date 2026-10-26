@@ -19,53 +19,53 @@ UCLASS()
 class INVENTORYSYSTEMINVENZAPLUGIN_API UInventorySlot : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
-	
+
 public:
 	UInventorySlot();
-	
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
+
+public:
+	// Properties and variables
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Config")
 	FGameplayTag AllowedSlotCategory;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Config")
 	FGameplayTag LinkedEquipmentSlotTag;
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
-	bool operator==(const UInventorySlot& Other) const
-	{
-		return SlotData == Other.SlotData;
-	}
-	
+
+	// Functions
+	bool operator==(const UInventorySlot& Other) const { return SlotData == Other.SlotData; }
+
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Visual")
 	virtual void UpdateVisualWithItemInfo(UObject* Item);
+
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Visual")
 	virtual void UpdateVisualWithTexture(UTexture2D* NewTexture);
+
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Visual")
 	virtual void ResetVisual();
+
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Visual")
 	virtual void ClearVisual();
-	
+
 	//Getters
-	UInventorySlotData* GetSlotData() {return SlotData;}
+	UInventorySlotData* GetSlotData() { return SlotData; }
+
 	FIntPoint GetSlotPosition() const { return SlotData->InventorySlotInfo.CellPosition; }
-	UInputAction* GetUseAction() const;	
-	
+
+	UInputAction* GetUseAction() const;
+
 	//Setters
 	void SetSlotData(UInventorySlotData* NewSlotData) { this->SlotData = NewSlotData; }
-	void SetSlotPosition(FIntPoint InSlotPosition) const { this->SlotData->InventorySlotInfo.CellPosition = InSlotPosition; }
+
+	void SetSlotPosition(FIntPoint InSlotPosition) const
+	{
+		this->SlotData->InventorySlotInfo.CellPosition = InSlotPosition;
+	}
+
 	virtual void SetSlotNameText(FString InUseKeyText);
-	
+
 protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================	
+	// Runtime
+	// Properties and variables
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Inventory Data")
 	TObjectPtr<UInventorySlotData> SlotData;
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
 };

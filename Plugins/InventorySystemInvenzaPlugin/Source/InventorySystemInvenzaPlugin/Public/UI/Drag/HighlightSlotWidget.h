@@ -17,21 +17,16 @@ UCLASS()
 class INVENTORYSYSTEMINVENZAPLUGIN_API UHighlightSlotWidget : public UInventoryItemWidget
 {
 	GENERATED_BODY()
+
 public:
 	UHighlightSlotWidget();
 
 protected:
+	// Unreal overrides
 	virtual void NativeConstruct() override;
 
 public:
-	
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
+	// Functions
 	UFUNCTION(BlueprintCallable, Category = "Highlight")
 	void SetHighlightState(EHighlightState NewState);
 
@@ -39,25 +34,23 @@ public:
 	virtual void UpdateVisualWithTexture(UTexture2D* NewTexture);
 
 	UFUNCTION(BlueprintCallable, Category = "Highlight")
-	void SetHighlightColors(FLinearColor Allowed, FLinearColor NotAllowed/*, FLinearColor Partial*/);
+	void SetHighlightColors(FLinearColor Allowed, FLinearColor NotAllowed /*, FLinearColor Partial*/);
 
 protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
+	// Runtime
+	// Properties and variables
 	UPROPERTY(blueprintReadOnly, Category = "Highlight")
 	EHighlightState CurrentState = EHighlightState::NotAllowed;
-	
+
 	UPROPERTY(EditDefaultsOnly, Category = "Highlight")
 	FLinearColor AllowedColor = FLinearColor::Green;
+
 	UPROPERTY(EditDefaultsOnly, Category = "Highlight")
 	FLinearColor NotAllowedColor = FLinearColor::Red;
+
 	UPROPERTY(EditDefaultsOnly, Category = "Highlight")
 	FLinearColor PartialColor = FLinearColor::Yellow;
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
-	
+
+	// Functions
 	virtual void SetBordersColor(const FLinearColor& Color);
 };

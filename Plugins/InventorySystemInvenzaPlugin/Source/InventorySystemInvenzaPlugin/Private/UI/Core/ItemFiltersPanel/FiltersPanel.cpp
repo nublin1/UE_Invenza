@@ -1,6 +1,5 @@
 // Nublin Studio 2026 All Rights Reserved.
 
-
 #include "UI/Core/ItemFiltersPanel/FiltersPanel.h"
 
 #include "Components/Button.h"
@@ -12,7 +11,8 @@
 void UFiltersPanel::NativePreConstruct()
 {
 	Super::NativePreConstruct();
-	
+	SetRecentSalesAvailable(false);
+
 	if (!bIsShowFiltersButtons && FilterButtons)
 	{
 		FilterButtons->SetVisibility(ESlateVisibility::Collapsed);
@@ -27,15 +27,21 @@ void UFiltersPanel::NativePreConstruct()
 void UFiltersPanel::NativeConstruct()
 {
 	Super::NativeConstruct();
-	
+
 	auto CollectButtons = [&](UPanelWidget* Container)
 	{
-		if (!Container) return;
+		if (!Container)
+		{
+			return;
+		}
 		for (int32 i = 0; i < Container->GetChildrenCount(); ++i)
 		{
 			if (auto TagButton = Cast<UUIButton>(Container->GetChildAt(i)))
 			{
-				CategoryButtonList.Add(TagButton);
+				if (TagButton != RecentlySoldButton)
+				{
+					CategoryButtonList.Add(TagButton);
+				}
 			}
 		}
 	};
@@ -45,10 +51,15 @@ void UFiltersPanel::NativeConstruct()
 	CollectButtons(VerticalContentBox);
 
 	if (ClearFiltersButton)
+	{
 		ClearFiltersButton->MainButton->OnPressed.AddUniqueDynamic(this, &UFiltersPanel::OnClearFiltersButtonPressed);
+	}
 
 	if (ClearSearchTextButton)
-		ClearSearchTextButton->MainButton->OnPressed.AddUniqueDynamic(this, &UFiltersPanel::OnClearSearchTextButtonPressed);
+	{
+		ClearSearchTextButton->MainButton->OnPressed.AddUniqueDynamic(this,
+																	  &UFiltersPanel::OnClearSearchTextButtonPressed);
+	}
 }
 
 FGameplayTagContainer UFiltersPanel::GetActiveFilterTags() const
@@ -56,7 +67,7 @@ FGameplayTagContainer UFiltersPanel::GetActiveFilterTags() const
 	FGameplayTagContainer ActiveTags;
 	for (auto Button : CategoryButtonList)
 	{
-		if (Button && Button->GetToggleStatus()) 
+		if (Button && Button->GetToggleStatus())
 		{
 			ActiveTags.AddTag(Button->GetBtnTag());
 		}
@@ -66,10 +77,14 @@ FGameplayTagContainer UFiltersPanel::GetActiveFilterTags() const
 
 void UFiltersPanel::DisableAllFilters()
 {
-	if (CategoryButtonList.IsEmpty())
-		return;
-
-	SearchText->SetText(FText::FromString(""));
+	if (RecentlySoldButton)
+	{
+		RecentlySoldButton->SetToggleStatus(false);
+	}
+	if (SearchText)
+	{
+		SearchText->SetText(FText::GetEmpty());
+	}
 	for (auto CategoryButton : CategoryButtonList)
 	{
 		CategoryButton->SetToggleStatus(false);
@@ -83,9 +98,30 @@ void UFiltersPanel::OnClearFiltersButtonPressed()
 
 void UFiltersPanel::OnClearSearchTextButtonPressed()
 {
-	if(!SearchText)
+	if (!SearchText)
+	{
 		return;
+	}
 
 	SearchText->SetText(FText::GetEmpty());
+	SearchText->OnTextChanged.Broadcast(FText::GetEmpty());
 }
 
+void UFiltersPanel::SetRecentSalesAvailable(bool bAvailable)
+{
+	if (!RecentlySoldButton)
+	{
+		return;
+	}
+	RecentlySoldButton->SetVisibility(bAvailable ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+	if (!bAvailable)
+	{
+		RecentlySoldButton->SetToggleStatus(false);
+	}
+}
+
+bool UFiltersPanel::IsRecentSalesActive() const
+{
+	return RecentlySoldButton && RecentlySoldButton->GetVisibility() != ESlateVisibility::Collapsed &&
+		   RecentlySoldButton->GetToggleStatus();
+}

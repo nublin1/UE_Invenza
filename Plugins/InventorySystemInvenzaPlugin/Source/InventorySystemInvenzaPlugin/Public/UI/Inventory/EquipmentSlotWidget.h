@@ -14,26 +14,16 @@ UCLASS()
 class INVENTORYSYSTEMINVENZAPLUGIN_API UEquipmentSlotWidget : public USlotbasedInventorySlot
 {
 	GENERATED_BODY()
-	
+
 public:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
+	UEquipmentSlotWidget();
+
+protected:
+	// Unreal overrides
+	virtual void NativeConstruct() override;
+
+public:
+	// Properties and variables
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment")
 	FGameplayTag AllowedCategory;
-
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
-	UEquipmentSlotWidget();
-	
-protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
-	virtual void NativeConstruct() override;
 };

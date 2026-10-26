@@ -1,4 +1,4 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -8,31 +8,36 @@
 #include "ProductionQueueListEntryObject.generated.h"
 
 /**
- * 
+ *
  */
 UCLASS()
 class INVENTORYSYSTEMINVENZAPLUGIN_API UProductionQueueListEntryObject : public UObject
 {
 	GENERATED_BODY()
 
-#pragma region Delegates
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDataChanged);
-#pragma endregion
-	
 public:
 	UProductionQueueListEntryObject() {};
 
+public:
+#pragma region Delegates
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDataChanged);
+#pragma endregion Delegates
+
+	// Properties and variables
 	UPROPERTY(BlueprintAssignable, Category = "Crafting")
 	FOnDataChanged OnDataChanged;
-	
-	FQueuedRecipe GetQueuedRecipeData() {return QueuedRecipeData;}
 
-	void SetQueuedRecipe(const FQueuedRecipe& NewQueuedRecipe) {QueuedRecipeData = NewQueuedRecipe;}
+	// Functions
+	FQueuedRecipe GetQueuedRecipeData() { return QueuedRecipeData; }
 
-	UFUNCTION(BlueprintCallable)
+	void SetQueuedRecipe(const FQueuedRecipe& NewQueuedRecipe) { QueuedRecipeData = NewQueuedRecipe; }
+
+	UFUNCTION(Category = "Invenza|Crafting", BlueprintCallable)
 	void UpdateData(int32 NewCount, float NewProgress);
 
 protected:
-	UPROPERTY(BlueprintReadOnly)
+	// Runtime
+	// Properties and variables
+	UPROPERTY(Category = "Invenza|Crafting", BlueprintReadOnly)
 	FQueuedRecipe QueuedRecipeData;
 };

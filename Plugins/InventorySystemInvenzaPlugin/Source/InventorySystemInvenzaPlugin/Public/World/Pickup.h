@@ -15,31 +15,20 @@ UCLASS()
 class INVENTORYSYSTEMINVENZAPLUGIN_API APickup : public AActor
 {
 	GENERATED_BODY()
-	
-public:	
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
 
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
+public:
 	APickup();
 
-
 protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-	UPROPERTY()
-	UStaticMeshComponent* PickupMesh;
-	UPROPERTY()
-	UBoxComponent* BoxCollider;
-
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
+	// Unreal overrides
 	virtual void PostInitializeComponents() override;
 
+protected:
+	// Runtime
+	// Properties and variables
+	UPROPERTY()
+	UStaticMeshComponent* PickupMesh;
 
+	UPROPERTY()
+	UBoxComponent* BoxCollider;
 };

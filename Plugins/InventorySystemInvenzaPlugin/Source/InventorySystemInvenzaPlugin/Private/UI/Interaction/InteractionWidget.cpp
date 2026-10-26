@@ -5,7 +5,6 @@
 #include "Components/ProgressBar.h"
 #include "Data/Interactable/InteractableData.h"
 
-
 UInteractionWidget::UInteractionWidget()
 {
 }
@@ -13,7 +12,7 @@ UInteractionWidget::UInteractionWidget()
 void UInteractionWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
-	
+
 	if (InteractionProgressBar)
 	{
 		InteractionProgressBar->SetPercent(0);
@@ -34,16 +33,28 @@ void UInteractionWidget::OnFoundInteractable_Implementation(const TArray<FIntera
 
 void UInteractionWidget::OnLostInteractable_Implementation(const TArray<FInteractionDisplayEntry>& Entries)
 {
-	if (FirstRow) FirstRow->SetVisibility(ESlateVisibility::Hidden);
-	if (SecondRow) SecondRow->SetVisibility(ESlateVisibility::Hidden);
-	if (ThirdRow) ThirdRow->SetVisibility(ESlateVisibility::Hidden);
-	
-	if (InteractionProgressBar) InteractionProgressBar->SetVisibility(ESlateVisibility::Hidden);
+	if (FirstRow)
+	{
+		FirstRow->SetVisibility(ESlateVisibility::Hidden);
+	}
+	if (SecondRow)
+	{
+		SecondRow->SetVisibility(ESlateVisibility::Hidden);
+	}
+	if (ThirdRow)
+	{
+		ThirdRow->SetVisibility(ESlateVisibility::Hidden);
+	}
+
+	if (InteractionProgressBar)
+	{
+		InteractionProgressBar->SetVisibility(ESlateVisibility::Hidden);
+	}
 }
 
 void UInteractionWidget::OnInteractionDisplayChanged_Implementation(const TArray<FInteractionDisplayEntry>& Entries)
 {
-	UInteractionRowWidget* Rows[] = { FirstRow, SecondRow, ThirdRow };
+	UInteractionRowWidget* Rows[] = {FirstRow, SecondRow, ThirdRow};
 
 	for (int32 Index = 0; Index < 3; ++Index)
 	{

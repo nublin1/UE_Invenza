@@ -1,5 +1,4 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
-
+// Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -10,69 +9,69 @@
 class ULabelBaseText;
 class UImageBaseWidget;
 /**
- * 
+ *
  */
 UCLASS()
 class INVENTORYSYSTEMINVENZAPLUGIN_API UTimerWidget : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
 
-	
-#pragma region Delegates
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnTimerFinished);
-#pragma endregion
-
 public:
 	UTimerWidget();
-	
+
 protected:
+	// Unreal overrides
 	virtual void NativePreConstruct() override;
+
 	virtual void NativeConstruct() override;
 
 public:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-	UPROPERTY(BlueprintAssignable)
+#pragma region Delegates
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnTimerFinished);
+#pragma endregion Delegates
+
+	// Properties and variables
+	UPROPERTY(Category = "Invenza|UI|Times", BlueprintAssignable)
 	FOnTimerFinished OnTimerFinished;
-	
+
 	// Widgets
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
 	TObjectPtr<UImageBaseWidget> ClockIcon;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidget))
 	TObjectPtr<ULabelBaseText> TimeText;
 
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
-	UFUNCTION(BlueprintCallable)
+	// Functions
+	UFUNCTION(Category = "Invenza|UI|Times", BlueprintCallable)
 	void SetTime(float InSeconds);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(Category = "Invenza|UI|Times", BlueprintCallable)
 	void UpdateTime();
-	UFUNCTION(BlueprintCallable)
+
+	UFUNCTION(Category = "Invenza|UI|Times", BlueprintCallable)
 	void UpdateTimeWithDeltaSeconds(float DeltaSeconds);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(Category = "Invenza|UI|Times", BlueprintCallable)
 	void StartTimer();
-	UFUNCTION(BlueprintCallable)
+
+	UFUNCTION(Category = "Invenza|UI|Times", BlueprintCallable)
 	void ResetTimer();
-	UFUNCTION(BlueprintCallable)
+
+	UFUNCTION(Category = "Invenza|UI|Times", BlueprintCallable)
 	void PauseTimer();
-	UFUNCTION(BlueprintCallable)
+
+	UFUNCTION(Category = "Invenza|UI|Times", BlueprintCallable)
 	void ResumeTimer();
-	
+
 protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
+	// Runtime
+	// Properties and variables
 	float TotalTime = 0.f;
+
 	float RemainingTime = 0.f;
 
 	FTimerHandle TimerHandle;
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
+
+	// Functions
 	void RefreshText() const;
 };

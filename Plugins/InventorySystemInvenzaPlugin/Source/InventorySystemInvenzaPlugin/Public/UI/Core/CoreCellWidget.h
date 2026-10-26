@@ -23,36 +23,40 @@ public:
 	UCoreCellWidget();
 
 protected:
+	// Unreal overrides
 	virtual void NativePreConstruct() override;
 
 public:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
+	// Properties and variables
 	// Widgets
-	UPROPERTY(VisibleAnywhere, Category = "Cell UI|Components", meta=(BindWidget))
+	UPROPERTY(VisibleAnywhere, Category = "Cell UI|Components", meta = (BindWidget))
 	TObjectPtr<USizeBox> SizeBox;
-	UPROPERTY(VisibleAnywhere, Category = "Cell UI|Components", meta=(BindWidget))
-	TObjectPtr<UBorder>	 Left_Border;
-	UPROPERTY(VisibleAnywhere, Category = "Cell UI|Components", meta=(BindWidget))
-	TObjectPtr<UBorder>  Right_Border;
-	UPROPERTY(VisibleAnywhere, Category = "Cell UI|Components", meta=(BindWidget))
-	TObjectPtr<UBorder>  Top_Border;
-	UPROPERTY(VisibleAnywhere, Category = "Cell UI|Components", meta=(BindWidget))
-	TObjectPtr<UBorder>  BottomBorder;
-	UPROPERTY(VisibleAnywhere, Category = "Cell UI|Components", meta=(BindWidget))
-	TObjectPtr<USizeBox>  Content_ImageSizeBox;
-	UPROPERTY(VisibleAnywhere, Category = "Cell UI|Components", meta=(BindWidget))
+
+	UPROPERTY(VisibleAnywhere, Category = "Cell UI|Components", meta = (BindWidget))
+	TObjectPtr<UBorder> Left_Border;
+
+	UPROPERTY(VisibleAnywhere, Category = "Cell UI|Components", meta = (BindWidget))
+	TObjectPtr<UBorder> Right_Border;
+
+	UPROPERTY(VisibleAnywhere, Category = "Cell UI|Components", meta = (BindWidget))
+	TObjectPtr<UBorder> Top_Border;
+
+	UPROPERTY(VisibleAnywhere, Category = "Cell UI|Components", meta = (BindWidget))
+	TObjectPtr<UBorder> BottomBorder;
+
+	UPROPERTY(VisibleAnywhere, Category = "Cell UI|Components", meta = (BindWidget))
+	TObjectPtr<USizeBox> Content_ImageSizeBox;
+
+	UPROPERTY(VisibleAnywhere, Category = "Cell UI|Components", meta = (BindWidget))
 	TObjectPtr<UImageBaseWidget> Content_Image;
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
+
+	// Functions
 	UFUNCTION()
 	virtual void ResetBorderColor();
 
 	UFUNCTION()
 	FVector2D GetCurrentSlotSize() const;
+
 	UFUNCTION()
 	virtual void SetSlotSize(const FVector2D& NewSize);
 
@@ -63,27 +67,24 @@ public:
 	void SetImageRotationAngle(float Angle);
 
 protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-	
-	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category = "Cell UI|Config")
+	// Runtime
+	// Properties and variables
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cell UI|Config")
 	TObjectPtr<UTexture2D> DefaultContent_Image;
-	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category = "Cell UI|Config")
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cell UI|Config")
 	FLinearColor DefaultTintColor;
-	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category = "Cell UI|Config")
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cell UI|Config")
 	FLinearColor DefaultColorAndOpacity;
-	
-	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category = "Cell UI|Defaults")
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cell UI|Defaults")
 	FLinearColor DefaultBorderColor;
 
-	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category = "Cell UI|Data")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cell UI|Data")
 	FVector2D CurrentSlotSize;
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
 
+	// Functions
 	UFUNCTION()
 	virtual void ApplyDefaultContentImageStyle();
 };

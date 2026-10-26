@@ -15,7 +15,6 @@ class UUInventoryBaseWidget;
 class UAUIManagerActor;
 class UInvWeightWidget;
 
-
 /**
  * Base container widget for displaying an inventory together with optional title, money,
  * weight and inventory operations.
@@ -25,55 +24,65 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UInventoryContainerWidget : public UInven
 {
 	GENERATED_BODY()
 
-#pragma region Delegates
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FWidgetClose, UInvenzaBaseWidget*, Widget);
-#pragma endregion Delegates
-	
 public:
 	UInventoryContainerWidget();
 
 protected:
+	// Unreal overrides
 	virtual void NativePreConstruct() override;
+
 	virtual void NativeConstruct() override;
 
-public:	
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "Container|Events" )
+public:
+#pragma region Delegates
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FWidgetClose, UInvenzaBaseWidget*, Widget);
+#pragma endregion Delegates
+
+	// Properties and variables
+	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "Container|Events")
 	FWidgetClose OnClose;
 
 	//Widgets
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Container|Widgets", meta = (BindWidgetOptional))
 	TObjectPtr<UMovableTitleBar> TitleBar;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Container|Widgets", meta = (BindWidgetOptional))
 	TObjectPtr<ULabelBaseText> InvMoney;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Container|Widgets", meta = (BindWidgetOptional))
 	TObjectPtr<UNamedSlot> ContainerSlot;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Container|Widgets", meta = (BindWidgetOptional))
 	TObjectPtr<UNamedSlot> OperationsSlot;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Container|Widgets", meta = (BindWidgetOptional))
 	TObjectPtr<UInvWeightWidget> InvWeight;
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
+
+	// Functions
 	UFUNCTION(BlueprintCallable, Category = "Container|Inventory")
 	void InitializeInventoryContainer();
-	
+
 	UFUNCTION(BlueprintCallable, Category = "Container|Inventory")
 	virtual void ChangeInventoryInContainerSlot(TSubclassOf<UInvenzaBaseWidget> NewInventory);
-	
+
 	UFUNCTION(BlueprintPure, Category = "Container|Inventory")
 	virtual UUInventoryBaseWidget* GetInventoryWidgetFromContainerSlot();
-	
+
 	UFUNCTION(BlueprintCallable, Category = "Container|Inventory")
 	virtual void ReDrawRequest();
 
+	/** Disconnect a discarded panel before releasing its inventory. */
+	void ReleaseInventory();
+
+	UFUNCTION(BlueprintCallable, Category = "Container|UI")
+	void SetShowCloseButton(bool bShow);
+
+	UFUNCTION(BlueprintPure, Category = "Container|UI")
+	bool GetShowCloseButton() const { return bIsShowCloseButton; }
+
 protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
+	// Runtime
+	// Properties and variables
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Container|Config")
 	bool bIsShowTotalMoney = true;
 
@@ -87,39 +96,47 @@ protected:
 	FText Title;
 
 	//
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Container|Runtime")
 	TObjectPtr<UInventoryBase> InventoryRef;
-	
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Container|Runtime")
 	TObjectPtr<UUInventoryBaseWidget> InventoryWidgetRef;
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
 
+	// Functions
 	// UI
+	void UpdateCloseButtonVisibility();
+
 	UFUNCTION(BlueprintCallable, Category = "Container|UI")
 	virtual void CloseButtonClicked(UUIButton* Btn);
-	
+
 	UFUNCTION(BlueprintCallable, Category = "Container|UI")
 	virtual void UpdateWeightInfo(float InventoryTotalWeight);
+
 	UFUNCTION(BlueprintCallable, Category = "Container|UI")
 	virtual void UpdateMoneyInfo(int32 TotalMoney);
 
 	UFUNCTION(BlueprintCallable, Category = "Container|Operations")
 	virtual void TakeAll();
+
 	UFUNCTION(BlueprintCallable, Category = "Container|Operations")
 	virtual void PlaceAll();
+
+	UFUNCTION()
+	void PlaceMatching();
+
 	UFUNCTION(BlueprintCallable, Category = "Container|Operations")
 	virtual void SortItems();
-	
-	UFUNCTION(BlueprintCallable)
+
+	UFUNCTION(Category = "Invenza|UI|Inventory", BlueprintCallable)
 	void InitializeTitleBar();
-	UFUNCTION(BlueprintCallable)
+
+	UFUNCTION(Category = "Invenza|UI|Inventory", BlueprintCallable)
 	void InitializeInventoryInfo();
-	UFUNCTION(BlueprintCallable)
+
+	UFUNCTION(Category = "Invenza|UI|Inventory", BlueprintCallable)
 	void InitializeOperations();
+
 	UFUNCTION()
 	virtual void UpdateTitle(FText NewText);
-	
 };

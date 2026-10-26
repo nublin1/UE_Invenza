@@ -1,11 +1,9 @@
 ﻿// Nublin Studio 2026 All Rights Reserved.
 
-
-
 #include "UI/Core/Times/TimerWidget.h"
+#include "TimerManager.h"
 
 #include "UI/Core/LabelBaseText.h"
-
 
 UTimerWidget::UTimerWidget()
 {
@@ -14,7 +12,7 @@ UTimerWidget::UTimerWidget()
 void UTimerWidget::NativePreConstruct()
 {
 	Super::NativePreConstruct();
-	
+
 	RefreshText();
 }
 
@@ -74,13 +72,7 @@ void UTimerWidget::UpdateTimeWithDeltaSeconds(float DeltaSeconds)
 
 void UTimerWidget::StartTimer()
 {
-	GetWorld()->GetTimerManager().SetTimer(
-		TimerHandle,
-		this,
-		&UTimerWidget::UpdateTime,
-		1.0f,
-		true
-	);
+	GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &UTimerWidget::UpdateTime, 1.0f, true);
 }
 
 void UTimerWidget::ResetTimer()
@@ -102,7 +94,9 @@ void UTimerWidget::ResumeTimer()
 void UTimerWidget::RefreshText() const
 {
 	if (!TimeText)
+	{
 		return;
+	}
 
 	int32 TotalSeconds = FMath::CeilToInt(RemainingTime);
 
@@ -110,7 +104,6 @@ void UTimerWidget::RefreshText() const
 	int32 Seconds = TotalSeconds % 60;
 
 	FString Formatted = FString::Printf(TEXT("%02d:%02d"), Minutes, Seconds);
-	
-	TimeText->UpdateText(FText::FromString(Formatted));
 
+	TimeText->UpdateText(FText::FromString(Formatted));
 }

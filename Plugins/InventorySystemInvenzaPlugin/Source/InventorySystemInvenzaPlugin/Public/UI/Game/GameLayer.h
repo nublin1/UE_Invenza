@@ -1,4 +1,4 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -8,7 +8,7 @@
 #include "GameLayer.generated.h"
 
 /**
- * 
+ *
  */
 UCLASS()
 class INVENTORYSYSTEMINVENZAPLUGIN_API UGameLayer : public UUILayer, public IInteractionUIProvider
@@ -19,27 +19,16 @@ public:
 	UGameLayer();
 
 protected:
+	// Unreal overrides
 	virtual void NativeOnInitialized() override;
 
 public:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
+	// Properties and variables
 	// Widgets
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta=(BindWidget))
+	UPROPERTY(Category = "Invenza|UI|Game", VisibleAnywhere, BlueprintReadWrite, meta = (BindWidget))
 	TObjectPtr<UPanelWidget> InteractionPanel;
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
+
+	// Functions
 	UFUNCTION(BlueprintCallable, Category = "Inventory|UI")
 	virtual UInteractionWidget* GetPawnInteractionWidget() const override;
-
-protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
 };

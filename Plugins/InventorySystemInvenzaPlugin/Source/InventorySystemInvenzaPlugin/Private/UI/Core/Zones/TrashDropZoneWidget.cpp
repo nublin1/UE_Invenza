@@ -1,9 +1,8 @@
 // Nublin Studio 2025 All Rights Reserved.
 
-
 #include "UI/Core/Zones/TrashDropZoneWidget.h"
 
-#include "ActorComponents/ItemCollection.h"
+#include "ActorComponents/InventoryCollectionComponent.h"
 #include "Components/Border.h"
 #include "Data/Inventory/InventoryBase.h"
 #include "DragDrop/ItemDragDropOperation.h"
@@ -21,17 +20,18 @@ void UTrashDropZoneWidget::NativeOnInitialized()
 	{
 		ColorByDefault = TrashBorder->GetBrushColor();
 	}
-	
 }
 
 bool UTrashDropZoneWidget::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent,
-                                        UDragDropOperation* InOperation)
+										UDragDropOperation* InOperation)
 {
 	bool Result = Super::NativeOnDrop(InGeometry, InDragDropEvent, InOperation);
 
 	auto DragOp = Cast<UItemDragDropOperation>(InOperation);
 	if (!DragOp->ItemMoveData.SourceItem)
+	{
 		return Result;
+	}
 
 	DragOp->ItemMoveData.SourceInventory->GetItemCollectionLinked()->RemoveItemFromAllContainers(
 		DragOp->ItemMoveData.SourceItem);
@@ -43,7 +43,8 @@ bool UTrashDropZoneWidget::NativeOnDrop(const FGeometry& InGeometry, const FDrag
 	return true;
 }
 
-void UTrashDropZoneWidget::NativeOnDragEnter(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
+void UTrashDropZoneWidget::NativeOnDragEnter(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent,
+											 UDragDropOperation* InOperation)
 {
 	if (TrashBorder)
 	{

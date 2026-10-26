@@ -1,4 +1,4 @@
-﻿//  Nublin Studio 2026 All Rights Reserved.
+//  Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -15,19 +15,23 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UInvenzaInventorySettingsSubsystem : publ
 {
 	GENERATED_BODY()
 
-public:
-
+protected:
+	// Unreal overrides
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 
+public:
+	// Functions
 	UInvenzaInventorySettingsAsset* GetSettings() const { return Settings; }
 
 	static const UInvenzaInventorySettingsAsset* GetSettingsStatic(const UObject* WorldContextObject);
 
-private:
-
+protected:
+	// Runtime
+	// Properties and variables
 	UPROPERTY()
 	TObjectPtr<UInvenzaInventorySettingsAsset> Settings;
-	
+
+	// Functions
 	UFUNCTION()
 	void ValidateSettings() const;
 };

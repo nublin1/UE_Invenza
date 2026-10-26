@@ -15,17 +15,20 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UInvenzaBaseWidget : public UUserWidget
 	GENERATED_BODY()
 
 protected:
+	// Unreal overrides
 	virtual void NativeConstruct() override;
 
 public:
+	// Functions
 	UFUNCTION()
 	virtual void CalculateParentWidget();
-	
+
 	UFUNCTION()
-	virtual void SetParentWidget(UInvenzaBaseWidget* Parent) {ParentWidget = Parent;}
+	virtual void SetParentWidget(UInvenzaBaseWidget* Parent) { ParentWidget = Parent; }
 
 protected:
+	// Runtime
+	// Properties and variables
 	UPROPERTY()
 	TObjectPtr<UInvenzaBaseWidget> ParentWidget;
-
 };

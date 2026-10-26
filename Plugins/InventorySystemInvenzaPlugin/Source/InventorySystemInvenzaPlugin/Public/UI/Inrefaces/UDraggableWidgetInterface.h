@@ -17,7 +17,7 @@ class UUDraggableWidgetInterface : public UInterface
 };
 
 /**
- * 
+ *
  */
 class INVENTORYSYSTEMINVENZAPLUGIN_API IUDraggableWidgetInterface
 {
@@ -27,8 +27,7 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API IUDraggableWidgetInterface
 public:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "DragDrop")
 	void OnDragFinished(bool bSuccess, UDragDropOperation* Operation);
-	
-	UFUNCTION(BlueprintNativeEvent,BlueprintCallable, Category = "UI|Floating")
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "UI|Floating")
 	bool RequestFloatingReposition(UWidget* Content, FVector2D ScreenPosition);
-	
 };

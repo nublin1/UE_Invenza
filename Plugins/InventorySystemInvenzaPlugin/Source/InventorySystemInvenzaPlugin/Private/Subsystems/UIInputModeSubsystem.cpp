@@ -1,3 +1,5 @@
+// Nublin Studio 2026 All Rights Reserved.
+
 #include "Subsystems/UIInputModeSubsystem.h"
 
 #include "Engine/LocalPlayer.h"
@@ -5,7 +7,10 @@
 
 void UUIInputModeSubsystem::RequestUIInput(UObject* RequestOwner)
 {
-	if (!IsValid(RequestOwner)) return;
+	if (!IsValid(RequestOwner))
+	{
+		return;
+	}
 	RequestOwners.Add(TWeakObjectPtr<UObject>(RequestOwner));
 	UpdateInputMode();
 }
@@ -20,16 +25,24 @@ void UUIInputModeSubsystem::UpdateInputMode()
 {
 	for (auto It = RequestOwners.CreateIterator(); It; ++It)
 	{
-		if (!It->IsValid()) It.RemoveCurrent();
+		if (!It->IsValid())
+		{
+			It.RemoveCurrent();
+		}
 	}
 
 	ULocalPlayer* LocalPlayer = GetLocalPlayer();
-	APlayerController* PC = LocalPlayer
-		? LocalPlayer->GetPlayerController(GetWorld()) : nullptr;
-	if (!IsValid(PC)) return;
+	APlayerController* PC = LocalPlayer ? LocalPlayer->GetPlayerController(GetWorld()) : nullptr;
+	if (!IsValid(PC))
+	{
+		return;
+	}
 
 	const bool bNeedsUIInput = !RequestOwners.IsEmpty();
-	if (AppliedController.Get() == PC && bUIInputApplied == bNeedsUIInput) return;
+	if (AppliedController.Get() == PC && bUIInputApplied == bNeedsUIInput)
+	{
+		return;
+	}
 
 	if (bNeedsUIInput)
 	{

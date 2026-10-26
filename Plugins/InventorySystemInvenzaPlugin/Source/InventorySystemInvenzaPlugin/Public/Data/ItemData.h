@@ -10,7 +10,7 @@
 struct FItemAssetData;
 
 USTRUCT()
-struct FItemData : public FTableRowBase
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FItemData : public FTableRowBase
 {
 	GENERATED_BODY()
 

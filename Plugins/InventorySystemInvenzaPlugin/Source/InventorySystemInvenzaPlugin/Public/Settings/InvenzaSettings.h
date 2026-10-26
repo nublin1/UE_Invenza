@@ -25,29 +25,29 @@ class UInventoryItemWidget;
 class UInvenzaBaseWidget;
 
 USTRUCT(Blueprintable)
-struct FUISettings
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FUISettings
 {
 	GENERATED_BODY()
-	
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Input")
-    UInputMappingContext* InventoryMappingContext;
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Input")
-    UInputAction* ToggleInventoryAction;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Input")
+	UInputMappingContext* InventoryMappingContext;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Input")
+	UInputAction* ToggleInventoryAction;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Input")
 	UInputAction* ToggleCraftAction;
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Input")
-    UInputAction* ToggleEquipmentAction;
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Input")
-    UInputAction* IA_Mod_QuickGrab;
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Input")
-    UInputAction* IA_Mod_GrabAllSame;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Input")
+	UInputAction* ToggleEquipmentAction;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Input")
+	UInputAction* IA_Mod_QuickGrab;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Input")
+	UInputAction* IA_Mod_GrabAllSame;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Input")
 	UInputAction* IA_RotateDraggedItem;
-	
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Input")
-    FKey ItemSelectKey;
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Input")
-    FKey ItemUseKey;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Input")
+	FKey ItemSelectKey;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Input")
+	FKey ItemUseKey;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Input")
 	FKey ItemMenuKey;
 
@@ -66,34 +66,29 @@ struct FUISettings
 	TObjectPtr<UMaterialInterface> SlotBasedInventoryItemMaterial;
 
 	// Widgets
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
-    TSubclassOf<UInventoryItemWidget> InventoryItemVisualClass;
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
-    TSubclassOf<UInventoryItemWidget> DraggedWidgetClass;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Widgets")
-    TSubclassOf<UHighlightSlotWidget> HighlightSlotWidgetClass;
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
-    TSubclassOf<UItemTooltipWidget> ItemTooltipWidgetClass;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
+	TSubclassOf<UInventoryItemWidget> InventoryItemVisualClass;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
+	TSubclassOf<UInventoryItemWidget> DraggedWidgetClass;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Widgets")
+	TSubclassOf<UHighlightSlotWidget> HighlightSlotWidgetClass;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
+	TSubclassOf<UItemTooltipWidget> ItemTooltipWidgetClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
-	bool bCreateCraftWidgetsDynamically = false;	
+	bool bCreateCraftWidgetsDynamically = false;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
 	TSubclassOf<UCraftDashboard> CraftDashboardClass;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
 	TSubclassOf<UCraftMenuChoose> CraftMenuChooseClass;
-	
-	
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Layout")
-    FVector2D DragWidgetSlotSize = FVector2D(0.f);
 
-	FUISettings() : InventoryMappingContext(nullptr),
-	                ToggleInventoryAction(nullptr), ToggleCraftAction(nullptr),
-	                ToggleEquipmentAction(nullptr),
-	                IA_Mod_QuickGrab(nullptr),
-	                IA_Mod_GrabAllSame(nullptr), IA_RotateDraggedItem(nullptr),
-	                ItemSelectKey(EKeys::LeftMouseButton),
-	                ItemUseKey(EKeys::RightMouseButton)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Layout")
+	FVector2D DragWidgetSlotSize = FVector2D(0.f);
+
+	FUISettings()
+		: InventoryMappingContext(nullptr), ToggleInventoryAction(nullptr), ToggleCraftAction(nullptr),
+		  ToggleEquipmentAction(nullptr), IA_Mod_QuickGrab(nullptr), IA_Mod_GrabAllSame(nullptr),
+		  IA_RotateDraggedItem(nullptr), ItemSelectKey(EKeys::LeftMouseButton), ItemUseKey(EKeys::RightMouseButton)
 	{
 	}
 };
-

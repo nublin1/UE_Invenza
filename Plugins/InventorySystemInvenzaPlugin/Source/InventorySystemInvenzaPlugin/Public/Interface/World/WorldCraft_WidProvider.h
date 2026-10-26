@@ -1,4 +1,4 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -9,21 +9,19 @@
 class UCraftingComponent;
 
 UINTERFACE(BlueprintType)
-class UWorldCraft_WidProvider : public UInterface
+class INVENTORYSYSTEMINVENZAPLUGIN_API UWorldCraft_WidProvider : public UInterface
 {
 	GENERATED_BODY()
 };
 
 /**
- * 
+ *
  */
 class INVENTORYSYSTEMINVENZAPLUGIN_API IWorldCraft_WidProvider
 {
 	GENERATED_BODY()
 
-
 public:
 	virtual UCraftingComponent* GetCraftComponentPtr() = 0;
 	virtual void SetCraftComponentPtr(UCraftingComponent* NewCraftingComponent) = 0;
-	
 };

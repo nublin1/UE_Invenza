@@ -1,12 +1,19 @@
 # Подключение Invenza к другому проекту
 
+Язык: **Русский** | [English](../en/ProjectIntegration.md)
+
 Это подробное дополнение к разделу 2 [общего описания](GettingStartedOverview.md). Оно описывает перенос текущего плагина из репозитория и подключение базового инвентаря к своему персонажу.
 
-Инструкция основана на исходниках и конфигурации демонстрационного проекта UE 5.6. Графы и значения по умолчанию Blueprint-ассетов не проверялись в редакторе; конкретные настройки готовых примеров нужно сверить при переносе. Подключение к отдельному целевому проекту по этой инструкции пока не тестировалось.
+Архив содержит готовую карту-пример `Maps/Map_Ex` и её зависимости. После включения плагина включите **Show Plugin Content**, откройте `/InventorySystemInvenzaPlugin/Maps/Map_Ex` и нажмите **Play**. Персонаж, контроллер, HUD и GameMode уже назначены. Ниже описано подключение к собственным игровым классам.
+
+Для упаковки игры добавьте эту карту в **Project Settings → Packaging → List of maps to include in a packaged build**. Чтобы игра запускалась на ней, выберите её в **Maps & Modes → Game Default Map**. Архив плагина содержит исходные ассеты; cook выполняется при сборке целевого проекта.
 
 ## 2.1. Подготовка целевого проекта
 
 Для первого подключения используйте UE 5.6 — эту версию указывает демонстрационный `.uproject`. Перенос на другую версию движка потребует отдельной проверки сборки и ассетов.
+
+Текущий descriptor самостоятельной поставки объявляет только **Win64**.
+Матрица версий и зависимости модулей описаны в [Supported targets](../en/SupportedTargets.md).
 
 Текущая версия Invenza содержит исходный C++-модуль. Для сборки нужен установленный инструментальный набор C++ для выбранной версии Unreal Engine. На Windows можно собирать проект через Visual Studio или Rider с настроенным компилятором.
 
@@ -84,15 +91,15 @@ PrivateDependencyModuleNames.Add("InventorySystemInvenzaPlugin");
 | Контроллер-пример | `Blueprints/Examples/Controllers/BP_PlayerController` |
 | Пример GameMode | `Blueprints/Examples/GameMode/BP_GM_Invenza` |
 
-Персонаж-пример может использовать меши, анимации и другие ассеты из проектной папки `Content`, расположенной вне плагина. Откройте его в исходном проекте и проверьте зависимости через Reference Viewer. Если нужны такие ассеты, перенесите их через Asset Actions → Migrate с проверкой списка зависимостей. [Migrate переносит выбранные ассеты вместе с их зависимостями](https://dev.epicgames.com/documentation/en-us/unreal-engine/migrating-assets-in-unreal-engine?application_version=5.6).
+Меши, анимации и геометрия карты-примера перенесены внутрь `Content` плагина. Исходные `/Game/Characters` и `/Game/LevelPrototyping`, а также модули `UE_GridInventory` и `InvenzaUIEditor` для её запуска не нужны. Enhanced Input и Control Rig объявлены зависимостями плагина.
 
 Конфигурацию из папки проекта `Config` настройте отдельно по следующим пунктам. При использовании своих персонажа и анимаций перенесённый пример служит ориентиром для настройки компонентов.
 
 ## 2.5. Общий Data Asset и Gameplay Tags
 
-В Project Settings найдите раздел Invenza Inventory и назначьте `InventorySettingsAsset`. Для первого запуска выберите существующий ассет `InvenzaSettings` из плагина.
+Плагин уже выбирает `InvenzaSettings` по умолчанию. Чтобы использовать собственный ассет, измените `InventorySettingsAsset` в Project Settings → Project → Invenza Inventory.
 
-Эквивалентная запись в `Config/DefaultGame.ini` целевого проекта:
+Эквивалентная запись в `Config/DefaultInventorySystemInvenzaPlugin.ini` целевого проекта:
 
 ```ini
 [/Script/InventorySystemInvenzaPlugin.InvenzaInventoryDeveloperSettings]
@@ -101,13 +108,13 @@ InventorySettingsAsset=/InventorySystemInvenzaPlugin/Data/Settings/InvenzaSettin
 
 Если используете свою копию настроек, укажите её путь. Подсистема Invenza загружает выбранный ассет при инициализации GameInstance. Создавать подсистему вручную не требуется.
 
-Перенесите определения тегов Invenza из `Config/DefaultGameplayTags.ini` исходного проекта в настройки Gameplay Tags целевого проекта. Объедините нужные записи `+GameplayTagList` с существующими тегами; целиком заменять конфигурацию целевого проекта не следует.
-
-Для начала проверьте категории `Item.Category.*`, теги инвентарей `UI.Invenza.*`, слоёв `UI.Layer.*` и действий модальных окон `UI.Modal.Action.*`. Если используете готовые настройки крафта или экипировки, перенесите и соответствующие теги `CraftSystem.*` и `Equipment.Slot.*`.
+Плагин сам регистрирует теги и redirect старой категории из `Config/Tags/InvenzaTags.ini`. Копировать список тегов демо не требуется. Собственные теги добавляйте в источники целевого проекта. Настройки проекта имеют приоритет над одноимённым конфигом плагина. При обновлении перенесите две секции Invenza из старого `DefaultGame.ini` в `DefaultInventorySystemInvenzaPlugin.ini`. Подробности и проверка упаковки: [Integration configuration](../en/IntegrationConfiguration.md).
 
 В Data Asset убедитесь, что назначены `MainInvTag`, классы перетаскивания и модальных виджетов, а для выбрасывания предметов — `PickupClass`. Основной тег должен совпадать с тегом стартового инвентаря. Для торговли отдельно проверьте предмет валюты и её Gameplay Tag.
 
 ## 2.6. Enhanced Input и канал взаимодействия
+
+На готовой `Map_Ex` ввод настроен базовыми классами `InvenzaExampleCharacter` и `InvenzaExamplePlayerController`; глобальные классы ввода целевого проекта менять не требуется. Карта использует встроенный канал Visibility. Следующие настройки относятся к подключению собственных персонажа и контроллера.
 
 В Project Settings → Input проверьте классы ввода:
 
@@ -124,17 +131,19 @@ DefaultPlayerInputClass=/Script/EnhancedInput.EnhancedPlayerInput
 DefaultInputComponentClass=/Script/EnhancedInput.EnhancedInputComponent
 ```
 
+Подробное назначение клавиш, действий и модификаторов приведено в [руководстве по настройке управления](InputConfiguration.md).
+
 В `UISettings` компонента `UIInventoryManager` назначьте `InventoryMappingContext`, действие открытия инвентаря и нужные модификаторы переноса. В плагине есть `InputMappingInventoryContext` и соответствующие Input Actions. Конкретные клавиши проверьте в самом Mapping Context.
 
 Менеджер добавляет контекст инвентаря с приоритетом 1 и привязывает действия к Input Component PlayerController. `InteractionComponent` привязывает действия взаимодействия к Input Component персонажа. При собственной архитектуре ввода проверьте оба места: наличия одного контекста недостаточно, если нужный Input Component отсутствует.
 
-Для подбора предметов и открытия объектов создайте Trace Channel `Interaction` в Project Settings → Collision с Default Response = Ignore. Назначьте этот канал в `InteractionComponent.TraceChannel`, а интерактивным мешам или коллизиям задайте ответ Block на него.
+По умолчанию используется встроенный канал **Visibility**. Интерактивная коллизия должна блокировать выбранный канал. Общий `InteractionTraceChannel` задаётся в Invenza Inventory; проверьте также сохранённые переопределения `InteractionComponent.TraceChannel` и `StorageGridVisualizer.InteractionChannel` в Blueprint и экземплярах.
 
-В демонстрационном проекте `Interaction` занимает `ECC_GameTraceChannel1`. Если этот номер уже используется в целевом проекте, сохраните его назначение и выберите свободный канал для Invenza. Обновите ссылки на канал в компонентах и примерах, включая `StorageGridVisualizer.InteractionChannel`.
+Отдельный канал необязателен. При необходимости создайте свободный Trace Channel в проекте: плагин не занимает `ECC_GameTraceChannel1` и не меняет collision profiles. Только Example Project использует этот слот для своего канала Interaction.
 
 ## 2.7. Подключение к своему персонажу
 
-Добавьте к Character Blueprint компоненты `ItemCollection` и `UIInventoryManager`. Для взаимодействия с миром добавьте `InteractionComponent` и назначьте ему действия в `KeyBindings`, канал и дистанцию трассировки.
+Добавьте к Character Blueprint компоненты `InventoryCollectionComponent` и `UIInventoryManager`. Для взаимодействия с миром добавьте `InteractionComponent` и назначьте ему действия в `KeyBindings`, канал и дистанцию трассировки.
 
 Текущая реализация взаимодействия ищет `CameraComponent` на персонаже и выполняет трассировку от его положения по направлению взгляда. Для персонажа с камерой на другом акторе эту часть потребуется адаптировать.
 
@@ -178,6 +187,10 @@ DefaultInputComponentClass=/Script/EnhancedInput.EnhancedInputComponent
 Если архитектура проекта создаёт или назначает персонажа позже, нужно согласовать регистрацию UI и инициализацию менеджера в реализации. Повторный вызов всей инициализации без проверки состояния может повторно создать инвентари или добавить обработчики событий. Увеличение задержки не заменяет согласованный порядок запуска.
 
 ## 2.9. Первый запуск
+
+Для [сохранения и загрузки](InventorySaving.md) отдельно настройте профиль, постоянные идентификаторы и классы меню.
+
+Для новых механик после базового подключения используйте отдельные инструкции: [предметы и контейнеры](WorldContainers.md), [общее хранилище](StorageAccessPoint.md), [манекен и обмен с NPC](CharacterInventoryExchange.md). Для `InventoryMannequin` меш необязателен и задаётся через Example Mannequin Mesh; standalone-плагин не требует содержимого /Game. Для склада проверяйте также `WBP_StorageAccess` и общий `WBP_InventoryWorkspace`.
 
 Проверяйте базовое подключение в отдельной тестовой карте с одним локальным игроком:
 

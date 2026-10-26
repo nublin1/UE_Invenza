@@ -9,26 +9,28 @@
 #include "RecipeRequiredIListEntryObject.generated.h"
 
 /**
- * 
+ *
  */
 UCLASS()
 class INVENTORYSYSTEMINVENZAPLUGIN_API URecipeRequiredIListEntryObject : public UObject
 {
 	GENERATED_BODY()
-	
-	
+
 public:
+	// Properties and variables
 	FSimpleMulticastDelegate OnDataChanged;
+
 	FSimpleMulticastDelegate OnSelectionChanged;
-	UPROPERTY(BlueprintReadOnly)
+
+	UPROPERTY(Category = "Invenza|Crafting", BlueprintReadOnly)
 	FItemRecipeRow RecipeRow;
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(Category = "Invenza|Crafting", BlueprintReadOnly)
 	FRecipeItemRequirementCheck RecipeCheckResult;
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(Category = "Invenza|Crafting", BlueprintReadOnly)
 	int32 Index = INDEX_NONE;
-	
-	UPROPERTY(BlueprintReadOnly)
+
+	UPROPERTY(Category = "Invenza|Crafting", BlueprintReadOnly)
 	int32 SelectedOptionIndex = 0;
 };

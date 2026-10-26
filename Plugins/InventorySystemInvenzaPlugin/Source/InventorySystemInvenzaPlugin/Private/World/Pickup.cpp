@@ -12,7 +12,7 @@ APickup::APickup()
 	PickupMesh->SetSimulatePhysics(true);
 	SetRootComponent(PickupMesh);
 
-	BoxCollider = CreateDefaultSubobject<UBoxComponent>("BoxCollider");	
+	BoxCollider = CreateDefaultSubobject<UBoxComponent>("BoxCollider");
 	BoxCollider->SetHiddenInGame(false);
 	BoxCollider->AttachToComponent(PickupMesh, FAttachmentTransformRules::KeepRelativeTransform);
 }
@@ -21,4 +21,3 @@ void APickup::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 }
-

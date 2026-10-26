@@ -1,4 +1,4 @@
-﻿//  Nublin Studio 2026 All Rights Reserved.
+//  Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -11,43 +11,46 @@ class UIInventoryManager;
 class UItemBase;
 
 USTRUCT(BlueprintType)
-struct FInventoryEntry : public FFastArraySerializerItem
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FInventoryEntry : public FFastArraySerializerItem
 {
 	GENERATED_BODY()
-	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+
+	UPROPERTY(Category = "Invenza|Inventory", VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UObject> Item = nullptr;
-	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+
+	UPROPERTY(Category = "Invenza|Inventory", VisibleAnywhere, BlueprintReadOnly)
 	FItemMappingArrayWrapper Locations;
-	
+
 	void PostReplicatedAdd(const struct FInventoryArray& InArraySerializer);
 	void PostReplicatedChange(const struct FInventoryArray& InArraySerializer);
 	void PreReplicatedRemove(const struct FInventoryArray& InArraySerializer);
 };
 
 USTRUCT(BlueprintType)
-struct FInventoryArray : public FFastArraySerializer
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FInventoryArray : public FFastArraySerializer
 {
 	GENERATED_BODY()
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category = "Invenza|Inventory", VisibleAnywhere, BlueprintReadOnly)
 	TArray<FInventoryEntry> Items;
 	UPROPERTY(NotReplicated)
 	TObjectPtr<UIInventoryManager> OwningManager;
 	UPROPERTY(NotReplicated)
-	TObjectPtr<UItemCollection> OwningCollection;
-	
+	TObjectPtr<UInventoryCollectionComponent> OwningCollection;
+
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
 	{
-		return FFastArraySerializer::FastArrayDeltaSerialize<FInventoryEntry, FInventoryArray>(Items, DeltaParms, *this);
+		return FFastArraySerializer::FastArrayDeltaSerialize<FInventoryEntry, FInventoryArray>(Items, DeltaParms,
+																							   *this);
 	}
 
 	void PostReplicatedReceive(const FFastArraySerializer::FPostReplicatedReceiveParameters& Parameters);
 };
 
-template<>
-struct TStructOpsTypeTraits<FInventoryArray> : public TStructOpsTypeTraitsBase2<FInventoryArray>
+template <> struct TStructOpsTypeTraits<FInventoryArray> : public TStructOpsTypeTraitsBase2<FInventoryArray>
 {
-	enum { WithNetDeltaSerializer = true };
+	enum
+	{
+		WithNetDeltaSerializer = true
+	};
 };

@@ -17,7 +17,7 @@ class UListView;
 class UScrollBox;
 
 /**
- * 
+ *
  */
 UCLASS()
 class INVENTORYSYSTEMINVENZAPLUGIN_API UListInventoryWidget : public UUInventoryBaseWidget
@@ -26,66 +26,74 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UListInventoryWidget : public UUInventory
 
 public:
 	UListInventoryWidget();
-	
+
 protected:
+	// Unreal overrides
 	virtual void NativeConstruct() override;
-	
+
+	//
+	virtual FReply NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+
+	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+
+	virtual FReply NativeOnMouseButtonDoubleClick(const FGeometry& InGeometry,
+												  const FPointerEvent& InMouseEvent) override;
+
+	virtual void NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent,
+									  UDragDropOperation*& OutOperation) override;
+
+	virtual bool NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent,
+							  UDragDropOperation* InOperation) override;
+
 public:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
-
+	// Functions
 	virtual void InitializeInventoryWidget() override;
+
 	virtual void InitializeInventoryWidgetWithSettings() override;
+
 	virtual void BindDelegated() override;
+
 	virtual void ReDrawAllItems() override;
 
 	virtual void SetInventoryBaseRef(UInventoryBase* NewInventoryRef) override;
 
 protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
+	// Runtime
+	// Properties and variables
 	// Widgets
-	UPROPERTY(BlueprintReadOnly, Category = "Inventory|UI", meta=(BindWidgetOptional))
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory|UI", meta = (BindWidgetOptional))
 	TObjectPtr<UScrollBox> ScrollBox;
-	UPROPERTY(BlueprintReadOnly, Category = "Inventory|UI", meta=(BindWidget))
+
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory|UI", meta = (BindWidget))
 	TObjectPtr<UListView> ItemsList;
 
 	// Refs
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UPROPERTY(Category = "Invenza|UI|Inventory", VisibleAnywhere, BlueprintReadWrite)
 	TObjectPtr<UListInventory> ListInventoryRef;
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
+
+	// Functions
 	virtual void ApplyInventorySettings() override;
 
 	//
 	virtual void ClearFilters() override;
+
 	virtual void OnFilterStatusChanged(UUIButton* ItemCategoryButton) override;
+
 	UFUNCTION()
 	void RebuildFilteredSlots();
-	
+
 	virtual void RefreshFilteredItemsList() override;
+
 	virtual void SearchTextChanged(const FText& NewText) override;
 
 	//
 	virtual void AddItemToPanel(FItemMapping& ItemSlots, UObject* Item) override;
-	virtual void RemoveItemFromPanel(FItemMapping FromSlots, UObject* Item) override;
-	virtual void UpdateItem(UObject* Item) override;
-	
-	virtual void UpdateWeightInfo(float InventoryTotalWeight) override;
-	virtual void UpdateMoneyInfo(int32 InventoryTotalMoney) override;
 
-	//
-	virtual FReply NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
-	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
-	virtual FReply NativeOnMouseButtonDoubleClick(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
-	virtual void NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation) override;
-	virtual bool NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
+	virtual void RemoveItemFromPanel(FItemMapping FromSlots, UObject* Item) override;
+
+	virtual void UpdateItem(UObject* Item) override;
+
+	virtual void UpdateWeightInfo(float InventoryTotalWeight) override;
+
+	virtual void UpdateMoneyInfo(int32 InventoryTotalMoney) override;
 };

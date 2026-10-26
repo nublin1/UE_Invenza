@@ -1,3 +1,5 @@
+// Nublin Studio 2026 All Rights Reserved.
+
 using UnrealBuildTool;
 
 public class InvenzaUIEditor : ModuleRules
@@ -6,6 +8,6 @@ public class InvenzaUIEditor : ModuleRules
     {
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
         PublicDependencyModuleNames.AddRange(new[] { "Core", "CoreUObject", "Engine", "UMG" });
-        PrivateDependencyModuleNames.AddRange(new[] { "UnrealEd", "UMGEditor", "Slate", "SlateCore", "RenderCore", "ImageWrapper" });
+        PrivateDependencyModuleNames.AddRange(new[] { "UnrealEd", "UMGEditor", "Slate", "SlateCore", "InputCore", "GameplayTags", "NetCore", "RenderCore", "RHI", "ImageWrapper", "InventorySystemInvenzaPlugin", "UE_GridInventory", "OnlineSubsystem" });
     }
 }

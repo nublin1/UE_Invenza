@@ -1,8 +1,9 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Components/InstancedStaticMeshComponent.h"
 #include "GameFramework/Actor.h"
 #include "StorageVisualRepresentation.generated.h"
 
@@ -13,22 +14,23 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API AStorageVisualRepresentation : public AAc
 {
 	GENERATED_BODY()
 
-
 public:
 	AStorageVisualRepresentation();
-	
+
 protected:
+	// Unreal overrides
 	virtual void BeginPlay() override;
 
 public:
-	
-	UPROPERTY(EditAnywhere,BlueprintReadWrite)
+	// Properties and variables
+	UPROPERTY(Category = "Invenza|Storage", EditAnywhere, BlueprintReadWrite)
 	UInstancedStaticMeshComponent* StaticMeshVisual;
 
 	//
-	UPROPERTY(EditAnywhere,BlueprintReadWrite)
+	UPROPERTY(Category = "Invenza|Storage", EditAnywhere, BlueprintReadWrite)
 	UItemBase* ItemBase;
-	
+
+	// Functions
 	UFUNCTION()
 	void UpdateVisual();
 };

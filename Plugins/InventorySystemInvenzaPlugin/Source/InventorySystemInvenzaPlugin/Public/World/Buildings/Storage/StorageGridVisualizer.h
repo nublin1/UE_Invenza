@@ -1,4 +1,4 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -10,22 +10,22 @@
 #include "Components/SceneComponent.h"
 #include "StorageGridVisualizer.generated.h"
 
-
 class USlotbasedInventory;
 enum class EStorageMeshAxis : uint8;
-class UItemCollection;
+class UInventoryCollectionComponent;
 class UInventorySlotData;
 struct FItemMapping;
 
-UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
+UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class INVENTORYSYSTEMINVENZAPLUGIN_API UStorageGridVisualizer : public UInstancedStaticMeshComponent
 {
 	GENERATED_BODY()
 
 public:
 	UStorageGridVisualizer();
-	
+
 protected:
+	// Unreal overrides
 	virtual void OnRegister() override;
 	virtual void OnUnregister() override;
 	virtual void BeginPlay() override;
@@ -34,13 +34,11 @@ protected:
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 
-	
 public:
-	
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	
+
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
@@ -61,79 +59,93 @@ public:
 	UGridStorageCell* GetCell(FIntPoint Coordinates) const;
 
 	UFUNCTION(BlueprintPure, Category = "Storage Grid")
-	FIntPoint GetBuiltGridSize() const
-	{
-		return BuiltGridSize;
-	}
-	
+	FIntPoint GetBuiltGridSize() const { return BuiltGridSize; }
+
 protected:
+	// Runtime
 	//====================================================================
 	// PROPERTIES AND VARIABLES
 	//====================================================================
-	UPROPERTY(EditAnywhere,	BlueprintReadOnly, Category = "Storage Grid|Inventory")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Storage Grid|Inventory")
 	FGameplayTag InventorySearchTag;
-	
+
 	/** Allow interaction with the entire storage area, including empty cells. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Storage Grid|Interaction")
 	bool bEnableInteractionBounds = true;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Storage Grid|Interaction", meta = (EditCondition = "bEnableInteractionBounds"))
-	TEnumAsByte<ECollisionChannel> InteractionChannel = ECC_GameTraceChannel1;
-	
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Storage Grid|Interaction",
+			  meta = (EditCondition = "bEnableInteractionBounds"))
+	TEnumAsByte<ECollisionChannel> InteractionChannel;
+
 	/** Minimum interaction height above the platforms, along the grid's local Z. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Storage Grid|Interaction",
-		meta = (
-			EditCondition = "bEnableInteractionBounds",
-			ClampMin = "0.0",
-			UIMin = "0.0",
-			Units = "cm"
-		))
+			  meta = (EditCondition = "bEnableInteractionBounds", ClampMin = "0.0", UIMin = "0.0", Units = "cm"))
 	float InteractionMinHeight = 100.0f;
-	
+
 	/** Additional space around the interaction bounds in grid-local coordinates. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Storage Grid|Interaction",
-		meta = (
-			EditCondition = "bEnableInteractionBounds",
-			ClampMin = "0.0",
-			UIMin = "0.0",
-			Units = "cm"
-		))
+			  meta = (EditCondition = "bEnableInteractionBounds", ClampMin = "0.0", UIMin = "0.0", Units = "cm"))
 	FVector InteractionPadding = FVector(2.0, 2.0, 0.0);
-	
+
 	// Geometry
 	/**
 	 * Scale of each mesh instance.
 	 * Grid spacing is calculated from the scaled mesh bounds.
 	 */
-	UPROPERTY(EditAnywhere,	BlueprintReadOnly,Category = "Storage Grid|Geometry", meta = (ClampMin = "0.001", UIMin = "0.001"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Storage Grid|Geometry",
+			  meta = (ClampMin = "0.001", UIMin = "0.001"))
 	FVector CellScale = FVector::OneVector;
-	
-	UPROPERTY(EditAnywhere,	BlueprintReadOnly,Category = "Storage Grid|Geometry", meta = (ClampMin = "0.0", UIMin = "0.0"))
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Storage Grid|Geometry",
+			  meta = (ClampMin = "0.0", UIMin = "0.0"))
 	FVector2D CellGap = FVector2D::ZeroVector;
 
 	/** Space between boxes along the stack's local X/Y axes, in centimeters. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Storage Grid|Small Boxes", meta = (ClampMin = "0.0", UIMin = "0.0", Units = "cm"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Storage Grid|Small Boxes",
+			  meta = (ClampMin = "0.0", UIMin = "0.0", Units = "cm"))
 	FVector2D SmallBoxGap = FVector2D(1.0, 1.0);
 
+	/** Box-shaped mesh fitted to each of the four bin walls. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Storage Grid|Bulk Bins")
+	TObjectPtr<UStaticMesh> BulkWallMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Storage Grid|Bulk Bins")
+	TObjectPtr<UMaterialInterface> BulkWallMaterial;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Storage Grid|Bulk Bins",
+			  meta = (ClampMin = "1.0", Units = "cm"))
+	float BulkWallHeight = 55.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Storage Grid|Bulk Bins",
+			  meta = (ClampMin = "0.1", Units = "cm"))
+	float BulkWallThickness = 5.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Storage Grid|Bulk Bins",
+			  meta = (ClampMin = "0.0", Units = "cm"))
+	float BulkBinInset = 2.0f;
+
 	/** Reverse column placement along local X without changing logical slot coordinates. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Storage Grid|Geometry", meta = (DisplayName = "Invert Horizontal (X)"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Storage Grid|Geometry",
+			  meta = (DisplayName = "Invert Horizontal (X)"))
 	bool bInvertHorizontal = false;
 
 	/** Reverse row placement along local Y without changing logical slot coordinates. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Storage Grid|Geometry", meta = (DisplayName = "Invert Vertical (Y)"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Storage Grid|Geometry",
+			  meta = (DisplayName = "Invert Vertical (Y)"))
 	bool bInvertVertical = false;
 
 	/** Limits accidental generation of excessively large grids. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Storage Grid|Geometry", meta = (ClampMin = "1"))
 	int32 MaxCellCount = 200;
-	
+
 	// Editor preview
-	UPROPERTY(EditAnywhere, BlueprintReadOnly,Category = "Storage Grid|Preview")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Storage Grid|Preview")
 	bool bPreviewInEditor = true;
 
-	UPROPERTY(EditAnywhere,	BlueprintReadOnly, Category = "Storage Grid|Preview", meta = (EditCondition = "bPreviewInEditor"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Storage Grid|Preview",
+			  meta = (EditCondition = "bPreviewInEditor"))
 	FIntPoint PreviewGridSize = FIntPoint(4, 6);
-	
+
 	// Runtime
 	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category = "Storage Grid|Runtime")
 	TObjectPtr<USlotbasedInventory> TargetInventory;
@@ -146,31 +158,33 @@ protected:
 
 	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category = "Storage Grid|Runtime")
 	TMap<TObjectPtr<UObject>, TObjectPtr<UStaticMeshComponent>> ItemVisuals;
-	
+
 	UPROPERTY(Transient, DuplicateTransient)
 	TObjectPtr<UBoxComponent> InteractionBoundsComponent;
 
-	TWeakObjectPtr<UItemCollection> ObservedCollection;
-	TWeakObjectPtr<UItemCollection> InventorySourceCollection;
+	TWeakObjectPtr<UInventoryCollectionComponent> ObservedCollection;
+	TWeakObjectPtr<UInventoryCollectionComponent> InventorySourceCollection;
 	TSet<TWeakObjectPtr<UObject>> WarnedMissingMeshes;
-	
+
 	//====================================================================
 	// FUNCTIONS
 	//====================================================================
-	
+
 	USlotbasedInventory* FindTargetInventory() const;
-	
+
 	void UpdateInteractionBounds();
 	void DestroyInteractionBounds();
 
 	UFUNCTION()
 	void SynchronizeInventory();
 	void BindInventory(USlotbasedInventory* Inventory);
-	void ObserveInventorySource(UItemCollection* Collection);
+	void ObserveInventorySource(UInventoryCollectionComponent* Collection);
 	bool UpdateItemVisual(UObject* Item);
 	void RemoveItemVisual(UObject* Item);
-	bool UpdateLogsVisual(UObject* Item, UStaticMesh* Mesh, const FBox& OccupiedBounds, const FQuat& Rotation, int32 Quantity, EStorageMeshAxis MeshLengthAxis);
-	bool UpdateSmallBoxesVisual(UObject* Item, UStaticMesh* Mesh, const FBox& OccupiedBounds, const FQuat& Rotation, int32 Quantity);
+	bool UpdateLogsVisual(UObject* Item, UStaticMesh* Mesh, const FBox& OccupiedBounds, const FQuat& Rotation,
+						  int32 Quantity, EStorageMeshAxis MeshLengthAxis);
+	bool UpdateSmallBoxesVisual(UObject* Item, UStaticMesh* Mesh, const FBox& OccupiedBounds, const FQuat& Rotation,
+								int32 Quantity);
 
 	UFUNCTION()
 	void HandleItemAdded(FItemMapping& Mapping, UObject* Item);
@@ -180,12 +194,11 @@ protected:
 	void HandleItemReplaced(TArray<UInventorySlotData*> OldSlots, FItemMapping& Mapping, UObject* Item);
 	void BuildGrid(FIntPoint GridSize);
 	void ClearItemVisuals();
-	void ObserveCollection(UItemCollection* Collection);
+	void ObserveCollection(UInventoryCollectionComponent* Collection);
 
 	UFUNCTION()
 	void HandleInventoryItemsChanged(const FString& InventoryID);
-	
+
 	UFUNCTION()
 	void HandleItemQuantityChanged(UObject* Item);
-	
 };

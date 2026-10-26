@@ -7,8 +7,11 @@
 class FInventorySystemInvenzaPluginModule : public IModuleInterface
 {
 public:
-
 	/** IModuleInterface implementation */
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
+
+protected:
+	// Runtime
+	FString GameplayTagConfigDirectory;
 };

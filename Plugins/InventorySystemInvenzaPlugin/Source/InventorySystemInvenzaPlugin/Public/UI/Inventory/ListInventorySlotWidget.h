@@ -22,55 +22,52 @@ UCLASS()
 class INVENTORYSYSTEMINVENZAPLUGIN_API UListInventorySlotWidget : public UInventorySlot, public IUserObjectListEntry
 {
 	GENERATED_BODY()
-	
+
 public:
 	UListInventorySlotWidget();
 
 protected:
+	// Unreal overrides
 	virtual void NativeConstruct() override;
 
+	virtual void NativeOnListItemObjectSet(UObject* ListItemObject) override;
+
+	virtual FReply NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+
+	virtual void NativeOnMouseLeave(const FPointerEvent& InMouseEvent) override;
+
+	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+
+	virtual FReply NativeOnMouseButtonDoubleClick(const FGeometry& InGeometry,
+												  const FPointerEvent& InMouseEvent) override;
+
+	virtual void NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent,
+									  UDragDropOperation*& OutOperation) override;
+
 public:
-	
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
+	// Functions
 	virtual void UpdateVisualWithItemInfo(UObject* Item) override;
 
 	UFUNCTION()
 	virtual void UpdatePriceText();
 
 protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
+	// Runtime
+	// Properties and variables
 	// Widgets
-	UPROPERTY(meta=(BindWidgetOptional))
+	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UImage> ItemIcon;
-	UPROPERTY(meta=(BindWidgetOptional))
+
+	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> ItemName;
 
-	UPROPERTY(meta=(BindWidgetOptional))
+	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UImage> MoneyIcon;
-	UPROPERTY(meta=(BindWidgetOptional))
+
+	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> PriceText;
-	
+
 	//
 	UPROPERTY()
 	TObjectPtr<UInventoryListEntry> CachedEntry;
-
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
-	virtual void NativeOnListItemObjectSet(UObject* ListItemObject) override;
-
-	virtual FReply NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
-	virtual void NativeOnMouseLeave(const FPointerEvent& InMouseEvent) override;
-	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
-	virtual FReply NativeOnMouseButtonDoubleClick(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
-	virtual void NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation) override;
-	
 };

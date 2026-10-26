@@ -1,4 +1,4 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -16,17 +16,20 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UActionButtonUI : public UUIButton
 {
 	GENERATED_BODY()
 
-	
 public:
 	UActionButtonUI();
-	
+
 protected:
+	// Unreal overrides
 	virtual void NativePreConstruct() override;
+
 	virtual void NativeConstruct() override;
 
 public:
+	// Properties and variables
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
 	TObjectPtr<UImageBaseWidget> ActionIcon;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
 	TObjectPtr<ULabelBaseText> KeyText;
 };

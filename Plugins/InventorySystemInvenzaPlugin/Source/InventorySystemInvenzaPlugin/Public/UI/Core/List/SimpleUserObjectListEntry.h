@@ -1,4 +1,4 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -13,38 +13,27 @@ class UImageBaseWidget;
  * 
  */
 UCLASS()
-class INVENTORYSYSTEMINVENZAPLUGIN_API USimpleUserObjectListEntry : public UInvenzaBaseWidget, public IUserObjectListEntry
+class INVENTORYSYSTEMINVENZAPLUGIN_API USimpleUserObjectListEntry : public UInvenzaBaseWidget,
+																	public IUserObjectListEntry
 {
 	GENERATED_BODY()
-		
+
 public:
 	USimpleUserObjectListEntry() {}
-	
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
+
+public:
+	// Properties and variables
 	// Widgets
 	UPROPERTY(BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
 	TObjectPtr<UImageBaseWidget> ListEntry_Image;
+
 	UPROPERTY(BlueprintReadWrite, Category = "UI|Components", meta = (BindWidget))
 	TObjectPtr<ULabelBaseText> ListEntry_Text;
 
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
-	
+	// Functions
 	UFUNCTION()
 	void UpdateImage(const TSoftObjectPtr<UTexture2D>& NewIcon);
+
 	UFUNCTION()
 	void UpdateText(const FText& Text);
-
-protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
-	
 };

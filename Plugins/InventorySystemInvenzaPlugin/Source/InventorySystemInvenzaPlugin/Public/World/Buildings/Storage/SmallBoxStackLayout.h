@@ -1,3 +1,5 @@
+//  Nublin Studio 2026 All Rights Reserved.
+
 #pragma once
 
 #include "CoreMinimal.h"
@@ -6,9 +8,11 @@
 class FSmallBoxStackLayout
 {
 public:
+	// Properties and variables
 	static constexpr int32 Capacity = 78;
 	inline static const FName ComponentTag = FName(TEXT("StorageGrid.SmallBoxes"));
 
+	// Functions
 	static FTransform GetTransform(int32 Index, const FBox& MeshBounds, const FVector2D& Gap = FVector2D::ZeroVector)
 	{
 		check(Index >= 0 && Index < Capacity);
@@ -23,14 +27,14 @@ public:
 			++Layer;
 			Width = Layer < 4 ? 4 : 7 - Layer;
 		}
-		return FTransform(FQuat::Identity, FVector(
-		   (Index % Width - (Width - 1) * 0.5) * Step.X - Center.X,
-		   (Index / Width - (Width - 1) * 0.5) * Step.Y - Center.Y,
-		   Layer * Size.Z - MeshBounds.Min.Z));
+		return FTransform(FQuat::Identity, FVector((Index % Width - (Width - 1) * 0.5) * Step.X - Center.X,
+												   (Index / Width - (Width - 1) * 0.5) * Step.Y - Center.Y,
+												   Layer * Size.Z - MeshBounds.Min.Z));
 	}
 
 	// Every quantity uses a prefix of the same layout, so existing boxes never move.
-	static void SetQuantity(UInstancedStaticMeshComponent& Stack, int32 Quantity, const FBox& MeshBounds, const FVector2D& Gap = FVector2D::ZeroVector)
+	static void SetQuantity(UInstancedStaticMeshComponent& Stack, int32 Quantity, const FBox& MeshBounds,
+							const FVector2D& Gap = FVector2D::ZeroVector)
 	{
 		const int32 Count = FMath::Clamp(Quantity, 0, Capacity);
 		for (int32 Index = Stack.GetInstanceCount() - 1; Index >= Count; --Index)

@@ -1,6 +1,5 @@
 ﻿// Nublin Studio 2026 All Rights Reserved.
 
-
 #include "Utility/InterfaceUtils.h"
 
 bool UInterfaceUtils::IsFunctionOverridden(UObject* Target, FName FunctionName, UClass* InterfaceClass)
@@ -27,4 +26,3 @@ bool UInterfaceUtils::IsFunctionOverridden(UObject* Target, FName FunctionName, 
 
 	return InterfaceFunction && TargetFunction != InterfaceFunction;
 }
-

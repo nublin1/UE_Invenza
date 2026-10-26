@@ -1,4 +1,4 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -8,87 +8,86 @@
 
 class UEditableTextBox;
 /**
- * 
+ *
  */
 UCLASS()
 class INVENTORYSYSTEMINVENZAPLUGIN_API UEditableLabelBaseText : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
 
-#pragma region Delegates
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEditableTextChanged, const FText&, NewText);
-#pragma endregion
-	
 public:
 	UEditableLabelBaseText();
 
 protected:
+	// Unreal overrides
 	virtual void NativePreConstruct() override;
+
 	virtual void NativeConstruct() override;
 
 public:
-	//====================================================================
+#pragma region Delegates
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEditableTextChanged, const FText&, NewText);
+#pragma endregion Delegates
+
+	// Properties and variables
 	// WIDGETS
-	//====================================================================
+
 	UPROPERTY(BlueprintReadWrite, Category = "UI|Components", meta = (BindWidget))
 	TObjectPtr<UEditableTextBox> MainEditableTextBox;
 
-	//====================================================================
 	// CONFIG
-	//====================================================================
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Config")
 	FText Text;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Config")
 	FText HintText;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Config")
 	FSlateColor Color;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Config")
 	FSlateFontInfo FontInfo;
 
-	//====================================================================
 	// EVENTS
-	//====================================================================
-	UPROPERTY(BlueprintAssignable, Category="UI|Events")
+
+	UPROPERTY(BlueprintAssignable, Category = "UI|Events")
 	FOnEditableTextChanged OnEditableTextChanged;
 
-	//====================================================================
+	// Functions
 	// API
-	//====================================================================
-	UFUNCTION(BlueprintCallable)
+
+	UFUNCTION(Category = "Invenza|UI|Core", BlueprintCallable)
 	void UpdateText(FText NewText);
-	
+
 	UFUNCTION(BlueprintCallable, Category = "UI")
 	void UpdateHintText(FText NewHintText);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(Category = "Invenza|UI|Core", BlueprintCallable)
 	void UpdateFont(FSlateFontInfo NewFontInfo);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(Category = "Invenza|UI|Core", BlueprintCallable)
 	void UpdateTextAndFont(FLabelStyle LabelStyle);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(Category = "Invenza|UI|Core", BlueprintCallable)
 	void SyncTextAndFont();
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(Category = "Invenza|UI|Core", BlueprintCallable)
 	void ClearText();
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(Category = "Invenza|UI|Core", BlueprintCallable)
 	FText GetText() const;
 
 protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="UI|Config")
+	// Runtime
+	// Properties and variables
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Config")
 	bool bNumericOnly = false;
 
 	UPROPERTY()
 	FText CachedText;
 
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
+	// Functions
 	UFUNCTION()
 	void HandleTextChanged(const FText& NewText);
 

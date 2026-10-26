@@ -1,3 +1,5 @@
+// Nublin Studio 2026 All Rights Reserved.
+
 #pragma once
 
 #include "CoreMinimal.h"
@@ -10,20 +12,28 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UUIInputModeSubsystem : public ULocalPlay
 {
 	GENERATED_BODY()
 
-public:
-	/** Repeated requests from the same owner are idempotent. */
-	UFUNCTION(BlueprintCallable, Category="UI|Input")
-	void RequestUIInput(UObject* RequestOwner);
-
-	UFUNCTION(BlueprintCallable, Category="UI|Input")
-	void ReleaseUIInput(UObject* RequestOwner);
-
+protected:
+	// Unreal overrides
 	virtual void Deinitialize() override;
 
-private:
+public:
+	// Functions
+	/** Repeated requests from the same owner are idempotent. */
+	UFUNCTION(BlueprintCallable, Category = "UI|Input")
+	void RequestUIInput(UObject* RequestOwner);
+
+	UFUNCTION(BlueprintCallable, Category = "UI|Input")
+	void ReleaseUIInput(UObject* RequestOwner);
+
+protected:
+	// Runtime
+	// Properties and variables
 	TSet<TWeakObjectPtr<UObject>> RequestOwners;
+
 	TWeakObjectPtr<APlayerController> AppliedController;
+
 	bool bUIInputApplied = false;
 
+	// Functions
 	void UpdateInputMode();
 };

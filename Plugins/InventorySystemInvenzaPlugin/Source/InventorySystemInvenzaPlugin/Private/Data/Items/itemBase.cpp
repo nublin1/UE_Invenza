@@ -1,4 +1,4 @@
-﻿//  Nublin Studio 2025 All Rights Reserved.
+//  Nublin Studio 2025 All Rights Reserved.
 
 #include "Data/Items/itemBase.h"
 
@@ -11,9 +11,8 @@
 #include "Net/UnrealNetwork.h"
 #include "Utility/InvenzayUtility.h"
 
-UItemBase::UItemBase(): ItemRef(), Quantity(0)
+UItemBase::UItemBase() : ItemRef(), Quantity(0)
 {
-	
 }
 
 void UItemBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -21,37 +20,50 @@ void UItemBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetim
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(UItemBase, ItemID);
+	DOREPLIFETIME(UItemBase, PersistentInstanceID);
 	DOREPLIFETIME(UItemBase, ItemRow);
 	DOREPLIFETIME(UItemBase, Quantity);
 }
 
 void UItemBase::InitItem(const FName ID, FItemData Data, int32 InQuantity)
 {
+	if (!PersistentInstanceID.IsValid())
+	{
+		PersistentInstanceID = FGuid::NewGuid();
+	}
 	this->ItemID = ID;
 	this->SetItemRef(Data.ItemMetaData);
 	if (InQuantity <= 0)
+	{
 		InQuantity = 1;
+	}
 	else if (InQuantity > ItemRef.ItemNumeraticData.MaxStackSizeInCharacter)
+	{
 		InQuantity = ItemRef.ItemNumeraticData.MaxStackSizeInCharacter;
+	}
 	Quantity = InQuantity;
 }
 
 bool UItemBase::CanPerformAction_Implementation(EObjectInteractionType Action,
-	const UInvenzaInventorySettingsAsset* SettingsAsset)
+												const UInvenzaInventorySettingsAsset* SettingsAsset)
 {
-	const UInvenzaInventorySettingsAsset* Settings  = SettingsAsset;
-	
+	const UInvenzaInventorySettingsAsset* Settings = SettingsAsset;
+
 	if (!Settings)
+	{
 		Settings = UInvenzayUtility::GetInvenzaGlobalSettings(GetWorld());
-	
+	}
+
 	if (!Settings)
+	{
 		return false;
-	
+	}
+
 	switch (Action)
 	{
 	case EObjectInteractionType::UseItem:
 		return ItemRef.ItemCategory == Settings->ConsumableGameplayTag;
-		
+
 	case EObjectInteractionType::Equip:
 		return true;
 
@@ -72,24 +84,28 @@ bool UItemBase::CanPerformAction_Implementation(EObjectInteractionType Action,
 void UItemBase::UseItem_Implementation()
 {
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("UseItem was called!"));
-	
+
 	if (OnUseItemDelegate.IsBound())
+	{
 		OnUseItemDelegate.Broadcast(this);
+	}
 }
 
 UObject* UItemBase::DuplicateItem_Implementation()
 {
-	UItemBase* NewItem = NewObject<UItemBase>();
+	UItemBase* NewItem = NewObject<UItemBase>(GetOuter(), GetClass());
 
 	if (!NewItem)
 	{
 		return nullptr;
 	}
 
+	NewItem->PersistentInstanceID = FGuid::NewGuid();
 	NewItem->ItemID = ItemID;
 	NewItem->ItemRef = ItemRef;
 	NewItem->Quantity = Quantity;
 	NewItem->ItemRow = ItemRow;
+	NewItem->RestoreSaveState(CaptureSaveState());
 
 	return NewItem;
 }
@@ -97,11 +113,13 @@ UObject* UItemBase::DuplicateItem_Implementation()
 EItemOrientationType UItemBase::GetInitialItemOrientation_Implementation()
 {
 	if (ItemRef.ItemNumeraticData.InventoryVerticalSlots > ItemRef.ItemNumeraticData.InventoryHorizontalSlots)
+	{
 		return EItemOrientationType::Vertical;
+	}
 	return EItemOrientationType::Horizontal;
 }
 
-FIntPoint UItemBase::GetItemSize_Implementation(EItemOrientationType Orientation) 
+FIntPoint UItemBase::GetItemSize_Implementation(EItemOrientationType Orientation)
 {
 	const int32 H = ItemRef.ItemNumeraticData.InventoryHorizontalSlots;
 	const int32 V = ItemRef.ItemNumeraticData.InventoryVerticalSlots;
@@ -111,9 +129,13 @@ FIntPoint UItemBase::GetItemSize_Implementation(EItemOrientationType Orientation
 	if (GetInitialItemOrientation_Implementation() == EItemOrientationType::Horizontal)
 	{
 		if (Orientation == Initial)
+		{
 			return FIntPoint(H, V);
+		}
 		else
+		{
 			return FIntPoint(V, H);
+		}
 	}
 
 	if (Orientation == Initial)
@@ -146,14 +168,17 @@ int32 UItemBase::GetFreeAmount_Implementation() const
 
 bool UItemBase::ReserveAmount_Implementation(AActor* Requestor, int32 AmountToReserve)
 {
-	if (!Requestor || AmountToReserve <= 0) return false;
-    
+	if (!Requestor || AmountToReserve <= 0)
+	{
+		return false;
+	}
+
 	int32 Free = GetFreeAmount();
 	if (Free < AmountToReserve)
 	{
-		return false; // Недостаточно ресурсов
+		return false; // Not enough resources.
 	}
-    
+
 	int32& CurrentReserved = ReservedAmounts.FindOrAdd(Requestor);
 	CurrentReserved += AmountToReserve;
 	return true;
@@ -161,58 +186,90 @@ bool UItemBase::ReserveAmount_Implementation(AActor* Requestor, int32 AmountToRe
 
 void UItemBase::ReleaseReservation_Implementation(AActor* Requestor, int32 AmountToRelease)
 {
-	if (!Requestor || AmountToRelease <= 0) return;
+	if (!Requestor || AmountToRelease <= 0)
+	{
+		return;
+	}
 
 	int32 Reserved = ReservedAmounts.FindRef(Requestor);
 	if (Reserved <= 0)
+	{
 		return;
+	}
 
 	auto v = ReservedAmounts.Find(Requestor);
 	v -= AmountToRelease;
 
-	if (Reserved>=AmountToRelease)
+	if (Reserved >= AmountToRelease)
+	{
 		ReservedAmounts.Remove(Requestor);
+	}
 }
 
 UObject* UItemBase::ConsumeReserved_Implementation(AActor* Requestor, int32 RequestedAmount)
 {
-	if (!Requestor || RequestedAmount <= 0) return nullptr;
-    
+	if (!Requestor || RequestedAmount <= 0)
+	{
+		return nullptr;
+	}
+
 	int32 Reserved = ReservedAmounts.FindRef(Requestor);
-	if (Reserved<=0) return nullptr;
-    
+	if (Reserved <= 0)
+	{
+		return nullptr;
+	}
+
 	int32 ToConsume = FMath::Min(RequestedAmount, Reserved);
 	ToConsume = FMath::Min(ToConsume, Quantity);
-	if (ToConsume <= 0) return nullptr;
+	if (ToConsume <= 0)
+	{
+		return nullptr;
+	}
 
 	auto NewRes = DuplicateItem();
-	if (!NewRes) return nullptr;
+	if (!NewRes)
+	{
+		return nullptr;
+	}
 
 	//NewRes->OnAmountChangedDelegate.Clear();
-	
+
 	//NewRes->SetQuantity(ToConsume);
 
-	auto OldAmount = Quantity;    
+	auto OldAmount = Quantity;
 
 	Quantity -= ToConsume;
-	    
+
 	ReservedAmounts.Remove(Requestor);
 	int32 RemainingReserve = Reserved - ToConsume;
 
 	if (OnAmountChangedDelegate.IsBound())
-		OnAmountChangedDelegate.Broadcast(-ToConsume , this);
-    
+	{
+		OnAmountChangedDelegate.Broadcast(-ToConsume, this);
+	}
+
 	return NewRes;
 }
 
 void UItemBase::OnRep_ItemRow()
 {
 	if (!ItemRow.DataTable)
+	{
 		return;
-	
+	}
+
 	if (FItemData* Row = ItemRow.GetRow<FItemData>(TEXT("OnRep_ItemRow")))
 	{
 		ItemRef = Row->ItemMetaData;
 		OnItemDataReplicated.Broadcast(this);
 	}
+}
+
+TMap<FName, FString> UItemBase::CaptureSaveState_Implementation() const
+{
+	return {};
+}
+
+void UItemBase::RestoreSaveState_Implementation(const TMap<FName, FString>& State)
+{
 }

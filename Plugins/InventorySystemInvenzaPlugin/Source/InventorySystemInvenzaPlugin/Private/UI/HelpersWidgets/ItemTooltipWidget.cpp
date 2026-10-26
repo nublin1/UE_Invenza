@@ -8,7 +8,6 @@
 #include "UI/Core/LabelBaseText.h"
 #include "Utility/InterfaceUtils.h"
 
-
 UItemTooltipWidget::UItemTooltipWidget()
 {
 }
@@ -16,10 +15,14 @@ UItemTooltipWidget::UItemTooltipWidget()
 void UItemTooltipWidget::SetTooltipData(UObject* InItem, UInventoryBase* InInventory)
 {
 	if (!InItem || !ItemName || !ItemType || !ItemDescription)
+	{
 		return;
+	}
 
 	if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(InItem, TEXT("SetTooltipData")))
+	{
 		return;
+	}
 
 	Item = InItem;
 
@@ -61,10 +64,14 @@ void UItemTooltipWidget::SetTooltipData(UObject* InItem, UInventoryBase* InInven
 void UItemTooltipWidget::UpdatePrice()
 {
 	if (!PriceText || !PriceValue || !Item)
+	{
 		return;
+	}
 
 	if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(Item, TEXT("UpdatePrice")))
+	{
 		return;
+	}
 
 	const FItemMetaData ItemData = IObjectDataProvider::Execute_GetItemRef(Item);
 	const int32 Quantity = IObjectDataProvider::Execute_GetQuantity(Item);
@@ -84,9 +91,7 @@ void UItemTooltipWidget::UpdatePrice()
 	{
 		const bool bIsVendor = (Inventory->GetInventoryOwnerActor() == TradeContext.Vendor);
 
-		PriceMod = bIsVendor
-			? TradeContext.TradeSettings.SellPriceFactor
-			: TradeContext.TradeSettings.BuyPriceFactor;
+		PriceMod = bIsVendor ? TradeContext.TradeSettings.SellPriceFactor : TradeContext.TradeSettings.BuyPriceFactor;
 	}
 
 	const int32 FullPrice = FMath::FloorToInt(PriceMod * BasePrice);

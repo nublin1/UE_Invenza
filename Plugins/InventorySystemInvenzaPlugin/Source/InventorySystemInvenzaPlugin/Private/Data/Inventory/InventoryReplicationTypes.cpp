@@ -1,11 +1,9 @@
 ﻿//  Nublin Studio 2026 All Rights Reserved.
 
-
 #include "Data/Inventory/InventoryReplicationTypes.h"
 
-#include "ActorComponents/ItemCollection.h"
+#include "ActorComponents/InventoryCollectionComponent.h"
 #include "Data/Inventory/InventoryBase.h"
-
 
 void FInventoryEntry::PostReplicatedAdd(const FInventoryArray& InArraySerializer)
 {
@@ -14,7 +12,7 @@ void FInventoryEntry::PostReplicatedAdd(const FInventoryArray& InArraySerializer
 		for (const FItemMapping& Mapping : Locations.Mappings)
 		{
 			InArraySerializer.OwningCollection->NotifyUI_ItemChanged(Item, Mapping.InventoryID,
-			                                                         EInventoryActionType::Added);
+																	 EInventoryActionType::Added);
 		}
 	}
 }
@@ -26,7 +24,7 @@ void FInventoryEntry::PostReplicatedChange(const FInventoryArray& InArraySeriali
 		for (const FItemMapping& Mapping : Locations.Mappings)
 		{
 			InArraySerializer.OwningCollection->NotifyUI_ItemChanged(Item, Mapping.InventoryID,
-			                                                         EInventoryActionType::Updated);
+																	 EInventoryActionType::Updated);
 		}
 	}
 }
@@ -59,14 +57,15 @@ void FInventoryArray::PostReplicatedReceive(const FFastArraySerializer::FPostRep
 
 		if (OwningCollection->GetLinkedInventories().ExternalInventory)
 		{
-			ContainersToRedraw.Add(OwningCollection->GetLinkedInventories().ExternalInventory->GetInventoryContainerID());
+			ContainersToRedraw.Add(
+				OwningCollection->GetLinkedInventories().ExternalInventory->GetInventoryContainerID());
 		}
 
 		if (OwningCollection->GetLinkedInventories().VendorInventory)
 		{
 			ContainersToRedraw.Add(OwningCollection->GetLinkedInventories().VendorInventory->GetInventoryContainerID());
 		}
-		
+
 		for (const FString& InvID : ContainersToRedraw)
 		{
 			OwningCollection->OnInventoryItemsChanged.Broadcast(InvID);

@@ -1,4 +1,4 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -17,11 +17,13 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API URecipeListEntryObject : public UObject
 	GENERATED_BODY()
 
 public:
-	URecipeListEntryObject(){}
-	
+	URecipeListEntryObject() {}
+
+public:
+	// Properties and variables
 	UPROPERTY()
 	FItemRecipeRow RecipeRow;
-	
+
 	UPROPERTY()
 	FText Text;
 };

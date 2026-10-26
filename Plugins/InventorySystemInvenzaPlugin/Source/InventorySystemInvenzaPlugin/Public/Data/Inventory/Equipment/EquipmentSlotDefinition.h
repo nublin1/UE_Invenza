@@ -7,37 +7,37 @@
 #include "EquipmentSlotDefinition.generated.h"
 
 USTRUCT(BlueprintType)
-struct FEquipmentSlotRuntime
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FEquipmentSlotRuntime
 {
 	GENERATED_BODY()
 
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly)
+	UPROPERTY(Category = "Invenza|Equipment", VisibleInstanceOnly, BlueprintReadOnly)
 	FGameplayTag SlotTag;
 
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly)
+	UPROPERTY(Category = "Invenza|Equipment", VisibleInstanceOnly, BlueprintReadOnly)
 	FGameplayTag AllowedCategory;
 
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly)
+	UPROPERTY(Category = "Invenza|Equipment", VisibleInstanceOnly, BlueprintReadOnly)
 	TObjectPtr<UObject> EquippedItem = nullptr;
 
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly)
+	UPROPERTY(Category = "Invenza|Equipment", VisibleInstanceOnly, BlueprintReadOnly)
 	FName AttachSocket;
 };
 
 USTRUCT(BlueprintType)
-struct FEquipmentSlotDefinition : public FTableRowBase
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FEquipmentSlotDefinition : public FTableRowBase
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category = "Invenza|Equipment", EditAnywhere, BlueprintReadOnly)
 	FGameplayTag SlotTag;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category = "Invenza|Equipment", EditAnywhere, BlueprintReadOnly)
 	FGameplayTag AllowedCategory;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category = "Invenza|Equipment", EditAnywhere, BlueprintReadOnly)
 	FName AttachSocket;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category = "Invenza|Equipment", EditAnywhere, BlueprintReadOnly)
 	FTransform RelativeTransform;
 };

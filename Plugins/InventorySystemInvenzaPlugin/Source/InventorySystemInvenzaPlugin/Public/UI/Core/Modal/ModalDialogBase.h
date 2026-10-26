@@ -1,4 +1,4 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -12,60 +12,57 @@ class ULabelBaseText;
 struct FModalResult;
 
 /**
- * 
+ *
  */
 UCLASS()
 class INVENTORYSYSTEMINVENZAPLUGIN_API UModalDialogBase : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
-	
+
 public:
-	UModalDialogBase(){}
-	
+	UModalDialogBase() {}
+
+protected:
+	// Unreal overrides
 	virtual void NativeConstruct() override;
-	
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
+
+public:
+	// Properties and variables
 	UPROPERTY(BlueprintReadWrite, Category = "Modal")
 	FModalResultDelegate DynamicResultDelegate;
-	
+
 	// Widgets
 	UPROPERTY(BlueprintReadWrite, Category = "UI|Components", meta = (BindWidget))
 	TObjectPtr<UNamedSlot> Upper_Slot;
-	
+
 	UPROPERTY(BlueprintReadWrite, Category = "UI|Components", meta = (BindWidget))
 	TObjectPtr<UNamedSlot> Down_Slot;
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
-	
+
+	// Functions
 	UFUNCTION(BlueprintCallable, Category = "Modal")
 	void ForceClose(FModalResult Result);
-	
-	UFUNCTION(BlueprintCallable)
-	void Configure(FModalHeaderData HeaderData, const TArray<EObjectInteractionType>& Actions, const TArray<FModalAction>& Display);
-	
-	UFUNCTION(BlueprintCallable)
+
+	UFUNCTION(Category = "Invenza|UI|Modal", BlueprintCallable)
+	void Configure(FModalHeaderData HeaderData, const TArray<EObjectInteractionType>& Actions,
+				   const TArray<FModalAction>& Display);
+
+	UFUNCTION(Category = "Invenza|UI|Modal", BlueprintCallable)
 	void ConfigureHeader(FModalHeaderData HeaderData);
-	UFUNCTION(BlueprintCallable)
+
+	UFUNCTION(Category = "Invenza|UI|Modal", BlueprintCallable)
 	void ConfigureFooter(const TArray<EObjectInteractionType>& Actions, const TArray<FModalAction>& Display);
-	
+
 protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
+	// Runtime
+	// Properties and variables
 	UPROPERTY()
 	TMap<TObjectPtr<UUIButton>, FModalResult> ButtonToResultMap;
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
-	
-	UFUNCTION(BlueprintCallable)
-	void ConfigureButtons(TArray<UUIButton*> InBtns, const TArray<EObjectInteractionType>& Actions, const TArray<FModalAction>& Display);
-	
+
+	// Functions
+	UFUNCTION(Category = "Invenza|UI|Modal", BlueprintCallable)
+	void ConfigureButtons(TArray<UUIButton*> InBtns, const TArray<EObjectInteractionType>& Actions,
+						  const TArray<FModalAction>& Display);
+
 	UFUNCTION()
 	void OnButtonClicked(UUIButton* UIButton);
 };

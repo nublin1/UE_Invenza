@@ -1,4 +1,4 @@
-﻿// Nublin Studio 2025 All Rights Reserved.
+// Nublin Studio 2025 All Rights Reserved.
 
 #pragma once
 
@@ -9,11 +9,10 @@
 #include "UObject/Object.h"
 #include "InventorySlotData.generated.h"
 
-
 class UItemBase;
 class UInputAction;
 /**
- * 
+ *
  */
 UCLASS()
 class INVENTORYSYSTEMINVENZAPLUGIN_API UInventorySlotData : public UObject
@@ -23,34 +22,31 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UInventorySlotData : public UObject
 public:
 	UInventorySlotData();
 
+protected:
+	// Unreal overrides
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	virtual bool IsSupportedForNetworking() const override { return true; }
-	
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, ReplicatedUsing = OnRep_InventorySlotInfo, Category="Inventory")
+public:
+	// Properties and variables
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, ReplicatedUsing = OnRep_InventorySlotInfo,
+			  Category = "Inventory")
 	FInventorySlotInfo InventorySlotInfo;
+
+	// Functions
+	virtual bool IsSupportedForNetworking() const override { return true; }
 
 	UFUNCTION()
 	void OnRep_InventorySlotInfo();
 
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
 	UFUNCTION(Blueprintable)
 	static UInventorySlotData* Create(UObject* Outer);
 
-	UFUNCTION(BlueprintCallable)
-	static UInventorySlotData* CreateWithData(
-		UObject* Outer,
-		FInventorySlotInfo SlotData
-	);
+	UFUNCTION(Category = "Invenza|Inventory", BlueprintCallable)
+	static UInventorySlotData* CreateWithData(UObject* Outer, FInventorySlotInfo SlotData);
 
-	UFUNCTION(BlueprintCallable)
-	UInventorySlotData* DuplicateSlotData (UObject* Outer);
+	UFUNCTION(Category = "Invenza|Inventory", BlueprintCallable)
+	UInventorySlotData* DuplicateSlotData(UObject* Outer);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(Category = "Invenza|Inventory", BlueprintCallable)
 	bool IsEquipmentSlot() const { return InventorySlotInfo.LinkedEquipmentSlot.IsValid(); }
 };

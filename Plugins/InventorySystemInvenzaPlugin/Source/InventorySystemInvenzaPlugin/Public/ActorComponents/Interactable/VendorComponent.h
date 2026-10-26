@@ -11,104 +11,113 @@
 class UTradeComponent;
 class UInventoryContainerWidget;
 class UUInventoryBaseWidget;
-class UItemCollection;
+class UInventoryCollectionComponent;
 
 /**
- * 
+ *
  */
-UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
+UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class INVENTORYSYSTEMINVENZAPLUGIN_API UVendorComponent : public UInteractableComponent, public IVendorProvider
 {
 	GENERATED_BODY()
-
-#pragma region Delegates
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTradeTransaction, const FTradeTransaction&, Transaction);
-#pragma endregion Delegates
 
 public:
 	UVendorComponent();
 
 protected:
+	// Unreal overrides
 	virtual void OnRegister() override;
+
 	virtual void BeginPlay() override;
 
-public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-	UPROPERTY(BlueprintAssignable, Category="Trade")
+
+public:
+#pragma region Delegates
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTradeTransaction, const FTradeTransaction&, Transaction);
+#pragma endregion Delegates
+
+	// Properties and variables
+	UPROPERTY(BlueprintAssignable, Category = "Trade")
 	FOnTradeTransaction OnTradeExecuted;
 
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
+	// Functions
 	virtual void BeginFocus() override;
+
 	virtual void EndFocus() override;
-	
+
 	virtual void HandleInteract(UInteractionComponent* InteractionComponent) override;
+
 	virtual void HandleStopInteract(UInteractionComponent* InteractionComponent, EInteractionType Type) override;
 
 	virtual FTradeResult ProcessTradeRequest(const FItemMoveData& TradeData) override;
-	UFUNCTION(BlueprintCallable, Server, Reliable)
+
+	UFUNCTION(Category = "Invenza|Interaction", BlueprintCallable, Server, Reliable)
 	virtual void Server_ProcessTradeRequest(const FItemMoveData& TradeData);
-	UFUNCTION(BlueprintCallable)
+
+	UFUNCTION(Category = "Invenza|Interaction", BlueprintCallable)
 	virtual FTradeResult HandleProcessTrade(const FItemMoveData& TradeData);
 
 	UFUNCTION()
-	virtual FTradeSettings GetTradeSettings() const override {return TradeSettings;}
+	virtual FTradeSettings GetTradeSettings() const override { return TradeSettings; }
 
 	virtual const TObjectPtr<UInventoryBase>& GetVendorLootContainer() const override;
 
-	virtual void SetTradePartnerInventory(UInventoryBase* InInventory) override {TradePartnerMainInventory = InInventory;}
-	virtual void SetTradePartnerItemCollection(UItemCollection* InCollection) override {TradePartnerItemCollection = InCollection;}
+	virtual void SetTradePartnerInventory(UInventoryBase* InInventory) override
+	{
+		TradePartnerMainInventory = InInventory;
+	}
+
+	virtual void SetTradePartnerItemCollection(UInventoryCollectionComponent* InCollection) override
+	{
+		TradePartnerItemCollection = InCollection;
+	}
 
 protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================	
+	// Runtime
+	// Properties and variables
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vendor|Config")
 	FGameplayTag MainVendorContainerInvTag;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated, Category = "Vendor|Config")
 	FTradeSettings TradeSettings;
 
 	// Data
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UPROPERTY(Category = "Invenza|Interaction", VisibleAnywhere, BlueprintReadWrite)
 	TObjectPtr<UInventoryBase> MainVendorLootInventory;
 
 	// Refs
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category = "Vendor")
-	TObjectPtr<UItemCollection> ItemCollectionRef;
+	TObjectPtr<UInventoryCollectionComponent> ItemCollectionRef;
 
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
+	UPROPERTY(Category = "Invenza|Interaction", VisibleInstanceOnly, BlueprintReadWrite)
 	TObjectPtr<UInventoryBase> TradePartnerMainInventory;
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite)
-	TObjectPtr<UItemCollection> TradePartnerItemCollection;
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
+
+	UPROPERTY(Category = "Invenza|Interaction", VisibleInstanceOnly, BlueprintReadWrite)
+	TObjectPtr<UInventoryCollectionComponent> TradePartnerItemCollection;
+
+	// Functions
 	virtual void InitializeInteractionComponent() override;
+
 	virtual void UpdateInteractableData() override;
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(Category = "Invenza|Interaction", BlueprintCallable)
 	void InitializeVendorStartupData();
 
-	UFUNCTION(BlueprintCallable)
-	bool SimulateTrade(const FItemMoveData& TradeData,
-		int32 Price, bool bIsBuyingFromVendor, UObject* CurrencyItem, FTradeResult& OutResult);
+	UFUNCTION(Category = "Invenza|Interaction", BlueprintCallable)
+	bool SimulateTrade(const FItemMoveData& TradeData, int32 Price, bool bIsBuyingFromVendor, UObject* CurrencyItem,
+					   FTradeResult& OutResult);
 
-	UFUNCTION(BlueprintCallable)
-	FTradeTransaction ExecuteTrade(const FItemMoveData& TradeData, int32 Price,
-		bool bIsBuyingFromVendor, UInventoryBase* PlayerInventory, UObject* CurrencyItem);
+	UFUNCTION(Category = "Invenza|Interaction", BlueprintCallable)
+	FTradeTransaction ExecuteTrade(const FItemMoveData& TradeData, int32 Price, bool bIsBuyingFromVendor,
+								   UInventoryBase* PlayerInventory, UObject* CurrencyItem);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(Category = "Invenza|Interaction", BlueprintCallable)
 	float CalculateTotalBuyPrice(UObject* ItemToBuy);
-	UFUNCTION(BlueprintCallable)
+
+	UFUNCTION(Category = "Invenza|Interaction", BlueprintCallable)
 	float CalculateTotalSellPrice(UObject* ItemsToSell);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(Category = "Invenza|Interaction", BlueprintCallable)
 	UInventoryBase* ResolvePlayerInventory(const FItemMoveData& TradeData, bool bIsBuyingFromVendor) const;
-	
 };

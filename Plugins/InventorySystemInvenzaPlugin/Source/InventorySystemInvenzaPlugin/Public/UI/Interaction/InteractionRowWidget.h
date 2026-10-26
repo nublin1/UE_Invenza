@@ -1,4 +1,4 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -9,40 +9,29 @@
 #include "InteractionRowWidget.generated.h"
 
 /**
- * 
+ *
  */
 UCLASS()
 class INVENTORYSYSTEMINVENZAPLUGIN_API UInteractionRowWidget : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
-	
+
 public:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
+	// Properties and variables
 	//Widgets
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction UI", meta = (BindWidget))
 	TObjectPtr<UTextBlock> KeyPressText;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction UI", meta = (BindWidget))
 	TObjectPtr<UTextBlock> ActionText;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction UI", meta = (BindWidget))
 	TObjectPtr<UTextBlock> NameText;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction UI", meta = (BindWidget))
 	TObjectPtr<UTextBlock> QuantityText;
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
-	
-	UFUNCTION(BlueprintCallable)
+
+	// Functions
+	UFUNCTION(Category = "Invenza|Interaction", BlueprintCallable)
 	void SetRowData(const FText& KeyLabel, const FInteractableData& Data, bool bHoldToInteract);
-	
-protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
 };

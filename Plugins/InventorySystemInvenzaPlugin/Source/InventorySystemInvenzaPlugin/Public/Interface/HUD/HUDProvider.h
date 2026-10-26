@@ -1,4 +1,4 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -9,13 +9,13 @@
 class UPrimaryLayout;
 // This class does not need to be modified.
 UINTERFACE()
-class UHUDProvider : public UInterface
+class INVENTORYSYSTEMINVENZAPLUGIN_API UHUDProvider : public UInterface
 {
 	GENERATED_BODY()
 };
 
 /**
- * 
+ *
  */
 class INVENTORYSYSTEMINVENZAPLUGIN_API IHUDProvider
 {
@@ -23,8 +23,6 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API IHUDProvider
 
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
-	
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Inventory")
 	UPrimaryLayout* GetPrimaryLayout();
-	
 };

@@ -1,4 +1,4 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -15,33 +15,18 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UCraftMenuRecipeActions : public UInvenza
 {
 	GENERATED_BODY()
 
-	
 public:
 	UCraftMenuRecipeActions();
 
 protected:
+	// Unreal overrides
 	virtual void NativePreConstruct() override;
+
 	virtual void NativeConstruct() override;
 
 public:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
+	// Properties and variables
 	// Widgets
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidget))
 	TObjectPtr<UUIButton> Btn_Craft;
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
-
-protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
 };

@@ -1,4 +1,4 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -15,42 +15,29 @@ UCLASS()
 class INVENTORYSYSTEMINVENZAPLUGIN_API UCraftControlPanel : public UInvenzaBaseWidget, public IUIInterface
 {
 	GENERATED_BODY()
-	
+
 public:
 	UCraftControlPanel();
 
 protected:
+	// Unreal overrides
 	virtual void NativeConstruct() override;
 
 public:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
+	// Properties and variables
 	// Widgets
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
 	TObjectPtr<UUIButton> Btn_AddTask;
-	
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
 	TObjectPtr<UUIButton> Btn_Pause;
-	
+
+	UPROPERTY(BlueprintReadOnly, Category = "UI|Components", meta = (BindWidgetOptional))
+	TObjectPtr<UUIButton> Btn_AutomaticCrafting;
+
+	// Functions
 	//UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "UI|Components", meta = (BindWidgetOptional))
 	//TObjectPtr<UUIButton> ClearQueueButton;
 
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
-
 	virtual TArray<UUIButton*> GetButtons_Implementation() const override;
-
-
-protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
 };

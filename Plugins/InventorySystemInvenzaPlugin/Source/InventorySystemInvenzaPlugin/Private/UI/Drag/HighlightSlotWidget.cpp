@@ -1,6 +1,5 @@
 //  Nublin Studio 2025 All Rights Reserved.
 
-
 #include "UI/Drag/HighlightSlotWidget.h"
 
 #include "Components/Border.h"
@@ -23,7 +22,7 @@ void UHighlightSlotWidget::NativeConstruct()
 void UHighlightSlotWidget::SetHighlightState(EHighlightState NewState)
 {
 	CurrentState = NewState;
-	
+
 	switch (NewState)
 	{
 	case EHighlightState::Allowed:
@@ -43,14 +42,17 @@ void UHighlightSlotWidget::SetHighlightState(EHighlightState NewState)
 
 void UHighlightSlotWidget::UpdateVisualWithTexture(UTexture2D* NewTexture)
 {
-	if (!CoreCellWidget || !CoreCellWidget->Content_Image) return;
+	if (!CoreCellWidget || !CoreCellWidget->Content_Image)
+	{
+		return;
+	}
 
 	if (!NewTexture)
 	{
 		ClearVisual();
 		return;
 	}
-	
+
 	CoreCellWidget->Content_Image->UpdateImage(NewTexture);
 }
 

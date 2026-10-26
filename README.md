@@ -1,5 +1,7 @@
 # UE_Invenza
 
+Documentation / Документация: [English](Docs/en/README.md) | [Русский](Docs/ru/README.md)
+
 Invenza: Modular Inventory System for Unreal Engine 5
 Invenza is a flexible and modular inventory system for Unreal Engine 5, designed to handle item interactions, containers, trading, equipment management, and state saving. Built on a component-based architecture and widget-driven UI, it offers seamless integration with both single-player and multiplayer environments.
 
@@ -8,11 +10,11 @@ To set up Invenza in your Character Blueprint, add the following components:
 
 UIInventoryManager – Manages the inventory UI and related actions.
 
-ItemCollection – Stores the character’s items.
+InventoryCollectionComponent – Stores the character’s items.
 
 UInteractionComponent – Handles world object interactions.
 
-UEquipmentManagerComponent (optional) – Manages equipment (requires UIInventoryManager).
+UEquipmentComponent (optional) – Manages equipment (requires UIInventoryManager).
 
 InvenzaSaveManager (optional) – Handles inventory saving/loading.
 
@@ -40,3 +42,12 @@ Attach the appropriate inventory components to containers, vendors, and interact
 
 🛠 Configuration & Usage
 Refer to the Invenza documentation for detailed setup and customization options.
+
+- [Общее описание и настройка](Docs/ru/GettingStartedOverview.md)
+- [Подключение к другому проекту](Docs/ru/ProjectIntegration.md)
+- [Настройка управления](Docs/ru/InputConfiguration.md)
+- [Предметы и контейнеры в мире](Docs/ru/WorldContainers.md)
+- [Общий доступ к хранилищам](Docs/ru/StorageAccessPoint.md)
+- [Манекен и обмен с другим персонажем](Docs/ru/CharacterInventoryExchange.md)
+- [Все разделы документации](Docs/ru/README.md)
+- [Сохранение и загрузка / Saving and loading](Docs/ru/InventorySaving.md) — [English](Docs/en/InventorySaving.md)

@@ -4,7 +4,7 @@
 
 #include "InputAction.h"
 #include "Net/UnrealNetwork.h"
-#include "ActorComponents/ItemCollection.h"
+#include "ActorComponents/InventoryCollectionComponent.h"
 #include "Data/Inventory/SlotBasedInv/SlotbasedInventory.h"
 #include "GameFramework/Actor.h"
 
@@ -12,8 +12,12 @@ void UInventorySlotData::OnRep_InventorySlotInfo()
 {
 	// Slot references and their coordinates can arrive in separate replication updates.
 	const AActor* Owner = GetTypedOuter<AActor>();
-	UItemCollection* Collection = Owner ? Owner->FindComponentByClass<UItemCollection>() : nullptr;
-	if (!Collection) return;
+	UInventoryCollectionComponent* Collection =
+		Owner ? Owner->FindComponentByClass<UInventoryCollectionComponent>() : nullptr;
+	if (!Collection)
+	{
+		return;
+	}
 	for (UInventoryBase* Inventory : Collection->GetActorInventories())
 	{
 		USlotbasedInventory* Grid = Cast<USlotbasedInventory>(Inventory);
@@ -24,7 +28,7 @@ void UInventorySlotData::OnRep_InventorySlotInfo()
 	}
 }
 
-UInventorySlotData::UInventorySlotData(): InventorySlotInfo()
+UInventorySlotData::UInventorySlotData() : InventorySlotInfo()
 {
 }
 
@@ -43,8 +47,11 @@ UInventorySlotData* UInventorySlotData::Create(UObject* Outer)
 UInventorySlotData* UInventorySlotData::CreateWithData(UObject* Outer, FInventorySlotInfo SlotData)
 {
 	UInventorySlotData* Slot = NewObject<UInventorySlotData>(Outer);
-	if (!Slot) return nullptr;
-	
+	if (!Slot)
+	{
+		return nullptr;
+	}
+
 	Slot->InventorySlotInfo.SlotName = SlotData.SlotName;
 	Slot->InventorySlotInfo.CellPosition = SlotData.CellPosition;
 	Slot->InventorySlotInfo.UseAction = TSoftObjectPtr<UInputAction>(SlotData.UseAction);
@@ -57,12 +64,15 @@ UInventorySlotData* UInventorySlotData::CreateWithData(UObject* Outer, FInventor
 UInventorySlotData* UInventorySlotData::DuplicateSlotData(UObject* Outer)
 {
 	UInventorySlotData* NewSlot = NewObject<UInventorySlotData>(Outer);
-	if (!NewSlot) return nullptr;
-	
-	NewSlot->InventorySlotInfo.AllowedCategory	= this->InventorySlotInfo.AllowedCategory;
-	NewSlot->InventorySlotInfo.SlotName			= this->InventorySlotInfo.SlotName;
-	NewSlot->InventorySlotInfo.CellPosition		= this->InventorySlotInfo.CellPosition;
-	NewSlot->InventorySlotInfo.UseAction		= this->InventorySlotInfo.UseAction;
+	if (!NewSlot)
+	{
+		return nullptr;
+	}
+
+	NewSlot->InventorySlotInfo.AllowedCategory = this->InventorySlotInfo.AllowedCategory;
+	NewSlot->InventorySlotInfo.SlotName = this->InventorySlotInfo.SlotName;
+	NewSlot->InventorySlotInfo.CellPosition = this->InventorySlotInfo.CellPosition;
+	NewSlot->InventorySlotInfo.UseAction = this->InventorySlotInfo.UseAction;
 
 	return NewSlot;
 }

@@ -1,9 +1,9 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
-
+// Nublin Studio 2026 All Rights Reserved.
 
 #include "World/Buildings/Storage/StorageGridVisualizer.h"
+#include "Settings/InvenzaInventoryDeveloperSettings.h"
 
-#include "ActorComponents/ItemCollection.h"
+#include "ActorComponents/InventoryCollectionComponent.h"
 #include "Data/Inventory/SlotBasedInv/SlotbasedInventory.h"
 #include "Data/Inventory/InventorySlotData.h"
 #include "Interface/Interaction/ObjectDataProvider.h"
@@ -12,27 +12,26 @@
 #include "Engine/World.h"
 #include "World/Buildings/Storage/SmallBoxStackLayout.h"
 #include "World/Buildings/Storage/StorageMeshOrientation.h"
+#include "World/Buildings/Storage/BulkBinVisualComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogStorageGridVisualizer, Log, All);
 
-namespace StorageGridPlacement
+// Work in grid-local space so the whole storage can be rotated or scaled.
+static FTransform MakeStorageGridItemTransform(const FBox& CellBounds, const FBox& MeshBounds, const FQuat& Rotation)
 {
-	// Work in grid-local space so the whole storage can be rotated or scaled.
-	static FTransform MakeTransform(const FBox& CellBounds, const FBox& MeshBounds, const FQuat& Rotation)
-	{
-		const FBox RotatedBounds = MeshBounds.TransformBy(FTransform(Rotation));
-		const FVector Center = CellBounds.GetCenter();
-		const FVector MeshCenter = RotatedBounds.GetCenter();
-		return FTransform(Rotation, FVector(
-			Center.X - MeshCenter.X,
-			Center.Y - MeshCenter.Y,
-			CellBounds.Max.Z - RotatedBounds.Min.Z));
-	}
+	const FBox RotatedBounds = MeshBounds.TransformBy(FTransform(Rotation));
+	const FVector Center = CellBounds.GetCenter();
+	const FVector MeshCenter = RotatedBounds.GetCenter();
+	return FTransform(
+		Rotation, FVector(Center.X - MeshCenter.X, Center.Y - MeshCenter.Y, CellBounds.Max.Z - RotatedBounds.Min.Z));
 }
 
 UStorageGridVisualizer::UStorageGridVisualizer()
 {
 	PrimaryComponentTick.bCanEverTick = false;
+	InteractionChannel = GetDefault<UInvenzaInventoryDeveloperSettings>()->InteractionTraceChannel;
+
+	BulkWallMesh = GetDefault<UInvenzaInventoryDeveloperSettings>()->DefaultStorageWallMesh.LoadSynchronous();
 
 	USceneComponent::SetMobility(EComponentMobility::Movable);
 
@@ -43,8 +42,8 @@ UStorageGridVisualizer::UStorageGridVisualizer()
 
 void UStorageGridVisualizer::OnRegister()
 {
-	Super::OnRegister(); 
-	
+	Super::OnRegister();
+
 	// Enforce visualization-only behavior, including editor instances.
 	SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	SetGenerateOverlapEvents(false);
@@ -58,7 +57,7 @@ void UStorageGridVisualizer::OnRegister()
 
 	if (World->IsGameWorld() && World->GetNetMode() != NM_DedicatedServer)
 	{
-		ObserveInventorySource(GetOwner()->FindComponentByClass<UItemCollection>());
+		ObserveInventorySource(GetOwner()->FindComponentByClass<UInventoryCollectionComponent>());
 	}
 
 	RebuildGrid();
@@ -79,9 +78,12 @@ void UStorageGridVisualizer::OnUnregister()
 void UStorageGridVisualizer::BeginPlay()
 {
 	Super::BeginPlay();
-	if (GetNetMode() == NM_DedicatedServer) return;
-	// Blueprint construction may create ItemCollection after this component's OnRegister.
-	ObserveInventorySource(GetOwner()->FindComponentByClass<UItemCollection>());
+	if (GetNetMode() == NM_DedicatedServer)
+	{
+		return;
+	}
+	// Blueprint construction may create InventoryCollectionComponent after this component's OnRegister.
+	ObserveInventorySource(GetOwner()->FindComponentByClass<UInventoryCollectionComponent>());
 	SynchronizeInventory();
 }
 
@@ -104,7 +106,7 @@ USlotbasedInventory* UStorageGridVisualizer::FindTargetInventory() const
 		return nullptr;
 	}
 
-	UItemCollection* Collection = Owner->FindComponentByClass<UItemCollection>();
+	UInventoryCollectionComponent* Collection = Owner->FindComponentByClass<UInventoryCollectionComponent>();
 	if (!IsValid(Collection))
 	{
 		return nullptr;
@@ -118,7 +120,8 @@ USlotbasedInventory* UStorageGridVisualizer::FindTargetInventory() const
 			continue;
 		}
 
-		if (!InventorySearchTag.IsValid() || GridInventory->GetInventorySettings().InventoryTag.MatchesTag(InventorySearchTag))
+		if (!InventorySearchTag.IsValid() ||
+			GridInventory->GetInventorySettings().InventoryTag.MatchesTag(InventorySearchTag))
 		{
 			return GridInventory;
 		}
@@ -133,27 +136,20 @@ void UStorageGridVisualizer::UpdateInteractionBounds()
 	const UWorld* World = GetWorld();
 	UStaticMesh* PlatformMesh = GetStaticMesh();
 
-	if (!bEnableInteractionBounds
-		|| !IsRegistered()
-		|| IsTemplate()
-		|| !IsValid(Owner)
-		|| Owner->IsTemplate()
-		|| !World
-		|| World->GetNetMode() == NM_DedicatedServer
-		|| !IsValid(PlatformMesh)
-		|| Cells.IsEmpty())
+	if (!bEnableInteractionBounds || !IsRegistered() || IsTemplate() || !IsValid(Owner) || Owner->IsTemplate() ||
+		!World || World->GetNetMode() == NM_DedicatedServer || !IsValid(PlatformMesh) || Cells.IsEmpty())
 	{
 		DestroyInteractionBounds();
 		return;
 	}
-	
+
 	const FBox PlatformMeshBounds = PlatformMesh->GetBoundingBox();
 	if (!PlatformMeshBounds.IsValid)
 	{
 		DestroyInteractionBounds();
 		return;
 	}
-	
+
 	FBox LocalBounds(ForceInit);
 
 	// Include every platform, including empty cells.
@@ -172,7 +168,7 @@ void UStorageGridVisualizer::UpdateInteractionBounds()
 	}
 
 	// Empty storage still has a usable interaction volume.
-	LocalBounds.Max.Z += FMath::Max(0.0,	static_cast<double>(InteractionMinHeight));
+	LocalBounds.Max.Z += FMath::Max(0.0, static_cast<double>(InteractionMinHeight));
 
 	// Include items that extend above or outside the platform area.
 	for (const auto& Pair : ItemVisuals)
@@ -180,6 +176,11 @@ void UStorageGridVisualizer::UpdateInteractionBounds()
 		UStaticMeshComponent* Visual = Pair.Value.Get();
 		if (!IsValid(Visual))
 		{
+			continue;
+		}
+		if (const UBulkBinVisualComponent* Bin = Cast<UBulkBinVisualComponent>(Visual))
+		{
+			LocalBounds += Bin->GetBinBounds();
 			continue;
 		}
 
@@ -215,10 +216,8 @@ void UStorageGridVisualizer::UpdateInteractionBounds()
 		}
 	}
 
-	const FVector Padding(
-		FMath::Max(0.0, InteractionPadding.X),
-		FMath::Max(0.0, InteractionPadding.Y),
-		FMath::Max(0.0, InteractionPadding.Z));
+	const FVector Padding(FMath::Max(0.0, InteractionPadding.X), FMath::Max(0.0, InteractionPadding.Y),
+						  FMath::Max(0.0, InteractionPadding.Z));
 
 	LocalBounds.Min -= Padding;
 	LocalBounds.Max += Padding;
@@ -228,7 +227,7 @@ void UStorageGridVisualizer::UpdateInteractionBounds()
 
 	if (!IsValid(InteractionBoundsComponent))
 	{
-		InteractionBoundsComponent = NewObject<UBoxComponent>(Owner,NAME_None,RF_Transient | RF_DuplicateTransient);
+		InteractionBoundsComponent = NewObject<UBoxComponent>(Owner, NAME_None, RF_Transient | RF_DuplicateTransient);
 		InteractionBoundsComponent->SetMobility(EComponentMobility::Movable);
 		InteractionBoundsComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
@@ -274,9 +273,12 @@ void UStorageGridVisualizer::DestroyInteractionBounds()
 
 void UStorageGridVisualizer::SynchronizeInventory()
 {
-	if (!IsRegistered() || !GetWorld() || !GetWorld()->IsGameWorld() || GetNetMode() == NM_DedicatedServer) return;
+	if (!IsRegistered() || !GetWorld() || !GetWorld()->IsGameWorld() || GetNetMode() == NM_DedicatedServer)
+	{
+		return;
+	}
 	USlotbasedInventory* FoundInventory = FindTargetInventory();
-	const FIntPoint DesiredSize = FoundInventory ? FoundInventory->GetInventorySize(): FIntPoint::ZeroValue;
+	const FIntPoint DesiredSize = FoundInventory ? FoundInventory->GetInventorySize() : FIntPoint::ZeroValue;
 
 	if (TargetInventory != FoundInventory || BuiltGridSize != DesiredSize)
 	{
@@ -305,9 +307,9 @@ void UStorageGridVisualizer::RebuildGrid()
 			return;
 		}
 
-		ObserveInventorySource(GetOwner()->FindComponentByClass<UItemCollection>());
+		ObserveInventorySource(GetOwner()->FindComponentByClass<UInventoryCollectionComponent>());
 		BindInventory(FindTargetInventory());
-		BuildGrid(TargetInventory ? TargetInventory->GetInventorySize()	: FIntPoint::ZeroValue);
+		BuildGrid(TargetInventory ? TargetInventory->GetInventorySize() : FIntPoint::ZeroValue);
 		RefreshItemVisuals();
 
 		return;
@@ -341,7 +343,7 @@ void UStorageGridVisualizer::ClearGrid()
 	ClearInstances();
 
 	BuiltGridSize = FIntPoint::ZeroValue;
-	
+
 	DestroyInteractionBounds();
 }
 
@@ -359,7 +361,7 @@ void UStorageGridVisualizer::BuildGrid(FIntPoint GridSize)
 		return;
 	}
 
-	const int64 CellCount =	static_cast<int64>(GridSize.X) * GridSize.Y;
+	const int64 CellCount = static_cast<int64>(GridSize.X) * GridSize.Y;
 	if (CellCount > FMath::Max(1, MaxCellCount))
 	{
 		return;
@@ -382,9 +384,7 @@ void UStorageGridVisualizer::BuildGrid(FIntPoint GridSize)
 		return;
 	}
 
-	const FVector2D Step(
-		ScaledSize.X + FMath::Max(0.0, CellGap.X),
-		ScaledSize.Y + FMath::Max(0.0, CellGap.Y));
+	const FVector2D Step(ScaledSize.X + FMath::Max(0.0, CellGap.X), ScaledSize.Y + FMath::Max(0.0, CellGap.Y));
 
 	// Place the minimum mesh bounds at the cell corner.
 	// This compensates for a centered or offset mesh pivot.
@@ -404,15 +404,15 @@ void UStorageGridVisualizer::BuildGrid(FIntPoint GridSize)
 			const FVector Translation = CellCorner + PivotCorrection;
 
 			const FTransform InstanceTransform(FQuat::Identity, Translation, CellScale);
-			const int32 Index = AddInstance(InstanceTransform,false); // Component-local space.
+			const int32 Index = AddInstance(InstanceTransform, false); // Component-local space.
 
-			UGridStorageCell* Cell = NewObject<UGridStorageCell>(this, NAME_None,RF_Transient);
+			UGridStorageCell* Cell = NewObject<UGridStorageCell>(this, NAME_None, RF_Transient);
 
 			Cell->Visualizer = this;
 			Cell->Coordinates = FIntPoint(X, Y);
 			Cell->InstanceIndex = Index;
 			Cell->LocalTransform = InstanceTransform;
-			Cell->LocalCenter =	Translation + MeshBounds.GetCenter() * CellScale;
+			Cell->LocalCenter = Translation + MeshBounds.GetCenter() * CellScale;
 
 			Cells.Add(Cell);
 		}
@@ -424,32 +424,32 @@ void UStorageGridVisualizer::BuildGrid(FIntPoint GridSize)
 
 UGridStorageCell* UStorageGridVisualizer::GetCell(FIntPoint Coordinates) const
 {
-	if (Coordinates.X < 0
-		|| Coordinates.Y < 0
-		|| Coordinates.X >= BuiltGridSize.X
-		|| Coordinates.Y >= BuiltGridSize.Y)
+	if (Coordinates.X < 0 || Coordinates.Y < 0 || Coordinates.X >= BuiltGridSize.X || Coordinates.Y >= BuiltGridSize.Y)
 	{
 		return nullptr;
 	}
 
-	const int32 Index =	Coordinates.Y * BuiltGridSize.X + Coordinates.X;
+	const int32 Index = Coordinates.Y * BuiltGridSize.X + Coordinates.X;
 
 	return Cells.IsValidIndex(Index) ? Cells[Index].Get() : nullptr;
 }
 
-void UStorageGridVisualizer::ObserveCollection(UItemCollection* Collection)
+void UStorageGridVisualizer::ObserveCollection(UInventoryCollectionComponent* Collection)
 {
-	if (ObservedCollection.Get() == Collection) return;
+	if (ObservedCollection.Get() == Collection)
+	{
+		return;
+	}
 	if (ObservedCollection.IsValid())
 	{
-		ObservedCollection->OnInventoryItemsChanged.RemoveDynamic(
-			this, &UStorageGridVisualizer::HandleInventoryItemsChanged);
+		ObservedCollection->OnInventoryItemsChanged.RemoveDynamic(this,
+																  &UStorageGridVisualizer::HandleInventoryItemsChanged);
 	}
 	ObservedCollection = Collection;
 	if (IsValid(Collection))
 	{
-		Collection->OnInventoryItemsChanged.AddUniqueDynamic(
-			this, &UStorageGridVisualizer::HandleInventoryItemsChanged);
+		Collection->OnInventoryItemsChanged.AddUniqueDynamic(this,
+															 &UStorageGridVisualizer::HandleInventoryItemsChanged);
 	}
 }
 
@@ -471,15 +471,14 @@ void UStorageGridVisualizer::HandleItemQuantityChanged(UObject* Item)
 	if (!UpdateItemVisual(Item))
 	{
 		// Preserve warning deduplication for a missing StorageMesh.
-		if (UStaticMeshComponent* Visual = ItemVisuals.FindRef(Item);
-			IsValid(Visual))
+		if (UStaticMeshComponent* Visual = ItemVisuals.FindRef(Item); IsValid(Visual))
 		{
 			Visual->DestroyComponent();
 		}
 
 		ItemVisuals.Remove(Item);
 	}
-	
+
 	UpdateInteractionBounds();
 }
 
@@ -487,7 +486,10 @@ void UStorageGridVisualizer::ClearItemVisuals()
 {
 	for (const auto& Pair : ItemVisuals)
 	{
-		if (IsValid(Pair.Value)) Pair.Value->DestroyComponent();
+		if (IsValid(Pair.Value))
+		{
+			Pair.Value->DestroyComponent();
+		}
 	}
 	ItemVisuals.Empty();
 }
@@ -500,7 +502,8 @@ void UStorageGridVisualizer::RefreshItemVisuals()
 		return;
 	}
 
-	UItemCollection* Collection = IsValid(TargetInventory) ? TargetInventory->GetItemCollectionLinked() : nullptr;
+	UInventoryCollectionComponent* Collection =
+		IsValid(TargetInventory) ? TargetInventory->GetItemCollectionLinked() : nullptr;
 	ObserveCollection(Collection);
 	if (!IsValid(Collection) || !GetStaticMesh() || Cells.IsEmpty())
 	{
@@ -515,39 +518,51 @@ void UStorageGridVisualizer::RefreshItemVisuals()
 	for (UObject* Item : Collection->GetAllItemsByContainer(InventoryID))
 	{
 		CurrentItems.Add(TWeakObjectPtr<UObject>(Item));
-		if (UpdateItemVisual(Item)) VisibleItems.Add(Item);
+		if (UpdateItemVisual(Item))
+		{
+			VisibleItems.Add(Item);
+		}
 	}
 
 	for (auto It = ItemVisuals.CreateIterator(); It; ++It)
 	{
 		if (!VisibleItems.Contains(It.Key()))
 		{
-			if (IsValid(It.Value())) It.Value()->DestroyComponent();
+			if (IsValid(It.Value()))
+			{
+				It.Value()->DestroyComponent();
+			}
 			It.RemoveCurrent();
 		}
 	}
 	for (auto It = WarnedMissingMeshes.CreateIterator(); It; ++It)
 	{
-		if (!CurrentItems.Contains(*It)) It.RemoveCurrent();
+		if (!CurrentItems.Contains(*It))
+		{
+			It.RemoveCurrent();
+		}
 	}
-	
+
 	UpdateInteractionBounds();
 }
 
 void UStorageGridVisualizer::RemoveItemVisual(UObject* Item)
 {
-	if (UStaticMeshComponent* Visual = ItemVisuals.FindRef(Item); IsValid(Visual)) Visual->DestroyComponent();
+	if (UStaticMeshComponent* Visual = ItemVisuals.FindRef(Item); IsValid(Visual))
+	{
+		Visual->DestroyComponent();
+	}
 	ItemVisuals.Remove(Item);
 	WarnedMissingMeshes.Remove(TWeakObjectPtr<UObject>(Item));
-	
+
 	UpdateInteractionBounds();
 }
 
 bool UStorageGridVisualizer::UpdateLogsVisual(UObject* Item, UStaticMesh* Mesh, const FBox& OccupiedBounds,
-	const FQuat& Rotation, int32 Quantity, EStorageMeshAxis MeshLengthAxis)
+											  const FQuat& Rotation, int32 Quantity, EStorageMeshAxis MeshLengthAxis)
 {
 	const int32 VisibleCount = FMath::Clamp(Quantity, 0, 6);
-	if (!IsValid(Item) || !IsValid(Mesh) || !OccupiedBounds.IsValid	|| VisibleCount == 0)
+	if (!IsValid(Item) || !IsValid(Mesh) || !OccupiedBounds.IsValid || VisibleCount == 0)
 	{
 		return false;
 	}
@@ -579,7 +594,7 @@ bool UStorageGridVisualizer::UpdateLogsVisual(UObject* Item, UStaticMesh* Mesh, 
 	bool bCreated = false;
 	if (!IsValid(Stack))
 	{
-		Stack = NewObject<UInstancedStaticMeshComponent>(GetOwner(), NAME_None,RF_Transient);
+		Stack = NewObject<UInstancedStaticMeshComponent>(GetOwner(), NAME_None, RF_Transient);
 
 		Stack->SetMobility(EComponentMobility::Movable);
 		Stack->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -594,12 +609,12 @@ bool UStorageGridVisualizer::UpdateLogsVisual(UObject* Item, UStaticMesh* Mesh, 
 	const bool bWasSmallBoxes = Stack->ComponentTags.Remove(FSmallBoxStackLayout::ComponentTag) > 0;
 
 	FTransform FirstInstance;
-	const bool bAxisChanged = Stack->GetInstanceCount() > 0
-		&& (!Stack->GetInstanceTransform(0, FirstInstance, false)
-			|| !FirstInstance.GetRotation().Equals(MeshRotation));
+	const bool bAxisChanged = Stack->GetInstanceCount() > 0 && (!Stack->GetInstanceTransform(0, FirstInstance, false) ||
+																!FirstInstance.GetRotation().Equals(MeshRotation));
 
 	// Quantity above six does not change the visible instance count.
-	const bool bRebuildInstances = bCreated || bMeshChanged || bWasSmallBoxes || bAxisChanged || Stack->GetInstanceCount() != VisibleCount;
+	const bool bRebuildInstances =
+		bCreated || bMeshChanged || bWasSmallBoxes || bAxisChanged || Stack->GetInstanceCount() != VisibleCount;
 	if (bMeshChanged)
 	{
 		Stack->SetStaticMesh(Mesh);
@@ -608,7 +623,7 @@ bool UStorageGridVisualizer::UpdateLogsVisual(UObject* Item, UStaticMesh* Mesh, 
 	// The parent component represents the whole stack.
 	// Its origin is the center of the occupied area at platform height.
 	const FVector AreaCenter = OccupiedBounds.GetCenter();
-	const FTransform StackTransform(Rotation,FVector(AreaCenter.X,AreaCenter.Y,OccupiedBounds.Max.Z));
+	const FTransform StackTransform(Rotation, FVector(AreaCenter.X, AreaCenter.Y, OccupiedBounds.Max.Z));
 
 	if (!Stack->GetRelativeTransform().Equals(StackTransform))
 	{
@@ -629,19 +644,16 @@ bool UStorageGridVisualizer::UpdateLogsVisual(UObject* Item, UStaticMesh* Mesh, 
 		{
 			// Compensate for an arbitrary mesh pivot.
 			// The bottom row rests on the platform.
-			const FVector Location(
-				-MeshCenter.X,
-				CenterY - MeshCenter.Y,
-				Row * RowHeight - MeshBounds.Min.Z);
+			const FVector Location(-MeshCenter.X, CenterY - MeshCenter.Y, Row * RowHeight - MeshBounds.Min.Z);
 
-			Stack->AddInstance(FTransform(MeshRotation, Location),false);
+			Stack->AddInstance(FTransform(MeshRotation, Location), false);
 		};
 
 		// Bottom row: 1, 2 or 3 logs, centered as a group.
 		const int32 BottomCount = FMath::Min(VisibleCount, 3);
 		for (int32 Index = 0; Index < BottomCount; ++Index)
 		{
-			const double CenterY =(Index - (BottomCount - 1) * 0.5) * Width;
+			const double CenterY = (Index - (BottomCount - 1) * 0.5) * Width;
 			AddLog(CenterY, 0);
 		}
 
@@ -671,13 +683,19 @@ bool UStorageGridVisualizer::UpdateLogsVisual(UObject* Item, UStaticMesh* Mesh, 
 	return true;
 }
 
-bool UStorageGridVisualizer::UpdateSmallBoxesVisual(UObject* Item, UStaticMesh* Mesh,
-	const FBox& OccupiedBounds, const FQuat& Rotation, int32 Quantity)
+bool UStorageGridVisualizer::UpdateSmallBoxesVisual(UObject* Item, UStaticMesh* Mesh, const FBox& OccupiedBounds,
+													const FQuat& Rotation, int32 Quantity)
 {
-	if (!IsValid(Item) || !IsValid(Mesh) || !OccupiedBounds.IsValid || Quantity <= 0) return false;
+	if (!IsValid(Item) || !IsValid(Mesh) || !OccupiedBounds.IsValid || Quantity <= 0)
+	{
+		return false;
+	}
 	const FBox MeshBounds = Mesh->GetBoundingBox();
 	const FVector Size = MeshBounds.GetSize();
-	if (!MeshBounds.IsValid || Size.GetMin() <= UE_SMALL_NUMBER) return false;
+	if (!MeshBounds.IsValid || Size.GetMin() <= UE_SMALL_NUMBER)
+	{
+		return false;
+	}
 
 	UStaticMeshComponent* Existing = ItemVisuals.FindRef(Item);
 	UInstancedStaticMeshComponent* Stack = Cast<UInstancedStaticMeshComponent>(Existing);
@@ -706,7 +724,10 @@ bool UStorageGridVisualizer::UpdateSmallBoxesVisual(UObject* Item, UStaticMesh* 
 	}
 	const FVector Center = OccupiedBounds.GetCenter();
 	const FTransform Placement(Rotation, FVector(Center.X, Center.Y, OccupiedBounds.Max.Z));
-	if (!Stack->GetRelativeTransform().Equals(Placement)) Stack->SetRelativeTransform(Placement);
+	if (!Stack->GetRelativeTransform().Equals(Placement))
+	{
+		Stack->SetRelativeTransform(Placement);
+	}
 	FSmallBoxStackLayout::SetQuantity(*Stack, Quantity, MeshBounds, SmallBoxGap);
 	if (bCreated)
 	{
@@ -718,13 +739,21 @@ bool UStorageGridVisualizer::UpdateSmallBoxesVisual(UObject* Item, UStaticMesh* 
 
 bool UStorageGridVisualizer::UpdateItemVisual(UObject* Item)
 {
-	UItemCollection* Collection = IsValid(TargetInventory) ? TargetInventory->GetItemCollectionLinked() : nullptr;
-	if (!IsValid(Collection) || !GetStaticMesh() || Cells.IsEmpty()) return false;
+	UInventoryCollectionComponent* Collection =
+		IsValid(TargetInventory) ? TargetInventory->GetItemCollectionLinked() : nullptr;
+	if (!IsValid(Collection) || !GetStaticMesh() || Cells.IsEmpty())
+	{
+		return false;
+	}
 	const FString InventoryID = TargetInventory->GetInventoryContainerID();
 	const FBox PlatformBounds = GetStaticMesh()->GetBoundingBox();
-	if (!IsValid(Item) || !Item->Implements<UObjectDataProvider>()) return false;
+	if (!IsValid(Item) || !Item->Implements<UObjectDataProvider>())
+	{
+		return false;
+	}
 
-	const FItemStorageData Storage = IObjectDataProvider::Execute_GetItemRef(Item).ItemStorageData;
+	const FItemMetaData ItemData = IObjectDataProvider::Execute_GetItemRef(Item);
+	const FItemStorageData& Storage = ItemData.ItemStorageData;
 	if (!IsValid(Storage.StorageMesh))
 	{
 		const TWeakObjectPtr<UObject> ItemKey(Item);
@@ -733,15 +762,18 @@ bool UStorageGridVisualizer::UpdateItemVisual(UObject* Item)
 		{
 			WarnedMissingMeshes.Add(ItemKey);
 			UE_LOG(LogStorageGridVisualizer, Warning,
-				TEXT("%s: item '%s' in inventory '%s' has no StorageMesh assigned. Visual skipped."),
-				*GetPathName(), *Item->GetPathName(), *InventoryID);
+				   TEXT("%s: item '%s' in inventory '%s' has no StorageMesh assigned. Visual skipped."), *GetPathName(),
+				   *Item->GetPathName(), *InventoryID);
 		}
 		return false;
 	}
 
 	WarnedMissingMeshes.Remove(TWeakObjectPtr<UObject>(Item));
 	const FItemMapping* Mapping = Collection->FindItemMappingByContainerName(Item, InventoryID);
-	if (!Mapping || Mapping->OccupiedSlots.IsEmpty()) return false;
+	if (!Mapping || Mapping->OccupiedSlots.IsEmpty())
+	{
+		return false;
+	}
 
 	FBox OccupiedBounds(ForceInit);
 	bool bAllSlotsReady = true;
@@ -756,70 +788,116 @@ bool UStorageGridVisualizer::UpdateItemVisual(UObject* Item)
 		OccupiedBounds += PlatformBounds.TransformBy(Cell->LocalTransform);
 	}
 	// Never center on a partial set while slot references are still replicating.
-	if (!bAllSlotsReady || !OccupiedBounds.IsValid) return false;
+	if (!bAllSlotsReady || !OccupiedBounds.IsValid)
+	{
+		return false;
+	}
 
-	const FQuat Rotation = FRotator(0.0,Mapping->ItemOrientation == EItemOrientationType::Vertical ? 90.0 : 0.0, 0.0).Quaternion();
+	const FQuat Rotation =
+		FRotator(0.0, Mapping->ItemOrientation == EItemOrientationType::Vertical ? 90.0 : 0.0, 0.0).Quaternion();
+	// Bulk bins own a separate border component. Destroy the whole visual when changing modes.
+	if (UStaticMeshComponent* Existing = ItemVisuals.FindRef(Item);
+		IsValid(Existing) &&
+		(Existing->IsA<UBulkBinVisualComponent>() != (Storage.StorageMethod == EStorageMethod::BulkBins)))
+	{
+		Existing->DestroyComponent();
+		ItemVisuals.Remove(Item);
+	}
 	switch (Storage.StorageMethod)
 	{
-		case EStorageMethod::SingleMesh:
+	case EStorageMethod::BulkBins:
+	{
+		UBulkBinVisualComponent* Bin = Cast<UBulkBinVisualComponent>(ItemVisuals.FindRef(Item));
+		const bool bCreated = !IsValid(Bin);
+		if (bCreated)
 		{
-			const FTransform Placement = StorageGridPlacement::MakeTransform(
-				OccupiedBounds, Storage.StorageMesh->GetBoundingBox(), Rotation);
-
-			UStaticMeshComponent* Visual = ItemVisuals.FindRef(Item);
-			if (IsValid(Visual) && Visual->IsA<UInstancedStaticMeshComponent>())
-			{
-				Visual->DestroyComponent();
-				ItemVisuals.Remove(Item);
-				Visual = nullptr;
-			}
-			if (!IsValid(Visual))
-			{
-				Visual = NewObject<UStaticMeshComponent>(GetOwner(), NAME_None, RF_Transient);
-				Visual->SetMobility(EComponentMobility::Movable);
-				Visual->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-				Visual->SetGenerateOverlapEvents(false);
-				Visual->SetCanEverAffectNavigation(false);
-				Visual->SetupAttachment(this);
-				Visual->SetStaticMesh(Storage.StorageMesh);
-				Visual->SetRelativeTransform(Placement);
-				Visual->RegisterComponent();
-				ItemVisuals.Add(Item, Visual);
-			}
-			else
-			{
-				if (Visual->GetStaticMesh() != Storage.StorageMesh) Visual->SetStaticMesh(Storage.StorageMesh);
-				if (!Visual->GetRelativeTransform().Equals(Placement)) Visual->SetRelativeTransform(Placement);
-			}
-			return true;
+			Bin = NewObject<UBulkBinVisualComponent>(GetOwner(), NAME_None, RF_Transient | RF_DuplicateTransient);
+			Bin->SetupAttachment(this);
 		}
-
-		case EStorageMethod::Logs:
+		if (!Bin->UpdateBin(Storage, OccupiedBounds, Rotation, IObjectDataProvider::Execute_GetQuantity(Item),
+							ItemData.ItemNumeraticData.MaxStackSizeInCharacter, BulkWallMesh, BulkWallMaterial,
+							BulkWallHeight, BulkWallThickness, BulkBinInset))
 		{
-			return UpdateLogsVisual(
-				Item, Storage.StorageMesh, OccupiedBounds,
-				FStorageMeshOrientation::LogsGridRotation(Mapping->ItemOrientation),
-				IObjectDataProvider::Execute_GetQuantity(Item), Storage.MeshLengthAxis);
-		}
-
-		case EStorageMethod::SmallBoxes:
-		{
-			return UpdateSmallBoxesVisual(
-				Item, Storage.StorageMesh, OccupiedBounds, Rotation,
-				IObjectDataProvider::Execute_GetQuantity(Item));
-		}
-
-		default:
+			if (bCreated)
+			{
+				Bin->DestroyComponent();
+			}
 			return false;
+		}
+		if (bCreated)
+		{
+			Bin->RegisterComponent();
+			ItemVisuals.Add(Item, Bin);
+		}
+		return true;
+	}
+	case EStorageMethod::SingleMesh:
+	{
+		const FTransform Placement =
+			MakeStorageGridItemTransform(OccupiedBounds, Storage.StorageMesh->GetBoundingBox(), Rotation);
+
+		UStaticMeshComponent* Visual = ItemVisuals.FindRef(Item);
+		if (IsValid(Visual) && Visual->IsA<UInstancedStaticMeshComponent>())
+		{
+			Visual->DestroyComponent();
+			ItemVisuals.Remove(Item);
+			Visual = nullptr;
+		}
+		if (!IsValid(Visual))
+		{
+			Visual = NewObject<UStaticMeshComponent>(GetOwner(), NAME_None, RF_Transient);
+			Visual->SetMobility(EComponentMobility::Movable);
+			Visual->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			Visual->SetGenerateOverlapEvents(false);
+			Visual->SetCanEverAffectNavigation(false);
+			Visual->SetupAttachment(this);
+			Visual->SetStaticMesh(Storage.StorageMesh);
+			Visual->SetRelativeTransform(Placement);
+			Visual->RegisterComponent();
+			ItemVisuals.Add(Item, Visual);
+		}
+		else
+		{
+			if (Visual->GetStaticMesh() != Storage.StorageMesh)
+			{
+				Visual->SetStaticMesh(Storage.StorageMesh);
+			}
+			if (!Visual->GetRelativeTransform().Equals(Placement))
+			{
+				Visual->SetRelativeTransform(Placement);
+			}
+		}
+		return true;
+	}
+
+	case EStorageMethod::Logs:
+	{
+		return UpdateLogsVisual(Item, Storage.StorageMesh, OccupiedBounds,
+								FStorageMeshOrientation::LogsGridRotation(Mapping->ItemOrientation),
+								IObjectDataProvider::Execute_GetQuantity(Item), Storage.MeshLengthAxis);
+	}
+
+	case EStorageMethod::SmallBoxes:
+	{
+		return UpdateSmallBoxesVisual(Item, Storage.StorageMesh, OccupiedBounds, Rotation,
+									  IObjectDataProvider::Execute_GetQuantity(Item));
+	}
+
+	default:
+		return false;
 	}
 }
 
-void UStorageGridVisualizer::ObserveInventorySource(UItemCollection* Collection)
+void UStorageGridVisualizer::ObserveInventorySource(UInventoryCollectionComponent* Collection)
 {
-	if (InventorySourceCollection.Get() == Collection) return;
+	if (InventorySourceCollection.Get() == Collection)
+	{
+		return;
+	}
 	if (InventorySourceCollection.IsValid())
 	{
-		InventorySourceCollection->OnActorInventoriesChanged.RemoveDynamic(this, &UStorageGridVisualizer::SynchronizeInventory);
+		InventorySourceCollection->OnActorInventoriesChanged.RemoveDynamic(
+			this, &UStorageGridVisualizer::SynchronizeInventory);
 	}
 	InventorySourceCollection = Collection;
 	if (IsValid(Collection))
@@ -830,14 +908,18 @@ void UStorageGridVisualizer::ObserveInventorySource(UItemCollection* Collection)
 
 void UStorageGridVisualizer::BindInventory(USlotbasedInventory* Inventory)
 {
-	if (TargetInventory == Inventory) return;
+	if (TargetInventory == Inventory)
+	{
+		return;
+	}
 	if (IsValid(TargetInventory))
 	{
 		TargetInventory->OnAddItemDelegate.RemoveDynamic(this, &UStorageGridVisualizer::HandleItemAdded);
 		TargetInventory->OnItemRemovedDelegate.RemoveDynamic(this, &UStorageGridVisualizer::HandleItemRemoved);
 		TargetInventory->OnItemReplaceDelegate.RemoveDynamic(this, &UStorageGridVisualizer::HandleItemReplaced);
 		TargetInventory->OnStackedItemDelegate.RemoveDynamic(this, &UStorageGridVisualizer::HandleItemQuantityChanged);
-		TargetInventory->OnUnstackedItemDelegate.RemoveDynamic(this, &UStorageGridVisualizer::HandleItemQuantityChanged);
+		TargetInventory->OnUnstackedItemDelegate.RemoveDynamic(this,
+															   &UStorageGridVisualizer::HandleItemQuantityChanged);
 		TargetInventory->OnInventorySlotDataUpdated.RemoveDynamic(this, &UStorageGridVisualizer::SynchronizeInventory);
 		TargetInventory->OnInventoryRedrawRequested.RemoveDynamic(this, &UStorageGridVisualizer::SynchronizeInventory);
 	}
@@ -848,10 +930,14 @@ void UStorageGridVisualizer::BindInventory(USlotbasedInventory* Inventory)
 		TargetInventory->OnAddItemDelegate.AddUniqueDynamic(this, &UStorageGridVisualizer::HandleItemAdded);
 		TargetInventory->OnItemRemovedDelegate.AddUniqueDynamic(this, &UStorageGridVisualizer::HandleItemRemoved);
 		TargetInventory->OnItemReplaceDelegate.AddUniqueDynamic(this, &UStorageGridVisualizer::HandleItemReplaced);
-		TargetInventory->OnStackedItemDelegate.AddUniqueDynamic(this, &UStorageGridVisualizer::HandleItemQuantityChanged);
-		TargetInventory->OnUnstackedItemDelegate.AddUniqueDynamic(this,	&UStorageGridVisualizer::HandleItemQuantityChanged);
-		TargetInventory->OnInventorySlotDataUpdated.AddUniqueDynamic(this, &UStorageGridVisualizer::SynchronizeInventory);
-		TargetInventory->OnInventoryRedrawRequested.AddUniqueDynamic(this, &UStorageGridVisualizer::SynchronizeInventory);
+		TargetInventory->OnStackedItemDelegate.AddUniqueDynamic(this,
+																&UStorageGridVisualizer::HandleItemQuantityChanged);
+		TargetInventory->OnUnstackedItemDelegate.AddUniqueDynamic(this,
+																  &UStorageGridVisualizer::HandleItemQuantityChanged);
+		TargetInventory->OnInventorySlotDataUpdated.AddUniqueDynamic(this,
+																	 &UStorageGridVisualizer::SynchronizeInventory);
+		TargetInventory->OnInventoryRedrawRequested.AddUniqueDynamic(this,
+																	 &UStorageGridVisualizer::SynchronizeInventory);
 	}
 }
 
@@ -860,12 +946,14 @@ void UStorageGridVisualizer::HandleItemAdded(FItemMapping& Mapping, UObject* Ite
 	if (!UpdateItemVisual(Item))
 	{
 		// Keep warning deduplication until this item is removed or fixed.
-		if (UStaticMeshComponent* Visual = ItemVisuals.FindRef(Item); IsValid(Visual)) Visual->DestroyComponent();
-		
+		if (UStaticMeshComponent* Visual = ItemVisuals.FindRef(Item); IsValid(Visual))
+		{
+			Visual->DestroyComponent();
+		}
+
 		ItemVisuals.Remove(Item);
-		
 	}
-	
+
 	UpdateInteractionBounds();
 }
 
@@ -874,7 +962,8 @@ void UStorageGridVisualizer::HandleItemRemoved(FItemMapping Mapping, UObject* It
 	RemoveItemVisual(Item);
 }
 
-void UStorageGridVisualizer::HandleItemReplaced(TArray<UInventorySlotData*> OldSlots, FItemMapping& Mapping, UObject* Item)
+void UStorageGridVisualizer::HandleItemReplaced(TArray<UInventorySlotData*> OldSlots, FItemMapping& Mapping,
+												UObject* Item)
 {
 	HandleItemAdded(Mapping, Item);
 }

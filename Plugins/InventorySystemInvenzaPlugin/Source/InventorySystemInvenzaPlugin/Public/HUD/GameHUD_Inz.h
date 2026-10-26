@@ -1,4 +1,4 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -10,36 +10,22 @@
 class UInvenzaBaseWidget;
 class UPrimaryLayout;
 /**
- * 
+ *
  */
 UCLASS()
 class INVENTORYSYSTEMINVENZAPLUGIN_API AGameHUD_Inz : public AHUD
 {
 	GENERATED_BODY()
-	
+
 public:
 	AGameHUD_Inz();
-	
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
 
 protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================	
-	
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	// Runtime
+	// Properties and variables
+	UPROPERTY(Category = "Invenza|GameHUD_Inz", VisibleAnywhere, BlueprintReadWrite)
 	TObjectPtr<UPrimaryLayout> PrimaryLayout;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(Category = "Invenza|GameHUD_Inz", EditAnywhere, BlueprintReadWrite)
 	TMap<FGameplayTag, TSoftClassPtr<UInvenzaBaseWidget>> InitialScreens;
-
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
 };

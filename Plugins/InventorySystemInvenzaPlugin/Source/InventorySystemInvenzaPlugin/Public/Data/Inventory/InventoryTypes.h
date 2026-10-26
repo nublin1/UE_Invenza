@@ -3,10 +3,10 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Layout/Margin.h"
 #include "GameplayTagContainer.h"
 #include "Data/ItemDataStructures.h"
 #include "InventoryTypes.generated.h"
-
 
 class UOperationPanelWidget;
 class USlotbasedInventorySlot;
@@ -26,7 +26,7 @@ struct FInventoryCheck;
 class UInventoryItemWidget;
 class UObject;
 class UUInventoryBaseWidget;
-class UItemCollection;
+class UInventoryCollectionComponent;
 
 UENUM(BlueprintType)
 enum class EInventorySortCriteria : uint8
@@ -35,22 +35,22 @@ enum class EInventorySortCriteria : uint8
 };
 
 USTRUCT(BlueprintType)
-struct FItemPlacementData
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FItemPlacementData
 {
 	GENERATED_BODY()
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UPROPERTY(Category = "Invenza|Inventory", VisibleAnywhere, BlueprintReadWrite)
 	int32 Quantity = 0;
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UPROPERTY(Category = "Invenza|Inventory", VisibleAnywhere, BlueprintReadWrite)
 	EItemOrientationType Orientation = EItemOrientationType::Horizontal;
 };
 
 UENUM(BlueprintType)
 enum class EHighlightState : uint8
 {
-	Allowed		UMETA(DisplayName = "Allowed"),
-	NotAllowed	UMETA(DisplayName = "Not Allowed"),
-	Partial		UMETA(DisplayName = "Partial")
+	Allowed UMETA(DisplayName = "Allowed"),
+	NotAllowed UMETA(DisplayName = "Not Allowed"),
+	Partial UMETA(DisplayName = "Partial")
 };
 
 UENUM(BlueprintType)
@@ -59,33 +59,30 @@ enum class EItemAddResult : uint8
 	IAR_NoItemAdded UMETA(DisplayName = "No item added"),
 	IAR_PartialAmountItemAdded UMETA(DisplayName = "Partial amount of item added"),
 	IAR_AllItemAdded UMETA(DisplayName = "All of item added"),
-	IAR_ItemSwapped UMETA(DisplayName = "Item swapped") 
+	IAR_ItemSwapped UMETA(DisplayName = "Item swapped")
 };
 
-USTRUCT(BlueprintType, meta=(ScriptName="FItemAddResult"))
-struct FItemAddResult
+USTRUCT(BlueprintType, meta = (ScriptName = "FItemAddResult"))
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FItemAddResult
 {
 	GENERATED_BODY()
 
-	FItemAddResult():
-	ActualAmountAdded(0),
-	bIsUsedReferences(false),
-	OperationResult(EItemAddResult::IAR_NoItemAdded),
-	ResultMessage(FText::GetEmpty())
-	{};
+	FItemAddResult()
+		: ActualAmountAdded(0), bIsUsedReferences(false), OperationResult(EItemAddResult::IAR_NoItemAdded),
+		  ResultMessage(FText::GetEmpty()) {};
 
 	// Actual amount of item that was added to the inventory
-	UPROPERTY(BlueprintReadOnly, Category="Item Add Result")
+	UPROPERTY(BlueprintReadOnly, Category = "Item Add Result")
 	int32 ActualAmountAdded;
 	UPROPERTY()
 	bool bIsUsedReferences;
 	UPROPERTY()
 	TMap<UInventorySlotData*, FItemPlacementData> AffectedPivotSlots;
-	UPROPERTY(BlueprintReadOnly, Category="Item Add Result")
+	UPROPERTY(BlueprintReadOnly, Category = "Item Add Result")
 	EItemAddResult OperationResult;
 
 	// Describes the result
-	UPROPERTY(BlueprintReadOnly, Category="Item Add Result")
+	UPROPERTY(BlueprintReadOnly, Category = "Item Add Result")
 	FText ResultMessage;
 
 	static FItemAddResult AddedNone(const FText& ErrorText)
@@ -95,11 +92,12 @@ struct FItemAddResult
 		AddedNoneResult.OperationResult = EItemAddResult::IAR_NoItemAdded;
 		AddedNoneResult.ResultMessage = ErrorText;
 		return AddedNoneResult;
-	};	
+	};
 	static FItemAddResult AddedPartial(const int32 PartialAmountAdded, const bool bIsUsedReferences,
-		const FText& ErrorText, const TMap<UInventorySlotData*, FItemPlacementData>& InAffectedSlots)
+									   const FText& ErrorText,
+									   const TMap<UInventorySlotData*, FItemPlacementData>& InAffectedSlots)
 	{
-		FItemAddResult  AddedPartialResult;
+		FItemAddResult AddedPartialResult;
 		AddedPartialResult.ActualAmountAdded = PartialAmountAdded;
 		AddedPartialResult.bIsUsedReferences = bIsUsedReferences;
 		AddedPartialResult.AffectedPivotSlots = InAffectedSlots;
@@ -108,7 +106,7 @@ struct FItemAddResult
 		return AddedPartialResult;
 	};
 	static FItemAddResult AddedAll(const int32 AmountAdded, const bool bIsUsedReferences, const FText& Message,
-		 const TMap<UInventorySlotData*, FItemPlacementData>& InAffectedSlots)
+								   const TMap<UInventorySlotData*, FItemPlacementData>& InAffectedSlots)
 	{
 		FItemAddResult AddedAllResult;
 		AddedAllResult.ActualAmountAdded = AmountAdded;
@@ -126,7 +124,7 @@ struct FItemAddResult
 		AddedAllResult.OperationResult = EItemAddResult::IAR_ItemSwapped;
 		AddedAllResult.ResultMessage = Message;
 		return AddedAllResult;
-	};	
+	};
 };
 
 UENUM(BlueprintType)
@@ -140,36 +138,32 @@ enum class EInventoryType : uint8
 };
 
 USTRUCT(BlueprintType)
-struct FSlotReservationData
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FSlotReservationData
 {
 	GENERATED_BODY()
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UPROPERTY(Category = "Invenza|Inventory", VisibleAnywhere, BlueprintReadWrite)
 	TObjectPtr<UInventorySlotData> Slot;
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UPROPERTY(Category = "Invenza|Inventory", VisibleAnywhere, BlueprintReadWrite)
 	FItemPlacementData ItemPlacementData;
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UPROPERTY(Category = "Invenza|Inventory", VisibleAnywhere, BlueprintReadWrite)
 	TObjectPtr<UObject> Resource;
 };
 
 USTRUCT(BlueprintType)
-struct FItemDropData
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FItemDropData
 {
 	GENERATED_BODY()
-	
-	UPROPERTY(BlueprintReadWrite)
+
+	UPROPERTY(Category = "Invenza|Inventory", BlueprintReadWrite)
 	TObjectPtr<UObject> ItemToDrop;
-	UPROPERTY(BlueprintReadWrite)
+	UPROPERTY(Category = "Invenza|Inventory", BlueprintReadWrite)
 	TObjectPtr<UInventoryBase> SourceInventory;
-	UPROPERTY(BlueprintReadWrite)
+	UPROPERTY(Category = "Invenza|Inventory", BlueprintReadWrite)
 	int32 DropAmount = 0;
-	
-	FItemDropData (): ItemToDrop(nullptr),
-					  SourceInventory(nullptr),
-					  DropAmount(0)
-	{
-	}
-	
+
+	FItemDropData() : ItemToDrop(nullptr), SourceInventory(nullptr), DropAmount(0) {}
+
 	FItemDropData(UObject* InItem, UInventoryBase* InInv, int32 InAmount)
 	{
 		ItemToDrop = InItem;
@@ -179,37 +173,32 @@ struct FItemDropData
 };
 
 USTRUCT(BlueprintType)
-struct FItemMoveData 
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FItemMoveData
 {
 	GENERATED_BODY()
 
-	UPROPERTY(BlueprintReadWrite)
+	UPROPERTY(Category = "Invenza|Inventory", BlueprintReadWrite)
 	TObjectPtr<UObject> SourceItem;
-	UPROPERTY(BlueprintReadWrite)
+	UPROPERTY(Category = "Invenza|Inventory", BlueprintReadWrite)
 	TObjectPtr<UInventoryBase> SourceInventory;
-	UPROPERTY(BlueprintReadWrite)
+	UPROPERTY(Category = "Invenza|Inventory", BlueprintReadWrite)
 	FGuid SourceSlotID;
-	UPROPERTY(BlueprintReadWrite)
+	UPROPERTY(Category = "Invenza|Inventory", BlueprintReadWrite)
 	TObjectPtr<UInventoryBase> TargetInventory;
-	UPROPERTY(BlueprintReadWrite)
+	UPROPERTY(Category = "Invenza|Inventory", BlueprintReadWrite)
 	FGuid TargetSlotID;
-	UPROPERTY(BlueprintReadWrite)
+	UPROPERTY(Category = "Invenza|Inventory", BlueprintReadWrite)
 	EItemOrientationType SavedOrientation = EItemOrientationType::Horizontal;
-	UPROPERTY(BlueprintReadWrite)
+	UPROPERTY(Category = "Invenza|Inventory", BlueprintReadWrite)
 	EItemOrientationType TargetOrientation = EItemOrientationType::Horizontal;
 
-	FItemMoveData (): SourceItem(nullptr),
-	                  SourceInventory(nullptr),
-	                  TargetInventory(nullptr)
+	FItemMoveData() : SourceItem(nullptr), SourceInventory(nullptr), TargetInventory(nullptr)
 	{
 		TargetSlotID.Invalidate();
 	}
 
-	FItemMoveData (UObject* _SourceItem,
-	               UInventoryBase* _SourceInventory,
-	               FGuid _SourceSlotID,
-	               UInventoryBase* _TargetInventory,
-	               FGuid _TargetSlotID)
+	FItemMoveData(UObject* _SourceItem, UInventoryBase* _SourceInventory, FGuid _SourceSlotID,
+				  UInventoryBase* _TargetInventory, FGuid _TargetSlotID)
 	{
 		SourceItem = _SourceItem;
 		SourceInventory = _SourceInventory;
@@ -220,19 +209,20 @@ struct FItemMoveData
 };
 
 USTRUCT(BlueprintType)
-struct FInventorySlotInfo
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FInventorySlotInfo
 {
 	GENERATED_BODY()
-	
-	UPROPERTY()
+
+	// A fresh identity is intentional; independently constructed instances cannot compare equal.
+	UPROPERTY(meta = (IgnoreForMemberInitializationTest))
 	FGuid SlotGuid = FGuid::NewGuid();
 
 	UPROPERTY()
 	FName SlotName = NAME_None;
 
 	UPROPERTY()
-	FIntPoint CellPosition;
-	
+	FIntPoint CellPosition = FIntPoint::ZeroValue;
+
 	UPROPERTY()
 	TSoftObjectPtr<UInputAction> UseAction;
 
@@ -244,7 +234,7 @@ struct FInventorySlotInfo
 };
 
 USTRUCT(BlueprintType)
-struct FSlotBasedInventoryWidgetInitData
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FSlotBasedInventoryWidgetInitData
 {
 	GENERATED_BODY()
 
@@ -252,155 +242,156 @@ struct FSlotBasedInventoryWidgetInitData
 	TArray<FInventorySlotInfo> SlotLayout;
 
 	UPROPERTY()
-	FVector2D InvCellSize;
+	FVector2D InvCellSize = FVector2D::ZeroVector;
 	UPROPERTY()
 	FMargin SlotSpacing;
 
 	UPROPERTY()
-	FIntPoint InventorySize;
+	FIntPoint InventorySize = FIntPoint::ZeroValue;
 };
 
 USTRUCT(BlueprintType)
-struct FInventorySlotBasedSettings
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FInventorySlotBasedSettings
 {
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Widgets")
 	TSubclassOf<USlotbasedInventorySlot> SlotbasedInventorySlotClass;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|Slots", 
-		meta=(ToolTip="If true, item size will be ignored when placing items. Used for slot-based inventory systems"))
+	UPROPERTY(
+		EditAnywhere, BlueprintReadWrite, Category = "Inventory|Slots",
+		meta =
+			(ToolTip = "If true, item size will be ignored when placing items. Used for slot-based inventory systems"))
 	bool bIgnoreItemSize = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
 	int InitNumberRows = 0;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
 	int InitNumColumns = 0;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
 	FMargin SlotSpacing;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
 	FVector2D InvCellSize = FVector2D(64.0f, 64.0f);
 };
 
 USTRUCT(BlueprintType)
-struct FInventorySettings
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FInventorySettings
 {
 	GENERATED_BODY()
 
 	/* Optional custom unique ID for this inventory.
 	If left empty, a unique ID will be generated automatically. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
 	FString CustomInventoryID;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory")
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
 	FGameplayTag InventoryTag;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
 	EInventoryType InventoryType = EInventoryType::None;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory", meta = (ToolTip = "-1 means infinite capacity"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory", meta = (ToolTip = "-1 means infinite capacity"))
 	float InventoryMaxWeightCapacity = -1.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory",
-		meta=(ToolTip="Maximum number of unique items allowed. -1 means infinite"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory",
+			  meta = (ToolTip = "Maximum number of unique items allowed. -1 means infinite"))
 	int32 MaxStackCount = -1;
-	
-	// Container	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory")
+
+	// Container
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
 	bool bIsAlwaysVisible = false;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
 	bool bShowTotalMoney = true;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
 	bool bShowTotalWeight = true;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory")
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
 	FText ContainerTitle;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
 	bool bIsClosable = true;
-	
+
 	// Filters
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
 	bool bShowFilterPanel = true;
 
 	// Reference system
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory|Reference", meta=(ToolTip="If true this container acts as a reference source."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Reference",
+			  meta = (ToolTip = "If true this container acts as a reference source."))
 	bool bIsReferenceContainer = false;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory|Reference", meta=(ToolTip="If true items from this container can be referenced."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Reference",
+			  meta = (ToolTip = "If true items from this container can be referenced."))
 	bool bAllowItemReferencing = false;
 
 	// Usage
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|Usage")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Usage")
 	bool bAllowItemUsage = true;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|UI")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|UI")
 	bool bShowItemTooltips = true;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|UI")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|UI")
 	bool bCollectInvDataFromWidget = true;
 
 	// Assets
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(Category = "Invenza|Inventory", EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<UInventoryBase> InventoryClass;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|UI")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|UI")
 	TSubclassOf<UInventoryContainerWidget> ContainerWidgetClass;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|UI")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|UI")
 	TSubclassOf<UUInventoryBaseWidget> InventoryWidgetClass;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|UI")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|UI")
 	TSubclassOf<UOperationPanelWidget> OperationPanelWidgetClass;
 
 	// Slot-based inventory settings
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|UI")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|UI")
 	FInventorySlotBasedSettings InventorySlotBasedSettings;
 
 	// List-based inventory settings
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory|UI")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|UI")
 	TSubclassOf<UInventoryListEntry> EntryClass;
-
 };
 
 USTRUCT(BlueprintType)
-struct FInventoryModifierState
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FInventoryModifierState
 {
 	GENERATED_BODY()
 
 	UPROPERTY(BlueprintReadWrite, Category = "Inventory|Input")
 	bool bIsQuickGrabModifierActive = false;
-	
+
 	UPROPERTY(BlueprintReadWrite, Category = "Inventory|Input")
 	bool bIsGrabAllSameModifierActive = false;
 };
 
-
 USTRUCT(BlueprintType)
-struct FInventoryStartupData
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FInventoryStartupData
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(Category = "Invenza|Inventory", EditAnywhere, BlueprintReadWrite)
 	FInventorySettings Settings;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(Category = "Invenza|Inventory", EditAnywhere, BlueprintReadWrite)
 	TArray<FInitItemsEntry> StartItems;
 };
 
 USTRUCT(BlueprintType)
-struct FLinkedInventories
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FLinkedInventories
 {
 	GENERATED_BODY()
-	
+
 	// ===== CURRENT =====
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category = "Invenza|Inventory", VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UInventoryBase> ExternalInventory = nullptr;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category = "Invenza|Inventory", VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UInventoryBase> VendorInventory = nullptr;
 
 	// ===== PREVIOUS =====
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category = "Invenza|Inventory", VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UInventoryBase> PrevExternalInventory = nullptr;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category = "Invenza|Inventory", VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UInventoryBase> PrevVendorInventory = nullptr;
-
 
 	void SetExternal(UInventoryBase* NewInventory)
 	{
@@ -417,46 +408,46 @@ struct FLinkedInventories
 	void SetBoth(UInventoryBase* NewExternal, UInventoryBase* NewVendor)
 	{
 		PrevExternalInventory = ExternalInventory;
-		PrevVendorInventory   = VendorInventory;
+		PrevVendorInventory = VendorInventory;
 
 		ExternalInventory = NewExternal;
-		VendorInventory   = NewVendor;
+		VendorInventory = NewVendor;
 	}
 };
 
 USTRUCT(BlueprintType)
-struct FLinkedCraftInventories
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FLinkedCraftInventories
 {
 	GENERATED_BODY()
 
 	// ===== CURRENT =====
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category = "Invenza|Inventory", VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UInventoryBase> InputInventory = nullptr;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category = "Invenza|Inventory", VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UInventoryBase> FuelInventory = nullptr;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category = "Invenza|Inventory", VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UInventoryBase> OutputInventory = nullptr;
 
 	// ===== PREVIOUS =====
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category = "Invenza|Inventory", VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UInventoryBase> PrevInputInventory = nullptr;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category = "Invenza|Inventory", VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UInventoryBase> PrevFuelInventory = nullptr;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category = "Invenza|Inventory", VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UInventoryBase> PrevOutputInventory = nullptr;
 
 	void SetAll(UInventoryBase* NewInput, UInventoryBase* NewFuel, UInventoryBase* NewOutput)
 	{
-		PrevInputInventory  = InputInventory;
-		PrevFuelInventory   = FuelInventory;
+		PrevInputInventory = InputInventory;
+		PrevFuelInventory = FuelInventory;
 		PrevOutputInventory = OutputInventory;
 
-		InputInventory  = NewInput;
-		FuelInventory   = NewFuel;
+		InputInventory = NewInput;
+		FuelInventory = NewFuel;
 		OutputInventory = NewOutput;
 	}
 };
@@ -470,60 +461,54 @@ enum class EInventoryActionType : uint8
 };
 
 USTRUCT(BlueprintType)
-struct FInventorySimulationOperation
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FInventorySimulationOperation
 {
 	GENERATED_BODY()
 
-	UPROPERTY(BlueprintReadOnly, Category="Inventory|Simulation")
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Simulation")
 	FItemMoveData MoveData;
-	UPROPERTY(BlueprintReadOnly, Category="Inventory|Simulation")
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Simulation")
 	FItemAddResult Result;
 };
 
 USTRUCT(Blueprintable)
-struct FItemMapping
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FItemMapping
 {
 	GENERATED_BODY()
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
 	FString InventoryID;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
 	bool bIsReferenceContainer = false;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
 	EInventoryType InventoryType = EInventoryType::None;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
 	TArray<TObjectPtr<UInventorySlotData>> OccupiedSlots;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
 	EItemOrientationType ItemOrientation = EItemOrientationType::Horizontal;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory", NotReplicated)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory", NotReplicated)
 	TObjectPtr<UInventoryItemWidget> ItemVisualLinked;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
 	TObjectPtr<AStorageVisualRepresentation> ItemVisualRepresentation;
 
 	FItemMapping() = default;
 
-	explicit FItemMapping(UInventorySlotData* SlotData): InventoryType()
-	{
-		OccupiedSlots.Add(SlotData);
-	}
-	
+	explicit FItemMapping(UInventorySlotData* SlotData) : InventoryType() { OccupiedSlots.Add(SlotData); }
+
 	bool operator==(const FItemMapping& Other) const
 	{
-		return InventoryID == Other.InventoryID
-			&& bIsReferenceContainer == Other.bIsReferenceContainer
-			&& ItemOrientation == Other.ItemOrientation
-			&& ItemVisualLinked == Other.ItemVisualLinked
-			&& ItemVisualRepresentation == Other.ItemVisualRepresentation
-			&& OccupiedSlots == Other.OccupiedSlots;
+		return InventoryID == Other.InventoryID && bIsReferenceContainer == Other.bIsReferenceContainer &&
+			   ItemOrientation == Other.ItemOrientation && ItemVisualLinked == Other.ItemVisualLinked &&
+			   ItemVisualRepresentation == Other.ItemVisualRepresentation && OccupiedSlots == Other.OccupiedSlots;
 	}
 };
 
 USTRUCT(BlueprintType)
-struct FItemMappingArrayWrapper
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FItemMappingArrayWrapper
 {
 	GENERATED_BODY()
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
 	TArray<FItemMapping> Mappings;
 };
 

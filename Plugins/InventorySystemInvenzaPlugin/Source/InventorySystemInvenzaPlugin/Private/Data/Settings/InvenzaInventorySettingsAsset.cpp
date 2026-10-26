@@ -1,6 +1,5 @@
 ﻿//  Nublin Studio 2026 All Rights Reserved.
 
-
 #include "Data/Settings/InvenzaInventorySettingsAsset.h"
 
 #include "Data/CraftSystem/CraftingStructs.h"

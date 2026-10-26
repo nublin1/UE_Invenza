@@ -1,3 +1,5 @@
+//  Nublin Studio 2026 All Rights Reserved.
+
 #pragma once
 
 #include "CoreMinimal.h"
@@ -5,6 +7,7 @@
 class FStorageMeshOrientation
 {
 public:
+	// Functions
 	static FQuat ToLengthAlongX(EStorageMeshAxis Axis)
 	{
 		return FRotator(0.0, Axis == EStorageMeshAxis::Y ? -90.0 : 0.0, 0.0).Quaternion();

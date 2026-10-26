@@ -14,45 +14,51 @@ struct FInventorySlotData;
 struct FItemMapping;
 class UItemBase;
 
-
-UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
+UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class INVENTORYSYSTEMINVENZAPLUGIN_API UEquipmentComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
+public:
+	UEquipmentComponent();
+
+protected:
+	// Unreal overrides
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	virtual void BeginPlay() override;
+
+public:
 #pragma region Delegates
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnEquippedItem, FGameplayTag, SlotTag, UObject*, Item);
 
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnequippedItem, FGameplayTag, SlotTag, UObject*, Item);
-#pragma endregion
+#pragma endregion Delegates
 
-public:
-	UEquipmentComponent();
-
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-
-	virtual bool ReplicateSubobjects(class UActorChannel* Channel, class FOutBunch* Bunch,
-	                                 struct FReplicationFlags* RepFlags) override;
-
-protected:
-	virtual void BeginPlay() override;
-
-public:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
+	// Properties and variables
 	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "Equipment|Events")
 	FOnEquippedItem OnEquippedItem;
 
 	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "Equipment|Events")
 	FOnUnequippedItem OnUnequippedItem;
 
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
+	// Functions
 	UFUNCTION(Category = "Equipment|Initialization")
 	virtual void InitializeSlotsFromTable();
-	
+
+	bool HasSlotDefinitions() const
+	{
+		return !SlotRows.IsEmpty();
+	}
+
+	void SetSlotDefinitions(const TArray<FDataTableRowHandle>& Definitions)
+	{
+		if (EquipmentSlotsArray.IsEmpty())
+		{
+			SlotRows = Definitions;
+		}
+	}
+
 	UFUNCTION(BlueprintCallable, Category = "Equipment")
 	bool HasSlotForCategory(const FGameplayTag& AllowedCategory) const;
 
@@ -69,48 +75,58 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Equipment")
 	bool CanEquipItemToSlot(const UObject* Item, FGameplayTag SlotTag) const;
+
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Equipment")
 	bool IsItemEquippedInSlot(const UObject* Item, FGameplayTag SlotTag) const;
+
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Equipment")
 	bool IsSlotOccupied(FGameplayTag SlotTag) const;
 
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Equipment|Management")
 	void Server_EquipItem(UObject* Item);
+
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Equipment|Management")
 	void Server_EquipItemToSlot(FGameplayTag SlotTag, UObject* Item);
+
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Equipment|Management")
 	void Server_UnequipItemFromSlot(FGameplayTag SlotTag);
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Equipment")
 	bool IsItemEquipped(const UObject* Item) const;
+
 	UFUNCTION(BlueprintCallable, Category = "Equipment")
 	bool FindSlotByItem(const UObject* Item, FGameplayTag& OutSlotTag) const;
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Equipment")
 	bool DoesSlotExist(FGameplayTag SlotTag) const;
-	
+
 	UFUNCTION()
-	TArray<FEquipmentSlotRuntime> GetEquipmentSlotsArray() const {return EquipmentSlotsArray;}
+	TArray<FEquipmentSlotRuntime> GetEquipmentSlotsArray() const
+	{
+		return EquipmentSlotsArray;
+	}
 
 protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Equipment|Config")
+	// Runtime
+	// Properties and variables
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Equipment|Config")
 	TArray<FDataTableRowHandle> SlotRows;
 
-	UPROPERTY(Replicated, ReplicatedUsing = OnRep_EquipmentSlots, VisibleAnywhere, BlueprintReadOnly, Category = "Equipment|Slots")
+	UPROPERTY(Replicated, ReplicatedUsing = OnRep_EquipmentSlots, VisibleAnywhere, BlueprintReadOnly,
+			  Category = "Equipment|Slots")
 	TArray<FEquipmentSlotRuntime> EquipmentSlotsArray;
 
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
+	// Functions
+	virtual bool ReplicateSubobjects(class UActorChannel* Channel, class FOutBunch* Bunch,
+									 struct FReplicationFlags* RepFlags) override;
+
 	UFUNCTION()
-	void OnRep_EquipmentSlots();
+	void OnRep_EquipmentSlots(const TArray<FEquipmentSlotRuntime>& PreviousSlots);
 
 	UFUNCTION(Category = "Equipment|Management")
 	void ResourceAmountChanged(int32 AmountChanged, UObject* Item);
 
 	FEquipmentSlotRuntime* FindSlot(FGameplayTag SlotTag);
+
 	const FEquipmentSlotRuntime* FindSlot(FGameplayTag SlotTag) const;
 };

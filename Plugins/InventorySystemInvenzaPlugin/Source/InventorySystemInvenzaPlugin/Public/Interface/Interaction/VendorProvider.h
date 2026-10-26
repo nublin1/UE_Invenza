@@ -1,26 +1,27 @@
-﻿//  Nublin Studio 2026 All Rights Reserved.
+//  Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
+#include "UObject/Interface.h"
 #include "Data/Trade/TradeTypes.h"
 
 #include "VendorProvider.generated.h"
 
-class UItemCollection;
+class UInventoryCollectionComponent;
 struct FItemMoveData;
 class UItemBase;
 class UInventoryBase;
 
 // This class does not need to be modified.
 UINTERFACE()
-class UVendorProvider : public UInterface
+class INVENTORYSYSTEMINVENZAPLUGIN_API UVendorProvider : public UInterface
 {
 	GENERATED_BODY()
 };
 
 /**
- * 
+ *
  */
 class INVENTORYSYSTEMINVENZAPLUGIN_API IVendorProvider
 {
@@ -34,5 +35,5 @@ public:
 	virtual FTradeSettings GetTradeSettings() const = 0;
 
 	virtual void SetTradePartnerInventory(UInventoryBase* InInventory) = 0;
-	virtual void SetTradePartnerItemCollection(UItemCollection* InCollection) = 0;
+	virtual void SetTradePartnerItemCollection(UInventoryCollectionComponent* InCollection) = 0;
 };

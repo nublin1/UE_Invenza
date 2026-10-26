@@ -1,0 +1,59 @@
+Key,SourceString
+ContainerComponent.Literal0,Open
+ContainerComponent.Literal1,Close
+ControlsHelp.AllSame,Transfer all items of this type
+ControlsHelp.Combination,({0}) + {1}
+ControlsHelp.Crafting,Open / close crafting
+ControlsHelp.General,General
+ControlsHelp.Help,Controls help
+ControlsHelp.Hotbar,Quick slots
+ControlsHelp.Interaction,World interaction
+ControlsHelp.Inventory,Inventory
+ControlsHelp.Menu,Item context menu
+ControlsHelp.OpenInventory,Open / close inventory
+ControlsHelp.OtherInteraction,Additional interaction
+ControlsHelp.Primary,Primary interaction
+ControlsHelp.Quick,Quick transfer
+ControlsHelp.Rotate,Rotate dragged item
+ControlsHelp.Secondary,Secondary interaction / operate station
+ControlsHelp.Select,Select / drag item
+ControlsHelp.Slot,Quick slot {0}
+ControlsHelp.Unassigned,Unassigned
+ControlsHelp.Use,Use item
+CraftMenu.NoMatches,No matching recipes
+CraftMenu.NoOutput,No output specified
+CraftMenu.NoRecipes,No recipes available
+CraftMenu.OutputAmount,{0} × {1}
+CraftMenu.WorkAmount,Work amount: {0}
+CraftProgressDisplay.Literal0,/
+CraftWorkspace.Fuel,Fuel
+CraftWorkspace.Input,Resources
+CraftWorkspace.Output,Output
+CraftingStationComponent.Literal0,Open Craft
+CraftingStationComponent.Literal1,Close Craft
+CraftingStationComponent.Literal2,Work
+CraftingStationComponent.Literal3,Stop Work
+InfoInteractableComponent.Literal0,Information
+InfoInteractableComponent.Literal1,Read
+Invenza.CharacterBag,Inventory
+Invenza.CharacterEquipment,Equipment
+Invenza.CloseCharacterInventory,Close
+Invenza.InventoryMannequin,Mannequin
+Invenza.OtherCharacterEquipment,Character: equipment and inventory
+Invenza.PlayerCharacterEquipment,Player: equipment and inventory
+InvenzaCraft.Blocked,Production is blocked
+InvenzaCraft.ManualPause,Paused by user
+InvenzaCraft.NoFuel,No fuel
+InvenzaCraft.NoOperator,Operator required
+InvenzaCraft.NoResources,Not enough resources
+InvenzaCraft.Pause,Pause
+InvenzaCraft.Resume,Resume
+OperationPanelWidget.Literal0,+=
+PickupComponent.Literal0,Pickup
+StorageAccess.Close,Close storage
+StorageAccess.Empty,No storages available
+StorageAccess.NoMatches,No matching storages
+StorageAccess.Open,Open storage
+StorageAccess.Title,Base storage
+Vendor.TradeSuccess,Traded {0}x item for {1}
+VendorComponent.Literal0,Trade

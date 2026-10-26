@@ -1,7 +1,7 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
-
+// Nublin Studio 2026 All Rights Reserved.
 
 #include "UI/Craft/CraftDashboard.h"
+#include "Settings/InvenzaInventoryDeveloperSettings.h"
 
 #include "Components/ListView.h"
 #include "Components/NamedSlot.h"
@@ -9,6 +9,8 @@
 #include "Components/TextBlock.h"
 #include "Components/VerticalBoxSlot.h"
 #include "ActorComponents/Crafting/CraftingComponent.h"
+#include "ActorComponents/UIInventoryManager.h"
+#include "GameFramework/Pawn.h"
 #include "Data/Settings/InvenzaInventorySettingsAsset.h"
 #include "Subsystems/InvenzaInventorySettingsSubsystem.h"
 #include "UI/Core/Buttons/UIButton.h"
@@ -35,19 +37,33 @@ void UCraftDashboard::NativeConstruct()
 	{
 		for (auto Btn : CraftControlPanel->Execute_GetButtons(CraftControlPanel))
 		{
-			if (!IsValid(Btn)) continue;
+			if (!IsValid(Btn))
+			{
+				continue;
+			}
 			if (Btn->GetBtnTag() == AddTaskBtnTag)
+			{
 				Btn->OnButtonClicked.AddUniqueDynamic(this, &UCraftDashboard::AddTaskBtnPressed);
-			
+			}
+
 			if (Btn->GetBtnTag() == PauseBtnTag)
+			{
 				Btn->OnButtonClicked.AddUniqueDynamic(this, &UCraftDashboard::PauseBtnPressed);
+			}
 		}
 	}
 
 	if (QueueCraftList)
 	{
-		QueueCraftList->OnQueueOrderChangeRequested.AddUniqueDynamic(this, &UCraftDashboard::HandleQueueOrderChangeRequested);
-		QueueCraftList->OnQueueItemDeleteRequested.AddUniqueDynamic(this, &UCraftDashboard::HandleQueueItemDeleteRequested);
+		QueueCraftList->OnQueueOrderChangeRequested.AddUniqueDynamic(this,
+																	 &UCraftDashboard::HandleQueueOrderChangeRequested);
+		QueueCraftList->OnQueueItemDeleteRequested.AddUniqueDynamic(this,
+																	&UCraftDashboard::HandleQueueItemDeleteRequested);
+	}
+	if (CraftControlPanel && CraftControlPanel->Btn_AutomaticCrafting)
+	{
+		CraftControlPanel->Btn_AutomaticCrafting->OnButtonClicked.AddUniqueDynamic(
+			this, &UCraftDashboard::AutomaticCraftingBtnPressed);
 	}
 	InitializeCraftComponentBindings();
 	RefreshCraftState();
@@ -60,7 +76,10 @@ void UCraftDashboard::NativeDestruct()
 	{
 		for (UUIButton* Button : CraftControlPanel->Execute_GetButtons(CraftControlPanel))
 		{
-			if (IsValid(Button)) Button->OnButtonClicked.RemoveAll(this);
+			if (IsValid(Button))
+			{
+				Button->OnButtonClicked.RemoveAll(this);
+			}
 		}
 	}
 	if (QueueCraftList)
@@ -74,11 +93,14 @@ void UCraftDashboard::NativeDestruct()
 void UCraftDashboard::InitializeCraftComponentBindings()
 {
 	if (!CraftComponentPtr)
+	{
 		return;
-	
+	}
+
 	CraftComponentPtr->OnCurrentCraftDataChanged.AddUniqueDynamic(this, &UCraftDashboard::UpdateCurrentCraftProgress);
 	CraftComponentPtr->OnCraftQueueChanged.AddUniqueDynamic(this, &UCraftDashboard::UpdateQueueCraftList);
 	CraftComponentPtr->OnBlocksUpdated.AddUniqueDynamic(this, &UCraftDashboard::HandleBlocksUpdated);
+	CraftComponentPtr->OnAutomaticCraftingChanged.AddUniqueDynamic(this, &UCraftDashboard::HandleAutomaticCraftingChanged);
 }
 
 void UCraftDashboard::UnbindCraftComponent()
@@ -88,6 +110,7 @@ void UCraftDashboard::UnbindCraftComponent()
 		CraftComponentPtr->OnCurrentCraftDataChanged.RemoveAll(this);
 		CraftComponentPtr->OnCraftQueueChanged.RemoveAll(this);
 		CraftComponentPtr->OnBlocksUpdated.RemoveAll(this);
+		CraftComponentPtr->OnAutomaticCraftingChanged.RemoveAll(this);
 	}
 }
 
@@ -101,11 +124,17 @@ void UCraftDashboard::SetCraftComponentPtr(UCraftingComponent* NewCraftingCompon
 
 void UCraftDashboard::RefreshCraftState()
 {
+	if (CraftControlPanel && CraftControlPanel->Btn_AutomaticCrafting)
+	{
+		CraftControlPanel->Btn_AutomaticCrafting->SetIsEnabled(IsValid(CraftComponentPtr) &&
+			IsValid(CraftComponentPtr->GetOwner()) && CraftComponentPtr->GetOwner() != GetOwningPlayerPawn());
+	}
 	if (IsValid(CraftComponentPtr))
 	{
 		UpdateQueueCraftList(CraftComponentPtr->GetQueueItems());
 		UpdateCurrentCraftProgress(CraftComponentPtr->GetCurrentCraftingRecipe());
 		HandleBlocksUpdated(CraftComponentPtr->GetBlocksReasons());
+		HandleAutomaticCraftingChanged(CraftComponentPtr->IsAutomaticCraftingAllowed());
 	}
 	else
 	{
@@ -115,30 +144,67 @@ void UCraftDashboard::RefreshCraftState()
 	}
 }
 
-void UCraftDashboard::SetInventoryWidgets(UInventoryContainerWidget* InputWidget, UInventoryContainerWidget* FuelWidget,
-	UInventoryContainerWidget* OutputWidget)
+#include "UI/Inventory/InventoryWorkspaceWidget.h"
+
+void UCraftDashboard::AttachInteractor()
 {
+	if (InventoryWorkspace && WorkspaceInteractor)
+	{
+		InventoryWorkspace->SetPlayerWidget(WorkspaceInteractor);
+	}
+}
+UInventoryContainerWidget* UCraftDashboard::DetachInteractor()
+{
+	return InventoryWorkspace ? InventoryWorkspace->ReleasePlayerWidget() : nullptr;
+}
+void UCraftDashboard::SetInventoryWidgets(UInventoryContainerWidget* InputWidget, UInventoryContainerWidget* FuelWidget,
+										  UInventoryContainerWidget* OutputWidget)
+{
+	if (InventoryWorkspace)
+	{
+		InventoryWorkspace->SetInventoryWidgets(
+			{InputWidget, FuelWidget, OutputWidget},
+			{GetDefault<UInvenzaInventoryDeveloperSettings>()->GetText(TEXT("CraftWorkspace.Input")),
+			 GetDefault<UInvenzaInventoryDeveloperSettings>()->GetText(TEXT("CraftWorkspace.Fuel")),
+			 GetDefault<UInvenzaInventoryDeveloperSettings>()->GetText(TEXT("CraftWorkspace.Output"))});
+		return;
+	}
 	if (InputSlot)
 	{
 		InputSlot->ClearChildren();
-		if (InputWidget) InputSlot->AddChild(InputWidget);
+		if (InputWidget)
+		{
+			InputSlot->AddChild(InputWidget);
+		}
 	}
 
 	if (FuelSlot)
 	{
 		FuelSlot->ClearChildren();
-		if (FuelWidget) FuelSlot->AddChild(FuelWidget);
+		if (FuelWidget)
+		{
+			FuelSlot->AddChild(FuelWidget);
+		}
 	}
 
 	if (OutputSlot)
 	{
 		OutputSlot->ClearChildren();
-		if (OutputWidget) OutputSlot->AddChild(OutputWidget);
+		if (OutputWidget)
+		{
+			OutputSlot->AddChild(OutputWidget);
+		}
 	}
 }
 
 void UCraftDashboard::SetInteractorWidget(UInventoryContainerWidget* InteractorWidget)
 {
+	WorkspaceInteractor = InteractorWidget;
+	if (InventoryWorkspace)
+	{
+		InventoryWorkspace->SetPlayerWidget(InteractorWidget);
+		return;
+	}
 	if (InteractorSlot)
 	{
 		InteractorSlot->ClearChildren();
@@ -153,37 +219,69 @@ void UCraftDashboard::SetInteractorWidget(UInventoryContainerWidget* InteractorW
 void UCraftDashboard::AddTaskBtnPressed(UUIButton* Btn)
 {
 	if (!CraftComponentPtr)
+	{
 		return;
+	}
 }
 
 void UCraftDashboard::PauseBtnPressed(UUIButton* Btn)
 {
 	if (!IsValid(CraftComponentPtr) || !IsValid(Btn))
+	{
 		return;
-	
+	}
+
 	if (!Btn->GetBtnTag().IsValid())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[PauseBtnPressed] Btn has an invalid Tag."));
 		return;
 	}
-	
+
 	const auto* MySettings = UInvenzaInventorySettingsSubsystem::GetSettingsStatic(this);
 	if (!MySettings)
+	{
 		return;
-	
+	}
+
 	const FGameplayTag BtnTag = Btn->GetBtnTag();
 	const TArray<FBlockReasonData>& ActiveBlocks = CraftComponentPtr->GetBlocksReasons();
 	const bool bAlreadyBlocked = ActiveBlocks.ContainsByPredicate(
 		[&BtnTag](const FBlockReasonData& Data)
 		{
 			return Data.Tag == BtnTag;
-		}
-	);
-	
+		});
+
 	const FBlockReasonData* BlockReason = MySettings->FindBlockReason(BtnTag);
 	if (BlockReason)
 	{
 		CraftComponentPtr->SetBlockStateRequest(*BlockReason, !bAlreadyBlocked);
+	}
+}
+
+void UCraftDashboard::AutomaticCraftingBtnPressed(UUIButton* Btn)
+{
+	if (!IsValid(CraftComponentPtr) || !IsValid(Btn))
+	{
+		return;
+	}
+
+	if (APawn* Pawn = GetOwningPlayerPawn())
+	{
+		if (UIInventoryManager* Manager = Pawn->FindComponentByClass<UIInventoryManager>())
+		{
+			Manager->Server_SetStationAutomaticCrafting(CraftComponentPtr,
+				!CraftComponentPtr->IsAutomaticCraftingAllowed());
+		}
+	}
+}
+
+void UCraftDashboard::HandleAutomaticCraftingChanged(bool bAutomatic)
+{
+	if (CraftControlPanel && CraftControlPanel->Btn_AutomaticCrafting &&
+		CraftControlPanel->Btn_AutomaticCrafting->MainLabel)
+	{
+		CraftControlPanel->Btn_AutomaticCrafting->MainLabel->SetText(
+			bAutomatic ? AutomaticCraftingButtonText : OperatorCraftingButtonText);
 	}
 }
 
@@ -199,19 +297,24 @@ void UCraftDashboard::UpdateQueueCraftList(const TArray<FQueuedRecipe>& NewRecip
 {
 	if (EmptyQueueLabel)
 	{
-		EmptyQueueLabel->SetVisibility(NewRecipeQueue.IsEmpty()
-			? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+		EmptyQueueLabel->SetVisibility(NewRecipeQueue.IsEmpty() ? ESlateVisibility::HitTestInvisible
+																: ESlateVisibility::Collapsed);
 	}
 	if (!QueueCraftList)
+	{
 		return;
-	
+	}
+
 	QueueCraftList->SetNewProductionQueueList(NewRecipeQueue);
 }
 
 void UCraftDashboard::HandleBlocksUpdated(TArray<FBlockReasonData> Blocks)
 {
 	const bool bManuallyPaused = PauseBtnTag.IsValid() && Blocks.ContainsByPredicate(
-		[this](const FBlockReasonData& Block) { return Block.Tag == PauseBtnTag; });
+															  [this](const FBlockReasonData& Block)
+															  {
+																  return Block.Tag == PauseBtnTag;
+															  });
 
 	// Use the existing button API/label; its Blueprint and internal structure stay intact.
 	if (CraftControlPanel && CraftControlPanel->Btn_Pause)
@@ -224,7 +327,10 @@ void UCraftDashboard::HandleBlocksUpdated(TArray<FBlockReasonData> Blocks)
 		}
 	}
 
-	if (BlockReasonsPanel) BlockReasonsPanel->ClearChildren();
+	if (BlockReasonsPanel)
+	{
+		BlockReasonsPanel->ClearChildren();
+	}
 	const UInvenzaInventorySettingsAsset* Settings = UInvenzaInventorySettingsSubsystem::GetSettingsStatic(this);
 	TSet<FGameplayTag> DisplayedTags;
 	int32 RowCount = 0;
@@ -232,7 +338,10 @@ void UCraftDashboard::HandleBlocksUpdated(TArray<FBlockReasonData> Blocks)
 	{
 		for (const FBlockReasonData& Block : Blocks)
 		{
-			if (!Block.Tag.IsValid() || DisplayedTags.Contains(Block.Tag)) continue;
+			if (!Block.Tag.IsValid() || DisplayedTags.Contains(Block.Tag))
+			{
+				continue;
+			}
 			DisplayedTags.Add(Block.Tag);
 			FText Message = Block.Message;
 			if (Message.IsEmpty() && Settings)
@@ -245,19 +354,35 @@ void UCraftDashboard::HandleBlocksUpdated(TArray<FBlockReasonData> Blocks)
 			if (Message.IsEmpty())
 			{
 				if (Block.Tag == PauseBtnTag)
-					Message = NSLOCTEXT("InvenzaCraft", "ManualPause", "Paused by user");
+				{
+					Message =
+						GetDefault<UInvenzaInventoryDeveloperSettings>()->GetText(TEXT("InvenzaCraft.ManualPause"));
+				}
 				else if (Settings && Block.Tag == Settings->Block_NoResources)
-					Message = NSLOCTEXT("InvenzaCraft", "NoResources", "Not enough resources");
+				{
+					Message =
+						GetDefault<UInvenzaInventoryDeveloperSettings>()->GetText(TEXT("InvenzaCraft.NoResources"));
+				}
 				else if (Settings && Block.Tag == Settings->Block_NoFuel)
-					Message = NSLOCTEXT("InvenzaCraft", "NoFuel", "No fuel");
+				{
+					Message = GetDefault<UInvenzaInventoryDeveloperSettings>()->GetText(TEXT("InvenzaCraft.NoFuel"));
+				}
 				else if (Settings && Block.Tag == Settings->Block_NoOperator)
-					Message = NSLOCTEXT("InvenzaCraft", "NoOperator", "Operator required");
+				{
+					Message =
+						GetDefault<UInvenzaInventoryDeveloperSettings>()->GetText(TEXT("InvenzaCraft.NoOperator"));
+				}
 				else
-					Message = NSLOCTEXT("InvenzaCraft", "Blocked", "Production is blocked");
+				{
+					Message = GetDefault<UInvenzaInventoryDeveloperSettings>()->GetText(TEXT("InvenzaCraft.Blocked"));
+				}
 			}
 
 			USimpleUserObjectListEntry* Row = CreateWidget<USimpleUserObjectListEntry>(this, BlockReasonWidgetClass);
-			if (!Row) continue;
+			if (!Row)
+			{
+				continue;
+			}
 			Row->UpdateText(Message);
 			if (Row->ListEntry_Text && Row->ListEntry_Text->MainTextBlock)
 			{
@@ -273,8 +398,8 @@ void UCraftDashboard::HandleBlocksUpdated(TArray<FBlockReasonData> Blocks)
 	}
 	if (BlockReasonsSection)
 	{
-		BlockReasonsSection->SetVisibility(RowCount > 0
-			? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
+		BlockReasonsSection->SetVisibility(RowCount > 0 ? ESlateVisibility::SelfHitTestInvisible
+														: ESlateVisibility::Collapsed);
 	}
 }
 

@@ -24,52 +24,49 @@ public:
 	USlotbasedInventorySlot();
 
 protected:
+	// Unreal overrides
 	virtual void NativePreConstruct() override;
+
 	virtual void NativeConstruct() override;
 
 public:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
+	// Properties and variables
 	//Widgets
-	UPROPERTY(meta=(BindWidget))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UCoreCellWidget> CoreCellWidget;
-	UPROPERTY(meta=(BindWidgetOptional))
+
+	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<ULabelBaseText> SlotName;
 
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
+	// Functions
 	virtual void UpdateVisualWithTexture(UTexture2D* NewTexture) override;
+
 	virtual void ResetVisual() override;
+
 	virtual void ClearVisual() override;
 
-	UFUNCTION(BlueprintCallable, Category="Inventory")
-	virtual UTexture2D* GetDefaultCellImage() {return DefaultCellImage;}
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	virtual UTexture2D* GetDefaultCellImage() { return DefaultCellImage; }
 
-	UFUNCTION(BlueprintCallable, Category="Inventory")
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	virtual FVector2D GetSlotSize();
-	UFUNCTION(BlueprintCallable, Category="Inventory")
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	virtual void SetSlotSize(const FVector2D& NewSize);
 
 	virtual void SetSlotNameText(FString InUseKeyText) override;
 
 protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-
+	// Runtime
+	// Properties and variables
 	/** 
 	* Override for slot background image.
 	* If set, this texture will be used instead of the default image defined in the inventory widget.
 	*/
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Defaults",
-		meta = (ToolTip =
-			"Override texture for this slot. Takes priority over the default slot texture defined in the inventory widget."
-		))
+	UPROPERTY(
+		EditAnywhere, BlueprintReadWrite, Category = "Defaults",
+		meta =
+			(ToolTip =
+				 "Override texture for this slot. Takes priority over the default slot texture defined in the inventory widget."))
 	TObjectPtr<UTexture2D> DefaultCellImage;
-
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
 };

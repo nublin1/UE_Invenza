@@ -1,4 +1,4 @@
-﻿//  Nublin Studio 2026 All Rights Reserved.
+//  Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -7,48 +7,45 @@
 #include "UI/InvenzaBaseWidget.h"
 #include "PrimaryLayout.generated.h"
 
-
 class UUILayer;
 /**
- * 
+ *
  */
 UCLASS()
 class INVENTORYSYSTEMINVENZAPLUGIN_API UPrimaryLayout : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
 
-	
 public:
 	UPrimaryLayout();
-	
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(BindWidget))
+
+public:
+	// Properties and variables
+	UPROPERTY(Category = "Invenza|UI|Layout", EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
 	TObjectPtr<UUILayer> GameLayer;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(BindWidget))
+
+	UPROPERTY(Category = "Invenza|UI|Layout", EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
 	TObjectPtr<UUILayer> GameMenuLayer;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(BindWidget))
+
+	UPROPERTY(Category = "Invenza|UI|Layout", EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
 	TObjectPtr<UUILayer> MenuLayer;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(BindWidget))
+
+	UPROPERTY(Category = "Invenza|UI|Layout", EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
 	TObjectPtr<UUILayer> ModalLayer;
-	
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
-	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent )
+
+	// Functions
+	UFUNCTION(Category = "Invenza|UI|Layout", BlueprintCallable, BlueprintImplementableEvent)
 	UUserWidget* PushContentToLayer(FGameplayTag LayerName, const TSoftClassPtr<UUserWidget>& WidgetClass);
-	
+
 protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ExposeOnSpawn="true"))
+	// Runtime
+	// Properties and variables
+	UPROPERTY(Category = "Invenza|UI|Layout", EditAnywhere, BlueprintReadWrite, meta = (ExposeOnSpawn = "true"))
 	TArray<FGameplayTag> InitialCollapsedScreens;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+
+	UPROPERTY(Category = "Invenza|UI|Layout", EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UInvenzaBaseWidget> LayersDebugger;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UPROPERTY(Category = "Invenza|UI|Layout", VisibleAnywhere, BlueprintReadWrite)
 	TObjectPtr<UInvenzaBaseWidget> GameMenuLayer_Obs;
 };

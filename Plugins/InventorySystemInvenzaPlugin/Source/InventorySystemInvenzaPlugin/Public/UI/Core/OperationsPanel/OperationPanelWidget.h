@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "UI/InvenzaBaseWidget.h"
+#include "UI/UIStructs.h"
 #include "OperationPanelWidget.generated.h"
 
 class UUIButton;
@@ -17,28 +18,27 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UOperationPanelWidget : public UInvenzaBa
 	GENERATED_BODY()
 
 public:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
-	//Widgets
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = UI, meta=(BindWidgetOptional))
-	TObjectPtr<UUIButton> Button_TakeAll;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = UI, meta=(BindWidgetOptional))
-    TObjectPtr<UUIButton> Button_PlaceAll;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = UI, meta=(BindWidgetOptional))
-	TObjectPtr<UUIButton> Button_Sort;
-
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
 	UOperationPanelWidget();
 
 protected:
-	//====================================================================
-	// PROPERTIES AND VARIABLES
-	//====================================================================
+	// Unreal overrides
+	virtual void NativePreConstruct() override;
 
-	//====================================================================
-	// FUNCTIONS
-	//====================================================================
+public:
+	// Properties and variables
+	//Widgets
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = UI, meta = (BindWidgetOptional))
+	TObjectPtr<UUIButton> Button_TakeAll;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = UI, meta = (BindWidgetOptional))
+	TObjectPtr<UUIButton> Button_PlaceAll;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = UI, meta = (BindWidgetOptional))
+	TObjectPtr<UUIButton> Button_Sort;
+
+	UPROPERTY(BlueprintReadOnly, Category = UI, meta = (BindWidgetOptional))
+	TObjectPtr<UUIButton> Button_PlaceMatching;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI|Restock")
+	FLabelStyle RestockLabelStyle;
 };

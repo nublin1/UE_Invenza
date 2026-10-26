@@ -1,8 +1,9 @@
-﻿// Nublin Studio 2025 All Rights Reserved.
+// Nublin Studio 2025 All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Engine/DataTable.h"
 #include "Data/Inventory/InventorySlotData.h"
 #include "Data/Items/itemBase.h"
 #include "UI/Inventory/Container/InventoryContainerWidget.h"
@@ -12,13 +13,13 @@
 struct FInventorySlotData;
 
 USTRUCT(BlueprintType)
-struct FItemMappingSaveEntry
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FItemMappingSaveEntry
 {
 	GENERATED_BODY()
 
 	UPROPERTY()
 	FString InventoryID;
-	
+
 	UPROPERTY()
 	TArray<FIntPoint> OccupiedCells;
 
@@ -30,7 +31,7 @@ struct FItemMappingSaveEntry
 };
 
 USTRUCT(BlueprintType)
-struct FItemSaveEntry
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FItemSaveEntry
 {
 	GENERATED_BODY()
 
@@ -49,4 +50,3 @@ FORCEINLINE uint32 GetTypeHash(const FItemSaveEntry& Data)
 {
 	return GetTypeHash(Data.ItemID);
 }
-

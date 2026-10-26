@@ -1,4 +1,4 @@
-﻿//  Nublin Studio 2026 All Rights Reserved.
+//  Nublin Studio 2026 All Rights Reserved.
 
 #pragma once
 
@@ -7,7 +7,7 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "InvenzayUtility.generated.h"
 
-class UItemCollection;
+class UInventoryCollectionComponent;
 struct FModalActionConfig;
 enum class EObjectInteractionType : uint8;
 struct FInitItemsEntry;
@@ -25,45 +25,57 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UInvenzayUtility : public UBlueprintFunct
 	GENERATED_BODY()
 
 public:
-	
+	// Functions
 	// Inventory
-	static UInventoryBase* CreateStartupInventory(UObject* WorldContextObject, UItemCollection* ItemCollection,
-		const FInventoryStartupData& StartupData,
-	TMap<TObjectPtr<UInventoryBase>, FInitItemsList>& StartingItems);
+	static UInventoryBase* CreateStartupInventory(UObject* WorldContextObject,
+												  UInventoryCollectionComponent* ItemCollection,
+												  const FInventoryStartupData& StartupData,
+												  TMap<TObjectPtr<UInventoryBase>, FInitItemsList>& StartingItems);
 
-	static void SetupStartingResources(UObject* WorldContextObject, TMap<TObjectPtr<UInventoryBase>, FInitItemsList>& StartingItems);
+	static void SetupStartingResources(UObject* WorldContextObject,
+									   TMap<TObjectPtr<UInventoryBase>, FInitItemsList>& StartingItems);
 
 	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
-	static bool AddItemQuantity(UObject* Outer, UInventoryBase* TargetInventory, FInitItemsEntry InitItemsEntry );
+	static bool AddItemQuantity(UObject* Outer, UInventoryBase* TargetInventory, FInitItemsEntry InitItemsEntry);
+
 	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
-	static bool AddItemQuantityBySample(UObject* Outer, UInventoryBase* TargetInventory, UObject* ItemSample, int32 TotalQuantity);
+	static bool AddItemQuantityBySample(UObject* Outer, UInventoryBase* TargetInventory, UObject* ItemSample,
+										int32 TotalQuantity);
 
 	// Items
 	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
 	static bool bIsSameItems(UObject* FirstItem, UObject* SecondItem);
-	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
-	static bool DoItemsHaveSameFootprint(UObject* FirstItem, UObject* SecondItem, EItemOrientationType OrientationFirstItem,
-								  EItemOrientationType OrientationSecondItem, bool bIgnoreSize);
-	
-	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
-	static void DropItem(UWorld* World, AActor* OwnerActor,
-		const FDataTableRowHandle& ItemRow, int32 AmountToDrop,	const FVector& SpawnLocation, const FRotator& SpawnRotation);
 
 	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
-	static FVector2D CalculateItemVisualSize(UObject* Item, EItemOrientationType Orientation, FVector2D SlotSize, FMargin SlotSpacing, bool bIgnoreSize);
-	
-	//
+	static bool DoItemsHaveSameFootprint(UObject* FirstItem, UObject* SecondItem,
+										 EItemOrientationType OrientationFirstItem,
+										 EItemOrientationType OrientationSecondItem, bool bIgnoreSize);
+
+	/** Returns the initialized pickup, or nullptr without consuming inventory contents on failure. */
 	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
-	static TMap<EObjectInteractionType, FModalActionConfig> CollectAccessibleObjectActions(UWorld* World, UObject* InItem);
+	static AActor* DropItem(UWorld* World, AActor* OwnerActor, const FDataTableRowHandle& ItemRow, int32 AmountToDrop,
+						   const FVector& SpawnLocation, const FRotator& SpawnRotation);
+
+	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
+	static FVector2D CalculateItemVisualSize(UObject* Item, EItemOrientationType Orientation, FVector2D SlotSize,
+											 FMargin SlotSpacing, bool bIgnoreSize);
 
 	//
-	UFUNCTION(BlueprintPure, meta = (WorldContext = "WorldContextObject"),Category = "InventorySystemInvenza")
-	static UInvenzaInventorySettingsAsset* GetInvenzaGlobalSettings( const UObject* WorldContextObject);
+	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
+	static TMap<EObjectInteractionType, FModalActionConfig> CollectAccessibleObjectActions(UWorld* World,
+																						   UObject* InItem);
+
+	//
+	UFUNCTION(BlueprintPure, meta = (WorldContext = "WorldContextObject"), Category = "InventorySystemInvenza")
+	static UInvenzaInventorySettingsAsset* GetInvenzaGlobalSettings(const UObject* WorldContextObject);
 
 	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
 	static TScriptInterface<IInventoryInteractionHandler> FindInventoryHandler(AActor* Actor);
 
 protected:
+	// Runtime
+
+	// Functions
 	UFUNCTION(BlueprintPure, Category = "InventorySystemInvenza")
 	static bool AddItemQuantityInternal(UInventoryBase* TargetInventory, UObject* ItemForDuplicate, int32 Remaining);
 };
