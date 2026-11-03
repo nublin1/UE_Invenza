@@ -22,7 +22,7 @@ The labeled storage boxes and tied rope bundle use ordinary Blender geometry.
 Their retained sources are `ArtSource/StorageLabels/create_storage_labels.py`
 and `StorageLabelsAndRope.blend` in the working/Example Project sources.
 `Scripts/Storage/create_labeled_storage_and_recipes.py` records the Unreal
-material setup. Label material instances reuse the corresponding item icons;
+material setup. Boxes share one mesh, with per-item material overrides and scale stored in the common item table. Label material instances reuse the corresponding item icons;
 the upstream icon provenance still applies. The herbal-extract and iron-ingot
 icons were rendered from Blender geometry with `create_craft_icons.py` and
 `CraftExampleIcons.blend`. These source files are evidence retained outside the

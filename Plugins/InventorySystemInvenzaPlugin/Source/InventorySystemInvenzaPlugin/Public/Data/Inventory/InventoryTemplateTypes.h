@@ -89,6 +89,9 @@ struct INVENTORYSYSTEMINVENZAPLUGIN_API FInventoryTemplateSettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|UI")
 	bool bCollectInvDataFromWidget = true;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Receiving")
+	bool bReceiveGrantedItems = true;
+
 	// Assets
 	UPROPERTY(Category = "Invenza|Inventory", EditAnywhere, BlueprintReadWrite)
 	TSoftClassPtr<UInventoryBase> InventoryClass;

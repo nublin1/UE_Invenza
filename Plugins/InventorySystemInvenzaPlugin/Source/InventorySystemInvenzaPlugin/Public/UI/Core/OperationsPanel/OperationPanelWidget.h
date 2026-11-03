@@ -41,4 +41,15 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI|Restock")
 	FLabelStyle RestockLabelStyle;
+
+	UPROPERTY(BlueprintReadOnly, Category = "UI|Admission", meta = (BindWidgetOptional))
+	TObjectPtr<UUIButton> Button_AdmissionRules;
+
+	UPROPERTY(BlueprintReadOnly, Category = "UI|Admission", meta = (BindWidgetOptional))
+	TObjectPtr<UUIButton> Button_PlaceAllowed;
+
+protected:
+	// Runtime
+	// Functions
+	virtual void RefreshThemeAppearance() override;
 };

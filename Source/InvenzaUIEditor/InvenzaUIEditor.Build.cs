@@ -7,7 +7,7 @@ public class InvenzaUIEditor : ModuleRules
     public InvenzaUIEditor(ReadOnlyTargetRules Target) : base(Target)
     {
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
-        PublicDependencyModuleNames.AddRange(new[] { "Core", "CoreUObject", "Engine", "UMG" });
-        PrivateDependencyModuleNames.AddRange(new[] { "UnrealEd", "UMGEditor", "Slate", "SlateCore", "InputCore", "GameplayTags", "NetCore", "RenderCore", "RHI", "ImageWrapper", "InventorySystemInvenzaPlugin", "UE_GridInventory", "OnlineSubsystem" });
+        PublicDependencyModuleNames.AddRange(new[] { "Core", "CoreUObject", "Engine", "UMG", "InventorySystemInvenzaPlugin" });
+        PrivateDependencyModuleNames.AddRange(new[] { "UnrealEd", "UMGEditor", "Slate", "SlateCore", "InputCore", "GameplayTags", "NetCore", "RenderCore", "RHI", "ImageWrapper", "Json", "BlueprintGraph", "UE_GridInventory", "OnlineSubsystem" });
     }
 }

@@ -20,6 +20,9 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API AGameHUD_Inz : public AHUD
 public:
 	AGameHUD_Inz();
 
+	// Functions
+	UPrimaryLayout* GetPrimaryLayoutInstance() const;
+
 protected:
 	// Runtime
 	// Properties and variables

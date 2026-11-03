@@ -72,6 +72,7 @@ protected:
 	TObjectPtr<UCraftingComponent> CraftingComponentLink = nullptr;
 
 	// Functions
+	virtual void RefreshThemeAppearance() override;
 	void BindCraftComponent();
 
 	UFUNCTION()

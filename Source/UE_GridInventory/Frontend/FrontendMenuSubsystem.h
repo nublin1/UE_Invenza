@@ -6,6 +6,8 @@
 
 class UFrontendMenuWidget;
 class UInputComponent;
+class UUILayer;
+class UInvenzaBaseWidget;
 
 UCLASS()
 class UE_GRIDINVENTORY_API UFrontendMenuSubsystem : public ULocalPlayerSubsystem
@@ -24,13 +26,20 @@ public:
 
 protected:
 	// Runtime
+	// Properties and variables
 	UPROPERTY(Transient)
 	TObjectPtr<UFrontendMenuWidget> Menu;
 	UPROPERTY(Transient)
 	TObjectPtr<UInputComponent> MenuInputComponent;
 	TWeakObjectPtr<APlayerController> Controller;
+
+	UPROPERTY(Transient)
+	TWeakObjectPtr<UUILayer> MenuLayer;
 	// Functions
 	void InitializeMenuAccess();
 	void RemoveMenuInput();
 	void ToggleMenu();
+
+	UFUNCTION()
+	void MenuRemovedFromLayer(UInvenzaBaseWidget* RemovedWidget);
 };

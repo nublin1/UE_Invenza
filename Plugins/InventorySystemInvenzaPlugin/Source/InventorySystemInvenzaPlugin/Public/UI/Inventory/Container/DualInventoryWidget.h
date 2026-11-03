@@ -8,6 +8,7 @@
 #include "DualInventoryWidget.generated.h"
 
 class UCanvasPanel;
+class UScrollBox;
 /**
  *
  */
@@ -32,7 +33,12 @@ public:
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UCanvasPanel> FloatingLayer;
 
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UScrollBox> PlayerInventories;
+
 	// Functions
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Dual")
+	void SetPlayerInventories(const TArray<UInventoryContainerWidget*>& Containers);
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Dual")
 	void SetInventoriesContainers(UInventoryContainerWidget* FirstInventoryContainerWidget,
 								  UInventoryContainerWidget* SecondInventoryContainerWidget);

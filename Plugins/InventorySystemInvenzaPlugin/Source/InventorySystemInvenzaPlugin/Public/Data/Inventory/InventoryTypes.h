@@ -6,15 +6,37 @@
 #include "Layout/Margin.h"
 #include "GameplayTagContainer.h"
 #include "Data/ItemDataStructures.h"
+#include "Data/Inventory/InventoryAdmissionTypes.h"
 #include "InventoryTypes.generated.h"
 
 class UOperationPanelWidget;
 class USlotbasedInventorySlot;
 class UInventoryListEntry;
 class UInventoryBase;
+class UItemBase;
 class USlotbasedInventory;
 class USlotbasedInventoryWidget;
 struct FItemPlacementData;
+
+/** A remaining startup grant. Keeps the same unplaced stack when a ground spawn fails. */
+USTRUCT()
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FInventoryStartingGrant
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	TObjectPtr<UInventoryBase> Inventory;
+
+	UPROPERTY()
+	FInitItemsEntry Entry;
+
+	UPROPERTY()
+	TObjectPtr<UItemBase> PendingItem;
+
+	bool bGeneral = false;
+	bool bDropOnly = false;
+	bool bFailureReported = false;
+};
 class AStorageVisualRepresentation;
 class UInventorySlotData;
 enum class EItemOrientationType : uint8;
@@ -192,6 +214,10 @@ struct INVENTORYSYSTEMINVENZAPLUGIN_API FItemMoveData
 	UPROPERTY(Category = "Invenza|Inventory", BlueprintReadWrite)
 	EItemOrientationType TargetOrientation = EItemOrientationType::Horizontal;
 
+	/** Zero keeps the legacy whole-stack move. Positive amounts require an explicit amount transaction. */
+	UPROPERTY(Category = "Invenza|Inventory", BlueprintReadWrite)
+	int32 RequestedAmount = 0;
+
 	FItemMoveData() : SourceItem(nullptr), SourceInventory(nullptr), TargetInventory(nullptr)
 	{
 		TargetSlotID.Invalidate();
@@ -279,6 +305,13 @@ struct INVENTORYSYSTEMINVENZAPLUGIN_API FInventorySettings
 {
 	GENERATED_BODY()
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Admission")
+	FInventoryAdmissionRules AdmissionRules;
+
+	/** Rules remain available for inspection when editing is disabled. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Admission")
+	bool bAllowAdmissionRulesEditing = false;
+
 	/* Optional custom unique ID for this inventory.
 	If left empty, a unique ID will be generated automatically. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
@@ -330,6 +363,14 @@ struct INVENTORYSYSTEMINVENZAPLUGIN_API FInventorySettings
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|UI")
 	bool bCollectInvDataFromWidget = true;
+
+	/** Include this ordinary player storage when interacting with another container. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|UI")
+	bool bOpenWithExternalInventory = true;
+
+	/** Include this owned storage in automatic grants, independently of its UI settings. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Receiving")
+	bool bReceiveGrantedItems = true;
 
 	// Assets
 	UPROPERTY(Category = "Invenza|Inventory", EditAnywhere, BlueprintReadWrite)

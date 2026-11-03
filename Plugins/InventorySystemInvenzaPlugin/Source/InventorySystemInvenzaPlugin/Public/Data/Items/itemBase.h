@@ -10,6 +10,8 @@
 #include "itemBase.generated.h"
 
 class UInvenzaInventorySettingsAsset;
+class APortableInventoryState;
+class UInventoryBase;
 struct FItemData;
 
 /**
@@ -43,6 +45,18 @@ public:
 	FOnItemDataReplicated OnItemDataReplicated;
 
 	// Functions
+	virtual UWorld* GetWorld() const override;
+
+	UFUNCTION(BlueprintPure, Category = "Item|Portable Inventory")
+	bool IsPortableInventory() const;
+
+	APortableInventoryState* GetPortableState() const;
+	APortableInventoryState* EnsurePortableState();
+	bool HasPortableContents() const;
+	void RefreshPortableSummary();
+	bool CanStoreInInventory(const UInventoryBase* Inventory) const;
+	UItemBase* CreateIdentityTransferCopy(UObject* NewOuter);
+
 	virtual bool IsSupportedForNetworking() const override { return true; }
 
 	// INITIALIZATION
@@ -64,7 +78,7 @@ public:
 
 	// QUANTITY & STACK
 
-	virtual bool IsStackable_Implementation() override { return ItemRef.ItemNumeraticData.MaxStackSizeInCharacter > 1; }
+	virtual bool IsStackable_Implementation() override { return !IsPortableInventory() && ItemRef.ItemNumeraticData.MaxStackSizeInCharacter > 1; }
 
 	virtual FVector2D GetMinMaxSplit_Implementation() override { return FVector2D(1.0f, Quantity); }
 
@@ -79,9 +93,9 @@ public:
 
 	// WEIGHT
 
-	virtual float GetItemStackWeight_Implementation() override { return Quantity * ItemRef.ItemNumeraticData.Weight; }
+	virtual float GetItemStackWeight_Implementation() override;
 
-	virtual float GetItemSingleWeight_Implementation() override { return ItemRef.ItemNumeraticData.Weight; }
+	virtual float GetItemSingleWeight_Implementation() override;
 
 	// FOOTPRINT & ORIENTATION
 
@@ -139,6 +153,12 @@ public:
 
 	void SetItemRef(const FItemMetaData& NewItemRef) { ItemRef = NewItemRef; }
 
+	/** Copy authored state to a new owner without copying reservations or runtime listeners. */
+	UItemBase* CreateTransferCopy(UObject* NewOuter, int32 Amount);
+
+	/** Commit helper: defer inventory/UI notifications until the complete transaction is applied. */
+	void SetQuantityForTransfer(int32 Amount) { Quantity = Amount; }
+
 protected:
 	// Runtime
 	// Properties and variables
@@ -159,14 +179,31 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Replicated, Category = "Item|Data")
 	int32 Quantity;
 
+	UPROPERTY(ReplicatedUsing = OnRep_PortableSummary)
+	float PortableContentsWeight = 0.f;
+
+	UPROPERTY(ReplicatedUsing = OnRep_PortableSummary)
+	bool bPortableHasContents = false;
+
 	// RESERVATION DATA
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item|Reservation")
 	TMap<TObjectPtr<AActor>, int32> ReservedAmounts;
+
+	UPROPERTY(ReplicatedUsing = OnRep_AvailableAmount)
+	int32 ReservedQuantity = 0;
 
 	// Functions
 	// REPLICATION
 
 	UFUNCTION()
 	void OnRep_ItemRow();
+
+	UFUNCTION()
+	void OnRep_AvailableAmount();
+
+	UFUNCTION()
+	void OnRep_PortableSummary();
+
+	void UpdateReservedQuantity();
 };

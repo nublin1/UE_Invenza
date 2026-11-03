@@ -8,6 +8,8 @@
 #include "Components/ScrollBox.h"
 #include "Components/ScrollBoxSlot.h"
 #include "Components/SizeBox.h"
+#include "Components/VerticalBox.h"
+#include "Components/VerticalBoxSlot.h"
 #include "UI/Core/Buttons/UIButton.h"
 #include "UI/Core/LabelBaseText.h"
 #include "UI/Inventory/Container/InventoryContainerWidget.h"
@@ -29,7 +31,10 @@ void UInventoryWorkspaceWidget::NativeConstruct()
 	{
 		ApplyContainerOptions(Widget.Get());
 	}
-	ApplyContainerOptions(PlayerWidget);
+	for (UInventoryContainerWidget* Player : PlayerWidgets)
+	{
+		ApplyContainerOptions(Player);
+	}
 	UpdatePlayerColumnWidth();
 	FilterChanged(SearchText->GetText());
 }
@@ -68,7 +73,10 @@ void UInventoryWorkspaceWidget::ConfigureWorkspace(const FInventoryWorkspaceSett
 			ApplyContainerOptions(Widget.Get());
 		}
 	}
-	ApplyContainerOptions(PlayerWidget);
+	for (UInventoryContainerWidget* Player : PlayerWidgets)
+	{
+		ApplyContainerOptions(Player);
+	}
 	UpdatePlayerColumnWidth();
 }
 
@@ -105,7 +113,7 @@ void UInventoryWorkspaceWidget::SetInventoryWidgets(const TArray<UInventoryConta
 	for (auto It = OriginalCloseButtonSettings.CreateIterator(); It; ++It)
 	{
 		auto* Widget = It.Key().Get();
-		if (Widget != PlayerWidget && !ValidWidgets.Contains(Widget))
+		if (!PlayerWidgets.Contains(Widget) && !ValidWidgets.Contains(Widget))
 		{
 			if (IsValid(Widget))
 			{
@@ -268,12 +276,14 @@ void UInventoryWorkspaceWidget::UpdatePlayerColumnWidth()
 		return;
 	}
 	float Width = FMath::Max(0.f, DisplaySettings.PlayerColumnMinWidth);
-	if (DisplaySettings.bFitPlayerColumnToContent && IsValid(PlayerWidget))
+	if (DisplaySettings.bFitPlayerColumnToContent)
 	{
-		PlayerWidget->TakeWidget();
-		PlayerWidget->ForceLayoutPrepass();
-		// Include the player's operations and spare space for the vertical scrollbar.
-		Width = FMath::Max(Width, PlayerWidget->GetDesiredSize().X + PlayerColumnExtraWidth);
+		for (UInventoryContainerWidget* Player : PlayerWidgets)
+		{
+			Player->TakeWidget();
+			Player->ForceLayoutPrepass();
+			Width = FMath::Max(Width, Player->GetDesiredSize().X + PlayerColumnExtraWidth);
+		}
 	}
 	ColumnSize->SetWidthOverride(Width);
 }
@@ -300,32 +310,79 @@ void UInventoryWorkspaceWidget::ClearClicked(UUIButton*)
 	FilterChanged(FText::GetEmpty());
 }
 
+
 void UInventoryWorkspaceWidget::SetPlayerWidget(UInventoryContainerWidget* Widget)
 {
-	if (PlayerWidget == Widget && PlayerSlot->GetContent() == Widget)
+	TArray<UInventoryContainerWidget*> Widgets;
+	if (Widget)
 	{
-		ApplyContainerOptions(Widget);
-		UpdatePlayerColumnWidth();
+		Widgets.Add(Widget);
+	}
+	SetPlayerWidgets(Widgets);
+}
+
+void UInventoryWorkspaceWidget::SetPlayerWidgets(const TArray<UInventoryContainerWidget*>& Widgets)
+{
+	bool bSame = Widgets.Num() == PlayerWidgets.Num();
+	for (int32 Index = 0; bSame && Index < Widgets.Num(); ++Index)
+	{
+		bSame = Widgets[Index] == PlayerWidgets[Index];
+	}
+	if (bSame)
+	{
 		return;
 	}
-	ReleasePlayerWidget();
-	PlayerWidget = Widget;
-	if (IsValid(Widget))
+	ReleasePlayerWidgets();
+	if (!PlayerInventoryList)
 	{
-		ApplyContainerOptions(Widget);
+		// Compatibility with existing single-player-slot subclasses.
+		if (!Widgets.IsEmpty() && IsValid(Widgets[0]))
+		{
+			PlayerWidgets.Add(Widgets[0]);
+			PlayerWidget = Widgets[0];
+			PlayerSlot->AddChild(Widgets[0]);
+			ApplyContainerOptions(Widgets[0]);
+		}
+		return;
+	}
+	for (auto* Widget : Widgets)
+	{
+		if (!IsValid(Widget) || PlayerWidgets.Contains(Widget))
+		{
+			continue;
+		}
 		Widget->RemoveFromParent();
+		auto* ListSlot = PlayerInventoryList->AddChildToVerticalBox(Widget);
+		ListSlot->SetHorizontalAlignment(HAlign_Left);
+		ListSlot->SetPadding(InventoryRowPadding);
+		PlayerWidgets.Add(Widget);
+		ApplyContainerOptions(Widget);
 		Widget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
-		PlayerSlot->AddChild(Widget);
 		Widget->ReDrawRequest();
 	}
+	PlayerWidget = PlayerWidgets.IsEmpty() ? nullptr : PlayerWidgets[0];
 	UpdatePlayerColumnWidth();
+}
+
+TArray<UInventoryContainerWidget*> UInventoryWorkspaceWidget::ReleasePlayerWidgets()
+{
+	TArray<UInventoryContainerWidget*> Result;
+	for (UInventoryContainerWidget* Widget : PlayerWidgets)
+	{
+		if (IsValid(Widget))
+		{
+			Widget->RemoveFromParent();
+			RestoreContainerOptions(Widget);
+			Result.Add(Widget);
+		}
+	}
+	PlayerWidgets.Reset();
+	PlayerWidget = nullptr;
+	return Result;
 }
 
 UInventoryContainerWidget* UInventoryWorkspaceWidget::ReleasePlayerWidget()
 {
-	auto* Result = PlayerWidget.Get();
-	PlayerSlot->ClearChildren();
-	RestoreContainerOptions(Result);
-	PlayerWidget = nullptr;
-	return Result;
+	const auto Widgets = ReleasePlayerWidgets();
+	return Widgets.IsEmpty() ? nullptr : Widgets[0];
 }

@@ -1,4 +1,4 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #include "UI/Core/LabelBaseText.h"
 
@@ -24,22 +24,33 @@ void ULabelBaseText::NativeConstruct()
 void ULabelBaseText::UpdateText(FText NewText)
 {
 	Text = NewText;
-	SyncTextAndFont();
+	if (MainTextBlock)
+	{
+		MainTextBlock->SetText(Text);
+	}
 }
 
 void ULabelBaseText::UpdateFont(FSlateFontInfo NewFontInfo)
 {
+	SetThemePropertyOverride(GET_MEMBER_NAME_CHECKED(ThisClass, FontInfo).ToString(), true);
 	FontInfo = NewFontInfo;
-	SyncTextAndFont();
+	RefreshThemeAppearance();
+}
+
+void ULabelBaseText::UpdateAppearance(FSlateFontInfo NewFontInfo, FSlateColor NewColor)
+{
+	SetThemePropertyOverride(GET_MEMBER_NAME_CHECKED(ThisClass, FontInfo).ToString(), true);
+	SetThemePropertyOverride(GET_MEMBER_NAME_CHECKED(ThisClass, Color).ToString(), true);
+	FontInfo = NewFontInfo;
+	Color = NewColor;
+	RefreshThemeAppearance();
 }
 
 void ULabelBaseText::UpdateTextAndFont(FLabelStyle LabelStyle)
 {
 	Text = LabelStyle.Text;
-	Color = LabelStyle.Color;
-	FontInfo = LabelStyle.FontInfo;
-
-	SyncTextAndFont();
+	UpdateAppearance(LabelStyle.FontInfo, LabelStyle.Color);
+	UpdateText(LabelStyle.Text);
 }
 
 void ULabelBaseText::SyncTextAndFont()
@@ -50,12 +61,19 @@ void ULabelBaseText::SyncTextAndFont()
 	}
 
 	MainTextBlock->SetText(Text);
-	MainTextBlock->SetFont(FontInfo);
-	MainTextBlock->SetColorAndOpacity(Color);
+	MainTextBlock->SetFont(ResolveThemeFont(TEXT("FontInfo"), FontInfo));
+	MainTextBlock->SetColorAndOpacity(ResolveThemeSlateColor(TEXT("Color"), Color));
 }
 
 void ULabelBaseText::ClearText()
 {
-	Text = FText::FromString("");
-	SyncTextAndFont();
+	UpdateText(FText::GetEmpty());
+}
+void ULabelBaseText::RefreshThemeAppearance()
+{
+	if (MainTextBlock)
+	{
+		MainTextBlock->SetFont(ResolveThemeFont(TEXT("FontInfo"), FontInfo));
+		MainTextBlock->SetColorAndOpacity(ResolveThemeSlateColor(TEXT("Color"), Color));
+	}
 }

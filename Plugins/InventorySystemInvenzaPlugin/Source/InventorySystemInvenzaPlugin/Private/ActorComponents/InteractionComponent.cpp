@@ -79,7 +79,9 @@ void UInteractionComponent::StartInteractionRangeTimer()
 
 void UInteractionComponent::CheckInteractionRange()
 {
-	if (!IsWithinInteractionDistance(GetOwner(), CurrentInteractableComponent))
+	if (!IsWithinInteractionDistance(GetOwner(), CurrentInteractableComponent) ||
+		(!bServerSessionCompleted && GetWorld()->GetTimeSeconds() - ServerInteractionStartTime >
+			ServerInteractionDuration + FMath::Max(0.25f, CompletionRequestGracePeriod)))
 	{
 		StopInteract();
 	}
@@ -106,16 +108,23 @@ void UInteractionComponent::TrackActiveInteraction(UInteractableComponent* Targe
 	StartInteractionRangeTimer();
 }
 
-void UInteractionComponent::Server_TrackInteraction_Implementation(UInteractableComponent* Target,
-																   EInteractionType Type, uint32 Serial)
+void UInteractionComponent::Server_BeginInteraction_Implementation(UInteractableComponent* Target,
+	EInteractionType Type, uint32 Serial)
 {
-	if (!IsWithinInteractionDistance(GetOwner(), Target) || !Target->GetInteractableDataForType(Type) ||
-		!Target->TryAcquireInteraction(GetOwner()))
+	if (Serial == 0 || static_cast<int32>(Serial - LastAcceptedBeginSerial) <= 0)
+	{
+		return;
+	}
+	LastAcceptedBeginSerial = Serial;
+	const auto* Data = IsValid(Target) ? Target->GetInteractableDataForType(Type) : nullptr;
+	if (!Data || !FMath::IsFinite(Data->InteractableDuration) ||
+		!IsWithinInteractionDistance(GetOwner(), Target) || Target->IsInteractionLockedByOther(GetOwner()))
 	{
 		Client_StopInteraction(Target, Type, Serial);
 		return;
 	}
-	if (CurrentInteractableComponent != Target || ActiveInteractionType != Type)
+	// The initiating authority already set this local serial before entering the protocol.
+	if (CurrentInteractableComponent && (CurrentInteractableComponent != Target || ActiveInteractionSerial != Serial))
 	{
 		StopInteract();
 	}
@@ -127,24 +136,92 @@ void UInteractionComponent::Server_TrackInteraction_Implementation(UInteractable
 	CurrentInteractableComponent = Target;
 	ActiveInteractionType = Type;
 	ActiveInteractionSerial = Serial;
+	ServerInteractionStartTime = GetWorld()->GetTimeSeconds();
+	ServerInteractionDuration = FMath::Max(0.f, Data->InteractableDuration);
+	bServerSessionCompleted = false;
+	bApprovedInteractionConsumed = false;
 	StartInteractionRangeTimer();
-	PendingInteractionType = Type;
+}
+
+void UInteractionComponent::Server_TrackInteraction_Implementation(UInteractableComponent* Target,
+	EInteractionType Type, uint32 Serial)
+{
+	if (bServerSessionCompleted || CurrentInteractableComponent != Target ||
+		ActiveInteractionType != Type || ActiveInteractionSerial != Serial)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Interaction completion rejected: missing, stale or completed session."));
+		return;
+	}
+	if (!IsWithinInteractionDistance(GetOwner(), Target) || !Target->GetInteractableDataForType(Type) ||
+		!Target->IsInteractionOwnedBy(GetOwner()))
+	{
+		StopInteract();
+		return;
+	}
+	const double Remaining = ServerInteractionDuration - (GetWorld()->GetTimeSeconds() - ServerInteractionStartTime);
+	if (Remaining > 0.0)
+	{
+		// A fast completion request cannot shorten the server hold, including network jitter.
+		UE_LOG(LogTemp, Verbose, TEXT("Interaction completion deferred: %.3f seconds remain."), Remaining);
+		GetWorld()->GetTimerManager().SetTimer(ServerCompletionTimer, this,
+			&ThisClass::FinishServerInteraction, static_cast<float>(FMath::Max(Remaining, 0.001)), false);
+		return;
+	}
+	FinishServerInteraction();
+}
+
+void UInteractionComponent::FinishServerInteraction()
+{
+	if (bServerSessionCompleted || !IsWithinInteractionDistance(GetOwner(), CurrentInteractableComponent) ||
+		!CurrentInteractableComponent->IsInteractionOwnedBy(GetOwner()) ||
+		!CurrentInteractableComponent->GetInteractableDataForType(ActiveInteractionType))
+	{
+		StopInteract();
+		return;
+	}
+	if (GetWorld()->GetTimeSeconds() - ServerInteractionStartTime < ServerInteractionDuration)
+	{
+		Server_TrackInteraction_Implementation(CurrentInteractableComponent, ActiveInteractionType, ActiveInteractionSerial);
+		return;
+	}
+	GetWorld()->GetTimerManager().ClearTimer(ServerCompletionTimer);
+	bServerSessionCompleted = true;
+	bAwaitingCompletion = false;
+	UInteractableComponent* Target = CurrentInteractableComponent;
+	const auto Type = ActiveInteractionType;
+	const uint32 Serial = ActiveInteractionSerial;
 	TargetInteractableComponent = Target;
-	CompleteInteraction(true);
+	PendingInteractionType = Type;
+	{
+		TGuardValue<bool> ApprovalGuard(bExecutingApprovedInteraction, true);
+		CompleteInteraction(true);
+	}
 	if (IsValid(Target) && CurrentInteractableComponent == Target)
 	{
 		Client_ConfirmInteraction(Target, Type, Serial);
 	}
 }
 
+bool UInteractionComponent::ConsumeApprovedInteraction(UInteractableComponent* Target, EInteractionType Type)
+{
+	if (!GetOwner()->HasAuthority() || !bExecutingApprovedInteraction || bApprovedInteractionConsumed ||
+		!bServerSessionCompleted || CurrentInteractableComponent != Target || ActiveInteractionType != Type)
+	{
+		return false;
+	}
+	bApprovedInteractionConsumed = true;
+	return true;
+}
+
 void UInteractionComponent::Client_ConfirmInteraction_Implementation(UInteractableComponent* Target,
 	EInteractionType Type, uint32 Serial)
 {
-	if (!IsValid(Target) || CurrentInteractableComponent != Target || ActiveInteractionType != Type ||
+	if (GetOwner()->HasAuthority() || !IsValid(Target) || CurrentInteractableComponent != Target || ActiveInteractionType != Type ||
 		ActiveInteractionSerial != Serial)
 	{
 		return;
 	}
+	bAwaitingCompletion = false;
 	TargetInteractableComponent = Target;
 	PendingInteractionType = Type;
 	CompleteInteraction(false);
@@ -184,8 +261,9 @@ void UInteractionComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	if (TargetInteractableComponent && GetWorld()->GetTimerManager().IsTimerActive(TimerHandle_Interaction))
 	{
 		float Elapsed = GetWorld()->GetTimeSeconds() - InteractionStartTime;
-		float Progress =
-			FMath::Clamp(Elapsed / TargetInteractableComponent->GetInteractableData().InteractableDuration, 0.0f, 1.0f);
+		const auto* Data = TargetInteractableComponent->GetInteractableDataForType(PendingInteractionType);
+		const float Progress = Data && Data->InteractableDuration > SMALL_NUMBER
+			? FMath::Clamp(Elapsed / Data->InteractableDuration, 0.0f, 1.0f) : 0.f;
 		if (OnInteractionProgress.IsBound())
 		{
 			OnInteractionProgress.Broadcast(Progress);
@@ -288,6 +366,10 @@ void UInteractionComponent::PerformInteractionCheck()
 
 void UInteractionComponent::FoundInteractable(AActor* NewInteractable, UInteractableComponent* NewInteractableComp)
 {
+	if (bAwaitingCompletion && CurrentInteractableComponent != NewInteractableComp)
+	{
+		StopInteract();
+	}
 	if (InteractionData.CurrentInteractable)
 	{
 		if (InteractionData.CurrentInteractable != InteractionData.LastInteractable)
@@ -311,6 +393,10 @@ void UInteractionComponent::FoundInteractable(AActor* NewInteractable, UInteract
 
 void UInteractionComponent::NotFoundInteractable()
 {
+	if (bAwaitingCompletion)
+	{
+		StopInteract();
+	}
 	GetWorld()->GetTimerManager().ClearTimer(TimerHandle_Interaction);
 
 	if (InteractionData.CurrentInteractable)
@@ -333,49 +419,58 @@ void UInteractionComponent::NotFoundInteractable()
 
 void UInteractionComponent::BeginInteract(EInteractionType Type)
 {
-	// verify nothing has changed with the iteractable state since beginning interaction
 	PerformInteractionCheck();
+	if (InteractionData.CurrentInteractable)
+	{
+		RequestInteraction(TargetInteractableComponent, Type);
+	}
+}
 
-	if (!InteractionData.CurrentInteractable || !IsValid(TargetInteractableComponent))
+void UInteractionComponent::RequestInteraction(UInteractableComponent* Target, EInteractionType Type)
+{
+	if (!IsWithinInteractionDistance(GetOwner(), Target))
 	{
 		return;
 	}
-
-	const FInteractableData* Data = TargetInteractableComponent->GetInteractableDataForType(Type);
-	if (!Data)
+	const auto* Data = Target->GetInteractableDataForType(Type);
+	if (!Data || !FMath::IsFinite(Data->InteractableDuration))
 	{
 		return;
 	}
-
-	if (CurrentInteractableComponent && CurrentInteractableComponent == TargetInteractableComponent &&
-		ActiveInteractionType == Type)
+	if (CurrentInteractableComponent == Target && ActiveInteractionType == Type)
 	{
 		StopInteract();
 		return;
 	}
-
-	if (TargetInteractableComponent->IsInteractionLockedByOther(GetOwner()))
+	if (Target->IsInteractionLockedByOther(GetOwner()))
 	{
-		UE_LOG(LogTemp, Log, TEXT("Interaction rejected: %s is already in use."),
-			*GetNameSafe(TargetInteractableComponent->GetOwner()));
 		return;
 	}
-
 	StopInteract();
+	TargetInteractableComponent = Target;
+	CurrentInteractableComponent = Target;
 	PendingInteractionType = Type;
-
-	TargetInteractableComponent->BeginInteract(this, Type);
-
-	if (FMath::IsNearlyZero(Data->InteractableDuration, 0.1f))
+	ActiveInteractionType = Type;
+	++ActiveInteractionSerial;
+	bAwaitingCompletion = true;
+	bCompletionRequested = false;
+	InteractionStartTime = GetWorld()->GetTimeSeconds();
+	Server_BeginInteraction(Target, Type, ActiveInteractionSerial);
+	if (GetOwner()->HasAuthority() && (bServerSessionCompleted || CurrentInteractableComponent != Target))
+	{
+		return;
+	}
+	Target->BeginInteract(this, Type);
+	const float Duration = FMath::Max(0.f, Data->InteractableDuration);
+	if (Duration <= 0.f)
 	{
 		Interact();
 	}
 	else
 	{
-		InteractionStartTime = GetWorld()->GetTimeSeconds();
-		GetWorld()->GetTimerManager().SetTimer(TimerHandle_Interaction, this, &UInteractionComponent::Interact,
-											   Data->InteractableDuration, false);
+		GetWorld()->GetTimerManager().SetTimer(TimerHandle_Interaction, this, &ThisClass::Interact, Duration, false);
 	}
+	RefreshInteractionDisplay();
 }
 
 void UInteractionComponent::EndInteract(EInteractionType Type)
@@ -385,36 +480,26 @@ void UInteractionComponent::EndInteract(EInteractionType Type)
 		const FInteractableData* Data = TargetInteractableComponent->GetInteractableDataForType(Type);
 		if (Data && Data->bHoldToInteract)
 		{
+			if (bAwaitingCompletion && !bCompletionRequested && Type == ActiveInteractionType)
+			{
+				StopInteract();
+			}
 			GetWorld()->GetTimerManager().ClearTimer(TimerHandle_Interaction);
 			TargetInteractableComponent->EndInteract(this, Type);
 			EndInteractNotify();
+			RefreshInteractionDisplay();
 		}
 	}
 }
 
 void UInteractionComponent::Interact()
 {
-	if (!IsWithinInteractionDistance(GetOwner(), TargetInteractableComponent))
+	if (!bAwaitingCompletion || !IsWithinInteractionDistance(GetOwner(), CurrentInteractableComponent))
 	{
 		return;
 	}
-	if (GetOwner()->HasAuthority() && !TargetInteractableComponent->TryAcquireInteraction(GetOwner()))
-	{
-		return;
-	}
-	CurrentInteractableComponent = TargetInteractableComponent;
-	ActiveInteractionType = PendingInteractionType;
-	++ActiveInteractionSerial;
-	if (GetOwner()->HasAuthority())
-	{
-		StartInteractionRangeTimer();
-		CompleteInteraction(true);
-	}
-	else
-	{
-		// No local effects or UI are allowed until the server grants exclusive access.
-		Server_TrackInteraction(CurrentInteractableComponent, ActiveInteractionType, ActiveInteractionSerial);
-	}
+	bCompletionRequested = true;
+	Server_TrackInteraction(CurrentInteractableComponent, ActiveInteractionType, ActiveInteractionSerial);
 }
 
 void UInteractionComponent::CompleteInteraction(bool bNotify)
@@ -443,6 +528,10 @@ void UInteractionComponent::StopInteract()
 
 	// Clear before notifying listeners: a UI close callback may re-enter here.
 	CurrentInteractableComponent = nullptr;
+	bAwaitingCompletion = false;
+	bServerSessionCompleted = true;
+	GetWorld()->GetTimerManager().ClearTimer(TimerHandle_Interaction);
+	GetWorld()->GetTimerManager().ClearTimer(ServerCompletionTimer);
 	GetWorld()->GetTimerManager().ClearTimer(InteractionRangeTimer);
 	if (PreviousTarget && !bApplyingServerStop)
 	{
@@ -553,8 +642,10 @@ TArray<FInteractionDisplayEntry> UInteractionComponent::BuildDisplayEntries(UInt
 		FInteractionDisplayEntry Entry;
 		Entry.KeyLabel = UInputUtility::GetKeyForAction(GetWorld(), Binding.Action);
 		Entry.Data = *Data;
-		const bool bActiveForInteractor =
-			CurrentInteractableComponent == Target && ActiveInteractionType == Binding.Type;
+		const bool bHolding = TargetInteractableComponent == Target && PendingInteractionType == Binding.Type &&
+			GetWorld()->GetTimerManager().IsTimerActive(TimerHandle_Interaction);
+		const bool bActiveForInteractor = bHolding ||
+			(CurrentInteractableComponent == Target && ActiveInteractionType == Binding.Type);
 		Entry.Data.Action = Target->GetInteractionActionText(Binding.Type, bActiveForInteractor);
 		Result.Add(Entry);
 	}

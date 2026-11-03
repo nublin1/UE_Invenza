@@ -18,6 +18,7 @@ class UE_GRIDINVENTORY_API UFrontendSessionBar : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
 protected:
+	// Unreal overrides
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
 	// Properties and variables
@@ -33,6 +34,7 @@ class UE_GRIDINVENTORY_API UFrontendMenuWidget : public UInvenzaBaseWidget
 {
 	GENERATED_BODY()
 protected:
+	// Unreal overrides
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
 	virtual FReply NativeOnKeyDown(const FGeometry& Geometry, const FKeyEvent& Event) override;
@@ -44,6 +46,7 @@ public:
 	void ShowPage(EFrontendPage Page);
 
 protected:
+	// Runtime
 	// Properties and variables
 	UPROPERTY(BlueprintReadOnly, Category = "Widgets", meta = (BindWidget))
 	TObjectPtr<UWidgetSwitcher> Pages;
@@ -62,6 +65,14 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Widgets", meta = (BindWidget))
 	TObjectPtr<UUIButton> OpenSave;
 	UPROPERTY(BlueprintReadOnly, Category = "Widgets", meta = (BindWidget))
+	TObjectPtr<UUIButton> NewGame;
+	UPROPERTY(BlueprintReadOnly, Category = "Widgets", meta = (BindWidget))
+	TObjectPtr<UPanelWidget> NewGameConfirmation;
+	UPROPERTY(BlueprintReadOnly, Category = "Widgets", meta = (BindWidget))
+	TObjectPtr<UUIButton> ConfirmNewGame;
+	UPROPERTY(BlueprintReadOnly, Category = "Widgets", meta = (BindWidget))
+	TObjectPtr<UUIButton> CancelNewGame;
+	UPROPERTY(BlueprintReadOnly, Category = "Widgets", meta = (BindWidget))
 	TObjectPtr<UUIButton> OpenLoad;
 	UPROPERTY(BlueprintReadOnly, Category = "Widgets", meta = (BindWidget))
 	TObjectPtr<UUIButton> OpenSettings;
@@ -75,7 +86,12 @@ protected:
 	TObjectPtr<ULabelBaseText> MenuStatus;
 	// Runtime
 	bool bPlaying = false;
+	bool bConfirmingNewGame = false;
+	bool bOwnsGameplayInputBlock = false;
 	// Functions
+	virtual void OnRemovedFromLayer_Implementation() override;
+	void ReleaseMenuInput();
+
 	UFUNCTION()
 	void Clicked(UUIButton* Button);
 	UFUNCTION()

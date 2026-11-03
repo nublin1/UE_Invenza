@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Data/Inventory/InventoryTypes.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
+#include "UI/Inventory/InventoryPanelPresentationTypes.h"
 #include "InvenzayUtility.generated.h"
 
 class UInventoryCollectionComponent;
@@ -16,6 +17,8 @@ class UInvenzaInventorySettingsAsset;
 enum class EItemOrientationType : uint8;
 class UInventoryBase;
 class UObject;
+class UMeshComponent;
+class UMaterialInterface;
 /**
  * 
  */
@@ -27,6 +30,8 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UInvenzayUtility : public UBlueprintFunct
 public:
 	// Functions
 	// Inventory
+	static FInventoryPanelCanvasPlacement CaptureInventoryPanel(UInventoryContainerWidget* Widget);
+	static bool RestoreInventoryPanel(const FInventoryPanelCanvasPlacement& Placement);
 	static UInventoryBase* CreateStartupInventory(UObject* WorldContextObject,
 												  UInventoryCollectionComponent* ItemCollection,
 												  const FInventoryStartupData& StartupData,
@@ -34,6 +39,13 @@ public:
 
 	static void SetupStartingResources(UObject* WorldContextObject,
 									   TMap<TObjectPtr<UInventoryBase>, FInitItemsList>& StartingItems);
+
+	/** Reads existing Widget Blueprint slot templates without constructing UI, including on a server. */
+	static bool CollectAuthoredInventoryLayout(const FInventorySettings& Settings,
+		FSlotBasedInventoryWidgetInitData& Layout);
+
+	/** Returns the actual quantity accepted, including partial stacks. */
+	static int32 GrantStartingStack(UInventoryBase* Inventory, UObject* Item);
 
 	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
 	static bool AddItemQuantity(UObject* Outer, UInventoryBase* TargetInventory, FInitItemsEntry InitItemsEntry);
@@ -43,6 +55,9 @@ public:
 										int32 TotalQuantity);
 
 	// Items
+	static void ApplyMaterialOverrides(UMeshComponent* Component,
+		const TArray<TObjectPtr<UMaterialInterface>>& Materials);
+
 	UFUNCTION(BlueprintCallable, Category = "InventorySystemInvenza")
 	static bool bIsSameItems(UObject* FirstItem, UObject* SecondItem);
 

@@ -21,6 +21,19 @@ void UUIInputModeSubsystem::ReleaseUIInput(UObject* RequestOwner)
 	UpdateInputMode();
 }
 
+TArray<UObject*> UUIInputModeSubsystem::GetUIInputRequestOwners() const
+{
+	TArray<UObject*> Result;
+	for (const auto& Owner : RequestOwners)
+	{
+		if (Owner.IsValid())
+		{
+			Result.Add(Owner.Get());
+		}
+	}
+	return Result;
+}
+
 void UUIInputModeSubsystem::UpdateInputMode()
 {
 	for (auto It = RequestOwners.CreateIterator(); It; ++It)

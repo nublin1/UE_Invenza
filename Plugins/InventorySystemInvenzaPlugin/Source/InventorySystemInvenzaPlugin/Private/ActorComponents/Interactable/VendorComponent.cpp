@@ -6,6 +6,7 @@
 #include "ActorComponents/InventoryCollectionComponent.h"
 #include "ActorComponents/UIInventoryManager.h"
 #include "Data/Inventory/InventoryBase.h"
+#include "Data/Items/itemBase.h"
 #include "Data/Inventory/Simulator/InventorySimulator.h"
 #include "Data/Settings/InvenzaInventorySettingsAsset.h"
 #include "Factory/ItemFactory.h"
@@ -114,6 +115,21 @@ void UVendorComponent::Server_ProcessTradeRequest_Implementation(const FItemMove
 FTradeResult UVendorComponent::HandleProcessTrade(const FItemMoveData& TradeData)
 {
 	FTradeResult Result;
+	const bool bBuying = TradeData.SourceInventory == MainVendorLootInventory;
+	if (!TradePartnerItemCollection || !ResolvePlayerInventory(TradeData, bBuying))
+	{
+		return Result;
+	}
+	if (const auto* Portable = Cast<UItemBase>(TradeData.SourceItem); Portable && Portable->IsPortableInventory())
+	{
+		const auto* SourceOwner = TradeData.SourceInventory ? TradeData.SourceInventory->GetInventoryOwnerActor() : nullptr;
+		const auto* Manager = SourceOwner ? SourceOwner->FindComponentByClass<UIInventoryManager>() : nullptr;
+		if (!Portable->CanStoreInInventory(TradeData.TargetInventory) ||
+			(Manager && Manager->IsPortableBackpackRemovalBlocked(Portable)))
+		{
+			return Result;
+		}
+	}
 
 	if (!TradeData.SourceItem || !UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(
 									 TradeData.SourceItem, TEXT("HandleProcessTrade")))

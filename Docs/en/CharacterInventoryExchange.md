@@ -10,11 +10,11 @@ Unlike a [storage access point](StorageAccessPoint.md), this opens two chosen in
 
 ## Adding a mannequin
 
-1. Create a Blueprint based on C++ `InventoryMannequin` and place it. Collision, skeletal mesh, `InventoryCollection`, `Equipment`, and `InventoryAccess` are already created.
-2. Assign a Skeletal Mesh and check its offset. The constructor uses `/Game/Characters/Mannequin_UE4/Meshes/SK_Mannequin`, outside plugin Content. Migrate its dependencies or replace it in your project.
+1. Create a Blueprint based on C++ `InventoryMannequin` and place it. Collision, skeletal mesh, `InventoryCollection`, `Equipment`, `InventoryManager`, and `InventoryAccess` are already created.
+2. Assign a Skeletal Mesh and check its offset. The example mesh comes from `InvenzaInventoryDeveloperSettings.ExampleMannequinMesh`, outside plugin Content. Migrate its dependencies or replace it in your project.
 3. Check `Equipment` slot definitions from `DT_Equipment`; categories/tags must match items and UI.
-4. Set `InventoryAccess.CharacterDisplayName`. Keep `bCreateDefaultInventories = true` and `StartupInventories` empty for demo generation.
-5. Populate `BagStartingItems` with table, row, and positive quantity.
+4. Set `InventoryAccess.CharacterDisplayName`. With `InventoryManager`, keep `bCreateDefaultInventories = false`; configure equipment startup in the manager.
+5. Put `BackpackSmall` in equipment `StartItems` and ordinary contents in manager `GeneralStartingItems`.
 6. Check global `MainInvTag`, `EquipmentInvTag`, and project tags.
 7. Ensure collision Blocks the player's trace channel; Play and use normal interaction.
 
@@ -22,9 +22,11 @@ The demo creates a 4 × 5 bag and equipment inventory using plugin tables/widget
 
 ## Your own NPC
 
-Add `InventoryCollectionComponent`, `EquipmentComponent`, and `CharacterInventoryAccessComponent`. The access component derives from `ContainerComponent` and creates startup inventories. Do not add a second independent container component to create the same bag/equipment.
+For managed portable inventories, add `UIInventoryManager` alongside `InventoryCollectionComponent`, `EquipmentComponent`, and `CharacterInventoryAccessComponent`. The manager creates inventories and the access component exposes them. The following direct-configuration instructions describe legacy unmanaged characters without a manager. Do not create the same inventories in two components.
 
-Disable `bCreateDefaultInventories` for custom configuration and populate access `StartupInventories`:
+For portable mode, enable `InventoryManager.bUsePortableBackpacks`, configure a compatible slot, and grant a backpack through startup equipment. Contents belong to the backpack's separate state and follow it when transferred between the NPC and player. Permanent pockets can exist separately; they do not automatically replace missing main storage. See [portable backpacks](PortableBackpacks.md) for configuration, transfer restrictions, and persistence.
+
+For custom configuration without a manager, disable `bCreateDefaultInventories` and populate access `StartupInventories`:
 
 | Setting | Bag | Equipment |
 |---|---|---|
@@ -78,3 +80,7 @@ The base window is 1280 × 720 with a 12-unit screen margin, scaling as a whole 
 Test: `Invenza.Inventory.CharacterExchange` covers physical/reference slots, cross-owner movement, wrong slots, no room, replacement, unequipping, access revocation, and PIE shutdown with the view open. It also drags RedPotion, YellowPotion, Bow, and Armor_1 to compatible equipment slots using Slate, checks highlight placement/size, unequips, and verifies stack quantity.
 
 Historical automation names in this guide refer to checks whose source files were removed at the owner's request. They are not available in the current distribution; use the described manual scenarios.
+
+## Managed portable example
+
+The current `AInventoryMannequin` also contains `UIInventoryManager`. In `Map_Ex`, its equipment startup list equips the shared `DT_ItemData.BackpackSmall` row, then `GeneralStartingItems` places a bow inside. The manager owns inventory initialization; `UCharacterInventoryAccessComponent.bCreateDefaultInventories` is disabled to avoid duplicate grids. The NPC's equipment definitions include the backpack slot. Access observes manager readiness and equipment events. No local player HUD is created for this actor. Legacy unmanaged characters may still use the access component's original startup fields.

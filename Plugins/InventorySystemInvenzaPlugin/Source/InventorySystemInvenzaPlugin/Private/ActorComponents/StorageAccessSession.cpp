@@ -19,6 +19,7 @@
 #include "UI/Inventory/InventoryWorkspaceWidget.h"
 #include "UI/Inventory/Container/InventoryContainerWidget.h"
 #include "Utility/InputUtility.h"
+#include "Utility/InvenzayUtility.h"
 
 bool UIInventoryManager::IsStorageInventoryAccessible(const UInventoryBase* Inventory) const
 {
@@ -48,6 +49,10 @@ bool UIInventoryManager::IsInventoryAccessible(UInventoryBase* Inventory) const
 		return false;
 	}
 
+	if (bUsePortableBackpacks && Inventory == MainPawnInventoryRef)
+	{
+		return true;
+	}
 	if (ItemCollectionRef->GetActorInventories().Contains(Inventory))
 	{
 		return true;
@@ -63,6 +68,10 @@ bool UIInventoryManager::IsInventoryAccessible(UInventoryBase* Inventory) const
 
 UInventoryBase* UIInventoryManager::FindStorageInventory(const FString& ID) const
 {
+	if (IsValid(MainPawnInventoryRef) && MainPawnInventoryRef->GetInventoryContainerID() == ID)
+	{
+		return MainPawnInventoryRef;
+	}
 	for (const auto& Entry : StorageSession.Inventories)
 	{
 		if (IsValid(Entry.Inventory) && Entry.Inventory->GetInventoryContainerID() == ID &&
@@ -332,18 +341,28 @@ void UIInventoryManager::ClearStorageUI()
 		auto* Window = StorageWindow.Get();
 		StorageWindow = nullptr;
 		Window->SetManager(nullptr);
-		auto* PlayerWidget = IsValid(Window->Workspace) ? Window->Workspace->ReleasePlayerWidget() : nullptr;
+		if (IsValid(Window->Workspace))
+		{
+			Window->Workspace->ReleasePlayerWidgets();
+		}
 		Window->RemoveFromParent();
-		const bool bRestorePlayerWidget = !bEndingPlay && World && !World->bIsTearingDown && IsValid(GetOwner()) &&
-										  !GetOwner()->IsActorBeingDestroyed();
-		if (IsValid(PlayerWidget) && bRestorePlayerWidget && IsValid(UIInvProvider.GetObject()))
+		const bool bRestore = !bEndingPlay && World && !World->bIsTearingDown && IsValid(GetOwner()) &&
+			!GetOwner()->IsActorBeingDestroyed() && IsValid(UIInvProvider.GetObject());
+		const auto Accessible = GetInteractionInventories();
+		for (const auto& Placement : StoragePlayerPlacements)
 		{
-			UIInvProvider->AddPawnInvContainerWidget(PlayerWidget);
+			auto* Widget = Placement.Widget.Get();
+			auto* InvWidget = IsValid(Widget) ? Widget->GetInventoryWidgetFromContainerSlot() : nullptr;
+			if (bRestore && InvWidget && Accessible.Contains(InvWidget->GetInventoryRef()))
+			{
+				if (!UInvenzayUtility::RestoreInventoryPanel(Placement))
+				{
+					UIInvProvider->AddPawnInvContainerWidget(Widget);
+					Widget->SetVisibility(Placement.Visibility);
+				}
+			}
 		}
-		else if (IsValid(PlayerWidget))
-		{
-			PlayerWidget->ReleaseInventory();
-		}
+		StoragePlayerPlacements.Reset();
 	}
 
 	for (auto& Pair : StorageWidgets)
@@ -423,18 +442,25 @@ void UIInventoryManager::RefreshStorageUI()
 
 		StorageWindow->SetManager(this);
 		StorageWindow->TitleLabel->UpdateText(StorageSession.AccessPoint->WindowTitle);
-		auto* PlayerWidget = ItemCollectionRef->GetContainerWidget(MainPawnInventoryRef);
-		if (!PlayerWidget)
-		{
-			PlayerWidget = CreateInventoryWidget(MainPawnInventoryRef);
-		}
 
-		StorageWindow->Workspace->SetPlayerWidget(PlayerWidget);
 		if (!UIInvProvider->AttachStorageWindow(StorageWindow))
 		{
 			StorageWindow->AddToViewport(20);
 		}
 	}
+
+	const auto PlayerWidgets = GetInteractionInventoryWidgets();
+	for (auto* Widget : PlayerWidgets)
+	{
+		if (!StoragePlayerPlacements.ContainsByPredicate([Widget](const auto& Placement)
+		{
+			return Placement.Widget == Widget;
+		}))
+		{
+			StoragePlayerPlacements.Add(UInvenzayUtility::CaptureInventoryPanel(Widget));
+		}
+	}
+	StorageWindow->Workspace->SetPlayerWidgets(PlayerWidgets);
 
 	TSet<UInventoryBase*> Current;
 	TArray<UInventoryContainerWidget*> Widgets;

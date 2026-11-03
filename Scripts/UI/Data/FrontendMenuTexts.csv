@@ -60,3 +60,9 @@ ServerEntry,{0} · {1} · {2}/{3} →
 WaitForSave,Дождитесь завершения сохранения.
 SaveTitle,Сохранение игры
 LoadTitle,Загрузка игры
+NewGame,Новая игра
+NewGameHint,Начать новое прохождение
+NewGameTitle,Начать новую игру?
+NewGameDescription,Несохранённый прогресс текущей игры будет потерян. Ручные сохранения останутся доступны.
+ConfirmNewGame,Начать новую игру
+CancelNewGame,Отмена

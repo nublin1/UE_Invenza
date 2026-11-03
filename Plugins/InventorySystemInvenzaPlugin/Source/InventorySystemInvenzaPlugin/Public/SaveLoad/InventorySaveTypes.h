@@ -107,6 +107,10 @@ struct INVENTORYSYSTEMINVENZAPLUGIN_API FInventorySavedContainer
 	FText Title;
 	UPROPERTY()
 	FInventorySettings StartupSettings;
+	UPROPERTY()
+	bool bHasAdmissionRules = false;
+	UPROPERTY()
+	FInventoryAdmissionRules AdmissionRules;
 };
 
 USTRUCT()
@@ -180,6 +184,9 @@ struct INVENTORYSYSTEMINVENZAPLUGIN_API FInventorySavedOwner
 	TArray<FInventorySavedContainer> Inventories;
 	UPROPERTY()
 	TArray<FInventorySavedItem> Items;
+	/** References to physical items in portable inventory owners. */
+	UPROPERTY()
+	TArray<FInventorySavedItem> ReferenceItems;
 	/** Preserved verbatim when definitions or space are unavailable. Not additional live items. */
 	UPROPERTY()
 	TArray<FInventorySavedItem> RecoveryItems;
@@ -217,6 +224,19 @@ struct INVENTORYSYSTEMINVENZAPLUGIN_API FInventorySavedPickup
 	bool bDestroyed = false;
 	UPROPERTY()
 	FInventorySavedItem Item;
+	UPROPERTY()
+	TArray<FInventorySavedItem> Items;
+	UPROPERTY()
+	bool bIsBundle = false;
+
+	TArray<FInventorySavedItem> GetSavedItems() const
+	{
+		if (!Items.IsEmpty())
+		{
+			return Items;
+		}
+		return Item.InstanceID.IsValid() ? TArray<FInventorySavedItem>{Item} : TArray<FInventorySavedItem>();
+	}
 };
 
 // Prepared data holds newly created UObjects alive until the complete world transaction commits.
@@ -225,6 +245,7 @@ struct FInventoryPreparedContainer
 	UInventoryBase* Inventory = nullptr;
 	FIntPoint Size = FIntPoint(1, 1);
 	FText Title;
+	FInventoryAdmissionRules AdmissionRules;
 	TArray<UInventorySlotData*> Slots;
 };
 
@@ -254,5 +275,7 @@ struct FInventoryPreparedOwner
 struct FInventoryPreparedPickup
 {
 	class UPickupComponent* Component = nullptr;
-	TStrongObjectPtr<UObject> Item;
+	FTransform Transform = FTransform::Identity;
+	TArray<TStrongObjectPtr<UObject>> Items;
+	bool bIsBundle = false;
 };

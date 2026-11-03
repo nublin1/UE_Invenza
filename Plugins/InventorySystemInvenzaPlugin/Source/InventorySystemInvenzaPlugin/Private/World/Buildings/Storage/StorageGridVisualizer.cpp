@@ -1,6 +1,7 @@
 // Nublin Studio 2026 All Rights Reserved.
 
 #include "World/Buildings/Storage/StorageGridVisualizer.h"
+#include "Utility/InvenzayUtility.h"
 #include "Settings/InvenzaInventoryDeveloperSettings.h"
 
 #include "ActorComponents/InventoryCollectionComponent.h"
@@ -684,13 +685,13 @@ bool UStorageGridVisualizer::UpdateLogsVisual(UObject* Item, UStaticMesh* Mesh, 
 }
 
 bool UStorageGridVisualizer::UpdateSmallBoxesVisual(UObject* Item, UStaticMesh* Mesh, const FBox& OccupiedBounds,
-													const FQuat& Rotation, int32 Quantity)
+													const FQuat& Rotation, int32 Quantity, const FVector& MeshScale)
 {
 	if (!IsValid(Item) || !IsValid(Mesh) || !OccupiedBounds.IsValid || Quantity <= 0)
 	{
 		return false;
 	}
-	const FBox MeshBounds = Mesh->GetBoundingBox();
+	const FBox MeshBounds = Mesh->GetBoundingBox().TransformBy(FTransform(FQuat::Identity, FVector::ZeroVector, MeshScale));
 	const FVector Size = MeshBounds.GetSize();
 	if (!MeshBounds.IsValid || Size.GetMin() <= UE_SMALL_NUMBER)
 	{
@@ -716,7 +717,10 @@ bool UStorageGridVisualizer::UpdateSmallBoxesVisual(UObject* Item, UStaticMesh* 
 	}
 
 	// Rebuild only when switching mesh or layout, including Logs -> SmallBoxes.
-	if (Stack->GetStaticMesh() != Mesh || !Stack->ComponentHasTag(FSmallBoxStackLayout::ComponentTag))
+	FTransform ExistingInstance;
+	const bool bScaleChanged = Stack->GetInstanceCount() > 0 &&
+		Stack->GetInstanceTransform(0, ExistingInstance) && !ExistingInstance.GetScale3D().Equals(MeshScale);
+	if (Stack->GetStaticMesh() != Mesh || !Stack->ComponentHasTag(FSmallBoxStackLayout::ComponentTag) || bScaleChanged)
 	{
 		Stack->ClearInstances();
 		Stack->SetStaticMesh(Mesh);
@@ -728,7 +732,7 @@ bool UStorageGridVisualizer::UpdateSmallBoxesVisual(UObject* Item, UStaticMesh* 
 	{
 		Stack->SetRelativeTransform(Placement);
 	}
-	FSmallBoxStackLayout::SetQuantity(*Stack, Quantity, MeshBounds, SmallBoxGap);
+	FSmallBoxStackLayout::SetQuantity(*Stack, Quantity, MeshBounds, SmallBoxGap, MeshScale);
 	if (bCreated)
 	{
 		Stack->RegisterComponent();
@@ -833,8 +837,10 @@ bool UStorageGridVisualizer::UpdateItemVisual(UObject* Item)
 	}
 	case EStorageMethod::SingleMesh:
 	{
-		const FTransform Placement =
-			MakeStorageGridItemTransform(OccupiedBounds, Storage.StorageMesh->GetBoundingBox(), Rotation);
+		const FBox ScaledBounds = Storage.StorageMesh->GetBoundingBox().TransformBy(
+			FTransform(FQuat::Identity, FVector::ZeroVector, Storage.MeshScale));
+		FTransform Placement = MakeStorageGridItemTransform(OccupiedBounds, ScaledBounds, Rotation);
+		Placement.SetScale3D(Storage.MeshScale);
 
 		UStaticMeshComponent* Visual = ItemVisuals.FindRef(Item);
 		if (IsValid(Visual) && Visual->IsA<UInstancedStaticMeshComponent>())
@@ -867,6 +873,7 @@ bool UStorageGridVisualizer::UpdateItemVisual(UObject* Item)
 				Visual->SetRelativeTransform(Placement);
 			}
 		}
+		UInvenzayUtility::ApplyMaterialOverrides(Visual, Storage.Materials);
 		return true;
 	}
 
@@ -879,8 +886,13 @@ bool UStorageGridVisualizer::UpdateItemVisual(UObject* Item)
 
 	case EStorageMethod::SmallBoxes:
 	{
-		return UpdateSmallBoxesVisual(Item, Storage.StorageMesh, OccupiedBounds, Rotation,
-									  IObjectDataProvider::Execute_GetQuantity(Item));
+		const bool bUpdated = UpdateSmallBoxesVisual(Item, Storage.StorageMesh, OccupiedBounds, Rotation,
+			IObjectDataProvider::Execute_GetQuantity(Item), Storage.MeshScale);
+		if (bUpdated)
+		{
+			UInvenzayUtility::ApplyMaterialOverrides(ItemVisuals.FindRef(Item), Storage.Materials);
+		}
+		return bUpdated;
 	}
 
 	default:

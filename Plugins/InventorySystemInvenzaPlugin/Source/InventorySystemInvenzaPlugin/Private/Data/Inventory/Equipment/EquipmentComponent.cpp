@@ -5,6 +5,8 @@
 #include "GameFramework/Actor.h"
 #include "UObject/ObjectPtr.h"
 #include "Engine/World.h"
+#include "Engine/GameInstance.h"
+#include "Subsystems/InvenzaSaveSubsystem.h"
 #include "ActorComponents/UIInventoryManager.h"
 #include "Data/Items/itemBase.h"
 #include "Data/Inventory/Equipment/EquipmentSlotDefinition.h"
@@ -187,6 +189,14 @@ void UEquipmentComponent::Server_UnequipItemFromSlot_Implementation(FGameplayTag
 {
 	FEquipmentSlotRuntime* Slot = FindSlot(SlotTag);
 	if (!Slot || !Slot->EquippedItem)
+	{
+		return;
+	}
+	const auto* Save = GetWorld()->GetGameInstance()
+		? GetWorld()->GetGameInstance()->GetSubsystem<UInvenzaSaveSubsystem>() : nullptr;
+	if (const auto* Manager = GetOwner()->FindComponentByClass<UIInventoryManager>();
+		(!Save || !Save->IsApplyingSnapshot()) && Manager &&
+		Manager->IsPortableBackpackRemovalBlocked(Cast<UItemBase>(Slot->EquippedItem)))
 	{
 		return;
 	}

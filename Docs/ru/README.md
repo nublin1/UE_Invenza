@@ -10,14 +10,19 @@
 - [Настройка управления](InputConfiguration.md)
 - [Подсказка управления](ControlsHelp.md)
 - [Главное меню](FrontendMenu.md)
+- [Primary Layout и диагностика слоёв](UILayout.md)
 - [Сохранение и загрузка](InventorySaving.md)
+- [Список любого контейнера только для просмотра](InventoryListView.md)
+- [Взять выбранное количество из хранилища](TakeItemAmount.md)
 
 ## Объекты мира и доступ к инвентарям
 
 - [Подбор предметов и обычные контейнеры](WorldContainers.md)
+- [Разрешённые предметы хранилища](StorageAdmission.md)
 - [Точка общего доступа к хранилищам базы](StorageAccessPoint.md)
 - [Связанные общие и личные сундуки](LinkedStorage.md)
 - [Манекен, сумка и экипировка другого персонажа](CharacterInventoryExchange.md)
+- [Рюкзаки с собственным инвентарём](PortableBackpacks.md)
 - [Дистанция активного взаимодействия](InteractionDistance.md)
 
 ## Производство и визуальное хранение
@@ -32,3 +37,5 @@
 - [Конфигурация и упаковка](../en/IntegrationConfiguration.md)
 - [Самостоятельная поставка](../en/StandalonePlugin.md)
 - [Поддерживаемые платформы](../en/SupportedTargets.md)
+
+- [Общая тема интерфейса](UITheme.md)

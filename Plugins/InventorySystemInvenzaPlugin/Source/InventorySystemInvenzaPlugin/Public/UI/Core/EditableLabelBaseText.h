@@ -88,6 +88,7 @@ protected:
 	FText CachedText;
 
 	// Functions
+	virtual void RefreshThemeAppearance() override;
 	UFUNCTION()
 	void HandleTextChanged(const FText& NewText);
 

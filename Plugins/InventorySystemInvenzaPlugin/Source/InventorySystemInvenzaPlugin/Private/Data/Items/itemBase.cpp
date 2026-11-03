@@ -10,6 +10,10 @@
 #include "GameplayTagContainer.h"
 #include "Net/UnrealNetwork.h"
 #include "Utility/InvenzayUtility.h"
+#include "World/PortableInventoryState.h"
+#include "Settings/InvenzaInventoryDeveloperSettings.h"
+#include "Data/Inventory/InventoryBase.h"
+#include "Engine/World.h"
 
 UItemBase::UItemBase() : ItemRef(), Quantity(0)
 {
@@ -23,6 +27,9 @@ void UItemBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetim
 	DOREPLIFETIME(UItemBase, PersistentInstanceID);
 	DOREPLIFETIME(UItemBase, ItemRow);
 	DOREPLIFETIME(UItemBase, Quantity);
+	DOREPLIFETIME(UItemBase, ReservedQuantity);
+	DOREPLIFETIME(UItemBase, PortableContentsWeight);
+	DOREPLIFETIME(UItemBase, bPortableHasContents);
 }
 
 void UItemBase::InitItem(const FName ID, FItemData Data, int32 InQuantity)
@@ -42,6 +49,10 @@ void UItemBase::InitItem(const FName ID, FItemData Data, int32 InQuantity)
 		InQuantity = ItemRef.ItemNumeraticData.MaxStackSizeInCharacter;
 	}
 	Quantity = InQuantity;
+	if (IsPortableInventory())
+	{
+		Quantity = 1;
+	}
 }
 
 bool UItemBase::CanPerformAction_Implementation(EObjectInteractionType Action,
@@ -71,7 +82,8 @@ bool UItemBase::CanPerformAction_Implementation(EObjectInteractionType Action,
 		return ItemRef.bIsDroppable;
 
 	case EObjectInteractionType::Destroy:
-		return ItemRef.bIsDeletable;
+		return ItemRef.bIsDeletable && !HasPortableContents() &&
+			(!GetPortableState() || !GetPortableState()->HasCraftObligations());
 
 	case EObjectInteractionType::Split:
 		return Execute_IsStackable(this);
@@ -93,6 +105,10 @@ void UItemBase::UseItem_Implementation()
 
 UObject* UItemBase::DuplicateItem_Implementation()
 {
+	if (HasPortableContents())
+	{
+		return nullptr;
+	}
 	UItemBase* NewItem = NewObject<UItemBase>(GetOuter(), GetClass());
 
 	if (!NewItem)
@@ -108,6 +124,107 @@ UObject* UItemBase::DuplicateItem_Implementation()
 	NewItem->RestoreSaveState(CaptureSaveState());
 
 	return NewItem;
+}
+
+UWorld* UItemBase::GetWorld() const
+{
+	const AActor* Actor = GetTypedOuter<AActor>();
+	return Actor ? Actor->GetWorld() : nullptr;
+}
+
+bool UItemBase::IsPortableInventory() const
+{
+	const auto Category = GetDefault<UInvenzaInventoryDeveloperSettings>()->PortableInventoryCategory;
+	return Category.IsValid() && ItemRef.ItemCategory.MatchesTag(Category);
+}
+
+APortableInventoryState* UItemBase::GetPortableState() const
+{
+	return IsPortableInventory() ? APortableInventoryState::FindForItem(this) : nullptr;
+}
+
+APortableInventoryState* UItemBase::EnsurePortableState()
+{
+	if (auto* Existing = GetPortableState())
+	{
+		return Existing;
+	}
+	if (!IsPortableInventory() || !GetWorld() || GetWorld()->GetNetMode() == NM_Client)
+	{
+		return nullptr;
+	}
+	auto* State = GetWorld()->SpawnActor<APortableInventoryState>();
+	if (State && !State->InitializeForItem(this))
+	{
+		State->Destroy();
+		return nullptr;
+	}
+	return State;
+}
+
+bool UItemBase::HasPortableContents() const
+{
+	if (GetWorld() && GetWorld()->GetNetMode() == NM_Client)
+	{
+		return bPortableHasContents;
+	}
+	const auto* State = GetPortableState();
+	return State && State->HasContents();
+}
+
+void UItemBase::RefreshPortableSummary()
+{
+	if (!GetWorld() || GetWorld()->GetNetMode() == NM_Client || !IsPortableInventory())
+	{
+		return;
+	}
+	const auto* State = GetPortableState();
+	const auto* Inventory = State ? State->GetInventory() : nullptr;
+	PortableContentsWeight = Inventory ? Inventory->GetInventoryTotalWeight() : 0.f;
+	bPortableHasContents = State && State->HasContents();
+}
+
+void UItemBase::OnRep_PortableSummary()
+{
+	OnItemDataReplicated.Broadcast(this);
+}
+
+bool UItemBase::CanStoreInInventory(const UInventoryBase* Inventory) const
+{
+	const auto* State = GetPortableState();
+	return !IsPortableInventory() || (!HasPortableContents() &&
+		(!State || (!State->HasCraftObligations() && State->GetInventory() != Inventory)));
+}
+
+float UItemBase::GetItemSingleWeight_Implementation()
+{
+	if (GetWorld() && GetWorld()->GetNetMode() == NM_Client)
+	{
+		return ItemRef.ItemNumeraticData.Weight + PortableContentsWeight;
+	}
+	const auto* State = GetPortableState();
+	const auto* Inventory = State ? State->GetInventory() : nullptr;
+	return ItemRef.ItemNumeraticData.Weight + (Inventory ? Inventory->GetInventoryTotalWeight() : 0.f);
+}
+
+float UItemBase::GetItemStackWeight_Implementation()
+{
+	return Quantity * GetItemSingleWeight_Implementation();
+}
+
+UItemBase* UItemBase::CreateIdentityTransferCopy(UObject* NewOuter)
+{
+	if (!IsValid(NewOuter))
+	{
+		return nullptr;
+	}
+	auto* Copy = DuplicateObject<UItemBase>(this, NewOuter);
+	Copy->ReservedAmounts.Reset();
+	Copy->ReservedQuantity = 0;
+	Copy->OnUseItemDelegate.Clear();
+	Copy->OnAmountChangedDelegate.Clear();
+	Copy->OnItemDataReplicated.Clear();
+	return Copy;
 }
 
 EItemOrientationType UItemBase::GetInitialItemOrientation_Implementation()
@@ -158,12 +275,43 @@ FString UItemBase::CategoryToShortString_Implementation()
 
 int32 UItemBase::GetFreeAmount_Implementation() const
 {
-	int32 ReservedSum = 0;
+	return FMath::Max(0, Quantity - ReservedQuantity);
+}
+
+void UItemBase::UpdateReservedQuantity()
+{
+	int64 Sum = 0;
 	for (const auto& Pair : ReservedAmounts)
 	{
-		//ReservedSum += Pair.Value;
+		Sum += FMath::Max(0, Pair.Value);
 	}
-	return FMath::Max(0, Quantity - ReservedSum);
+	ReservedQuantity = static_cast<int32>(FMath::Min<int64>(Sum, MAX_int32));
+	OnRep_AvailableAmount();
+}
+
+void UItemBase::OnRep_AvailableAmount()
+{
+	OnItemDataReplicated.Broadcast(this);
+}
+
+UItemBase* UItemBase::CreateTransferCopy(UObject* NewOuter, int32 Amount)
+{
+	if (!IsValid(NewOuter) || Amount <= 0 || Amount > Quantity)
+	{
+		return nullptr;
+	}
+	UItemBase* Copy = DuplicateObject<UItemBase>(this, NewOuter);
+	if (Copy)
+	{
+		Copy->PersistentInstanceID = IsPortableInventory() && Amount == Quantity ? PersistentInstanceID : FGuid::NewGuid();
+		Copy->Quantity = Amount;
+		Copy->ReservedAmounts.Reset();
+		Copy->ReservedQuantity = 0;
+		Copy->OnUseItemDelegate.Clear();
+		Copy->OnAmountChangedDelegate.Clear();
+		Copy->OnItemDataReplicated.Clear();
+	}
+	return Copy;
 }
 
 bool UItemBase::ReserveAmount_Implementation(AActor* Requestor, int32 AmountToReserve)
@@ -173,7 +321,7 @@ bool UItemBase::ReserveAmount_Implementation(AActor* Requestor, int32 AmountToRe
 		return false;
 	}
 
-	int32 Free = GetFreeAmount();
+	int32 Free = IObjectDataProvider::Execute_GetFreeAmount(this);
 	if (Free < AmountToReserve)
 	{
 		return false; // Not enough resources.
@@ -181,6 +329,7 @@ bool UItemBase::ReserveAmount_Implementation(AActor* Requestor, int32 AmountToRe
 
 	int32& CurrentReserved = ReservedAmounts.FindOrAdd(Requestor);
 	CurrentReserved += AmountToReserve;
+	UpdateReservedQuantity();
 	return true;
 }
 
@@ -197,13 +346,15 @@ void UItemBase::ReleaseReservation_Implementation(AActor* Requestor, int32 Amoun
 		return;
 	}
 
-	auto v = ReservedAmounts.Find(Requestor);
-	v -= AmountToRelease;
-
-	if (Reserved >= AmountToRelease)
+	if (AmountToRelease >= Reserved)
 	{
 		ReservedAmounts.Remove(Requestor);
 	}
+	else
+	{
+		ReservedAmounts.FindChecked(Requestor) = Reserved - AmountToRelease;
+	}
+	UpdateReservedQuantity();
 }
 
 UObject* UItemBase::ConsumeReserved_Implementation(AActor* Requestor, int32 RequestedAmount)
@@ -226,7 +377,7 @@ UObject* UItemBase::ConsumeReserved_Implementation(AActor* Requestor, int32 Requ
 		return nullptr;
 	}
 
-	auto NewRes = DuplicateItem();
+	auto NewRes = IObjectDataProvider::Execute_DuplicateItem(this);
 	if (!NewRes)
 	{
 		return nullptr;
@@ -234,7 +385,7 @@ UObject* UItemBase::ConsumeReserved_Implementation(AActor* Requestor, int32 Requ
 
 	//NewRes->OnAmountChangedDelegate.Clear();
 
-	//NewRes->SetQuantity(ToConsume);
+	IObjectDataProvider::Execute_SetQuantity(NewRes, ToConsume);
 
 	auto OldAmount = Quantity;
 
@@ -242,6 +393,11 @@ UObject* UItemBase::ConsumeReserved_Implementation(AActor* Requestor, int32 Requ
 
 	ReservedAmounts.Remove(Requestor);
 	int32 RemainingReserve = Reserved - ToConsume;
+	if (RemainingReserve > 0)
+	{
+		ReservedAmounts.Add(Requestor, RemainingReserve);
+	}
+	UpdateReservedQuantity();
 
 	if (OnAmountChangedDelegate.IsBound())
 	{

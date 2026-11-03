@@ -21,6 +21,8 @@ Check mesh and interaction collision. Place it in front of the character, aim th
 
 For a custom actor, add `PickupComponent` and a Static Mesh with suitable collision. Gameplay creation can call `InitializeDrop(FInitItemsEntry)`. To drop from UI, also assign `PickupClass` in global settings and enable the item's `bIsDroppable`.
 
+For resource bundles and a hold-to-dismantle example, see [BP_ScrapBox and InitialItems](MultiItemPickups.md).
+
 ## Ordinary containers
 
 Create an Actor Blueprint or use `Blueprints/Examples/Containers`. Add `InventoryCollectionComponent`, `ContainerComponent`, and a mesh with collision.
@@ -37,6 +39,10 @@ Configure `ContainerComponent`:
 The collection tracks contents; the container component creates inventories and opens access. The player's manager handles display and transfers. A chest does not need its own player `UIInventoryManager`.
 
 `bDestroyWhenEmpty` destroys the actor when its main loot inventory empties. Disable it for permanent storage. With multiple inventories, remember that this check uses the main one.
+
+## Accepted items
+
+Configure `AdmissionRules` and `bAllowAdmissionRulesEditing` per inventory. The category button opens a tree with green allowed, red blocked and yellow partial symbols. Viewing remains available when editing is disabled. Inventory-wide admission takes precedence over cell permissions; existing blocked contents are preserved. See [storage admission rules](StorageAdmission.md).
 
 ## Detection, holding, and range
 

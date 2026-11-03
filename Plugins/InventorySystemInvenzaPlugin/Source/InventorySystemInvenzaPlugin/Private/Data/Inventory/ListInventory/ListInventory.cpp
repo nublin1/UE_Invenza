@@ -1,4 +1,4 @@
-﻿//  Nublin Studio 2026 All Rights Reserved.
+//  Nublin Studio 2026 All Rights Reserved.
 
 #include "Data/Inventory/ListInventory/ListInventory.h"
 
@@ -327,6 +327,16 @@ void UListInventory::HandleRemoveItem(UObject* Item, int32 RemoveQuantity)
 
 FItemAddResult UListInventory::HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck)
 {
+	if (!CanReceiveTransfer(ItemMoveData))
+	{
+		return FItemAddResult();
+	}
+
+	if (const auto* Portable = Cast<UItemBase>(ItemMoveData.SourceItem); Portable && !Portable->CanStoreInInventory(this))
+	{
+		return FItemAddResult();
+	}
+
 	if (!ItemCollectionLinked)
 	{
 		return FItemAddResult::AddedNone(FText::FromString("ItemCollectionLinked is null"));
@@ -578,7 +588,19 @@ UObject* UListInventory::AddNewItem(FItemMoveData& ItemMoveData, FItemMapping Oc
 	}
 	else
 	{
-		FinalItem = IObjectDataProvider::Execute_DuplicateItem(ItemMoveData.SourceItem);
+		if (auto* Portable = Cast<UItemBase>(ItemMoveData.SourceItem);
+			Portable && Portable->IsPortableInventory() && ItemMoveData.SourceInventory)
+		{
+			FinalItem = Portable->CreateIdentityTransferCopy(InventoryOwnerActor);
+		}
+		else
+		{
+			FinalItem = IObjectDataProvider::Execute_DuplicateItem(ItemMoveData.SourceItem);
+		}
+		if (!FinalItem)
+		{
+			return nullptr;
+		}
 		IObjectDataProvider::Execute_SetQuantity(FinalItem, AddAmount);
 	}
 

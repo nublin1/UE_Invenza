@@ -6,6 +6,7 @@
 #include "Components/ActorComponent.h"
 #include "Settings/InvenzaSettings.h"
 #include "Data/Inventory/InventoryTypes.h"
+#include "Data/Inventory/InventoryTransferTypes.h"
 #include "Data/Trade/TradeTypes.h"
 #include "Data/Inventory/StorageAccessTypes.h"
 #include "Data/Interactable/InteractableData.h"
@@ -41,6 +42,8 @@ class UStorageAccessWidget;
 class UCharacterInventoryAccessComponent;
 class UCharacterInventoryExchangeWidget;
 struct FEquipmentInventoryContext;
+
+class UPickupComponent;
 
 UCLASS(ClassGroup = (Custom), Blueprintable, meta = (BlueprintSpawnableComponent))
 class INVENTORYSYSTEMINVENZAPLUGIN_API UIInventoryManager : public UActorComponent, public IInventoryInteractionHandler
@@ -96,6 +99,18 @@ public:
 
 	bool IsInventoryAccessible(UInventoryBase* Inventory) const;
 
+	bool CanTakeAmountFromInventory(UInventoryBase* Inventory) const;
+
+	/** Authority-only all-or-nothing transaction. Resolves the recipient from this manager. */
+	EInventoryTakeAmountResult HandleTakeAmount(const FInventoryTakeAmountRequest& Request);
+
+	UFUNCTION(Server, Reliable)
+	void Server_TakeItemAmount(FInventoryTakeAmountRequest Request);
+
+	UFUNCTION(Client, Reliable)
+	void Client_TakeItemAmountResult(FGuid RequestID, EInventoryTakeAmountResult Result,
+		int32 SourceQuantity, int32 AvailableAmount);
+
 	bool IsCharacterInventoryAccessible(UInventoryBase* Inventory) const;
 
 	bool TryResolveEquipmentContext(UInventoryBase* Inventory, FGuid SlotID,
@@ -141,6 +156,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Initialization")
 	virtual void SetupStartingResources();
 
+	/** Called by persistence after the initial load decision, before granting a new player's items. */
+	void ResolveStartingResources(bool bRestored);
+
+	bool IsInventoryInitializationComplete() const { return bManagerInitialized; }
+	bool HasPendingStartingResources() const { return !PendingStartingGrants.IsEmpty(); }
+
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Initialization")
 	virtual void SetupAdditionalComponents();
 
@@ -172,6 +193,25 @@ public:
 	/** Move all stacks whose item IDs were present in the destination at the start. */
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Transfer")
 	void TransferMatchingItems(UInventoryBase* SourceInventory, UInventoryBase* TargetInventory);
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Admission")
+	void TransferAllowedItems(UInventoryBase* SourceInventory, UInventoryBase* TargetInventory);
+
+	UFUNCTION(Server, Reliable)
+	void Server_TransferAllowedItems(UInventoryBase* SourceInventory, UInventoryBase* TargetInventory);
+
+	UFUNCTION(BlueprintPure, Category = "Inventory|Admission")
+	bool CanEditAdmissionRules(UInventoryBase* Inventory) const;
+
+	UFUNCTION(Server, Reliable)
+	void Server_SetAdmissionRules(UInventoryBase* Inventory, FInventoryAdmissionRules Rules, FGuid RequestID);
+
+	UFUNCTION(Client, Reliable)
+	void Client_AdmissionRulesResult(FGuid RequestID, bool bSuccess);
+
+	UFUNCTION(Client, Reliable)
+	void Client_CloseAdmissionRules();
+
 
 	UFUNCTION(BlueprintPure, Category = "Inventory|Transfer")
 	bool CanTransferMatchingItems(UInventoryBase* SourceInventory, UInventoryBase* TargetInventory) const;
@@ -254,6 +294,39 @@ public:
 	UFUNCTION()
 	UInventoryBase* GetPawnMainInventory() const { return MainPawnInventoryRef; }
 
+	UFUNCTION(BlueprintPure, Category = "Inventory|Interaction")
+	TArray<UInventoryBase*> GetInteractionInventories() const;
+
+	/** Owned physical receiving storage: primary bag first, then pockets. No UI dependency. */
+	UFUNCTION(BlueprintPure, Category = "Inventory|Receiving")
+	TArray<UInventoryBase*> GetReceivingInventories() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
+	TArray<UInventoryContainerWidget*> GetInteractionInventoryWidgets();
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Backpack")
+	bool bUsePortableBackpacks = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Backpack")
+	TArray<FInitItemsEntry> ExampleGroundBackpacks;
+
+	bool TryEquipPortableBackpack(UItemBase* Item, UInventoryBase* Source, UPickupComponent* Pickup = nullptr,
+		AActor* TargetOwner = nullptr, FGuid TargetSlotID = {});
+	bool TryDropPortableBackpack(UItemBase* Item, UInventoryCollectionComponent* Collection);
+	bool IsPortableBackpackRemovalBlocked(const UItemBase* Item) const;
+	bool HasActiveTradeSession() const { return VendorProviderCurrent.GetObject() || TradeSessionItems.Inventory; }
+	bool TryApplyPortableBackpackTransfer(FItemMoveData Move, bool bOnlyCheck = false, bool* OutCanTransfer = nullptr);
+
+	UFUNCTION()
+	void RefreshPortableBackpack();
+
+	UFUNCTION()
+	void PortableEquipmentChanged(FGameplayTag Slot, UObject* Item);
+
+	UFUNCTION()
+	void PortableContentChanged(const FString& InventoryID);
+
+
 	UFUNCTION(BlueprintPure, Category = "Inventory|Settings")
 	FUISettings GetUISettings() const { return UISettings; }
 
@@ -282,6 +355,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void CloseSecondaryInventory(EInteractableType InteractableType);
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Interaction")
+	void RequestCloseSecondaryInventory();
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void HandleCraftInventoriesChanged(const FLinkedCraftInventories& Current);
@@ -318,6 +394,9 @@ protected:
 	UPROPERTY(Transient)
 	TMap<TObjectPtr<UInventoryBase>, TObjectPtr<UInventoryContainerWidget>> StorageWidgets;
 
+	UPROPERTY(Transient)
+	TArray<FInventoryPanelCanvasPlacement> StoragePlayerPlacements;
+
 	TSet<TWeakObjectPtr<AActor>> StorageRelevantActors;
 
 	TArray<TWeakObjectPtr<UInteractableComponent>> StorageInteractionLocks;
@@ -347,6 +426,9 @@ protected:
 
 	bool bApplyingEquipmentTransfer = false;
 
+	bool bApplyingAmountTransfer = false;
+	FGuid PendingTakeAmountRequestID;
+
 	FTimerHandle CharacterInventoryUITimer;
 
 	UPROPERTY(Transient)
@@ -369,8 +451,32 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Inventory")
 	TArray<FInventoryStartupData> StartupInventories;
 
+	/** Granted to the active main inventory after startup equipment. Overflow is dropped on the ground. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Initialization")
+	TArray<FInitItemsEntry> GeneralStartingItems;
+
+	/** Local-space position used when startup items cannot enter their destination inventory. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Initialization")
+	FVector StartingItemsDropOffset = FVector(100.f, 0.f, 0.f);
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
 	TMap<TObjectPtr<UInventoryBase>, FInitItemsList> StartingItems;
+
+	UPROPERTY(Transient)
+	TArray<FInventoryStartingGrant> PendingStartingGrants;
+
+	bool bManagerInitialized = false;
+	bool bInitializingManager = false;
+	bool bStartingResourcesResolved = false;
+	bool bProcessingStartingResources = false;
+
+	// Functions
+	void PrepareStartingResources();
+	bool TryEquipStartingBackpack(UItemBase* Item);
+	bool TryEquipStartingItem(UInventoryBase* Inventory, UItemBase* Item);
+
+	UFUNCTION()
+	void RetryStartingResources(const FString& InventoryID);
 
 	UPROPERTY(BlueprintReadOnly, Replicated, Category = "Inventory")
 	TArray<UInventoryBase*> InventoryWidgetInitMap;
@@ -402,8 +508,11 @@ protected:
 	UPROPERTY(Category = "Invenza|Inventory", VisibleAnywhere, BlueprintReadWrite)
 	TObjectPtr<APawn> OwnerPawnRef;
 
-	UPROPERTY(Category = "Invenza|Inventory", VisibleInstanceOnly, BlueprintReadWrite, Replicated)
+	UPROPERTY(Category = "Invenza|Inventory", VisibleInstanceOnly, BlueprintReadWrite, ReplicatedUsing = RefreshPortableBackpack)
 	TObjectPtr<UInventoryBase> MainPawnInventoryRef;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UInventoryBase> PresentedPortableInventory;
 
 	UPROPERTY(Category = "Invenza|Inventory", VisibleInstanceOnly, BlueprintReadWrite)
 	TObjectPtr<UEquipmentComponent> EquipmentComponentRef;
@@ -438,6 +547,8 @@ protected:
 
 	bool TryApplyLinkedStorageTransfer(FItemMoveData Move);
 	void NormalizeLinkedStorageTransferOwnership(const FItemMoveData& Move);
+
+	void SubmitTakeAmount(const FModalResult& Result);
 
 	bool TryApplyEquipmentTransfer(FItemMoveData ItemMoveData, bool bOnlyCheck = false, bool* OutCanTransfer = nullptr);
 

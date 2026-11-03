@@ -9,6 +9,24 @@
 #include "GameFramework/PlayerController.h"
 #include "TimerManager.h"
 #include "UObject/Package.h"
+#include "HUD/GameHUD_Inz.h"
+#include "Interface/HUD/HUDProvider.h"
+#include "UI/Layout/PrimaryLayout.h"
+#include "UI/Layout/UILayer.h"
+
+static UPrimaryLayout* FindFrontendPrimaryLayout(APlayerController* Controller)
+{
+	auto* HUD = Controller ? Controller->GetHUD() : nullptr;
+	if (IsValid(HUD) && HUD->Implements<UHUDProvider>())
+	{
+		return IHUDProvider::Execute_GetPrimaryLayout(HUD);
+	}
+	if (const auto* InvenzaHUD = Cast<AGameHUD_Inz>(HUD))
+	{
+		return InvenzaHUD->GetPrimaryLayoutInstance();
+	}
+	return nullptr;
+}
 
 void UFrontendMenuSubsystem::PlayerControllerChanged(APlayerController* NewController)
 {
@@ -65,7 +83,7 @@ void UFrontendMenuSubsystem::RemoveMenuInput()
 
 void UFrontendMenuSubsystem::ToggleMenu()
 {
-	if (Menu && Menu->IsInViewport())
+	if (Menu && MenuLayer.IsValid() && MenuLayer->ContainsContent(Menu))
 	{
 		CloseMenu();
 	}
@@ -82,28 +100,52 @@ void UFrontendMenuSubsystem::ShowMenu()
 	{
 		return;
 	}
-	if (Menu && Menu->IsInViewport())
+	if (Menu && MenuLayer.IsValid() && MenuLayer->ContainsContent(Menu))
 	{
+		MenuLayer->PushWidget(Menu);
 		Menu->SetKeyboardFocus();
 		return;
 	}
-	if (auto Class = GetDefault<UFrontendMenuSettings>()->MenuClass.LoadSynchronous())
+	auto* Layout = FindFrontendPrimaryLayout(PC);
+	const FGameplayTag LayerTag = Layout ? Layout->GetLayerTag(Layout->MenuLayer) : FGameplayTag();
+	if (!Layout || !LayerTag.IsValid())
 	{
-		Menu = CreateWidget<UFrontendMenuWidget>(PC, Class);
-		if (Menu)
-		{
-			Menu->AddToViewport(100);
-		}
+		UE_LOG(LogTemp, Warning, TEXT("Frontend menu cannot open: this player's Primary Layout has no registered menu layer."));
+		return;
+	}
+	Menu = Cast<UFrontendMenuWidget>(Layout->PushContentToLayer(LayerTag,
+		TSoftClassPtr<UUserWidget>(GetDefault<UFrontendMenuSettings>()->MenuClass.ToSoftObjectPath())));
+	if (Menu)
+	{
+		MenuLayer = Layout->MenuLayer;
+		MenuLayer->OnContentRemoved.AddUniqueDynamic(this, &ThisClass::MenuRemovedFromLayer);
 	}
 }
 
 void UFrontendMenuSubsystem::CloseMenu()
 {
-	if (Menu)
-	{
-		Menu->RemoveFromParent();
-	}
+	auto* Layer = MenuLayer.Get();
+	auto* ClosingMenu = Menu.Get();
 	Menu = nullptr;
+	MenuLayer.Reset();
+	if (Layer)
+	{
+		Layer->OnContentRemoved.RemoveDynamic(this, &ThisClass::MenuRemovedFromLayer);
+		Layer->RemoveContent(ClosingMenu);
+	}
+}
+
+void UFrontendMenuSubsystem::MenuRemovedFromLayer(UInvenzaBaseWidget* RemovedWidget)
+{
+	if (RemovedWidget == Menu)
+	{
+		if (MenuLayer.IsValid())
+		{
+			MenuLayer->OnContentRemoved.RemoveDynamic(this, &ThisClass::MenuRemovedFromLayer);
+		}
+		Menu = nullptr;
+		MenuLayer.Reset();
+	}
 }
 
 void UFrontendMenuSubsystem::Deinitialize()

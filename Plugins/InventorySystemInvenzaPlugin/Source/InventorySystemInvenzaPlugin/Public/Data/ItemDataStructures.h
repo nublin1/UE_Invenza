@@ -10,6 +10,8 @@
 #include "GameplayTagContainer.h"
 #include "ItemDataStructures.generated.h"
 
+class UMaterialInterface;
+
 UENUM(BlueprintType)
 enum class EItemOrientationType : uint8
 {
@@ -84,6 +86,12 @@ struct INVENTORYSYSTEMINVENZAPLUGIN_API FItemAssetData
 
 	UPROPERTY(EditAnywhere, Category = "Item|Assets")
 	TObjectPtr<UStaticMesh> Mesh;
+
+	UPROPERTY(EditAnywhere, Category = "Item|Assets")
+	FVector MeshScale = FVector::OneVector;
+
+	UPROPERTY(EditAnywhere, Category = "Item|Assets")
+	TArray<TObjectPtr<UMaterialInterface>> Materials;
 };
 
 USTRUCT(BlueprintType)
@@ -141,6 +149,12 @@ struct INVENTORYSYSTEMINVENZAPLUGIN_API FItemStorageData
 	UPROPERTY(EditAnywhere, Category = "Item|StorageData")
 	TObjectPtr<UStaticMesh> StorageMesh;
 
+	UPROPERTY(EditAnywhere, Category = "Item|StorageData")
+	FVector MeshScale = FVector::OneVector;
+
+	UPROPERTY(EditAnywhere, Category = "Item|StorageData")
+	TArray<TObjectPtr<UMaterialInterface>> Materials;
+
 	/** Longitudinal axis of the source mesh. Currently used by Logs. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|StorageData")
 	EStorageMeshAxis MeshLengthAxis = EStorageMeshAxis::X;
@@ -164,9 +178,31 @@ struct INVENTORYSYSTEMINVENZAPLUGIN_API FItemStorageData
 };
 
 USTRUCT(BlueprintType)
+struct INVENTORYSYSTEMINVENZAPLUGIN_API FItemInventoryData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Inventory", meta = (ClampMin = "1", ClampMax = "256"))
+	int32 Rows = 4;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Inventory", meta = (ClampMin = "1", ClampMax = "256"))
+	int32 Columns = 5;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Inventory", meta = (ClampMin = "-1"))
+	float MaxWeight = -1.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Inventory")
+	FText EquipAction;
+};
+
+USTRUCT(BlueprintType)
 struct INVENTORYSYSTEMINVENZAPLUGIN_API FItemMetaData
 {
 	GENERATED_USTRUCT_BODY()
+
+	/** Used when ItemCategory matches the configured portable inventory category. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Metadata")
+	FItemInventoryData ItemInventoryData;
 
 	UPROPERTY(EditAnywhere, Category = "Item|Metadata")
 	FItemAssetData ItemAssetData;

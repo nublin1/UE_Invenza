@@ -58,15 +58,24 @@ def setup_preview():
     for i, name in enumerate(names):
         meta = u.ItemMetaData()
         assert meta.import_text(rows[name]['ItemMetaData'])
-        mesh = meta.get_editor_property('item_storage_data').get_editor_property('storage_mesh')
+        storage = meta.get_editor_property('item_storage_data')
+        mesh = storage.get_editor_property('storage_mesh')
         actor = actors.spawn_actor_from_class(u.StaticMeshActor, u.Vector((i % 6) * 105, (i // 6) * 145, 0))
         actor.set_actor_label('Preview_' + name)
         actor.static_mesh_component.set_static_mesh(mesh)
+        actor.static_mesh_component.set_relative_scale3d(storage.get_editor_property('mesh_scale'))
+        for material_index, material in enumerate(storage.get_editor_property('materials')):
+            if material:
+                actor.static_mesh_component.set_material(material_index, material)
         if name in ['Money', 'Paper']:
             for j in range(1, 4):
                 stacked = actors.spawn_actor_from_class(u.StaticMeshActor,
                     actor.get_actor_location() + u.Vector((j % 2) * 22, (j // 2) * 22, 0))
                 stacked.static_mesh_component.set_static_mesh(mesh)
+                stacked.static_mesh_component.set_relative_scale3d(storage.get_editor_property('mesh_scale'))
+                for material_index, material in enumerate(storage.get_editor_property('materials')):
+                    if material:
+                        stacked.static_mesh_component.set_material(material_index, material)
     floor = actors.spawn_actor_from_class(u.StaticMeshActor, u.Vector(250, 70, -6))
     floor.static_mesh_component.set_static_mesh(u.load_asset('/Engine/BasicShapes/Cube'))
     floor.set_actor_scale3d(u.Vector(8, 4.5, 0.1))

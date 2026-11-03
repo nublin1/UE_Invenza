@@ -1,6 +1,8 @@
 //  Nublin Studio 2025 All Rights Reserved.
 
 #include "ActorComponents/UIInventoryManager.h"
+#include "World/PortableInventoryState.h"
+#include "Data/Items/itemBase.h"
 #include "GameFramework/Pawn.h"
 #include "TimerManager.h"
 #include "Subsystems/InvenzaSaveSubsystem.h"
@@ -64,8 +66,7 @@ void UIInventoryManager::BeginPlay()
 
 	GlobalSettings = UInvenzayUtility::GetInvenzaGlobalSettings(GetWorld());
 
-	GetWorld()->GetTimerManager().SetTimer(InventoryInitTimer, this, &UIInventoryManager::InitializeInventoryManager,
-										   0.1f, false);
+	InventoryInitTimer = GetWorld()->GetTimerManager().SetTimerForNextTick(this, &ThisClass::InitializeInventoryManager);
 }
 
 void UIInventoryManager::TickComponent(float DeltaTime, ELevelTick TickType,
@@ -92,8 +93,19 @@ void UIInventoryManager::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 
 void UIInventoryManager::InitializeInventoryManager()
 {
+	if (bManagerInitialized || bInitializingManager || bEndingPlay)
+	{
+		return;
+	}
 	auto Collection = GetOwner()->FindComponentByClass<UInventoryCollectionComponent>();
 	if (!Collection)
+	{
+		return;
+	}
+	TGuardValue<bool> InitGuard(bInitializingManager, true);
+	OwnerPawnRef = Cast<APawn>(GetOwner());
+	GlobalSettings = UInvenzayUtility::GetInvenzaGlobalSettings(this);
+	if (!GlobalSettings)
 	{
 		return;
 	}
@@ -104,6 +116,9 @@ void UIInventoryManager::InitializeInventoryManager()
 	if (auto EquipmentComponent = GetOwner()->FindComponentByClass<UEquipmentComponent>())
 	{
 		EquipmentComponentRef = EquipmentComponent;
+		EquipmentComponent->InitializeSlotsFromTable();
+		EquipmentComponent->OnEquippedItem.AddUniqueDynamic(this, &ThisClass::PortableEquipmentChanged);
+		EquipmentComponent->OnUnequippedItem.AddUniqueDynamic(this, &ThisClass::PortableEquipmentChanged);
 	}
 
 	if (auto CraftingComponent = GetOwner()->FindComponentByClass<UCraftingComponent>())
@@ -117,6 +132,7 @@ void UIInventoryManager::InitializeInventoryManager()
 	}
 
 	CreateInventories();
+	RefreshPortableBackpack();
 
 	if (OwnerPawnRef && OwnerPawnRef->IsLocallyControlled())
 	{
@@ -125,19 +141,33 @@ void UIInventoryManager::InitializeInventoryManager()
 		BindWorldDropZoneEvents();
 		CreateWidgetsForInventories();
 		InitializeBindings();
-		BindEvents();
 	}
+	// Authority also processes completed interactions for remotely controlled players.
+	BindEvents();
 
-	SetupStartingResources();
+	PrepareStartingResources();
 
 	SetupAdditionalComponents();
 
+	bManagerInitialized = true;
 	OnInitializationCompleteDelegate.Broadcast();
 	if (GetOwner()->HasAuthority())
 	{
-		auto* Save = GetWorld()->GetGameInstance()->GetSubsystem<UInvenzaSaveSubsystem>();
-		SessionClientTrust = Save->GetClientTrust();
-		Save->NotifyPlayerReady();
+		auto* Instance = GetWorld()->GetGameInstance();
+		auto* Save = Instance ? Instance->GetSubsystem<UInvenzaSaveSubsystem>() : nullptr;
+		if (Save && Collection->bPersistInventories)
+		{
+			SessionClientTrust = Save->GetClientTrust();
+			Save->RegisterCollection(Collection);
+			if (!Save->CanManageSession())
+			{
+				ResolveStartingResources(false);
+			}
+		}
+		else
+		{
+			ResolveStartingResources(false);
+		}
 	}
 	OnRep_StorageSession();
 }
@@ -151,6 +181,11 @@ void UIInventoryManager::CreateInventories()
 
 	for (FInventoryStartupData& StartupData : StartupInventories)
 	{
+		if (bUsePortableBackpacks && StartupData.Settings.InventoryTag == GlobalSettings->MainInvTag &&
+			StartupData.Settings.InventoryType == EInventoryType::MainInventory)
+		{
+			continue;
+		}
 		UInventoryBase* Inventory =
 			UInvenzayUtility::CreateStartupInventory(this, ItemCollectionRef, StartupData, StartingItems);
 
@@ -160,8 +195,17 @@ void UIInventoryManager::CreateInventories()
 		}
 
 		BindInventoryEvents(Inventory);
+		if (auto* Grid = Cast<USlotbasedInventory>(Inventory); Grid && StartupData.Settings.bCollectInvDataFromWidget)
+		{
+			FSlotBasedInventoryWidgetInitData Layout;
+			if (UInvenzayUtility::CollectAuthoredInventoryLayout(StartupData.Settings, Layout))
+			{
+				Grid->SetWidgetInitData(Layout);
+				Grid->RebuildInventory();
+			}
+		}
 
-		if (StartupData.Settings.InventoryTag == GlobalSettings->MainInvTag)
+		if (!bUsePortableBackpacks && StartupData.Settings.InventoryTag == GlobalSettings->MainInvTag)
 		{
 			MainPawnInventoryRef = Inventory;
 		}
@@ -175,26 +219,26 @@ void UIInventoryManager::CreateInventories()
 
 void UIInventoryManager::CreateWidgetsForInventories()
 {
-	if (InventoryWidgetInitMap.IsEmpty())
+	if (InventoryWidgetInitMap.IsEmpty() || !UIInvProvider)
 	{
 		return;
 	}
 
 	for (auto& Inventory : InventoryWidgetInitMap)
 	{
-		if (ItemCollectionRef->HasContainerWidget(Inventory))
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Widget for inventory %s already exists"), *GetNameSafe(Inventory));
-			continue;
-		}
-
 		auto InventoryWidget = CreateInventoryWidget(Inventory);
 		if (!InventoryWidget)
 		{
 			continue;
 		}
 
-		UIInvProvider->AddPawnInvContainerWidget(InventoryWidget);
+		// An opened ground bag can reuse its panel when equipped. Registration does not imply
+		// attachment: closing the external view detaches that panel but keeps it registered.
+		// Panels borrowed by an active interaction still have a parent and must stay there.
+		if (!InventoryWidget->GetParent())
+		{
+			UIInvProvider->AddPawnInvContainerWidget(InventoryWidget);
+		}
 	}
 }
 
@@ -212,6 +256,11 @@ UInventoryContainerWidget* UIInventoryManager::CreateInventoryWidget(UInventoryB
 	{
 		UE_LOG(LogTemp, Warning, TEXT("UIInventoryManager::InitInvWidgets: UIProvider is not set!"));
 		return nullptr;
+	}
+
+	if (auto* Existing = ItemCollectionRef->GetContainerWidget(InvToLink); IsValid(Existing))
+	{
+		return Existing;
 	}
 
 	auto InvSettings = InvToLink->GetInventorySettings();
@@ -273,6 +322,14 @@ void UIInventoryManager::InitInvWidgets()
 			UE_LOG(LogTemp, Warning, TEXT("UIInventoryManager::InitInvWidgets: TargetInventoryTag is not set!"));
 			continue;
 		};
+		if (bUsePortableBackpacks && GlobalSettings &&
+			InvWidget->TargetInventoryTag == GlobalSettings->MainInvTag &&
+			(!MainPawnInventoryRef || InvWidget->GetInventoryRef() != MainPawnInventoryRef))
+		{
+			UIInvProvider->RemovePawnInvContainer(ContInvs);
+			ContInvs->RemoveFromParent();
+			continue;
+		}
 
 		auto TarInv = ItemCollectionRef->GetInventoryByTag(InvWidget->TargetInventoryTag);
 		if (!TarInv)
@@ -292,9 +349,14 @@ void UIInventoryManager::InitInvWidgets()
 
 			if (auto* Grid = Cast<USlotbasedInventory>(TarInv); Grid && Grid->GetInventorySlots().IsEmpty())
 			{
-				ItemCollectionRef->Server_SetSlotBasedInventoryWidgetInitData(
-					TarInv->GetInventoryContainerID(), SlotBased->CollectInitSlotsDataFromWidget());
-				Execute_RebuildInventoryRequest(this, TarInv->GetInventoryContainerID());
+				// Clients may see the inventory before its slots. They must not regenerate the server's
+				// already occupied equipment slots while those original slot objects are in flight.
+				if (GetOwner()->HasAuthority())
+				{
+					ItemCollectionRef->Server_SetSlotBasedInventoryWidgetInitData(
+						TarInv->GetInventoryContainerID(), SlotBased->CollectInitSlotsDataFromWidget());
+					Execute_RebuildInventoryRequest(this, TarInv->GetInventoryContainerID());
+				}
 			}
 			else
 			{
@@ -362,16 +424,6 @@ void UIInventoryManager::InitCraftWidgets()
 	UIInvProvider->BindCraftWidgets();
 }
 
-void UIInventoryManager::SetupStartingResources()
-{
-	if (!GetOwner()->HasAuthority())
-	{
-		return;
-	}
-
-	UInvenzayUtility::SetupStartingResources(this, StartingItems);
-}
-
 void UIInventoryManager::SetupAdditionalComponents()
 {
 	if (!PawnCraftingComponentRef || !UIInvProvider)
@@ -424,7 +476,8 @@ void UIInventoryManager::SetupAdditionalComponents()
 void UIInventoryManager::ItemContextMenuRequest_Implementation(const FString& FromInventory, FGuid SlotGuid,
 															   UObject* Item)
 {
-	if (!Item || FromInventory.IsEmpty() || !SlotGuid.IsValid())
+	if (!IsValid(Item) || !Item->Implements<UObjectDataProvider>() || !ItemCollectionRef ||
+		FromInventory.IsEmpty() || !SlotGuid.IsValid())
 	{
 		return;
 	}
@@ -432,6 +485,12 @@ void UIInventoryManager::ItemContextMenuRequest_Implementation(const FString& Fr
 	PendingContextItem = Item;
 	PendingContextInv = ItemCollectionRef->GetInventoryByID(FromInventory);
 	PendingContextSlotGuid = SlotGuid;
+	PendingTakeAmountRequestID.Invalidate();
+	if (!IsValid(PendingContextInv))
+	{
+		PendingContextItem = nullptr;
+		return;
+	}
 
 	auto AllowedActions = UInvenzayUtility::CollectAccessibleObjectActions(GetWorld(), Item);
 
@@ -449,7 +508,9 @@ void UIInventoryManager::ItemContextMenuRequest_Implementation(const FString& Fr
 	}
 
 	UModalWindowManager* ModalManager = nullptr;
-	APlayerController* PC = GetWorld()->GetFirstPlayerController();
+	APawn* ContextPawn = Cast<APawn>(GetOwner());
+	APlayerController* PC = ContextPawn ? Cast<APlayerController>(ContextPawn->GetController()) :
+		Cast<APlayerController>(GetOwner());
 	if (PC && PC->GetLocalPlayer())
 	{
 		ModalManager = PC->GetLocalPlayer()->GetSubsystem<UModalWindowManager>();
@@ -463,6 +524,8 @@ void UIInventoryManager::ItemContextMenuRequest_Implementation(const FString& Fr
 	ResponseDelegate.BindDynamic(this, &UIInventoryManager::OnInventoryModalResponse);
 
 	FModalHeaderData HeaderData(EModalHeaderType::None, FText());
+	HeaderData.SourceInventory = PendingContextInv;
+	HeaderData.ContextItem = PendingContextItem;
 	ModalManager->OpenModalFlow(PendingContextItem, HeaderData, EModalFooterType::Selection, AllowedActions,
 								ResponseDelegate);
 }
@@ -681,13 +744,9 @@ bool UIInventoryManager::CanTransferMatchingItems(UInventoryBase* SourceInventor
 	{
 		return false;
 	}
-	const auto OwnedInventories = ItemCollectionRef->GetActorInventories();
-	const auto Linked = ItemCollectionRef->GetLinkedInventories();
 	const auto IsAccessible = [&](UInventoryBase* Inventory)
 	{
-		return Inventory->GetItemCollectionLinked() &&
-			   (OwnedInventories.Contains(Inventory) || Inventory == Linked.ExternalInventory ||
-				IsStorageInventoryAccessible(Inventory));
+		return Inventory->GetItemCollectionLinked() && IsInventoryAccessible(Inventory);
 	};
 	return IsAccessible(SourceInventory) && IsAccessible(TargetInventory);
 }
@@ -838,7 +897,9 @@ void UIInventoryManager::Server_CloseTradeSession_Implementation(uint32 SessionI
 
 void UIInventoryManager::VendorRequest(FItemMoveData ItemMoveData)
 {
-	if (ItemMoveData.SourceInventory == ItemMoveData.TargetInventory)
+	if (!VendorProviderCurrent || ItemMoveData.SourceInventory == ItemMoveData.TargetInventory ||
+		(bUsePortableBackpacks && !MainPawnInventoryRef) ||
+		IsPortableBackpackRemovalBlocked(Cast<UItemBase>(ItemMoveData.SourceItem)))
 	{
 		return;
 	}
@@ -922,6 +983,10 @@ void UIInventoryManager::Server_ItemTransferRequest_Implementation(FItemMoveData
 
 void UIInventoryManager::Handle_ItemTransferRequest(FItemMoveData ItemMoveData)
 {
+	if (ItemMoveData.RequestedAmount != 0 || bApplyingAmountTransfer)
+	{
+		return;
+	}
 	if (GetWorld()->GetGameInstance()->GetSubsystem<UInvenzaSaveSubsystem>()->IsApplyingSnapshot())
 	{
 		return;
@@ -944,8 +1009,23 @@ void UIInventoryManager::Handle_ItemTransferRequest(FItemMoveData ItemMoveData)
 		}
 	}
 
+	if (const auto* Portable = Cast<UItemBase>(ItemMoveData.SourceItem); Portable && Portable->IsPortableInventory() &&
+		!Portable->CanStoreInInventory(ItemMoveData.TargetInventory) &&
+		(!GlobalSettings || ItemMoveData.TargetInventory->GetInventorySettings().InventoryTag != GlobalSettings->EquipmentInvTag))
+	{
+		return;
+	}
+	if (!ItemMoveData.TargetInventory->CanReceiveTransfer(ItemMoveData))
+	{
+		return;
+	}
 	if (VendorProviderCurrent)
 	{
+		if (const auto* Portable = Cast<UItemBase>(ItemMoveData.SourceItem);
+			IsPortableBackpackRemovalBlocked(Portable))
+		{
+			return;
+		}
 		if (ItemMoveData.TargetInventory == VendorProviderCurrent->GetVendorLootContainer() ||
 			ItemMoveData.SourceInventory == VendorProviderCurrent->GetVendorLootContainer())
 		{
@@ -960,6 +1040,14 @@ void UIInventoryManager::Handle_ItemTransferRequest(FItemMoveData ItemMoveData)
 void UIInventoryManager::ApplyItemMove(FItemMoveData ItemMoveData)
 {
 	if (!GetOwner()->HasAuthority() || !IsValid(ItemMoveData.TargetInventory))
+	{
+		return;
+	}
+	if (!ItemMoveData.TargetInventory->CanReceiveTransfer(ItemMoveData))
+	{
+		return;
+	}
+	if (TryApplyPortableBackpackTransfer(ItemMoveData))
 	{
 		return;
 	}
@@ -1175,24 +1263,7 @@ void UIInventoryManager::Handle_SplitItem(UInventoryBase* TargetInventory, UObje
 		}
 	}
 
-	UObject* NewItem = IObjectDataProvider::Execute_DuplicateItem(ItemToSplit);
-	if (!NewItem ||
-		!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(NewItem, TEXT("Handle_SplitItem")))
-	{
-		return;
-	}
-
-	IObjectDataProvider::Execute_SetQuantity(NewItem, SplitAmount);
-
-	FItemMoveData ItemMove;
-	ItemMove.SourceItem = NewItem;
-	ItemMove.TargetInventory = TargetInventory;
-	ItemMove.TargetSlotID = PivotID;
-	ItemMove.SavedOrientation = FinalOrientation;
-	ItemMove.TargetOrientation = FinalOrientation;
-
-	TargetInventory->HandleRemoveItem(ItemToSplit, SplitAmount);
-	TargetInventory->HandleAddItem(ItemMove, false);
+	TargetInventory->SplitExistingStack(ItemToSplit, SplitAmount, PivotID, FinalOrientation);
 
 	TargetInventory->UpdateMoneyInfo();
 	TargetInventory->UpdateWeightInfo();
@@ -1224,6 +1295,12 @@ void UIInventoryManager::HandleItemDrop(FItemDropData DropData)
 		return;
 	}
 	UInventoryCollectionComponent* Collection = DropData.SourceInventory->GetItemCollectionLinked();
+	if (bUsePortableBackpacks && MainPawnInventoryRef && DropData.SourceInventory->GetInventorySettings().bIsReferenceContainer &&
+		MainPawnInventoryRef->GetItemCollectionLinked()->ItemHasInventory(DropData.ItemToDrop, MainPawnInventoryRef->GetInventoryContainerID()))
+	{
+		DropData.SourceInventory = MainPawnInventoryRef;
+		Collection = MainPawnInventoryRef->GetItemCollectionLinked();
+	}
 	if (!IsValid(Collection) || !IsValid(Collection->GetOwner()) || !Collection->GetOwner()->HasAuthority() ||
 		!Collection->FindItemMappingByContainerName(
 			DropData.ItemToDrop, DropData.SourceInventory->GetInventoryContainerID()))
@@ -1231,6 +1308,14 @@ void UIInventoryManager::HandleItemDrop(FItemDropData DropData)
 		return;
 	}
 
+	if (auto* Portable = Cast<UItemBase>(DropData.ItemToDrop); Portable && Portable->IsPortableInventory())
+	{
+		if (DropData.DropAmount == 1)
+		{
+			TryDropPortableBackpack(Portable, Collection);
+		}
+		return;
+	}
 	// Reference slots identify the item; only a physical mapping owns its quantity.
 	const FItemMapping* PhysicalMapping = Collection->FindMainInventoryMappingForItem(DropData.ItemToDrop);
 	UInventoryBase* PhysicalInventory = PhysicalMapping ? Collection->GetInventoryByID(PhysicalMapping->InventoryID) : nullptr;
@@ -1329,7 +1414,28 @@ void UIInventoryManager::Server_OnItemDelete_Implementation(const FString& FromI
 	auto* Collection = Inventory->GetItemCollectionLinked();
 	if (Collection && Collection->FindItemMappingByContainerName(Item, FromInventory))
 	{
+		if (const auto* Portable = Cast<UItemBase>(Item); Portable && Portable->IsPortableInventory() &&
+			(!IObjectDataProvider::Execute_CanPerformAction(Item, EObjectInteractionType::Destroy, GlobalSettings) ||
+			 IsPortableBackpackRemovalBlocked(Portable)))
+		{
+			return;
+		}
+		if (auto* Portable = Cast<UItemBase>(Item); Portable && Portable->IsPortableInventory())
+		{
+			if (auto* State = Portable->GetPortableState(); State && !State->DestroyPermanently())
+			{
+				return;
+			}
+		}
 		Collection->RemoveItemFromAllContainers(Item);
+		if (auto* Equipment = Collection->GetOwner()->FindComponentByClass<UEquipmentComponent>())
+		{
+			FGameplayTag Slot;
+			if (Equipment->FindSlotByItem(Item, Slot))
+			{
+				Equipment->Server_UnequipItemFromSlot(Slot);
+			}
+		}
 	}
 }
 
@@ -1476,6 +1582,11 @@ void UIInventoryManager::HandleRebuildInventory(const FString& InvID)
 	}
 
 	FindResult->RebuildInventory();
+	SetupStartingResources();
+	if (auto* Instance = GetWorld()->GetGameInstance())
+	{
+		Instance->GetSubsystem<UInvenzaSaveSubsystem>()->NotifyPlayerReady();
+	}
 }
 
 void UIInventoryManager::InteractRequest(UInteractableComponent* TargetInteractableComponent, EInteractionType Type)
@@ -1525,6 +1636,12 @@ void UIInventoryManager::CheckInventoryInteractionRange()
 
 void UIInventoryManager::Server_HandleInteract_Implementation(UInteractableComponent* Target, EInteractionType Type)
 {
+	auto* Interaction = GetOwner()->FindComponentByClass<UInteractionComponent>();
+	if (!Interaction || !Interaction->ConsumeApprovedInteraction(Target, Type))
+	{
+		UE_LOG(LogTemp, Log, TEXT("Inventory interaction rejected: no approved server interaction session."));
+		return;
+	}
 	if (!UInteractionComponent::IsWithinInteractionDistance(GetOwner(), Target) ||
 		!Target->GetInteractableDataForType(Type) || !Target->TryAcquireInteraction(GetOwner()))
 	{
@@ -1534,6 +1651,25 @@ void UIInventoryManager::Server_HandleInteract_Implementation(UInteractableCompo
 	if (StorageSession.AccessPoint && StorageSession.AccessPoint != Target)
 	{
 		EndStorageAccess();
+	}
+	if (auto* Pickup = Cast<UPickupComponent>(Target))
+	{
+		if (auto* Portable = Cast<UItemBase>(Pickup->PeekItemData()); !Pickup->IsBundlePickup() && Portable && Portable->IsPortableInventory())
+		{
+			if (Type == EInteractionType::Secondary)
+			{
+				if (TryEquipPortableBackpack(Portable, nullptr, Pickup))
+				{
+					HandleClearInteraction(Target, Type);
+				}
+			}
+			else if (auto* State = Portable->EnsurePortableState(); State && State->GetInventory())
+			{
+				Pickup->RefreshPortableContainer();
+				HandleContainerInteraction(Target);
+			}
+			return;
+		}
 	}
 	auto InteractableData = Target->GetInteractableData(); // Primary determines the object's base EInteractableType.
 	switch (InteractableData.DefaultInteractableType)
@@ -1565,22 +1701,14 @@ void UIInventoryManager::Server_HandleInteract_Implementation(UInteractableCompo
 
 void UIInventoryManager::HandlePickupInteraction(UInteractableComponent* Target)
 {
-	IPickupableass* PickupInterface = Cast<IPickupableass>(Target);
-	if (!PickupInterface)
+	if (auto* Pickup = Cast<UPickupComponent>(Target))
 	{
-		return;
+		Pickup->CollectItems(this);
+		if (IsValid(Target) && InteractionComponent && InteractionComponent->GetActiveInteractable() == Target)
+		{
+			InteractionComponent->StopInteract();
+		}
 	}
-
-	if (UObject* ItemToPick = PickupInterface->GetItemData())
-	{
-		FItemMoveData Data;
-		Data.SourceItem = ItemToPick;
-		Data.TargetInventory = MainPawnInventoryRef;
-		Data.SourceInventory = nullptr;
-
-		Execute_ItemTransferRequest(this, Data);
-	}
-	PickupInterface->OnPickedUp();
 }
 
 void UIInventoryManager::HandleContainerInteraction(UInteractableComponent* Target)
@@ -1597,11 +1725,11 @@ void UIInventoryManager::HandleContainerInteraction(UInteractableComponent* Targ
 	}
 
 	UInventoryBase* InventoryToDisplay = LootProvider->GetMainLootContainer();
-	if (!InventoryToDisplay)
+	auto* CharacterAccess = Cast<UCharacterInventoryAccessComponent>(Target);
+	if (!InventoryToDisplay && !CharacterAccess)
 	{
 		return;
 	}
-	auto* CharacterAccess = Cast<UCharacterInventoryAccessComponent>(Target);
 	if (CharacterAccess && !CharacterAccess->TryBeginAccess(GetOwner()))
 	{
 		return;
@@ -1666,7 +1794,8 @@ void UIInventoryManager::HandleTradeInteraction(UInteractableComponent* Target)
 	ItemCollectionRef->GetLinkedInventories().VendorInventory->SetTradeContext(TradeContext);
 
 	VendorProviderCurrent->SetTradePartnerInventory(MainPawnInventoryRef);
-	VendorProviderCurrent->SetTradePartnerItemCollection(ItemCollectionRef);
+	VendorProviderCurrent->SetTradePartnerItemCollection(bUsePortableBackpacks
+		? (MainPawnInventoryRef ? MainPawnInventoryRef->GetItemCollectionLinked() : ItemCollectionRef.Get()) : ItemCollectionRef.Get());
 }
 
 void UIInventoryManager::Server_SetStationAutomaticCrafting_Implementation(UCraftingComponent* Station, bool bAutomatic)
@@ -1794,6 +1923,7 @@ void UIInventoryManager::HandleClearInteraction(UInteractableComponent* Target, 
 		InteractionComponent->StopInteract();
 		return;
 	}
+	Client_CloseAdmissionRules();
 	if (CharacterInventoryAccess)
 	{
 		CharacterInventoryAccess->EndAccess(GetOwner());
@@ -1870,13 +2000,12 @@ void UIInventoryManager::OpenSecondaryInventory(UInventoryBase* Inv, EInteractab
 	}
 
 	UInventoryContainerWidget* SecondaryWidget = CreateInventoryWidget(Inv);
-	UInventoryContainerWidget* PawnMainWidget = CreateInventoryWidget(MainPawnInventoryRef);
-	if (!SecondaryWidget || !PawnMainWidget)
+	if (!SecondaryWidget)
 	{
 		return;
 	}
 
-	UIInvProvider->OpenDualInventoryView(SecondaryWidget, PawnMainWidget);
+	UIInvProvider->OpenInventoryInteractionView(SecondaryWidget, GetInteractionInventoryWidgets());
 }
 
 void UIInventoryManager::CloseSecondaryInventory(EInteractableType InteractableType)
@@ -2053,6 +2182,10 @@ void UIInventoryManager::BindInventoryEvents(UInventoryBase* Inventory)
 
 	Inventory->OnSplitDelegate.RemoveDynamic(this, &UIInventoryManager::ItemSplitRequest);
 	Inventory->OnSplitDelegate.AddDynamic(this, &UIInventoryManager::ItemSplitRequest);
+	if (auto* Collection = Inventory->GetItemCollectionLinked())
+	{
+		Collection->OnInventoryItemsChanged.AddUniqueDynamic(this, &ThisClass::RetryStartingResources);
+	}
 }
 
 void UIInventoryManager::BindWorldDropZoneEvents()
@@ -2312,6 +2445,13 @@ TMap<EObjectInteractionType, FModalActionConfig> UIInventoryManager::CollectAcce
 
 		switch (Action)
 		{
+		case EObjectInteractionType::TakeAmount:
+		{
+			bAllowed = CanTakeAmountFromInventory(PendingContextInv) &&
+				IsValid(PendingContextItem) && PendingContextItem->Implements<UObjectDataProvider>() &&
+				IObjectDataProvider::Execute_GetFreeAmount(PendingContextItem) > 0;
+			break;
+		}
 		case EObjectInteractionType::Equip:
 		{
 			if (!ContextEquipment || ContextEquipment->IsItemEquipped(PendingContextItem))
@@ -2357,8 +2497,17 @@ TMap<EObjectInteractionType, FModalActionConfig> UIInventoryManager::CollectAcce
 
 void UIInventoryManager::OnInventoryModalResponse(FModalResult Result)
 {
+	if (Result.ResultInteractionType == EObjectInteractionType::TakeAmount)
+	{
+		SubmitTakeAmount(Result);
+		return;
+	}
+	PendingTakeAmountRequestID.Invalidate();
 	if (!PendingContextItem || !PendingContextInv)
 	{
+		PendingContextItem = nullptr;
+		PendingContextInv = nullptr;
+		PendingContextSlotGuid.Invalidate();
 		return;
 	}
 
@@ -2456,4 +2605,118 @@ void UIInventoryManager::RefreshReplicatedInventoryUI()
 	}
 	InitInvWidgets();
 	CreateWidgetsForInventories();
+	// Existing authored panels can precede their replicated items and slot mappings.
+	for (auto* Container : UIInvProvider->GetAllPawnInvContainers())
+	{
+		if (Container)
+		{
+			Container->ReDrawRequest();
+		}
+	}
+	UIInvProvider->RefreshInteractionInventories(GetInteractionInventoryWidgets());
+	if (StorageWindow)
+	{
+		OnRep_StorageSession();
+	}
+}
+
+TArray<UInventoryBase*> UIInventoryManager::GetReceivingInventories() const
+{
+	TArray<UInventoryBase*> Result;
+	if (!ItemCollectionRef || !GlobalSettings)
+	{
+		return Result;
+	}
+	TInlineComponentArray<UCraftingComponent*> CraftComponents(GetOwner());
+	auto AddReceivingStorage = [&](UInventoryBase* Inventory)
+	{
+		if (!IsValid(Inventory) || !IsInventoryAccessible(Inventory))
+		{
+			return;
+		}
+		const auto& Settings = Inventory->GetInventorySettings();
+		if (!Settings.bReceiveGrantedItems || Settings.bIsReferenceContainer ||
+			Settings.InventoryTag == GlobalSettings->EquipmentInvTag ||
+			Settings.InventoryType == EInventoryType::VendorInventory ||
+			Settings.InventoryType == EInventoryType::LootContainer)
+		{
+			return;
+		}
+		if (Inventory != MainPawnInventoryRef)
+		{
+			for (const auto* Craft : CraftComponents)
+			{
+				if (Inventory == Craft->GetInputInventory() || Inventory == Craft->GetFuelInventory() ||
+					Inventory == Craft->GetOutputInventory())
+				{
+					return;
+				}
+			}
+		}
+		Result.AddUnique(Inventory);
+	};
+	AddReceivingStorage(MainPawnInventoryRef);
+	for (auto* Inventory : ItemCollectionRef->GetActorInventories())
+	{
+		AddReceivingStorage(Inventory);
+	}
+	return Result;
+}
+
+TArray<UInventoryBase*> UIInventoryManager::GetInteractionInventories() const
+{
+	TArray<UInventoryBase*> Result;
+	if (!ItemCollectionRef || !GlobalSettings)
+	{
+		return Result;
+	}
+	const auto Linked = ItemCollectionRef->GetLinkedInventories();
+	const auto Craft = ItemCollectionRef->GetLinkedCraftInventories();
+	auto AddStorage = [&](UInventoryBase* Inventory)
+	{
+		if (!IsValid(Inventory))
+		{
+			return;
+		}
+		const auto& Settings = Inventory->GetInventorySettings();
+		if (!Settings.bOpenWithExternalInventory || Settings.bIsReferenceContainer ||
+			Settings.InventoryTag == GlobalSettings->EquipmentInvTag ||
+			Settings.InventoryType == EInventoryType::VendorInventory ||
+			Settings.InventoryType == EInventoryType::LootContainer ||
+			!Settings.ContainerWidgetClass || !Settings.InventoryWidgetClass ||
+			Inventory == Linked.ExternalInventory || Inventory == Linked.VendorInventory ||
+			Inventory == Craft.InputInventory || Inventory == Craft.FuelInventory || Inventory == Craft.OutputInventory)
+		{
+			return;
+		}
+		Result.AddUnique(Inventory);
+	};
+	AddStorage(MainPawnInventoryRef);
+	for (auto* Inventory : ItemCollectionRef->GetActorInventories())
+	{
+		AddStorage(Inventory);
+	}
+	return Result;
+}
+
+TArray<UInventoryContainerWidget*> UIInventoryManager::GetInteractionInventoryWidgets()
+{
+	TArray<UInventoryContainerWidget*> Result;
+	for (auto* Inventory : GetInteractionInventories())
+	{
+		if (auto* Widget = CreateInventoryWidget(Inventory))
+		{
+			Result.Add(Widget);
+		}
+	}
+	return Result;
+}
+
+void UIInventoryManager::RequestCloseSecondaryInventory()
+{
+	if (InteractionComponent)
+	{
+		InteractionComponent->StopInteract();
+	}
+	CloseSecondaryInventory(EInteractableType::Container);
 }

@@ -52,6 +52,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Invenza|Save")
 	bool ResetPlaythrough();
 
+	/** Starts a fresh world without deleting or writing any existing save slot. */
+	UFUNCTION(BlueprintCallable, Category = "Invenza|Save")
+	bool StartNewGame(const TSoftObjectPtr<UWorld>& World);
+
 	UFUNCTION(BlueprintCallable, Category = "Invenza|Save")
 	bool RetryRecovery();
 
@@ -91,6 +95,9 @@ public:
 	void UnregisterPickup(UPickupComponent* Pickup, EEndPlayReason::Type Reason);
 
 	void UnregisterCollection(UInventoryCollectionComponent* Collection, EEndPlayReason::Type Reason);
+
+	/** Remove a permanently deleted portable owner without retaining a world-actor tombstone. */
+	void ForgetPortableOwner(UInventoryCollectionComponent* Collection);
 
 	void NotifyPlayerReady();
 
@@ -145,6 +152,8 @@ protected:
 
 	FString ProfileOverride;
 
+	FString PendingNewGameWorld;
+
 	TArray<FString> QueuedSaveSlots;
 
 	FString PendingPhysicalSlot;
@@ -164,6 +173,8 @@ protected:
 	bool bApplyingSnapshot = false;
 
 	bool bAutoLoadAttempted = false;
+
+	bool bStartupLoadFailed = false;
 
 	bool bSessionTrustOverride = false;
 

@@ -5,6 +5,8 @@
 #include "Engine/World.h"
 #include "Engine/Engine.h"
 #include "Subsystems/InvenzaSaveSubsystem.h"
+#include "Subsystems/PortableInventorySubsystem.h"
+#include "Misc/ScopeExit.h"
 #include "Engine/GameInstance.h"
 
 #include "ActorComponents/InventoryCollectionComponent.h"
@@ -36,6 +38,10 @@ void UCraftingComponent::BeginPlay()
 
 void UCraftingComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	if (auto* Registry = GetWorld()->GetSubsystem<UPortableInventorySubsystem>())
+	{
+		Registry->SetCraftObligations(this, {});
+	}
 	UnbindFuelInventoryEvents();
 	if (GetWorld())
 	{
@@ -81,7 +87,12 @@ void UCraftingComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	DeliveryRetryElapsed = 0.f;
 
 	{
+		ON_SCOPE_EXIT
+		{
+			RefreshInventoryObligationIndex();
+		};
 		TGuardValue<bool> MutationGuard(bCraftMutation, true);
+		RefreshInventoryObligationIndex();
 		FlushPendingDeliveries();
 		HandleRecalculateAvailableRecipes();
 	}
@@ -603,7 +614,12 @@ void UCraftingComponent::HandleEnqueueRecipe(FItemRecipeRow ItemRecipeRow, const
 	}
 
 	{
+		ON_SCOPE_EXIT
+		{
+			RefreshInventoryObligationIndex();
+		};
 		TGuardValue<bool> MutationGuard(bCraftMutation, true);
+		RefreshInventoryObligationIndex();
 
 		// The flag becomes true only after successful payment.
 		FQueuedRecipe NewItem(ItemRecipeRow, Count, false);
@@ -647,7 +663,12 @@ void UCraftingComponent::HandleCancelRecipe(int32 QueueIndex)
 	}
 
 	{
+		ON_SCOPE_EXIT
+		{
+			RefreshInventoryObligationIndex();
+		};
 		TGuardValue<bool> MutationGuard(bCraftMutation, true);
+		RefreshInventoryObligationIndex();
 
 		const FQueuedRecipe Item = RecipeQueue.Items[QueueIndex];
 		const int32 TargetRepID = Item.ReplicationID;
@@ -786,7 +807,17 @@ void UCraftingComponent::StartCurrentRecipe(FQueuedRecipe& Item)
 		return;
 	}
 
+	ON_SCOPE_EXIT
+
+	{
+
+		RefreshInventoryObligationIndex();
+
+	};
+
 	TGuardValue<bool> MutationGuard(bCraftMutation, true);
+
+	RefreshInventoryObligationIndex();
 
 	FCraftAdditionalData* AddData = QueueAdditionalData.FindByPredicate(
 		[&Item](const FCraftAdditionalData& Data)
@@ -835,7 +866,12 @@ void UCraftingComponent::FinishCurrentRecipe()
 
 	GetWorld()->GetTimerManager().ClearTimer(CraftTimerHandle);
 	{
+		ON_SCOPE_EXIT
+		{
+			RefreshInventoryObligationIndex();
+		};
 		TGuardValue<bool> MutationGuard(bCraftMutation, true);
+		RefreshInventoryObligationIndex();
 
 		const int32 QueueIndex = RecipeQueue.Items.IndexOfByPredicate(
 			[this](const FQueuedRecipe& Item)
@@ -940,7 +976,12 @@ bool UCraftingComponent::ConsumeFuelUnit()
 		const FName ItemID = IObjectDataProvider::Execute_GetItemID(Item);
 		const int32 Before = CountItem(FuelInventory, ItemID);
 		{
+			ON_SCOPE_EXIT
+			{
+				RefreshInventoryObligationIndex();
+			};
 			TGuardValue<bool> MutationGuard(bCraftMutation, true);
+			RefreshInventoryObligationIndex();
 			FuelInventory->HandleRemoveItem(Item, 1);
 		}
 		if (Before - CountItem(FuelInventory, ItemID) == 1)
@@ -1016,6 +1057,10 @@ bool UCraftingComponent::ConsumeResourcesForRecipe(FQueuedRecipe& Item, int32 Co
 					continue;
 				}
 
+				if (const auto* Portable = Cast<UItemBase>(SourceItem); Portable && Portable->IsPortableInventory())
+				{
+					continue;
+				}
 				Seen.Add(SourceItem);
 
 				if (IObjectDataProvider::Execute_GetItemID(SourceItem) != Row->ID)
@@ -1770,4 +1815,71 @@ FRecipeCheckResult UCraftingComponent::CheckRecipe(const FItemRecipeRow& Recipe,
 	}
 
 	return Result;
+}
+
+
+bool UCraftingComponent::HasInventoryObligations(const UInventoryBase* Inventory) const
+{
+	if (!Inventory)
+	{
+		return false;
+	}
+	for (const auto& Pair : CraftReservations)
+	{
+		for (const auto& Batch : Pair.Value.Resources)
+		{
+			if (Batch.Inventory == Inventory && Batch.Amount > 0)
+			{
+				return true;
+			}
+		}
+	}
+	for (const auto& Batch : PendingDeliveries)
+	{
+		if (Batch.Inventory == Inventory && Batch.Amount > 0)
+		{
+			return true;
+		}
+	}
+	return bCraftMutation && (InputInventory == Inventory || InteractorInventory == Inventory || OutputInventory == Inventory);
+}
+
+void UCraftingComponent::RefreshInventoryObligationIndex()
+{
+	if (!GetWorld() || !GetOwner()->HasAuthority())
+	{
+		return;
+	}
+	TSet<TWeakObjectPtr<UInventoryBase>> Inventories;
+	for (const auto& Pair : CraftReservations)
+	{
+		for (const auto& Batch : Pair.Value.Resources)
+		{
+			if (IsValid(Batch.Inventory) && Batch.Amount > 0)
+			{
+				Inventories.Add(Batch.Inventory);
+			}
+		}
+	}
+	for (const auto& Batch : PendingDeliveries)
+	{
+		if (IsValid(Batch.Inventory) && Batch.Amount > 0)
+		{
+			Inventories.Add(Batch.Inventory);
+		}
+	}
+	if (bCraftMutation)
+	{
+		for (auto* Inventory : {InputInventory.Get(), InteractorInventory.Get(), OutputInventory.Get()})
+		{
+			if (Inventory)
+			{
+				Inventories.Add(Inventory);
+			}
+		}
+	}
+	if (auto* Registry = GetWorld()->GetSubsystem<UPortableInventorySubsystem>())
+	{
+		Registry->SetCraftObligations(this, Inventories);
+	}
 }

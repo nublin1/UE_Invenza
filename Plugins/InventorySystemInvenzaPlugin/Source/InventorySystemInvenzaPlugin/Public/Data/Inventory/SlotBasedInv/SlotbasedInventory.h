@@ -41,6 +41,12 @@ public:
 
 	virtual void RebuildInventory() override;
 
+	/** Preserves live item identities and remaining slots; failure leaves the inventory unchanged. */
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Configuration")
+	bool TryResizeInventory(FIntPoint NewSize);
+
+	bool ReconfigureGrid(FIntPoint NewSize, bool bSortByName);
+
 	virtual UInventoryBase* DuplicateInventory(UObject* Outer) override;
 
 	//
@@ -81,6 +87,9 @@ public:
 	FVector2D GetInvCellSize() const { return InvCellSize; }
 
 	TArray<UInventorySlotData*> GetInventorySlots() const { return InventorySlotData; }
+
+	/** Read-only check for planned insertion; does not acquire or release reservations. */
+	bool IsSlotReservedForPlacement(const UInventorySlotData* Slot) const;
 
 	void SetInventorySlots(TArray<UInventorySlotData*> NewSlotData) { InventorySlotData = NewSlotData; }
 

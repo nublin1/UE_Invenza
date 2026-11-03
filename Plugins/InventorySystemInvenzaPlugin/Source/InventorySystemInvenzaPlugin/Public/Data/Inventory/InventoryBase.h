@@ -45,6 +45,8 @@ public:
 
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnTradeContextUpdated);
 
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAdmissionRulesChanged);
+
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRequestToResetItemVisual, UObject*, Item);
 
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSlotsReservedDelegate, TArray<FSlotReservationData>,
@@ -101,7 +103,24 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Inventory|Reservation")
 	FOnConsumeReservedDelegate OnConsumeReservedDelegate;
 
+	UPROPERTY(BlueprintAssignable, Category = "Inventory|Admission")
+	FOnAdmissionRulesChanged OnAdmissionRulesChanged;
+
 	// Functions
+	UFUNCTION(BlueprintPure, Category = "Inventory|Admission")
+	FInventoryAdmissionRules GetAdmissionRules() const { return AdmissionRules; }
+
+	UFUNCTION(BlueprintPure, Category = "Inventory|Admission")
+	bool IsCategoryAllowed(FGameplayTag Category) const { return AdmissionRules.Allows(Category); }
+
+	/** Existing physical contents can be rearranged even after their category is excluded. */
+	bool CanReceiveItem(UObject* Item) const;
+	bool CanReceiveTransfer(const FItemMoveData& Move) const;
+	FItemAddResult SplitExistingStack(UObject* Item, int32 Amount, FGuid TargetSlot, EItemOrientationType Orientation);
+
+	/** Authority-only entry point shared by validated edits and persistence restoration. */
+	void ApplyAdmissionRules(const FInventoryAdmissionRules& Rules);
+
 	virtual bool IsSupportedForNetworking() const override { return true; }
 
 	virtual bool ReplicateSubobjects(class UActorChannel* Channel, class FOutBunch* Bunch,
@@ -193,6 +212,8 @@ public:
 	virtual void UpdateMoneyInfo();
 
 	// Getters
+	float GetInventoryTotalWeight() const { return InventoryTotalWeight; }
+
 	UFUNCTION()
 	FString GetInventoryContainerID() { return InventoryContainerID; }
 
@@ -268,6 +289,11 @@ public:
 protected:
 	// Runtime
 	// Properties and variables
+	UPROPERTY(ReplicatedUsing = OnRep_AdmissionRules)
+	FInventoryAdmissionRules AdmissionRules;
+
+	TWeakObjectPtr<UObject> InternalSplitItem;
+
 	// Settings
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, ReplicatedUsing = OnRep_InventoryConfiguration,
 			  Category = "Inventory|Config")
@@ -304,6 +330,9 @@ protected:
 	FTradeContext TradeContext;
 
 	// Functions
+	UFUNCTION()
+	void OnRep_AdmissionRules();
+
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Sorting")
 	virtual void SortItemsInContainerByName() {};
 

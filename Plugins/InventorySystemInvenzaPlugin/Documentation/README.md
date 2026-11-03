@@ -6,6 +6,7 @@ Start with [installation and configuration](StandalonePlugin.md), then follow th
 - [Integration configuration and cooking](IntegrationConfiguration.md)
 - [Supported targets and dependencies](SupportedTargets.md)
 - [Content provenance](ContentProvenance.md)
+- [Storage admission rules](en/StorageAdmission.md) / [Разрешённые предметы хранилища](ru/StorageAdmission.md)
 
 The separate Example Project supplies the playable level and frontend. It is not
 required by the runtime plugin. The current declared target is UE 5.6 / Win64.

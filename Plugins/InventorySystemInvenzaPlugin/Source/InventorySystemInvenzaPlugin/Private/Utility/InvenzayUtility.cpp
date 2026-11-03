@@ -1,6 +1,12 @@
 ﻿//  Nublin Studio 2026 All Rights Reserved.
 
 #include "Utility/InvenzayUtility.h"
+#include "Components/MeshComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Components/CanvasPanel.h"
+#include "Components/CanvasPanelSlot.h"
+#include "UI/Inventory/Container/InventoryContainerWidget.h"
+
 #include "Engine/World.h"
 #include "Engine/GameInstance.h"
 #include "GameFramework/Actor.h"
@@ -16,6 +22,12 @@
 #include "Interface/Inventory/InventoryInteractionHandler.h"
 #include "Subsystems/InvenzaInventorySettingsSubsystem.h"
 #include "Utility/InterfaceUtils.h"
+#include "Blueprint/WidgetBlueprintGeneratedClass.h"
+#include "Blueprint/WidgetTree.h"
+#include "Components/UniformGridPanel.h"
+#include "Components/UniformGridSlot.h"
+#include "UI/Inventory/SlotbasedInventorySlot.h"
+#include "UI/Inventory/UInventoryBaseWidget.h"
 
 UInventoryBase*
 UInvenzayUtility::CreateStartupInventory(UObject* WorldContextObject, UInventoryCollectionComponent* ItemCollection,
@@ -47,6 +59,71 @@ UInvenzayUtility::CreateStartupInventory(UObject* WorldContextObject, UInventory
 	ItemCollection->AddPawnInventory_Internal(Inventory);
 
 	return Inventory;
+}
+
+bool UInvenzayUtility::CollectAuthoredInventoryLayout(const FInventorySettings& Settings,
+	FSlotBasedInventoryWidgetInitData& Layout)
+{
+	const auto* WidgetClass = Cast<UWidgetBlueprintGeneratedClass>(Settings.InventoryWidgetClass.Get());
+	const auto* Tree = WidgetClass ? WidgetClass->GetWidgetTreeArchetype() : nullptr;
+	auto* Panel = Tree ? Cast<UUniformGridPanel>(Tree->FindWidget(TEXT("SlotsGridPanel"))) : nullptr;
+	if (!Panel)
+	{
+		return false;
+	}
+	Layout = FSlotBasedInventoryWidgetInitData();
+	Layout.InventorySize = FIntPoint::ZeroValue;
+	Layout.InvCellSize = Settings.InventorySlotBasedSettings.InvCellSize;
+	Layout.SlotSpacing = Panel->GetSlotPadding();
+	for (auto* Child : Panel->GetAllChildren())
+	{
+		const auto* Cell = Cast<USlotbasedInventorySlot>(Child);
+		const auto* Slot = Cell ? Cast<UUniformGridSlot>(Cell->Slot) : nullptr;
+		if (!Slot)
+		{
+			continue;
+		}
+		FInventorySlotInfo Info;
+		Info.CellPosition = FIntPoint(Slot->GetRow(), Slot->GetColumn());
+		Info.AllowedCategory = Cell->AllowedSlotCategory;
+		Info.LinkedEquipmentSlot = Cell->LinkedEquipmentSlotTag;
+		Layout.SlotLayout.Add(Info);
+		Layout.InventorySize.X = FMath::Max(Layout.InventorySize.X, Info.CellPosition.X + 1);
+		Layout.InventorySize.Y = FMath::Max(Layout.InventorySize.Y, Info.CellPosition.Y + 1);
+	}
+	return !Layout.SlotLayout.IsEmpty();
+}
+
+int32 UInvenzayUtility::GrantStartingStack(UInventoryBase* Inventory, UObject* Item)
+{
+	if (!Inventory || !Item || Inventory->GetInventorySettings().bIsReferenceContainer)
+	{
+		return 0;
+	}
+	const int32 Requested = IObjectDataProvider::Execute_GetQuantity(Item);
+	const float Capacity = Inventory->GetInventorySettings().InventoryMaxWeightCapacity;
+	const float SingleWeight = IObjectDataProvider::Execute_GetItemSingleWeight(Item);
+	int32 Allowed = Requested;
+	if (Capacity >= 0.f && SingleWeight > 0.f)
+	{
+		Inventory->UpdateWeightInfo();
+		Allowed = FMath::Min(Requested, FMath::Max(0,
+			FMath::FloorToInt((Capacity - Inventory->GetInventoryTotalWeight() + KINDA_SMALL_NUMBER) / SingleWeight)));
+	}
+	if (Allowed <= 0)
+	{
+		return 0;
+	}
+	IObjectDataProvider::Execute_SetQuantity(Item, Allowed);
+	FItemMoveData Move;
+	Move.SourceItem = Item;
+	Move.TargetInventory = Inventory;
+	const int32 Added = FMath::Clamp(Inventory->HandleAddItem(Move).ActualAmountAdded, 0, Allowed);
+	if (Added == 0)
+	{
+		IObjectDataProvider::Execute_SetQuantity(Item, Requested);
+	}
+	return Added;
 }
 
 void UInvenzayUtility::SetupStartingResources(UObject* WorldContextObject,
@@ -220,6 +297,26 @@ AActor* UInvenzayUtility::DropItem(UWorld* World, AActor* OwnerActor, const FDat
 		return nullptr;
 	}
 
+	if (auto* Mesh = Pickup->FindComponentByClass<UStaticMeshComponent>(); Mesh && Mesh->GetStaticMesh())
+	{
+		FHitResult Ground;
+		FCollisionQueryParams Query(SCENE_QUERY_STAT(InvenzaDropGround), false, OwnerActor);
+		Query.AddIgnoredActor(Pickup);
+		const FVector Up(0.f, 0.f, Settings->DropGroundTraceHeight);
+		const FVector Down(0.f, 0.f, Settings->DropGroundTraceDepth);
+		if (!World->LineTraceSingleByChannel(Ground, SpawnLocation + Up, SpawnLocation - Down,
+			ECC_WorldStatic, Query))
+		{
+			Pickup->Destroy();
+			return nullptr;
+		}
+		// Initialization replaces the mesh and scale. Place its actual lower bound above the surface.
+		Mesh->UpdateBounds();
+		const float BottomOffset = Mesh->Bounds.Origin.Z - Mesh->Bounds.BoxExtent.Z - Pickup->GetActorLocation().Z;
+		FVector SafeLocation = Ground.ImpactPoint;
+		SafeLocation.Z += Settings->DropGroundClearance - BottomOffset;
+		Pickup->SetActorLocation(SafeLocation, false, nullptr, ETeleportType::TeleportPhysics);
+	}
 	return Pickup;
 }
 
@@ -337,5 +434,56 @@ bool UInvenzayUtility::AddItemQuantityInternal(UInventoryBase* TargetInventory, 
 		Remaining -= AddAmount;
 	}
 
+	return true;
+}
+
+void UInvenzayUtility::ApplyMaterialOverrides(UMeshComponent* Component,
+	const TArray<TObjectPtr<UMaterialInterface>>& Materials)
+{
+	if (!Component)
+	{
+		return;
+	}
+	Component->EmptyOverrideMaterials();
+	for (int32 Index = 0; Index < Materials.Num(); ++Index)
+	{
+		if (Materials[Index])
+		{
+			Component->SetMaterial(Index, Materials[Index]);
+		}
+	}
+}
+
+FInventoryPanelCanvasPlacement UInvenzayUtility::CaptureInventoryPanel(UInventoryContainerWidget* Widget)
+{
+	FInventoryPanelCanvasPlacement Placement;
+	Placement.Widget = Widget;
+	if (IsValid(Widget))
+	{
+		Placement.Visibility = Widget->GetVisibility();
+		if (auto* CanvasSlot = Cast<UCanvasPanelSlot>(Widget->Slot))
+		{
+			Placement.Parent = Cast<UCanvasPanel>(Widget->GetParent());
+			Placement.Layout = CanvasSlot->GetLayout();
+			Placement.bAutoSize = CanvasSlot->GetAutoSize();
+			Placement.ZOrder = CanvasSlot->GetZOrder();
+		}
+	}
+	return Placement;
+}
+
+bool UInvenzayUtility::RestoreInventoryPanel(const FInventoryPanelCanvasPlacement& Placement)
+{
+	if (!IsValid(Placement.Widget) || !IsValid(Placement.Parent))
+	{
+		return false;
+	}
+	Placement.Widget->RemoveFromParent();
+	auto* Restored = Placement.Parent->AddChildToCanvas(Placement.Widget);
+	Restored->SetLayout(Placement.Layout);
+	Restored->SetAutoSize(Placement.bAutoSize);
+	Restored->SetZOrder(Placement.ZOrder);
+	Placement.Widget->SetVisibility(Placement.Visibility);
+	Placement.Widget->ReDrawRequest();
 	return true;
 }

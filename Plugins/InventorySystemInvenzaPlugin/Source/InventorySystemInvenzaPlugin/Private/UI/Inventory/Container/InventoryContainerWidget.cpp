@@ -11,6 +11,8 @@
 #include "UI/Core/Buttons/UIButton.h"
 #include "UI/Core/MovableTitleBar/MovableTitleBar.h"
 #include "UI/Core/OperationsPanel/OperationPanelWidget.h"
+#include "Subsystems/ModalWindowManager.h"
+#include "Engine/LocalPlayer.h"
 #include "UI/Core/Weight/InvWeightWidget.h"
 #include "GameFramework/Pawn.h"
 #include "UI/Core/LabelBaseText.h"
@@ -292,6 +294,25 @@ void UInventoryContainerWidget::PlaceMatching()
 	}
 }
 
+void UInventoryContainerWidget::PlaceAllowed()
+{
+	if (APawn* Pawn = GetOwningPlayerPawn())
+	{
+		if (auto* Manager = Pawn->FindComponentByClass<UIInventoryManager>())
+		{
+			Manager->TransferAllowedItems(Manager->GetPawnMainInventory(), InventoryRef);
+		}
+	}
+}
+
+void UInventoryContainerWidget::ShowAdmissionRules()
+{
+	if (auto* Local = GetOwningLocalPlayer(); Local && IsValid(InventoryRef))
+	{
+		Local->GetSubsystem<UModalWindowManager>()->ShowAdmissionRules(InventoryRef);
+	}
+}
+
 void UInventoryContainerWidget::InitializeTitleBar()
 {
 	if (!IsValid(InventoryRef))
@@ -360,6 +381,14 @@ void UInventoryContainerWidget::InitializeOperations()
 		return;
 	}
 
+	if (OperationsWidget->Button_AdmissionRules && OperationsWidget->Button_AdmissionRules->MainButton)
+	{
+		OperationsWidget->Button_AdmissionRules->MainButton->OnClicked.AddUniqueDynamic(this, &ThisClass::ShowAdmissionRules);
+	}
+	if (OperationsWidget->Button_PlaceAllowed && OperationsWidget->Button_PlaceAllowed->MainButton)
+	{
+		OperationsWidget->Button_PlaceAllowed->MainButton->OnClicked.AddUniqueDynamic(this, &ThisClass::PlaceAllowed);
+	}
 	if (OperationsWidget->Button_PlaceMatching)
 	{
 		APawn* Pawn = GetOwningPlayerPawn();

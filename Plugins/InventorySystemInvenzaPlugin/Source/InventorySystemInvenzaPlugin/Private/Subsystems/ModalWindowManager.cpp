@@ -1,4 +1,4 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #include "Subsystems/ModalWindowManager.h"
 
@@ -13,6 +13,10 @@
 #include "UI/Layout/UILayer.h"
 #include "Utility/InvenzayUtility.h"
 #include "UI/Controls/ControlsHelpWidget.h"
+#include "UI/Inventory/Admission/InventoryAdmissionWidget.h"
+#include "Data/Inventory/InventoryBase.h"
+#include "Settings/InvenzaInventoryDeveloperSettings.h"
+#include "UI/Core/Modal/InventoryTakeAmountHeaderWidget.h"
 
 UModalWindowManager::UModalWindowManager()
 {
@@ -63,10 +67,27 @@ void UModalWindowManager::InitializeUI()
 	}
 
 	ModalLayoutRef->OnBackgroundClicked.AddUniqueDynamic(this, &UModalWindowManager::ForceCancelModalFlow);
+	ModalLayoutRef->OnContentRemoved.AddUniqueDynamic(this, &ThisClass::ModalContentRemoved);
+}
+
+void UModalWindowManager::ModalContentRemoved(UInvenzaBaseWidget* Widget)
+{
+	if (Widget == ControlsHelpWindow)
+	{
+		ControlsHelpWindow = nullptr;
+	}
+	if (Widget == AdmissionWindow)
+	{
+		AdmissionWindow = nullptr;
+	}
 }
 
 void UModalWindowManager::CancelModalFlowFor(const UObject* ContextObject)
 {
+	if (ContextObject && AdmissionWindow)
+	{
+		CloseAdmissionRules();
+	}
 	if (ContextObject && CachedContextObject == ContextObject)
 	{
 		CloseControlsHelp();
@@ -76,6 +97,10 @@ void UModalWindowManager::CancelModalFlowFor(const UObject* ContextObject)
 
 void UModalWindowManager::ShowControlsHelp()
 {
+	if (AdmissionWindow)
+	{
+		return;
+	}
 	if (ControlsHelpWindow)
 	{
 		CloseControlsHelp();
@@ -134,8 +159,64 @@ void UModalWindowManager::CloseControlsHelp()
 	}
 }
 
+void UModalWindowManager::ShowAdmissionRules(UInventoryBase* Inventory)
+{
+	if (!IsValid(Inventory) || AdmissionWindow || ControlsHelpWindow)
+	{
+		return;
+	}
+	if (!ModalLayoutRef)
+	{
+		InitializeUI();
+	}
+	const auto WindowClass = GetDefault<UInvenzaInventoryDeveloperSettings>()->AdmissionWindowClass;
+	if (!ModalLayoutRef || WindowClass.IsNull())
+	{
+		return;
+	}
+	if (!ModalLayoutRef->GetStack().IsEmpty())
+	{
+		ModalLayoutRef->CollapseTop();
+	}
+	AdmissionWindow = Cast<UInventoryAdmissionWidget>(ModalLayoutRef->PushContent(WindowClass));
+	if (AdmissionWindow)
+	{
+		AdmissionWindow->SetOwningPlayer(GetLocalPlayer()->GetPlayerController(GetWorld()));
+		AdmissionWindow->SetInventory(Inventory);
+		ModalLayoutRef->ShowTop();
+		AdmissionWindow->SetFocus();
+	}
+	else
+	{
+		ModalLayoutRef->ShowTop();
+	}
+}
+
+void UModalWindowManager::CloseAdmissionRules()
+{
+	if (!AdmissionWindow)
+	{
+		return;
+	}
+	AdmissionWindow->ReleaseInput();
+	AdmissionWindow = nullptr;
+	if (ModalLayoutRef)
+	{
+		ModalLayoutRef->PopContent();
+		if (!ModalLayoutRef->GetStack().IsEmpty())
+		{
+			ModalLayoutRef->ShowTop();
+		}
+	}
+}
+
 void UModalWindowManager::ForceCancelModalFlow()
 {
+	if (AdmissionWindow)
+	{
+		CloseAdmissionRules();
+		return;
+	}
 	if (ControlsHelpWindow)
 	{
 		CloseControlsHelp();
@@ -145,6 +226,7 @@ void UModalWindowManager::ForceCancelModalFlow()
 	PendingOriginalAction = FModalActionConfig();
 	CurrentStepActionsMap.Empty();
 	CachedContextObject = nullptr;
+	CachedInventoryHeader = FModalHeaderData();
 
 	if (ModalLayoutRef)
 	{
@@ -167,6 +249,8 @@ void UModalWindowManager::OpenModalFlow(UObject* InObject, FModalHeaderData Head
 {
 	CloseControlsHelp();
 	CachedContextObject = InObject;
+	CachedInventoryHeader = HeaderData;
+	PendingOriginalAction = FModalActionConfig();
 
 	FinalDelegate = OnResult;
 	PendingOriginalResult = FModalResult();
@@ -256,6 +340,18 @@ void UModalWindowManager::HandleModalResponse(FModalResult Result)
 
 	if (PendingOriginalAction.StepRequirement != EModalStepRequirement::None)
 	{
+		if (PendingOriginalResult.ResultInteractionType == EObjectInteractionType::TakeAmount &&
+			PendingOriginalAction.StepRequirement == EModalStepRequirement::RequiresAmount &&
+			Interaction == EObjectInteractionType::Yes)
+		{
+			FModalResult FinalResult = PendingOriginalResult;
+			FinalResult.HeaderResult = Result.HeaderResult;
+			if (FinalDelegate.IsBound())
+			{
+				FinalDelegate.Execute(FinalResult);
+			}
+			return;
+		}
 		const FModalResult OriginalResult = PendingOriginalResult;
 		const FModalActionConfig OriginalAction = PendingOriginalAction;
 		PendingOriginalResult = FModalResult();
@@ -330,8 +426,12 @@ void UModalWindowManager::HandleModalResponse(FModalResult Result)
 		}
 
 		FModalHeaderData HeaderData;
-
-		if (CachedContextObject->GetClass()->ImplementsInterface(UObjectDataProvider::StaticClass()))
+		if (Interaction == EObjectInteractionType::TakeAmount)
+		{
+			HeaderData.SourceInventory = CachedInventoryHeader.SourceInventory;
+			HeaderData.ContextItem = CachedContextObject;
+		}
+		else if (CachedContextObject->GetClass()->ImplementsInterface(UObjectDataProvider::StaticClass()))
 		{
 			FVector2D MinMax = IObjectDataProvider::Execute_GetMinMaxSplit(CachedContextObject);
 			HeaderData.MinValue = MinMax[0];
@@ -352,6 +452,10 @@ void UModalWindowManager::HandleModalResponse(FModalResult Result)
 		DummyActions.Add(EObjectInteractionType::No, FModalActionConfig());
 
 		HeaderData.HeaderType = EModalHeaderType::TextWithAmountSelection;
+		if (Interaction == EObjectInteractionType::TakeAmount)
+		{
+			HeaderData.HeaderType = EModalHeaderType::InventoryTakeAmount;
+		}
 		HeaderData.Title = ActionData->HeaderText;
 
 		ShowModalStep(HeaderData, EModalFooterType::Binary, DummyActions);
@@ -367,8 +471,45 @@ void UModalWindowManager::HandleModalResponse(FModalResult Result)
 	}
 }
 
+void UModalWindowManager::SetTakeAmountSubmitting()
+{
+	UModalDialogBase* Dialog = ModalLayoutRef ? Cast<UModalDialogBase>(ModalLayoutRef->Peek()) : nullptr;
+	UInventoryTakeAmountHeaderWidget* Header = Dialog && Dialog->Upper_Slot ?
+		Cast<UInventoryTakeAmountHeaderWidget>(Dialog->Upper_Slot->GetContent()) : nullptr;
+	if (Header)
+	{
+		Header->SetSubmitting();
+	}
+}
+
+void UModalWindowManager::CompleteTakeAmountStep(bool bSuccess, const FText& Message, int32 SourceQuantity,
+	int32 AvailableAmount)
+{
+	if (PendingOriginalResult.ResultInteractionType != EObjectInteractionType::TakeAmount)
+	{
+		return;
+	}
+	if (bSuccess)
+	{
+		ForceCancelModalFlow();
+		return;
+	}
+	UModalDialogBase* Dialog = ModalLayoutRef ? Cast<UModalDialogBase>(ModalLayoutRef->Peek()) : nullptr;
+	UInventoryTakeAmountHeaderWidget* Header = Dialog && Dialog->Upper_Slot ?
+		Cast<UInventoryTakeAmountHeaderWidget>(Dialog->Upper_Slot->GetContent()) : nullptr;
+	if (Header)
+	{
+		Header->SetServerFeedback(Message, SourceQuantity, AvailableAmount);
+	}
+}
+
 void UModalWindowManager::ClearModalWindows()
 {
+	if (AdmissionWindow)
+	{
+		AdmissionWindow->ReleaseInput();
+	}
+	AdmissionWindow = nullptr;
 	if (ControlsHelpWindow)
 	{
 		ControlsHelpWindow->ReleaseInput();

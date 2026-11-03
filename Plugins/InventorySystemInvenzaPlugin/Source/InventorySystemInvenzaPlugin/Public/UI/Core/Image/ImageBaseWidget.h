@@ -70,6 +70,7 @@ protected:
 	TObjectPtr<UMaterialInstanceDynamic> DynamicMaterial;
 
 	// Functions
+	virtual void RefreshThemeAppearance() override;
 	UFUNCTION()
 	void EnsureDynamicMaterial();
 };

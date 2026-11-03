@@ -15,6 +15,8 @@
  */
 
 class UPrimaryLayout;
+class UInventoryAdmissionWidget;
+class UInventoryBase;
 
 UCLASS(Blueprintable)
 class INVENTORYSYSTEMINVENZAPLUGIN_API UModalWindowManager : public ULocalPlayerSubsystem
@@ -49,8 +51,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Modal|Controls Help")
 	void CloseControlsHelp();
 
+	void ShowAdmissionRules(UInventoryBase* Inventory);
+	void CloseAdmissionRules();
+	UInventoryAdmissionWidget* GetAdmissionWindow() const { return AdmissionWindow; }
+
 	UFUNCTION(BlueprintPure, Category = "Modal|Controls Help")
 	bool IsControlsHelpOpen() const { return ControlsHelpWindow != nullptr; }
+
+	void CompleteTakeAmountStep(bool bSuccess, const FText& Message, int32 SourceQuantity, int32 AvailableAmount);
+	void SetTakeAmountSubmitting();
 
 	/**
 	* Creates a modal window using the type configured in global settings.
@@ -68,8 +77,14 @@ protected:
 	UPROPERTY(Transient)
 	TObjectPtr<UControlsHelpWidget> ControlsHelpWindow;
 
+	UPROPERTY(Transient)
+	TObjectPtr<UInventoryAdmissionWidget> AdmissionWindow;
+
 	UPROPERTY()
 	TObjectPtr<UObject> CachedContextObject;
+
+	UPROPERTY(Transient)
+	FModalHeaderData CachedInventoryHeader;
 
 	UPROPERTY()
 	FModalResult PendingOriginalResult;
@@ -93,6 +108,9 @@ protected:
 	// Functions
 	UFUNCTION()
 	void HandleModalResponse(FModalResult Result);
+
+	UFUNCTION()
+	void ModalContentRemoved(UInvenzaBaseWidget* Widget);
 
 	void ClearModalWindows();
 

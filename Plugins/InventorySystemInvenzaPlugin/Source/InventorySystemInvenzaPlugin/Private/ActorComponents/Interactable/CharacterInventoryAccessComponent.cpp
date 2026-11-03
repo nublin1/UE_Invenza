@@ -2,6 +2,10 @@
 
 #include "ActorComponents/Interactable/CharacterInventoryAccessComponent.h"
 #include "ActorComponents/InteractionComponent.h"
+#include "ActorComponents/InventoryCollectionComponent.h"
+#include "ActorComponents/UIInventoryManager.h"
+#include "Data/Items/itemBase.h"
+#include "World/PortableInventoryState.h"
 #include "Blueprint/WidgetBlueprintGeneratedClass.h"
 #include "Blueprint/WidgetTree.h"
 #include "Components/UniformGridPanel.h"
@@ -36,6 +40,10 @@ bool UCharacterInventoryAccessComponent::ContainsInventory(UInventoryBase* Inven
 	{
 		return false;
 	}
+	if (bUsePortableBackpacks && Inventory == MainLootInventory)
+	{
+		return true;
+	}
 	auto* Collection = Inventory->GetItemCollectionLinked();
 	return IsValid(GetOwner()) && !GetOwner()->IsActorBeingDestroyed() && Collection &&
 		   Inventory->GetInventoryOwnerActor() == GetOwner() && Collection->GetOwner() == GetOwner() &&
@@ -68,6 +76,29 @@ void UCharacterInventoryAccessComponent::EndAccess(AActor* Interactor)
 
 void UCharacterInventoryAccessComponent::InitializeInteractionComponent()
 {
+	if (auto* Manager = GetOwner()->FindComponentByClass<UIInventoryManager>())
+	{
+		// A managed character has one inventory creator. This component only exposes access.
+		UInteractableComponent::InitializeInteractionComponent();
+		ItemCollectionRef = GetOwner()->FindComponentByClass<UInventoryCollectionComponent>();
+		if (const auto* Settings = UInvenzayUtility::GetInvenzaGlobalSettings(this))
+		{
+			MainLootContainerInvTag = Settings->MainInvTag;
+			EquipmentInventoryTag = Settings->EquipmentInvTag;
+		}
+		UpdateInteractableData();
+		if (GetOwner()->HasAuthority())
+		{
+			Manager->OnInitializationCompleteDelegate.AddUniqueDynamic(this, &ThisClass::RefreshManagedInventories);
+			if (auto* Equipment = GetOwner()->FindComponentByClass<UEquipmentComponent>())
+			{
+				Equipment->OnEquippedItem.AddUniqueDynamic(this, &ThisClass::RefreshPortableBackpackAccess);
+				Equipment->OnUnequippedItem.AddUniqueDynamic(this, &ThisClass::RefreshPortableBackpackAccess);
+			}
+			RefreshManagedInventories();
+		}
+		return;
+	}
 	if (GetOwner()->HasAuthority() && bCreateDefaultInventories && StartupInventories.IsEmpty())
 	{
 		const auto* Settings = UInvenzayUtility::GetInvenzaGlobalSettings(this);
@@ -85,7 +116,10 @@ void UCharacterInventoryAccessComponent::InitializeInteractionComponent()
 		Bag.Settings.InventoryTag = MainLootContainerInvTag;
 		Bag.StartItems = BagStartingItems;
 		Bag.Settings.ContainerTitle = Defaults->GetText(TEXT("Invenza.CharacterBag"));
-		StartupInventories.Add(Bag);
+		if (!bUsePortableBackpacks)
+		{
+			StartupInventories.Add(Bag);
+		}
 		FInventoryStartupData Gear;
 		Gear.Settings = Defaults->CharacterEquipmentTemplate.ResolveSettings();
 		Gear.Settings.InventoryTag = EquipmentInventoryTag;
@@ -101,6 +135,14 @@ void UCharacterInventoryAccessComponent::InitializeInteractionComponent()
 		return;
 	}
 	EquipmentInventory = ItemCollectionRef->GetInventoryByTag(EquipmentInventoryTag);
+	if (bUsePortableBackpacks)
+	{
+		if (auto* Equipment = GetOwner()->FindComponentByClass<UEquipmentComponent>())
+		{
+			Equipment->OnEquippedItem.AddUniqueDynamic(this, &ThisClass::RefreshPortableBackpackAccess);
+			Equipment->OnUnequippedItem.AddUniqueDynamic(this, &ThisClass::RefreshPortableBackpackAccess);
+		}
+	}
 	if (bCreateDefaultInventories && EquipmentInventory)
 	{
 		auto* Grid = Cast<USlotbasedInventory>(EquipmentInventory);
@@ -174,5 +216,45 @@ void UCharacterInventoryAccessComponent::InitializeInteractionComponent()
 			ValidSlots.SetNum(Definitions.Num());
 			Grid->SetInventorySlots(ValidSlots);
 		}
+	}
+}
+
+
+void UCharacterInventoryAccessComponent::RefreshPortableBackpackAccess(FGameplayTag Slot, UObject* Item)
+{
+	if (!bUsePortableBackpacks || !GetOwner()->HasAuthority())
+	{
+		return;
+	}
+	MainLootInventory = nullptr;
+	if (auto* Equipment = GetOwner()->FindComponentByClass<UEquipmentComponent>())
+	{
+		for (const auto& Equipped : Equipment->GetEquipmentSlotsArray())
+		{
+			if (auto* Portable = Cast<UItemBase>(Equipped.EquippedItem); Portable && Portable->IsPortableInventory())
+			{
+				auto* State = Portable->GetPortableState();
+				MainLootInventory = State ? State->GetInventory() : nullptr;
+			}
+		}
+	}
+	OnRep_MainLootInventory();
+}
+
+void UCharacterInventoryAccessComponent::RefreshManagedInventories()
+{
+	if (!GetOwner()->HasAuthority() || !ItemCollectionRef)
+	{
+		return;
+	}
+	EquipmentInventory = ItemCollectionRef->GetInventoryByTag(EquipmentInventoryTag);
+	if (bUsePortableBackpacks)
+	{
+		RefreshPortableBackpackAccess(FGameplayTag(), nullptr);
+	}
+	else
+	{
+		MainLootInventory = ItemCollectionRef->GetInventoryByTag(MainLootContainerInvTag);
+		OnRep_MainLootInventory();
 	}
 }

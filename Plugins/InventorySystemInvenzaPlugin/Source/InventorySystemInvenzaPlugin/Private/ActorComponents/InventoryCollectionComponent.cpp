@@ -13,6 +13,9 @@
 #include "Data/Inventory/SlotBasedInv/SlotbasedInventory.h"
 #include "Data/Settings/InvenzaInventorySettingsAsset.h"
 #include "Engine/ActorChannel.h"
+#include "Engine/NetConnection.h"
+#include "GameFramework/PlayerController.h"
+#include "World/PortableInventoryState.h"
 #include "Factory/ItemFactory.h"
 #include "Net/UnrealNetwork.h"
 #include "Subsystems/InvenzaInventorySettingsSubsystem.h"
@@ -211,6 +214,10 @@ UInventoryBase* UInventoryCollectionComponent::GetInventoryByID(FString Containe
 
 void UInventoryCollectionComponent::AddPawnInventory_Internal(UInventoryBase* InInventory)
 {
+	if (!IsValid(InInventory) || ActorInventories.Contains(InInventory))
+	{
+		return;
+	}
 	ActorInventories.Add(InInventory);
 	OnActorInventoriesChanged.Broadcast();
 }
@@ -223,6 +230,11 @@ void UInventoryCollectionComponent::RegisterContainerWidget(UInventoryBase* Inve
 		return;
 	}
 
+	if (auto* Existing = GetContainerWidget(Inventory); IsValid(Existing) && Existing != Widget)
+	{
+		Existing->RemoveFromParent();
+		Existing->ReleaseInventory();
+	}
 	InventoryContainerWidgetMap.Add(Inventory, Widget);
 
 	auto InvCollection = Inventory->GetItemCollectionLinked();
@@ -295,6 +307,12 @@ void UInventoryCollectionComponent::MarkItemAsDirty(UObject* Item)
 
 float UInventoryCollectionComponent::CalculateAvailableMoney()
 {
+	if (InventoryArray.OwningManager && InventoryArray.OwningManager->bUsePortableBackpacks)
+	{
+		auto* Bag = InventoryArray.OwningManager->GetPawnMainInventory();
+		auto* BagCollection = Bag ? Bag->GetItemCollectionLinked() : nullptr;
+		return BagCollection && BagCollection != this ? BagCollection->CalculateAvailableMoney() : 0.f;
+	}
 	float AvailableMoney = 0.0f;
 
 	const auto* MySettings = UInvenzaInventorySettingsSubsystem::GetSettingsStatic(this);
@@ -604,6 +622,17 @@ FItemMapping UInventoryCollectionComponent::AddItem(UObject* NewItem, const FIte
 		return FItemMapping();
 	}
 
+	if (!ItemMapping.bIsReferenceContainer)
+	{
+		if (auto* PortableItem = Cast<UItemBase>(NewItem); PortableItem && PortableItem->IsPortableInventory())
+		{
+			if (auto* State = PortableItem->EnsurePortableState())
+			{
+				State->SetCarrier(GetOwner());
+			}
+			PortableItem->RefreshPortableSummary();
+		}
+	}
 	FInventoryEntry* FoundEntry = InventoryArray.Items.FindByPredicate(
 		[NewItem](const FInventoryEntry& Entry)
 		{
@@ -787,6 +816,15 @@ FItemMapping* UInventoryCollectionComponent::FindMainInventoryMappingForItem(UOb
 		}
 	}
 
+	if (InventoryArray.OwningManager && InventoryArray.OwningManager->bUsePortableBackpacks)
+	{
+		auto* Bag = InventoryArray.OwningManager->GetPawnMainInventory();
+		auto* Collection = Bag ? Bag->GetItemCollectionLinked() : nullptr;
+		if (Collection && Collection != this)
+		{
+			return Collection->FindMainInventoryMappingForItem(Item);
+		}
+	}
 	return nullptr;
 }
 
@@ -1179,6 +1217,11 @@ FItemMapping* UInventoryCollectionComponent::GetMappingMutable(UObject* Item, co
 bool UInventoryCollectionComponent::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch,
 														FReplicationFlags* RepFlags)
 {
+	if (const auto* Portable = Cast<APortableInventoryState>(GetOwner());
+		Portable && !Portable->CanReplicateTo(Channel->Connection->PlayerController))
+	{
+		return false;
+	}
 	NormalizeLinkedStorageItemOwnership();
 	bool WroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
 
@@ -1193,8 +1236,22 @@ bool UInventoryCollectionComponent::ReplicateSubobjects(UActorChannel* Channel, 
 
 	for (const FInventoryEntry& Entry : InventoryArray.Items)
 	{
+		// UI aliases (for example, hotbar references into a private bag) do not grant observation.
+		// Publicly equipped items retain their normal equipment-component replication.
+		if (!RepFlags->bNetOwner && !Entry.Locations.Mappings.ContainsByPredicate(
+			[](const FItemMapping& Mapping)
+			{
+				return !Mapping.bIsReferenceContainer;
+			}))
+		{
+			continue;
+		}
 		if (IsValid(Entry.Item))
 		{
+			if (auto* Item = Cast<UItemBase>(Entry.Item))
+			{
+				Item->RefreshPortableSummary();
+			}
 			WroteSomething |= Channel->ReplicateSubobject(Entry.Item, *Bunch, *RepFlags);
 		}
 	}
@@ -1203,6 +1260,11 @@ bool UInventoryCollectionComponent::ReplicateSubobjects(UActorChannel* Channel, 
 	{
 		if (IsValid(Inventory))
 		{
+			if (const auto* Portable = Cast<APortableInventoryState>(Inventory->GetInventoryOwnerActor());
+				Portable && !Portable->CanReplicateTo(Channel->Connection->PlayerController))
+			{
+				return;
+			}
 			WroteSomething |= Channel->ReplicateSubobject(Inventory, *Bunch, *RepFlags);
 			WroteSomething |= Inventory->ReplicateSubobjects(Channel, Bunch, RepFlags);
 		}

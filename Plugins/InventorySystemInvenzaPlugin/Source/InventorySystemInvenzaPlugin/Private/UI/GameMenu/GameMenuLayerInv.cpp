@@ -1,11 +1,13 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #include "UI/GameMenu/GameMenuLayerInv.h"
 #include "Engine/GameViewportClient.h"
 #include "GameFramework/Pawn.h"
 #include "Engine/Engine.h"
+#include "Utility/InvenzayUtility.h"
 
 #include "ActorComponents/UIInventoryManager.h"
+#include "ActorComponents/InventoryCollectionComponent.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Components/NamedSlot.h"
 #include "Components/PanelWidget.h"
@@ -27,6 +29,41 @@ UGameMenuLayerInv::UGameMenuLayerInv()
 {
 }
 
+void UGameMenuLayerInv::OnRemovedFromLayer_Implementation()
+{
+	APawn* Pawn = GetOwningPlayerPawn();
+	if (GetWorld() && !GetWorld()->bIsTearingDown && IsValid(Pawn) && !Pawn->IsActorBeingDestroyed())
+	{
+		if (auto* Manager = Pawn->FindComponentByClass<UIInventoryManager>())
+		{
+			Manager->RequestCloseSecondaryInventory();
+			Manager->CloseStorageAccess();
+			Manager->CloseCharacterInventory();
+		}
+		CloseCraftMenu();
+	}
+	if (IsValid(Pawn))
+	{
+		if (auto* Collection = Pawn->FindComponentByClass<UInventoryCollectionComponent>())
+		{
+			for (auto* Container : GetAllPawnInvContainers())
+			{
+				auto* InventoryWidget = Container->GetInventoryWidgetFromContainerSlot();
+				auto* Inventory = InventoryWidget ? InventoryWidget->GetInventoryRef() : nullptr;
+				if (Inventory && Collection->GetContainerWidget(Inventory) == Container)
+				{
+					Collection->UnregisterContainerWidget(Inventory);
+					Container->ReleaseInventory();
+				}
+			}
+		}
+	}
+	bInventoryOpen = false;
+	bCraftMenuOpen = false;
+	UpdateInputMode();
+	Super::OnRemovedFromLayer_Implementation();
+}
+
 bool UGameMenuLayerInv::AttachStorageWindow(UUserWidget* Window)
 {
 	if (!IsValid(Window))
@@ -38,6 +75,7 @@ bool UGameMenuLayerInv::AttachStorageWindow(UUserWidget* Window)
 		auto* WindowSlot = Overlay->AddChildToOverlay(Window);
 		WindowSlot->SetHorizontalAlignment(HAlign_Fill);
 		WindowSlot->SetVerticalAlignment(VAlign_Fill);
+		NotifyDiagnosticsChanged();
 		return true;
 	}
 	return false;
@@ -135,12 +173,12 @@ UPanelSlot* UGameMenuLayerInv::AddPawnInvContainerWidget(UInventoryContainerWidg
 	InvWidget->ReDrawAllItems();
 	EInventoryType Type = InvSettings.InventoryType;
 
-	if (InventoryDefaultPositions.Contains(Type))
+	if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(InvContainerSlot))
 	{
-		if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(InvContainerSlot))
+		CanvasSlot->SetAutoSize(true);
+		CanvasSlot->SetSize(FVector2D::ZeroVector);
+		if (InventoryDefaultPositions.Contains(Type))
 		{
-			CanvasSlot->SetAutoSize(true);
-			CanvasSlot->SetSize(FVector2D(0, 0));
 			FVector2D NormalizedPos = InventoryDefaultPositions[Type];
 
 			FVector2D ViewportSize;
@@ -152,7 +190,7 @@ UPanelSlot* UGameMenuLayerInv::AddPawnInvContainerWidget(UInventoryContainerWidg
 		}
 	}
 
-	if (InvSettings.bIsAlwaysVisible)
+	if (InvSettings.bIsAlwaysVisible || bInventoryOpen)
 	{
 		InvContainerWidgetToAdd->SetVisibility(ESlateVisibility::Visible);
 	}
@@ -161,6 +199,7 @@ UPanelSlot* UGameMenuLayerInv::AddPawnInvContainerWidget(UInventoryContainerWidg
 		InvContainerWidgetToAdd->SetVisibility(ESlateVisibility::Collapsed);
 	}
 
+	NotifyDiagnosticsChanged();
 	return InvContainerSlot;
 }
 
@@ -179,40 +218,101 @@ void UGameMenuLayerInv::RemovePawnInvContainer(UInventoryContainerWidget* InvCon
 			break;
 		}
 	}
+	NotifyDiagnosticsChanged();
 }
 
 void UGameMenuLayerInv::OpenDualInventoryView(UInventoryContainerWidget* ExternalContainerWidget,
 											  UInventoryContainerWidget* PlayerInventoryToShow)
 {
-	if (!DualInventoryWidget || !ExternalContainerWidget || !PlayerInventoryToShow)
+	TArray<UInventoryContainerWidget*> Containers;
+	if (PlayerInventoryToShow)
+	{
+		Containers.Add(PlayerInventoryToShow);
+	}
+	OpenInventoryInteractionView(ExternalContainerWidget, Containers);
+}
+
+void UGameMenuLayerInv::ReturnInteractionPanels()
+{
+	auto* Pawn = GetOwningPlayerPawn();
+	auto* Manager = Pawn ? Pawn->FindComponentByClass<UIInventoryManager>() : nullptr;
+	const auto Accessible = Manager ? Manager->GetInteractionInventories() : TArray<UInventoryBase*>();
+	for (const auto& Placement : BorrowedPlayerPlacements)
+	{
+		auto* Widget = Placement.Widget.Get();
+		if (!IsValid(Widget))
+		{
+			continue;
+		}
+		Widget->OnClose.RemoveDynamic(this, &ThisClass::InteractionPanelClosed);
+		Widget->RemoveFromParent();
+		auto* InvWidget = Widget->GetInventoryWidgetFromContainerSlot();
+		if (!InvWidget || !Accessible.Contains(InvWidget->GetInventoryRef()))
+		{
+			continue;
+		}
+		if (!UInvenzayUtility::RestoreInventoryPanel(Placement))
+		{
+			AddPawnInvContainerWidget(Widget);
+			Widget->SetVisibility(Placement.Visibility);
+		}
+	}
+	BorrowedPlayerPlacements.Reset();
+}
+
+void UGameMenuLayerInv::OpenInventoryInteractionView(UInventoryContainerWidget* ExternalContainerWidget,
+	const TArray<UInventoryContainerWidget*>& PlayerInventories)
+{
+	if (!DualInventoryWidget || !ExternalContainerWidget)
 	{
 		return;
 	}
-
-	BorrowedPlayerContainer = PlayerInventoryToShow;
-	DualInventoryWidget->SetRightInventoryContainer(PlayerInventoryToShow);
-
+	if (!CurrentExternalContainer)
+	{
+		bInventoryOpenBeforeInteraction = bInventoryOpen;
+	}
+	ReturnInteractionPanels();
+	if (CurrentExternalContainer)
+	{
+		CurrentExternalContainer->OnClose.RemoveDynamic(this, &ThisClass::InteractionPanelClosed);
+	}
+	DualInventoryWidget->ClearAll();
+	for (auto* Container : PlayerInventories)
+	{
+		if (IsValid(Container) && Container != ExternalContainerWidget &&
+			!BorrowedPlayerPlacements.ContainsByPredicate([Container](const auto& Entry)
+			{
+				return Entry.Widget == Container;
+			}))
+		{
+			Container->OnClose.AddUniqueDynamic(this, &ThisClass::InteractionPanelClosed);
+			BorrowedPlayerPlacements.Add(UInvenzayUtility::CaptureInventoryPanel(Container));
+			Container->SetVisibility(ESlateVisibility::Visible);
+		}
+	}
 	CurrentExternalContainer = ExternalContainerWidget;
+	ExternalContainerWidget->OnClose.AddUniqueDynamic(this, &ThisClass::InteractionPanelClosed);
 	DualInventoryWidget->SetLeftInventoryContainer(ExternalContainerWidget);
-
+	DualInventoryWidget->SetPlayerInventories(PlayerInventories);
+	ExternalContainerWidget->SetVisibility(ESlateVisibility::Visible);
 	DualInventoryWidget->ApplyCornerAlignment();
-
 	DualInventoryWidget->SetVisibility(ESlateVisibility::Visible);
 	if (WorldDropZone)
 	{
 		WorldDropZone->SetVisibility(ESlateVisibility::Visible);
 	}
-
 	bInventoryOpen = true;
 	UpdateInputMode();
 }
 
 void UGameMenuLayerInv::CloseDualInventoryView()
 {
-	if (!DualInventoryWidget)
+	if (!DualInventoryWidget || !CurrentExternalContainer)
 	{
 		return;
 	}
+	auto* External = CurrentExternalContainer.Get();
+	CurrentExternalContainer = nullptr;
 	if (APawn* Pawn = GetOwningPlayerPawn())
 	{
 		if (UIInventoryManager* Manager = Pawn->FindComponentByClass<UIInventoryManager>())
@@ -220,23 +320,15 @@ void UGameMenuLayerInv::CloseDualInventoryView()
 			Manager->CloseTradeSession();
 		}
 	}
-
-	if (BorrowedPlayerContainer)
-	{
-		AddPawnInvContainerWidget(BorrowedPlayerContainer);
-		BorrowedPlayerContainer = nullptr;
-	}
-
-	if (CurrentExternalContainer)
-	{
-		CurrentExternalContainer->RemoveFromParent();
-		CurrentExternalContainer = nullptr;
-	}
-
+	bInventoryOpen = bInventoryOpenBeforeInteraction;
+	ReturnInteractionPanels();
+	External->OnClose.RemoveDynamic(this, &ThisClass::InteractionPanelClosed);
 	DualInventoryWidget->ClearAll();
 	DualInventoryWidget->SetVisibility(ESlateVisibility::Collapsed);
-
-	bInventoryOpen = false;
+	if (WorldDropZone)
+	{
+		WorldDropZone->SetVisibility(bInventoryOpen ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+	}
 	UpdateInputMode();
 }
 
@@ -248,6 +340,7 @@ void UGameMenuLayerInv::OpenNestedInventory(UObject* Key, UInventoryContainerWid
 		return;
 	}
 	DualInventoryWidget->AddFloatingInventory(Key, ContainerWidget, ScreenPosition);
+	NotifyDiagnosticsChanged();
 }
 
 void UGameMenuLayerInv::CloseNestedInventory(UObject* Key)
@@ -257,6 +350,7 @@ void UGameMenuLayerInv::CloseNestedInventory(UObject* Key)
 		return;
 	}
 	DualInventoryWidget->RemoveFloatingInventory(Key);
+	NotifyDiagnosticsChanged();
 }
 
 void UGameMenuLayerInv::ToggleInventoryLayout()
@@ -266,6 +360,17 @@ void UGameMenuLayerInv::ToggleInventoryLayout()
 		return;
 	}
 
+	if (CurrentExternalContainer)
+	{
+		if (auto* Pawn = GetOwningPlayerPawn())
+		{
+			if (auto* Manager = Pawn->FindComponentByClass<UIInventoryManager>())
+			{
+				Manager->RequestCloseSecondaryInventory();
+			}
+		}
+		return;
+	}
 	bInventoryOpen = !bInventoryOpen;
 
 	const auto Containers = GetAllPawnInvContainers();
@@ -355,6 +460,7 @@ UPanelSlot* UGameMenuLayerInv::AddPawnCraftDashboardWidget(UInvenzaBaseWidget* W
 		CanvasSlot->SetSize(FVector2D(0, 0));
 	}
 
+	NotifyDiagnosticsChanged();
 	return CraftSlot;
 }
 
@@ -476,6 +582,7 @@ void UGameMenuLayerInv::SetCraftMenuState(ECraftMenuState NewState)
 
 void UGameMenuLayerInv::UpdateInputMode()
 {
+	NotifyDiagnosticsChanged();
 	if (ULocalPlayer* LocalPlayer = GetOwningLocalPlayer())
 	{
 		UUIInputModeSubsystem* Input = LocalPlayer->GetSubsystem<UUIInputModeSubsystem>();
@@ -509,4 +616,32 @@ bool UGameMenuLayerInv::NativeOnDrop(const FGeometry& InGeometry, const FDragDro
 	}
 
 	return false;
+}
+
+void UGameMenuLayerInv::InteractionPanelClosed(UInvenzaBaseWidget* Widget)
+{
+	if (auto* Pawn = GetOwningPlayerPawn())
+	{
+		if (auto* Manager = Pawn->FindComponentByClass<UIInventoryManager>())
+		{
+			Manager->RequestCloseSecondaryInventory();
+		}
+	}
+}
+
+void UGameMenuLayerInv::RefreshInteractionInventories(const TArray<UInventoryContainerWidget*>& PlayerInventories)
+{
+	if (!CurrentExternalContainer)
+	{
+		return;
+	}
+	bool bSame = PlayerInventories.Num() == BorrowedPlayerPlacements.Num();
+	for (int32 Index = 0; bSame && Index < PlayerInventories.Num(); ++Index)
+	{
+		bSame = PlayerInventories[Index] == BorrowedPlayerPlacements[Index].Widget;
+	}
+	if (!bSame)
+	{
+		OpenInventoryInteractionView(CurrentExternalContainer, PlayerInventories);
+	}
 }

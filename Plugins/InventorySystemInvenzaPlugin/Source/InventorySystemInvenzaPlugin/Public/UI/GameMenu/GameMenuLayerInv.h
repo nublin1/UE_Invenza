@@ -67,6 +67,10 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|UI")
 	virtual void CloseDualInventoryView() override;
+	virtual void RefreshInteractionInventories(const TArray<UInventoryContainerWidget*>& PlayerInventories) override;
+
+	virtual void OpenInventoryInteractionView(UInventoryContainerWidget* ExternalContainerWidget,
+		const TArray<UInventoryContainerWidget*>& PlayerInventories) override;
 
 	// Forward nested inventories, such as a bag inside a chest, to the floating layer.
 	UFUNCTION(BlueprintCallable, Category = "Inventory|UI")
@@ -123,12 +127,21 @@ protected:
 	ECraftMenuState CraftMenuState = ECraftMenuState::Dashboard;
 
 	UPROPERTY()
-	TObjectPtr<UInventoryContainerWidget> BorrowedPlayerContainer;
+	TArray<FInventoryPanelCanvasPlacement> BorrowedPlayerPlacements;
+
+	bool bInventoryOpenBeforeInteraction = false;
 
 	UPROPERTY()
 	TObjectPtr<UInventoryContainerWidget> CurrentExternalContainer;
 
 	// Functions
+	virtual void OnRemovedFromLayer_Implementation() override;
+
+	void ReturnInteractionPanels();
+
+	UFUNCTION()
+	void InteractionPanelClosed(UInvenzaBaseWidget* Widget);
+
 	UFUNCTION()
 	void HandleCraftMenuSwap(UUIButton* UIButton);
 

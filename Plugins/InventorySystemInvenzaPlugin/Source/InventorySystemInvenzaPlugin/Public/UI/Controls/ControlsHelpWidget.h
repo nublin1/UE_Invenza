@@ -66,6 +66,7 @@ protected:
 	// Runtime
 
 	// Functions
+	virtual void RefreshThemeAppearance() override;
 	UFUNCTION()
 	void HandleOK(UUIButton* Button);
 };

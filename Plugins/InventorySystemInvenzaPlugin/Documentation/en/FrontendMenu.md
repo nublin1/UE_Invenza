@@ -10,6 +10,8 @@ Map: `/Game/Frontend/Maps/L_MainMenu`, assigned as `GameDefaultMap`. The editor 
 
 Assets are in `Content/Frontend`. Edit `WBP_FrontendMenu`, `WBP_MenuButton`, `WBP_ServerRow` in UMG Designer. Screens derive from `UInvenzaBaseWidget`, buttons from `UUIButton`, and labels use `ULabelBaseText`. Original shared plugin Widget Blueprints were not changed for this frontend.
 
+During play, `UFrontendMenuSubsystem` uses the same registered `MenuLayer` as the startup map. Opening and closing go through the stack API rather than a direct `AddToViewport`. See [Primary Layout](UILayout.md) for layer registration and debugger indicators.
+
 ## Graphics and audio
 
 `UInvenzaGameUserSettings` stores resolution, display mode, VSync, FPS, quality preset, and three volume levels in the user's `GameUserSettings.ini`. Resolution/mode changes require confirmation within 15 seconds; cancel/timeout restores saved settings. Defaults changes the form first; apply to commit.
@@ -27,7 +29,7 @@ The default uses `OnlineSubsystemNull` and `IpNetDriver`, without Steam login. F
 
 First window: Network game → name/player count → Create and play. Second: Find/Refresh → select the session, or connect to `127.0.0.1:7777`. From another LAN computer, use the host's IPv4 address. Allow local network traffic through Windows Firewall; discovery uses UDP broadcast.
 
-The host opens `Map_Ex?listen`. Press **M** to open the common menu during standalone or network play. **M**, **Escape**, or Continue closes it. No persistent session-bar widget is created. Continue game closes it; Main menu ends the session with saving. Function keys are not assigned for menu entry, save/load, or exit. A disconnect returns clients to the menu with a message. `UInvenzaSessionsSubsystem` retains operation state across map travel.
+The host opens `Map_Ex?listen`. Press **M** to open the common menu during standalone or network play. **M**, **Escape**, or Continue closes it. No persistent session-bar widget is created. Continue game closes it; Main menu ends the session without automatic saving. Function keys are not assigned for menu entry, save/load, or exit. A disconnect returns clients to the menu with a message. `UInvenzaSessionsSubsystem` retains operation state across map travel.
 
 For inventory network development, PIE with two players, New Editor Window, Play As Listen Server connects players automatically; it does not test the session browser.
 
@@ -72,3 +74,11 @@ Saving is disabled in the startup menu; loading opens the selected gameplay save
 Checks after page separation: `Invenza.Frontend.MenuFlow`, `Invenza.Inventory.MenuLoad`. Page structure is authored outside C++.
 
 The automated test sources mentioned in historical notes were removed at the owner's request. They are not part of the current source distribution. Follow the manual scenarios instead.
+
+## New game and manual saves
+
+New game sits alongside Save and Load. Confirmation starts the configured `PlayWorld` with a fresh player and starter items, bypassing the previous automatic load once. During play it restarts the world; a network client cannot restart the server. Existing manual slots are retained. Escape or Cancel returns without restarting.
+
+`Invenza Save System` defaults to `bAutoSave=False` and `bSaveOnExit=False`. Saves require an explicit user command. Quitting, leaving for the menu and world teardown create no Exit/Shutdown files. Exit waits for an already running manual write. Continue and the normal load list use Quick/Manual1–3 in this mode, so older automatic files cannot supersede manual saves. `bAutoLoad` independently controls loading the latest manual save.
+
+The older destructive `ResetPlaythrough()` remains separate. The new button calls `StartNewGame(World)` without deleting slots.

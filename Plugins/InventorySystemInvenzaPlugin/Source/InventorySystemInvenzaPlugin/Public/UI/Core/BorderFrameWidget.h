@@ -56,4 +56,7 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Right Border")
 	FBorderFrameStyle RightBorderStyle;
+
+	// Functions
+	virtual void RefreshThemeAppearance() override;
 };

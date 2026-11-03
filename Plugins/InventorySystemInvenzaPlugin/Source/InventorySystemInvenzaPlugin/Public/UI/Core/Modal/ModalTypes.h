@@ -7,12 +7,16 @@
 #include "GameplayTagContainer.h"
 #include "ModalTypes.generated.h"
 
+class UInventoryBase;
+class UUIButton;
+
 UENUM(BlueprintType)
 enum class EModalHeaderType : uint8
 {
 	None,
 	SimpleText,
-	TextWithAmountSelection
+	TextWithAmountSelection,
+	InventoryTakeAmount
 };
 
 UENUM(BlueprintType)
@@ -22,7 +26,8 @@ enum class EModalFooterType : uint8
 	Notification, // OK
 	Binary,
 	Confirmation, // Yes / No / Cancel
-	Selection	  // A list of choices.
+	Selection,
+	InventorySelection
 };
 
 UENUM(BlueprintType)
@@ -48,7 +53,8 @@ enum class EObjectInteractionType : uint8
 	Equip,
 	UnEquip,
 	Sell,
-	Buy
+	Buy,
+	TakeAmount
 };
 
 UENUM(BlueprintType)
@@ -84,6 +90,10 @@ struct INVENTORYSYSTEMINVENZAPLUGIN_API FModalAction
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Modal")
 	TObjectPtr<UTexture2D> Icon = nullptr;
+
+	/** Optional authored variant, used by the inventory selection panel. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Modal")
+	TSubclassOf<UUIButton> ButtonWidgetClass;
 };
 
 USTRUCT(BlueprintType)
@@ -112,6 +122,12 @@ struct INVENTORYSYSTEMINVENZAPLUGIN_API FModalHeaderData
 	UPROPERTY(BlueprintReadOnly, Category = "Modal")
 	float MaxValue = 1.f;
 
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Modal|Inventory")
+	TObjectPtr<UInventoryBase> SourceInventory;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Modal|Inventory")
+	TObjectPtr<UObject> ContextItem;
+
 	FModalHeaderData() {}
 
 	FModalHeaderData(EModalHeaderType HeaderType, FText InTitle) : HeaderType(HeaderType), Title(InTitle) {}
@@ -127,6 +143,16 @@ struct INVENTORYSYSTEMINVENZAPLUGIN_API FModalHeaderResult
 
 	UPROPERTY(Category = "Invenza|UI|Modal", BlueprintReadWrite)
 	FText EnteredText;
+
+	/** Integer fields avoid rounding the inventory request through SelectedAmount's float. */
+	UPROPERTY(BlueprintReadWrite, Category = "Modal|Inventory")
+	int32 SelectedQuantity = 0;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Modal|Inventory")
+	int32 ExpectedSourceQuantity = 0;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Modal|Inventory")
+	int32 ExpectedAvailableAmount = 0;
 };
 
 USTRUCT(BlueprintType)

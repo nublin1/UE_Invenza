@@ -10,29 +10,52 @@
 
 static bool CaptureInvenzaPickup(UPickupComponent* Pickup, FInventorySavedPickup& Saved, FString& Error)
 {
-	auto* Item = Cast<UItemBase>(Pickup->PeekItemData());
-	if (!Item)
+	if (Pickup->IsCollecting() && !Pickup->GetOwner()->IsActorBeingDestroyed())
 	{
-		Error = TEXT("Pickup has no persistent item instance");
+		Error = TEXT("Pickup delivery is in progress; retry saving after it completes");
 		return false;
 	}
 	Saved.Key = Pickup->GetPersistentSaveKey();
 	Saved.ActorClass = FSoftClassPath(Pickup->GetOwner()->GetClass());
 	Saved.Transform = Pickup->GetOwner()->GetActorTransform();
 	Saved.bRuntimeActor = Pickup->IsRuntimeSaveActor();
-	Saved.Item.InstanceID = Item->GetPersistentInstanceID();
-	Saved.Item.InstanceClass = FSoftClassPath(Item->GetClass());
-	Saved.Item.Definition = IObjectDataProvider::Execute_GetItemRow(Item);
-	Saved.Item.DefinitionTable = FSoftObjectPath(Saved.Item.Definition.DataTable);
-	Saved.Item.DefinitionRow = Saved.Item.Definition.RowName;
-	Saved.Item.Quantity = IObjectDataProvider::Execute_GetQuantity(Item);
-	Saved.Item.SetCustomState(Item->CaptureSaveState());
+	Saved.bIsBundle = Pickup->IsBundlePickup();
+	for (auto* Object : Pickup->GetPickupItems())
+	{
+		auto* Item = Cast<UItemBase>(Object);
+		if (!Item)
+		{
+			Error = TEXT("Pickup has an unsupported persistent item instance");
+			return false;
+		}
+		FInventorySavedItem Entry;
+		Entry.InstanceID = Item->GetPersistentInstanceID();
+		Entry.InstanceClass = FSoftClassPath(Item->GetClass());
+		Entry.Definition = IObjectDataProvider::Execute_GetItemRow(Item);
+		Entry.DefinitionTable = FSoftObjectPath(Entry.Definition.DataTable);
+		Entry.DefinitionRow = Entry.Definition.RowName;
+		Entry.Quantity = IObjectDataProvider::Execute_GetQuantity(Item);
+		Entry.SetCustomState(Item->CaptureSaveState());
+		if (Saved.bIsBundle)
+		{
+			Saved.Items.Add(MoveTemp(Entry));
+		}
+		else
+		{
+			Saved.Item = MoveTemp(Entry);
+		}
+	}
+	if (Saved.GetSavedItems().IsEmpty() && !Pickup->GetOwner()->IsActorBeingDestroyed())
+	{
+		Error = TEXT("Pickup has no persistent item instances");
+		return false;
+	}
 	return true;
 }
 
 void UInvenzaSaveSubsystem::RegisterPickup(UPickupComponent* Pickup)
 {
-	if (!Pickup || !Pickup->GetOwner()->HasAuthority() || !Pickup->PeekItemData())
+	if (!Pickup || !Pickup->GetOwner()->HasAuthority() || Pickup->GetOwner()->IsActorBeingDestroyed() || !Pickup->HasInitializedContents())
 	{
 		return;
 	}
@@ -61,6 +84,7 @@ void UInvenzaSaveSubsystem::UnregisterPickup(UPickupComponent* Pickup, EEndPlayR
 			if (Saved.bDestroyed)
 			{
 				Saved.Item = {};
+				Saved.Items.Reset();
 			}
 			RetainedPickups.Add(Saved.Key, MoveTemp(Saved));
 		}
@@ -115,7 +139,7 @@ bool UInvenzaSaveSubsystem::PreparePickups(const UInvenzaSaveGame* Save, TArray<
 	TMap<FString, UPickupComponent*> Current;
 	for (TActorIterator<AActor> It(GetWorld()); It; ++It)
 	{
-		if (auto* Pickup = It->FindComponentByClass<UPickupComponent>())
+		if (auto* Pickup = It->FindComponentByClass<UPickupComponent>(); Pickup && !It->IsActorBeingDestroyed())
 		{
 			if (!Pickups.Contains(Pickup))
 			{
@@ -153,12 +177,26 @@ bool UInvenzaSaveSubsystem::PreparePickups(const UInvenzaSaveGame* Save, TArray<
 			}
 			continue;
 		}
-		if (!Saved.Item.InstanceID.IsValid() || IDs.Contains(Saved.Item.InstanceID) || Saved.Item.Quantity <= 0)
+		if (Saved.Transform.ContainsNaN() || !Saved.Transform.IsValid())
 		{
-			Error = TEXT("Invalid pickup item or duplicate instance");
+			Error = TEXT("Saved pickup transform is invalid");
 			return false;
 		}
-		IDs.Add(Saved.Item.InstanceID);
+		const auto SavedItems = Saved.GetSavedItems();
+		if (SavedItems.IsEmpty() || (!Saved.bIsBundle && SavedItems.Num() != 1))
+		{
+			Error = TEXT("Saved pickup has no valid contents");
+			return false;
+		}
+		for (const auto& Item : SavedItems)
+		{
+			if (!Item.InstanceID.IsValid() || IDs.Contains(Item.InstanceID) || Item.Quantity <= 0)
+			{
+				Error = TEXT("Invalid pickup item or duplicate instance");
+				return false;
+			}
+			IDs.Add(Item.InstanceID);
+		}
 		if (!Pickup)
 		{
 			UClass* Class = Saved.ActorClass.TryLoadClass<AActor>();
@@ -183,15 +221,20 @@ bool UInvenzaSaveSubsystem::PreparePickups(const UInvenzaSaveGame* Save, TArray<
 			Pickup->SetPersistentSaveKey(Saved.Key, Saved.bRuntimeActor);
 			Pickups.Add(Pickup);
 		}
-		auto* Item = UItemFactory::CreateItemFromSave(Pickup, Saved.Item);
-		if (!Item || IObjectDataProvider::Execute_GetQuantity(Item) != Saved.Item.Quantity)
-		{
-			Error = TEXT("Pickup definition is unavailable; load was not applied");
-			return false;
-		}
 		auto& Plan = Plans.AddDefaulted_GetRef();
 		Plan.Component = Pickup;
-		Plan.Item.Reset(Item);
+		Plan.Transform = Saved.Transform;
+		Plan.bIsBundle = Saved.bIsBundle;
+		for (const auto& Entry : SavedItems)
+		{
+			auto* Item = UItemFactory::CreateItemFromSave(Pickup, Entry);
+			if (!Item || IObjectDataProvider::Execute_GetQuantity(Item) != Entry.Quantity)
+			{
+				Error = TEXT("Pickup definition is unavailable; load was not applied");
+				return false;
+			}
+			Plan.Items.Emplace(Item);
+		}
 	}
 	for (const auto& Pair : Current)
 	{

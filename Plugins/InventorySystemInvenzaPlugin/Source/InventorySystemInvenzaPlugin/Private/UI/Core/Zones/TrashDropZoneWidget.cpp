@@ -38,7 +38,7 @@ bool UTrashDropZoneWidget::NativeOnDrop(const FGeometry& InGeometry, const FDrag
 
 	if (TrashBorder)
 	{
-		TrashBorder->SetBrushColor(ColorByDefault);
+		TrashBorder->SetBrushColor(ResolveThemeColorForProperty(TEXT("ColorByDefault"), ColorByDefault));
 	}
 	return true;
 }
@@ -48,7 +48,7 @@ void UTrashDropZoneWidget::NativeOnDragEnter(const FGeometry& InGeometry, const 
 {
 	if (TrashBorder)
 	{
-		TrashBorder->SetBrushColor(ColorOnDrag);
+		TrashBorder->SetBrushColor(ResolveThemeColorForProperty(TEXT("ColorOnDrag"), ColorOnDrag));
 	}
 }
 
@@ -56,6 +56,6 @@ void UTrashDropZoneWidget::NativeOnDragLeave(const FDragDropEvent& InDragDropEve
 {
 	if (TrashBorder)
 	{
-		TrashBorder->SetBrushColor(ColorByDefault);
+		TrashBorder->SetBrushColor(ResolveThemeColorForProperty(TEXT("ColorByDefault"), ColorByDefault));
 	}
 }

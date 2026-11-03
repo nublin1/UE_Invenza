@@ -1,4 +1,4 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #include "UI/Core/BorderFrameWidget.h"
 
@@ -25,8 +25,24 @@ void UBorderFrameWidget::NativePreConstruct()
 		Border->SetDesiredSizeScale(Style.DesiredSize);
 	};
 
-	ApplyBorderStyle(TopBorder, TopBorderStyle);
-	ApplyBorderStyle(BottomBorder, BottomBorderStyle);
-	ApplyBorderStyle(LeftBorder, LeftBorderStyle);
-	ApplyBorderStyle(RightBorder, RightBorderStyle);
+	ApplyBorderStyle(TopBorder, ResolveThemeStyle(TEXT("TopBorderStyle"), TopBorderStyle));
+	ApplyBorderStyle(BottomBorder, ResolveThemeStyle(TEXT("BottomBorderStyle"), BottomBorderStyle));
+	ApplyBorderStyle(LeftBorder, ResolveThemeStyle(TEXT("LeftBorderStyle"), LeftBorderStyle));
+	ApplyBorderStyle(RightBorder, ResolveThemeStyle(TEXT("RightBorderStyle"), RightBorderStyle));
+}
+
+void UBorderFrameWidget::RefreshThemeAppearance()
+{
+	auto ApplyFrameAppearance = [](UBorder* Border, const FBorderFrameStyle& Style)
+	{
+		if (Border)
+		{
+			Border->SetBrush(Style.Brush);
+			Border->SetBrushColor(Style.BrushColor);
+		}
+	};
+	ApplyFrameAppearance(TopBorder, ResolveThemeStyle(TEXT("TopBorderStyle"), TopBorderStyle));
+	ApplyFrameAppearance(BottomBorder, ResolveThemeStyle(TEXT("BottomBorderStyle"), BottomBorderStyle));
+	ApplyFrameAppearance(LeftBorder, ResolveThemeStyle(TEXT("LeftBorderStyle"), LeftBorderStyle));
+	ApplyFrameAppearance(RightBorder, ResolveThemeStyle(TEXT("RightBorderStyle"), RightBorderStyle));
 }

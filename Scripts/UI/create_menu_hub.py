@@ -193,10 +193,15 @@ attach(body,caption(bp,'MenuTitle','MenuTitle',28,True),margin(0,0,0,6))
 attach(body,caption(bp,'MenuHint','MenuHint',15),margin(0,0,0,16))
 pages=panel(bp,u.WidgetSwitcher,'Pages');attach(body,pages,0,True)
 home=panel(bp,u.VerticalBox,'HomePage');attach(pages,home)
-for name,key in [('ResumeButton','Resume'),('OpenSave','Save'),('OpenLoad','Load'),('OpenSettings','Settings'),('OpenNetwork','Network'),('LeaveSession','LeaveSession'),('QuitGame','Quit')]:
+for name,key in [('ResumeButton','Resume'),('NewGame','NewGame'),('OpenSave','Save'),('OpenLoad','Load'),('OpenSettings','Settings'),('OpenNetwork','Network'),('LeaveSession','LeaveSession'),('QuitGame','Quit')]:
     attach(home,action(bp,name,key),margin(0,0,0,10))
 attach(home,caption(bp,'MenuStatus','WaitForSave',14));widget(bp,'MenuStatus').set_editor_property('text',u.Text(''))
 for name,cls in [('SettingsPage',SETTINGS),('NetworkPage',NETWORK),('SavePage',SAVE),('LoadPage',LOAD)]:attach(pages,make(bp,cls,name))
+confirmation=panel(bp,u.VerticalBox,'NewGameConfirmation')
+for child in [caption(bp,'NewGameTitle','NewGameTitle',24,True),caption(bp,'NewGameDescription','NewGameDescription',16),action(bp,'ConfirmNewGame','ConfirmNewGame'),action(bp,'CancelNewGame','CancelNewGame')]:
+    attach(confirmation,child,margin(0,0,0,16))
+attach(pages,confirmation)
+
 content=frame(bp,'MenuFrame',surface(bp,'MenuSurface',body,BG,24))
 content=size(bp,'FrontendSize',content,width=1080,height=740)
 fit=panel(bp,u.ScaleBox,'FrontendScale');fit.set_stretch(u.Stretch.SCALE_TO_FIT);fit.set_stretch_direction(u.StretchDirection.DOWN_ONLY)

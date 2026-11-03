@@ -85,6 +85,7 @@ protected:
 	FVector2D CurrentSlotSize;
 
 	// Functions
+	virtual void RefreshThemeAppearance() override;
 	UFUNCTION()
 	virtual void ApplyDefaultContentImageStyle();
 };

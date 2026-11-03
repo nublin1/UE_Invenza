@@ -80,7 +80,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI|Input")
 	TObjectPtr<UInputAction> ClickAction;
 
-	uint32 ClickActionHandle;
+	uint32 ClickActionHandle = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI|State")
 	bool bIsToggleButton;
@@ -108,7 +108,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Defaults")
 	FLinearColor DefaultButtonBackgroundColor;
 
+	bool bCapturedThemeBackground = false;
+
+	FLinearColor ResolvedNormalBackground;
+
 	// Functions
+	virtual void RefreshThemeAppearance() override;
 	UFUNCTION()
 	virtual void SetupInput();
 

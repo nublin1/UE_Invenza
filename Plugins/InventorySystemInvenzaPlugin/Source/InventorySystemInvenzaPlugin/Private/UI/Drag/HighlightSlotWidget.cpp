@@ -21,22 +21,31 @@ void UHighlightSlotWidget::NativeConstruct()
 
 void UHighlightSlotWidget::SetHighlightState(EHighlightState NewState)
 {
+	bHasHighlightState = true;
 	CurrentState = NewState;
 
 	switch (NewState)
 	{
 	case EHighlightState::Allowed:
-		SetBordersColor(AllowedColor);
+		SetBordersColor(ResolveThemeColorForProperty(TEXT("AllowedColor"), AllowedColor));
 		break;
 	case EHighlightState::NotAllowed:
-		SetBordersColor(NotAllowedColor);
+		SetBordersColor(ResolveThemeColorForProperty(TEXT("NotAllowedColor"), NotAllowedColor));
 		break;
 	case EHighlightState::Partial:
-		SetBordersColor(PartialColor);
+		SetBordersColor(ResolveThemeColorForProperty(TEXT("PartialColor"), PartialColor));
 		break;
 	default:
 		SetBordersColor(FLinearColor::Transparent);
 		break;
+	}
+}
+
+void UHighlightSlotWidget::RefreshThemeAppearance()
+{
+	if (bHasHighlightState)
+	{
+		SetHighlightState(CurrentState);
 	}
 }
 

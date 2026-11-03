@@ -74,5 +74,6 @@ protected:
 	float TotalWork = 0.f;
 
 	// Functions
+	virtual void RefreshThemeAppearance() override;
 	void RefreshDisplay();
 };

@@ -7,6 +7,7 @@
 #include "Data/Items/itemBase.h"
 #include "Data/Settings/InvenzaInventorySettingsAsset.h"
 #include "Factory/ItemFactory.h"
+#include "GameFramework/Actor.h"
 #include "Net/UnrealNetwork.h"
 #include "Subsystems/InvenzaInventorySettingsSubsystem.h"
 #include "Utility/InterfaceUtils.h"
@@ -32,6 +33,7 @@ void UInventoryBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	DOREPLIFETIME(UInventoryBase, InvSize);
 	DOREPLIFETIME(UInventoryBase, InventoryOwnerActor);
 	DOREPLIFETIME(UInventoryBase, TradeContext);
+	DOREPLIFETIME(UInventoryBase, AdmissionRules);
 }
 
 UInventoryBase* UInventoryBase::CreateInventory(UObject* Outer, FInventoryStartupData StartupData)
@@ -88,14 +90,117 @@ UInventoryBase* UInventoryBase::DuplicateInventory(UObject* Outer)
 	Inventory->SetItemCollectionLink(ItemCollectionLinked);
 	Inventory->SetInventorySize(InvSize);
 	Inventory->SetInventoryOwnerActor(InventoryOwnerActor);
+	Inventory->AdmissionRules = AdmissionRules;
 
 	return Inventory;
 }
 
 void UInventoryBase::InitInventory()
 {
+	AdmissionRules = InventorySettings.AdmissionRules;
 	InvSize = FIntPoint(InventorySettings.InventorySlotBasedSettings.InitNumberRows,
 						InventorySettings.InventorySlotBasedSettings.InitNumColumns);
+}
+
+bool UInventoryBase::CanReceiveItem(UObject* Item) const
+{
+	if (!IsValid(Item) || !Item->Implements<UObjectDataProvider>())
+	{
+		return false;
+	}
+	if (InternalSplitItem.Get() == Item)
+	{
+		return true;
+	}
+	if (IsValid(ItemCollectionLinked))
+	{
+		const FItemMapping* Mapping = ItemCollectionLinked->FindItemMappingByContainerName(Item, InventoryContainerID);
+		if (Mapping && !Mapping->bIsReferenceContainer)
+		{
+			return true;
+		}
+	}
+	return AdmissionRules.AllowsItem(IObjectDataProvider::Execute_GetItemRef(Item).ItemCategory,
+		IObjectDataProvider::Execute_GetItemRow(Item));
+}
+
+bool UInventoryBase::CanReceiveTransfer(const FItemMoveData& Move) const
+{
+	if (!CanReceiveItem(Move.SourceItem))
+	{
+		return false;
+	}
+	if (Move.SourceInventory && Move.SourceInventory != this && Move.TargetSlotID.IsValid() && ItemCollectionLinked)
+	{
+		UObject* Displaced = ItemCollectionLinked->GetItemFromSlot(Move.TargetSlotID, InventoryContainerID);
+		if (Displaced && Displaced != Move.SourceItem &&
+			IObjectDataProvider::Execute_GetItemID(Displaced) != IObjectDataProvider::Execute_GetItemID(Move.SourceItem) &&
+			!Move.SourceInventory->CanReceiveItem(Displaced))
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+void UInventoryBase::ApplyAdmissionRules(const FInventoryAdmissionRules& Rules)
+{
+	if (!IsValid(InventoryOwnerActor) || !InventoryOwnerActor->HasAuthority() || AdmissionRules == Rules)
+	{
+		return;
+	}
+	AdmissionRules = Rules;
+	OnRep_AdmissionRules();
+	InventoryOwnerActor->ForceNetUpdate();
+}
+
+FItemAddResult UInventoryBase::SplitExistingStack(UObject* Item, int32 Amount, FGuid TargetSlot,
+	EItemOrientationType Orientation)
+{
+	if (!InventoryOwnerActor || !InventoryOwnerActor->HasAuthority() || !ItemCollectionLinked ||
+		!IsValid(Item) || !Item->Implements<UObjectDataProvider>() || InternalSplitItem.IsValid())
+	{
+		return FItemAddResult();
+	}
+	const FItemMapping* Mapping = ItemCollectionLinked->FindItemMappingByContainerName(Item, InventoryContainerID);
+	const int32 Quantity = IObjectDataProvider::Execute_GetQuantity(Item);
+	if (!Mapping || Mapping->bIsReferenceContainer || Amount <= 0 || Amount >= Quantity ||
+		Amount > IObjectDataProvider::Execute_GetFreeAmount(Item))
+	{
+		return FItemAddResult();
+	}
+	UObject* Split = IObjectDataProvider::Execute_DuplicateItem(Item);
+	if (!IsValid(Split) || Split == Item || !Split->Implements<UObjectDataProvider>())
+	{
+		return FItemAddResult();
+	}
+	IObjectDataProvider::Execute_SetQuantity(Split, Amount);
+	FItemMoveData Move;
+	Move.SourceItem = Split;
+	Move.TargetInventory = this;
+	Move.TargetSlotID = TargetSlot;
+	Move.SavedOrientation = Orientation;
+	Move.TargetOrientation = Orientation;
+	// This exact native-created split is existing content, not a new admission from a client.
+	TGuardValue<TWeakObjectPtr<UObject>> SplitGuard(InternalSplitItem, Split);
+	HandleRemoveItem(Item, Amount);
+	UpdateWeightInfo();
+	FItemAddResult Result = HandleAddItem(Move, false);
+	const int32 Added = FMath::Clamp(Result.ActualAmountAdded, 0, Amount);
+	if (Added < Amount)
+	{
+		IObjectDataProvider::Execute_SetQuantity(Item, IObjectDataProvider::Execute_GetQuantity(Item) + Amount - Added);
+		ItemCollectionLinked->MarkItemAsDirty(Item);
+		NotifyAddItemToStack(Item);
+	}
+	UpdateWeightInfo();
+	UpdateMoneyInfo();
+	return Result;
+}
+
+void UInventoryBase::OnRep_AdmissionRules()
+{
+	OnAdmissionRulesChanged.Broadcast();
 }
 
 void UInventoryBase::InitInventoryWithSettings(FInventorySettings NewInventorySettings)

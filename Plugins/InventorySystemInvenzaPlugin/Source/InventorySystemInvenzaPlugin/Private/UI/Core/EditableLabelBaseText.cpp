@@ -1,9 +1,10 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #include "UI/Core/EditableLabelBaseText.h"
 
 #include "Components/EditableTextBox.h"
 #include "UI/UIStructs.h"
+#include "UI/Theme/InvenzaUIThemeLibrary.h"
 
 UEditableLabelBaseText::UEditableLabelBaseText()
 {
@@ -22,7 +23,7 @@ void UEditableLabelBaseText::NativeConstruct()
 
 	if (MainEditableTextBox)
 	{
-		MainEditableTextBox->OnTextChanged.AddDynamic(this, &UEditableLabelBaseText::HandleTextChanged);
+		MainEditableTextBox->OnTextChanged.AddUniqueDynamic(this, &UEditableLabelBaseText::HandleTextChanged);
 	}
 
 	SyncTextAndFont();
@@ -31,21 +32,32 @@ void UEditableLabelBaseText::NativeConstruct()
 void UEditableLabelBaseText::UpdateText(FText NewText)
 {
 	Text = NewText;
-	SyncTextAndFont();
+	if (MainEditableTextBox)
+	{
+		MainEditableTextBox->SetText(Text);
+	}
 }
 
 void UEditableLabelBaseText::UpdateHintText(FText NewHintText)
 {
+	HintText = NewHintText;
+	if (MainEditableTextBox)
+	{
+		MainEditableTextBox->SetHintText(HintText);
+	}
 }
 
 void UEditableLabelBaseText::UpdateFont(FSlateFontInfo NewFontInfo)
 {
+	SetThemePropertyOverride(GET_MEMBER_NAME_CHECKED(ThisClass, FontInfo).ToString(), true);
 	FontInfo = NewFontInfo;
-	SyncTextAndFont();
+	RefreshThemeAppearance();
 }
 
 void UEditableLabelBaseText::UpdateTextAndFont(FLabelStyle LabelStyle)
 {
+	SetThemePropertyOverride(GET_MEMBER_NAME_CHECKED(ThisClass, FontInfo).ToString(), true);
+	SetThemePropertyOverride(GET_MEMBER_NAME_CHECKED(ThisClass, Color).ToString(), true);
 	Text = LabelStyle.Text;
 	Color = LabelStyle.Color;
 	FontInfo = LabelStyle.FontInfo;
@@ -64,14 +76,13 @@ void UEditableLabelBaseText::SyncTextAndFont()
 	MainEditableTextBox->SetHintText(HintText);
 
 	FEditableTextBoxStyle& Style = MainEditableTextBox->WidgetStyle;
-	Style.TextStyle.SetFont(FontInfo);
+	Style.TextStyle.SetFont(ResolveThemeFont(TEXT("FontInfo"), FontInfo));
 	MainEditableTextBox->SynchronizeProperties();
 }
 
 void UEditableLabelBaseText::ClearText()
 {
-	Text = FText::GetEmpty();
-	SyncTextAndFont();
+	UpdateText(FText::GetEmpty());
 }
 
 FText UEditableLabelBaseText::GetText() const
@@ -111,4 +122,13 @@ void UEditableLabelBaseText::ApplyNumericFilter(FString& InOutString)
 	}
 
 	InOutString = Filtered;
+}
+
+void UEditableLabelBaseText::RefreshThemeAppearance()
+{
+	if (MainEditableTextBox)
+	{
+		MainEditableTextBox->WidgetStyle.TextStyle.SetFont(ResolveThemeFont(TEXT("FontInfo"), FontInfo));
+		UInvenzaUIThemeLibrary::SynchronizeAppearance(MainEditableTextBox);
+	}
 }

@@ -72,7 +72,9 @@ void UIInventoryManager::RefreshCharacterInventoryUI()
 	}
 	if (CharacterInventoryWindow)
 	{
-		return;
+		ClearCharacterInventoryUI();
+		ObservedCharacterCollection = Collection;
+		Collection->OnActorInventoriesChanged.AddUniqueDynamic(this, &ThisClass::OnRep_CharacterInventoryAccess);
 	}
 	auto* Bag = CharacterInventoryAccess->GetMainLootContainer().Get();
 	auto* Gear = CharacterInventoryAccess->GetEquipmentInventory();
@@ -82,7 +84,7 @@ void UIInventoryManager::RefreshCharacterInventoryUI()
 	{
 		if (!IsValid(Inventory))
 		{
-			return;
+			continue;
 		}
 		Inventory->OnConfigurationChanged.AddUniqueDynamic(this, &ThisClass::OnRep_CharacterInventoryAccess);
 		if (!Inventory->GetItemCollectionLinked())
@@ -92,6 +94,11 @@ void UIInventoryManager::RefreshCharacterInventoryUI()
 	}
 	for (auto* Inventory : Inventories)
 	{
+		if (!Inventory)
+		{
+			CharacterInventoryWidgets.Add(nullptr);
+			continue;
+		}
 		auto* Widget = ItemCollectionRef->GetContainerWidget(Inventory);
 		if (!Widget)
 		{
@@ -105,12 +112,15 @@ void UIInventoryManager::RefreshCharacterInventoryUI()
 			Collection->OnActorInventoriesChanged.AddUniqueDynamic(this, &ThisClass::OnRep_CharacterInventoryAccess);
 			for (auto* Pending : Inventories)
 			{
-				Pending->OnConfigurationChanged.AddUniqueDynamic(this, &ThisClass::OnRep_CharacterInventoryAccess);
+				if (Pending)
+				{
+					Pending->OnConfigurationChanged.AddUniqueDynamic(this, &ThisClass::OnRep_CharacterInventoryAccess);
+				}
 			}
 			return;
 		}
 		CharacterInventoryWidgets.Add(Widget);
-		if (Inventory->GetItemCollectionLinked() == ItemCollectionRef)
+		if ((Inventory->GetItemCollectionLinked() == ItemCollectionRef || Inventory == MainPawnInventoryRef))
 		{
 			if (auto* OriginalSlot = Cast<UCanvasPanelSlot>(Widget->Slot))
 			{
@@ -148,7 +158,10 @@ void UIInventoryManager::RefreshCharacterInventoryUI()
 	}
 	for (UInventoryContainerWidget* Widget : CharacterInventoryWidgets)
 	{
-		Widget->ReDrawRequest();
+		if (Widget)
+		{
+			Widget->ReDrawRequest();
+		}
 	}
 }
 
@@ -192,7 +205,7 @@ void UIInventoryManager::ClearCharacterInventoryUI()
 			continue;
 		}
 		Inventory->OnConfigurationChanged.RemoveDynamic(this, &ThisClass::OnRep_CharacterInventoryAccess);
-		const bool bOwnInventory = Inventory->GetItemCollectionLinked() == ItemCollectionRef;
+		const bool bOwnInventory = (Inventory->GetItemCollectionLinked() == ItemCollectionRef || Inventory == MainPawnInventoryRef);
 		const bool bRestore = !bEndingPlay && GetWorld() && !GetWorld()->bIsTearingDown && IsValid(GetOwner()) &&
 							  !GetOwner()->IsActorBeingDestroyed();
 		if (bOwnInventory && bRestore && UIInvProvider)

@@ -44,6 +44,12 @@ public:
 	virtual void OpenDualInventoryView(UInventoryContainerWidget* ExternalContainerWidget,
 									   UInventoryContainerWidget* PlayerInventoryToShow) = 0;
 	virtual void CloseDualInventoryView() = 0;
+	virtual void RefreshInteractionInventories(const TArray<UInventoryContainerWidget*>& PlayerInventories) {}
+	virtual void OpenInventoryInteractionView(UInventoryContainerWidget* ExternalContainerWidget,
+		const TArray<UInventoryContainerWidget*>& PlayerInventories)
+	{
+		OpenDualInventoryView(ExternalContainerWidget, PlayerInventories.IsEmpty() ? nullptr : PlayerInventories[0]);
+	}
 	/** Attach to the same HUD layer as the other inventory windows. */
 	virtual bool AttachStorageWindow(UUserWidget* Window) { return false; }
 

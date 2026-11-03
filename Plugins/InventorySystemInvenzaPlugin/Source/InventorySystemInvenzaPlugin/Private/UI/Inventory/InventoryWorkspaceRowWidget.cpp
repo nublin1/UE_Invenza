@@ -30,6 +30,6 @@ void UInventoryWorkspaceRowWidget::SetExpanded(bool bExpanded)
 {
 	if (Arrow)
 	{
-		Arrow->SetBrush(bExpanded ? ExpandedBrush : CollapsedBrush);
+		Arrow->SetBrush(bExpanded ? ResolveThemeBrush(TEXT("ExpandedBrush"), ExpandedBrush) : ResolveThemeBrush(TEXT("CollapsedBrush"), CollapsedBrush));
 	}
 }

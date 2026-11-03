@@ -202,6 +202,7 @@ void UCraftingComponent::CommitPersistence(FInventoryPreparedCraft& Plan)
 		}
 	}
 	RecipeQueue.MarkArrayDirty();
+	RefreshInventoryObligationIndex();
 }
 
 void UCraftingComponent::ResumeAfterPersistence()

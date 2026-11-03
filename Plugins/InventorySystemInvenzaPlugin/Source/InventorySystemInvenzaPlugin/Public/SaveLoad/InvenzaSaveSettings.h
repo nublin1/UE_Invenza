@@ -27,7 +27,7 @@ public:
 	bool bAutoLoad = true;
 
 	UPROPERTY(Config, EditAnywhere, Category = "Automatic")
-	bool bAutoSave = true;
+	bool bAutoSave = false;
 
 	UPROPERTY(Config, EditAnywhere, Category = "Automatic", meta = (ClampMin = "10", Units = "s"))
 	float AutoSaveSeconds = 120.f;
@@ -36,7 +36,7 @@ public:
 	int32 AutoSaveCount = 3;
 
 	UPROPERTY(Config, EditAnywhere, Category = "Automatic")
-	bool bSaveOnExit = true;
+	bool bSaveOnExit = false;
 
 	/** PIE uses a separate profile prefix, so editor testing cannot overwrite packaged-game saves. */
 	UPROPERTY(Config, EditAnywhere, Category = "Editor")

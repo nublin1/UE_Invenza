@@ -34,7 +34,7 @@ public:
 
 	// Every quantity uses a prefix of the same layout, so existing boxes never move.
 	static void SetQuantity(UInstancedStaticMeshComponent& Stack, int32 Quantity, const FBox& MeshBounds,
-							const FVector2D& Gap = FVector2D::ZeroVector)
+							const FVector2D& Gap = FVector2D::ZeroVector, const FVector& MeshScale = FVector::OneVector)
 	{
 		const int32 Count = FMath::Clamp(Quantity, 0, Capacity);
 		for (int32 Index = Stack.GetInstanceCount() - 1; Index >= Count; --Index)
@@ -43,7 +43,9 @@ public:
 		}
 		for (int32 Index = Stack.GetInstanceCount(); Index < Count; ++Index)
 		{
-			Stack.AddInstance(GetTransform(Index, MeshBounds, Gap), false);
+			auto Transform = GetTransform(Index, MeshBounds, Gap);
+			Transform.SetScale3D(MeshScale);
+			Stack.AddInstance(Transform, false);
 		}
 	}
 };

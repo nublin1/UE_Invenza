@@ -216,6 +216,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Crafting")
 	void RequestMoveQueueItem(FName RecipeID, int32 QueueIndex, bool bMoveUp);
 
+	bool HasInventoryObligations(const UInventoryBase* Inventory) const;
+	void RefreshInventoryObligationIndex();
+
 protected:
 	// Runtime
 	// Properties and variables

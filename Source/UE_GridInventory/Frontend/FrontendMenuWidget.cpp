@@ -14,6 +14,7 @@
 #include "Components/WidgetSwitcher.h"
 #include "Components/PanelWidget.h"
 #include "Engine/GameInstance.h"
+#include "Engine/World.h"
 #include "Engine/LocalPlayer.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/KismetSystemLibrary.h"
@@ -44,10 +45,11 @@ void UFrontendSessionBar::ClickMenu(UUIButton*)
 void UFrontendMenuWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
-	if (auto* PC = GetOwningPlayer())
+	if (auto* PC = GetOwningPlayer(); PC && !bOwnsGameplayInputBlock)
 	{
 		PC->SetIgnoreMoveInput(true);
 		PC->SetIgnoreLookInput(true);
+		bOwnsGameplayInputBlock = true;
 	}
 	bPlaying = GetOwningPlayer() && GetOwningPlayer()->GetPawn();
 	if (auto* Local = GetOwningLocalPlayer())
@@ -57,7 +59,7 @@ void UFrontendMenuWidget::NativeConstruct()
 			Input->RequestUIInput(this);
 		}
 	}
-	for (auto* Button : {ResumeButton.Get(), OpenSave.Get(), OpenLoad.Get(), OpenSettings.Get(), OpenNetwork.Get(),
+	for (auto* Button : {ResumeButton.Get(), NewGame.Get(), ConfirmNewGame.Get(), CancelNewGame.Get(), OpenSave.Get(), OpenLoad.Get(), OpenSettings.Get(), OpenNetwork.Get(),
 	         LeaveSession.Get(), QuitGame.Get()})
 	{
 		Button->OnButtonClicked.AddUniqueDynamic(this, &ThisClass::Clicked);
@@ -71,25 +73,15 @@ void UFrontendMenuWidget::NativeConstruct()
 	LeaveSession->SetVisibility(bPlaying ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
 	const auto* Instance = GetGameInstance();
 	OpenSave->SetIsEnabled(Instance && Instance->GetSubsystem<UInvenzaSaveSubsystem>()->CanManageSession());
+	NewGame->SetIsEnabled(GetWorld()->GetNetMode() != NM_Client);
 	BackHome();
 	SetKeyboardFocus();
 }
 
 void UFrontendMenuWidget::NativeDestruct()
 {
-	if (auto* PC = GetOwningPlayer())
-	{
-		PC->SetIgnoreMoveInput(false);
-		PC->SetIgnoreLookInput(false);
-	}
-	if (auto* Local = GetOwningLocalPlayer())
-	{
-		if (auto* Input = Local->GetSubsystem<UUIInputModeSubsystem>())
-		{
-			Input->ReleaseUIInput(this);
-		}
-	}
-	for (auto* Button : {ResumeButton.Get(), OpenSave.Get(), OpenLoad.Get(), OpenSettings.Get(), OpenNetwork.Get(),
+	ReleaseMenuInput();
+	for (auto* Button : {ResumeButton.Get(), NewGame.Get(), ConfirmNewGame.Get(), CancelNewGame.Get(), OpenSave.Get(), OpenLoad.Get(), OpenSettings.Get(), OpenNetwork.Get(),
 	         LeaveSession.Get(), QuitGame.Get()})
 	{
 		if (Button)
@@ -114,6 +106,32 @@ void UFrontendMenuWidget::NativeDestruct()
 		LoadPage->OnCloseRequested.RemoveDynamic(this, &ThisClass::BackHome);
 	}
 	Super::NativeDestruct();
+}
+
+void UFrontendMenuWidget::OnRemovedFromLayer_Implementation()
+{
+	ReleaseMenuInput();
+	Super::OnRemovedFromLayer_Implementation();
+}
+
+void UFrontendMenuWidget::ReleaseMenuInput()
+{
+	if (bOwnsGameplayInputBlock)
+	{
+		if (auto* PC = GetOwningPlayer())
+		{
+			PC->SetIgnoreMoveInput(false);
+			PC->SetIgnoreLookInput(false);
+		}
+		bOwnsGameplayInputBlock = false;
+	}
+	if (auto* Local = GetOwningLocalPlayer())
+	{
+		if (auto* Input = Local->GetSubsystem<UUIInputModeSubsystem>())
+		{
+			Input->ReleaseUIInput(this);
+		}
+	}
 }
 
 void UFrontendMenuWidget::ShowPage(EFrontendPage Page)
@@ -155,11 +173,44 @@ void UFrontendMenuWidget::ShowPage(EFrontendPage Page)
 
 void UFrontendMenuWidget::BackHome()
 {
+	bConfirmingNewGame = false;
 	ShowPage(EFrontendPage::Home);
 }
 
 void UFrontendMenuWidget::Clicked(UUIButton* Button)
 {
+	if (Button == NewGame)
+	{
+		if (!SettingsPage->IsConfirming())
+		{
+			bConfirmingNewGame = true;
+			Pages->SetActiveWidget(NewGameConfirmation);
+		}
+		return;
+	}
+	if (Button == CancelNewGame)
+	{
+		BackHome();
+		return;
+	}
+	if (Button == ConfirmNewGame)
+	{
+		if (!bConfirmingNewGame)
+		{
+			return;
+		}
+		auto* Save = GetGameInstance()->GetSubsystem<UInvenzaSaveSubsystem>();
+		if (Save->StartNewGame(GetDefault<UFrontendMenuSettings>()->PlayWorld))
+		{
+			RemoveFromParent();
+		}
+		else
+		{
+			MenuStatus->UpdateText(GetDefault<UFrontendMenuSettings>()->GetText(TEXT("WaitForSave")));
+			BackHome();
+		}
+		return;
+	}
 	if (Button == ResumeButton)
 	{
 		RemoveFromParent();
@@ -197,6 +248,15 @@ void UFrontendMenuWidget::Clicked(UUIButton* Button)
 
 FReply UFrontendMenuWidget::NativeOnKeyDown(const FGeometry& Geometry, const FKeyEvent& Event)
 {
+	if (bConfirmingNewGame && Event.GetKey() == EKeys::Escape)
+	{
+		BackHome();
+		return FReply::Handled();
+	}
+	if (bConfirmingNewGame)
+	{
+		return FReply::Handled();
+	}
 	if (bPlaying && Event.GetKey() == GetDefault<UFrontendMenuSettings>()->MenuKey)
 	{
 		if (!SettingsPage->IsConfirming())

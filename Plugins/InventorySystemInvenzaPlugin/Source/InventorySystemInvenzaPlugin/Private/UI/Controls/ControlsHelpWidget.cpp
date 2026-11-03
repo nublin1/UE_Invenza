@@ -14,12 +14,13 @@
 #include "Subsystems/InvenzaInventorySettingsSubsystem.h"
 #include "Engine/LocalPlayer.h"
 #include "Engine/Font.h"
+#include "UI/Theme/InvenzaUIThemeLibrary.h"
+#include "UI/Theme/InvenzaUITheme.h"
 
 UControlsHelpWidget::UControlsHelpWidget()
 {
 	const auto* Settings = GetDefault<UInvenzaInventoryDeveloperSettings>();
-	RowStyle.FontInfo =
-		FSlateFontInfo(Settings->DefaultUIFont.LoadSynchronous(), Settings->HelpRowFontSize, TEXT("Regular"));
+	RowStyle.FontInfo = FSlateFontInfo(Settings->DefaultUIFont.LoadSynchronous(), Settings->HelpRowFontSize, TEXT("Regular"));
 	RowStyle.Color = FSlateColor(Settings->DefaultTextColor);
 	HeadingStyle = RowStyle;
 	HeadingStyle.FontInfo.Size = Settings->HelpHeadingFontSize;
@@ -68,6 +69,33 @@ void UControlsHelpWidget::RefreshControls()
 											UInvenzaInventorySettingsSubsystem::GetSettingsStatic(this)));
 }
 
+void UControlsHelpWidget::RefreshThemeAppearance()
+{
+	if (!ControlsList)
+	{
+		return;
+	}
+	for (auto* Child : ControlsList->GetAllChildren())
+	{
+		if (auto* Heading = Cast<ULabelBaseText>(Child))
+		{
+			const auto Style = ResolveThemeStyle(TEXT("HeadingStyle"), HeadingStyle);
+			Heading->UpdateAppearance(Style.FontInfo, Style.Color);
+		}
+		else if (auto* Row = Cast<UControlsHelpRowWidget>(Child))
+		{
+			for (auto* Label : {Row->ActionLabel.Get(), Row->KeysLabel.Get()})
+			{
+				if (Label)
+				{
+					const auto Style = ResolveThemeStyle(TEXT("RowStyle"), RowStyle);
+					Label->UpdateAppearance(Style.FontInfo, Style.Color);
+				}
+			}
+		}
+	}
+}
+
 void UControlsHelpWidget::SetRows(const TArray<FControlsHelpRow>& Rows)
 {
 	if (!ControlsList || !LabelClass)
@@ -83,7 +111,7 @@ void UControlsHelpWidget::SetRows(const TArray<FControlsHelpRow>& Rows)
 	auto Label = [&](const FText& Text, bool bHeading)
 	{
 		auto* Result = CreateWidget<ULabelBaseText>(this, LabelClass);
-		FLabelStyle Style = bHeading ? HeadingStyle : RowStyle;
+		FLabelStyle Style = bHeading ? ResolveThemeStyle(TEXT("HeadingStyle"), HeadingStyle) : ResolveThemeStyle(TEXT("RowStyle"), RowStyle);
 		Style.Text = Text;
 		Result->UpdateTextAndFont(Style);
 		Result->SetVisibility(ESlateVisibility::HitTestInvisible);
@@ -114,7 +142,7 @@ void UControlsHelpWidget::SetRows(const TArray<FControlsHelpRow>& Rows)
 				continue;
 			}
 			auto* Line = CreateWidget<UControlsHelpRowWidget>(this, RowClass);
-			Line->SetRow(Row.Label, Row.Keys, RowStyle);
+			Line->SetRow(Row.Label, Row.Keys, ResolveThemeStyle(TEXT("RowStyle"), RowStyle));
 			Cast<UScrollBoxSlot>(ControlsList->AddChild(Line))->SetPadding(RowPadding);
 		}
 	}

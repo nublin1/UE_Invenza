@@ -1,4 +1,4 @@
-﻿// Nublin Studio 2026 All Rights Reserved.
+// Nublin Studio 2026 All Rights Reserved.
 
 #include "UI/Core/Image/ImageBaseWidget.h"
 #include "Materials/MaterialInstanceDynamic.h"
@@ -101,10 +101,10 @@ void UImageBaseWidget::SyncImage()
 	}
 	else
 	{
-		MainImage->SetBrush(BrushStyle.Brush);
+		MainImage->SetBrush(ResolveThemeStyle(TEXT("BrushStyle"), BrushStyle).Brush);
 	}
 
-	MainImage->SetColorAndOpacity(BrushStyle.BrushColor);
+	MainImage->SetColorAndOpacity(ResolveThemeStyle(TEXT("BrushStyle"), BrushStyle).BrushColor);
 }
 
 void UImageBaseWidget::EnsureDynamicMaterial()
@@ -119,4 +119,9 @@ void UImageBaseWidget::EnsureDynamicMaterial()
 		DynamicMaterial = UMaterialInstanceDynamic::Create(BaseMaterial, this);
 		MainImage->SetBrushFromMaterial(DynamicMaterial);
 	}
+}
+
+void UImageBaseWidget::RefreshThemeAppearance()
+{
+	SyncImage();
 }

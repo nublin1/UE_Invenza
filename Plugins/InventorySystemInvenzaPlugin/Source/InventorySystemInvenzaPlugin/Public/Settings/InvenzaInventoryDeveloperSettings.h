@@ -13,11 +13,13 @@ class UInvenzaInventorySettingsAsset;
 class USkeletalMesh;
 class UDataTable;
 class UFont;
+class UInvenzaUITheme;
 class UStaticMesh;
 class UStringTable;
 class UCharacterInventoryExchangeWidget;
 class UInventoryWorkspaceRowWidget;
 class UControlsHelpRowWidget;
+class UInventoryAdmissionWidget;
 /**
  *
  */
@@ -29,11 +31,18 @@ class INVENTORYSYSTEMINVENZAPLUGIN_API UInvenzaInventoryDeveloperSettings : publ
 protected:
 	// Unreal overrides
 	virtual FName GetCategoryName() const override;
+#if WITH_EDITOR
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
 
 public:
 	// Properties and variables
 	UPROPERTY(Category = "Invenza|Inventory", Config, EditAnywhere, BlueprintReadOnly)
 	TSoftObjectPtr<UInvenzaInventorySettingsAsset> InventorySettingsAsset;
+
+	/** Shared appearance used in Widget Designer and when widgets are created in game. */
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Invenza|Interface|Theme")
+	TSoftObjectPtr<UInvenzaUITheme> UITheme;
 
 	/** Built-in Visibility works without reserving a trace-channel slot in the host project. */
 	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Invenza|Interaction")
@@ -58,22 +67,23 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Invenza|Interface")
 	TSoftClassPtr<UControlsHelpRowWidget> ControlsHelpRowClass;
 
-	UPROPERTY(Config, EditAnywhere, Category = "Invenza|Interface")
+	/** Compatibility defaults used only when no UI theme is selected. */
+	UPROPERTY(Config, EditAnywhere, Category = "Invenza|Interface|Legacy Appearance", AdvancedDisplay, meta = (ToolTip = "Compatibility fallback used only when no UI theme is selected."))
 	TSoftObjectPtr<UFont> DefaultUIFont;
 
-	UPROPERTY(Config, EditAnywhere, Category = "Invenza|Interface")
+	UPROPERTY(Config, EditAnywhere, Category = "Invenza|Interface|Legacy Appearance", AdvancedDisplay, meta = (ToolTip = "Compatibility fallback used only when no UI theme is selected."))
 	FLinearColor DefaultTextColor = FLinearColor::White;
 
-	UPROPERTY(Config, EditAnywhere, Category = "Invenza|Interface")
+	UPROPERTY(Config, EditAnywhere, Category = "Invenza|Interface|Legacy Appearance", AdvancedDisplay, meta = (ToolTip = "Compatibility fallback used only when no UI theme is selected."))
 	int32 HelpRowFontSize = 15;
 
-	UPROPERTY(Config, EditAnywhere, Category = "Invenza|Interface")
+	UPROPERTY(Config, EditAnywhere, Category = "Invenza|Interface|Legacy Appearance", AdvancedDisplay, meta = (ToolTip = "Compatibility fallback used only when no UI theme is selected."))
 	int32 HelpHeadingFontSize = 17;
 
-	UPROPERTY(Config, EditAnywhere, Category = "Invenza|Interface")
+	UPROPERTY(Config, EditAnywhere, Category = "Invenza|Interface|Legacy Appearance", AdvancedDisplay, meta = (ToolTip = "Compatibility fallback used only when no UI theme is selected."))
 	int32 ProgressFontSize = 13;
 
-	UPROPERTY(Config, EditAnywhere, Category = "Invenza|Interface")
+	UPROPERTY(Config, EditAnywhere, Category = "Invenza|Interface|Legacy Appearance", AdvancedDisplay, meta = (ToolTip = "Compatibility fallback used only when no UI theme is selected."))
 	int32 RestockFontSize = 18;
 
 	UPROPERTY(Config, EditAnywhere, Category = "Invenza|Storage")
@@ -85,8 +95,26 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Invenza|Examples")
 	FInventoryTemplateSettings CharacterBagTemplate;
 
+	/** Any item in this category receives the inventory configured in its item table row. */
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Invenza|Inventory")
+	FGameplayTag PortableInventoryCategory;
+
 	UPROPERTY(Config, EditAnywhere, Category = "Invenza|Examples")
 	FInventoryTemplateSettings CharacterEquipmentTemplate;
+
+	/** Root of the item category tree; unrelated Gameplay Tags are not exposed. */
+	UPROPERTY(Config, EditAnywhere, Category = "Invenza|Admission")
+	FGameplayTag AdmissionCategoryRoot;
+
+	/** Catalogs used by the admission viewer and by server-side validation of item rules. */
+	UPROPERTY(Config, EditAnywhere, Category = "Invenza|Admission")
+	TArray<TSoftObjectPtr<UDataTable>> AdmissionItemTables;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Invenza|Admission")
+	TMap<FGameplayTag, FText> AdmissionCategoryLabels;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Invenza|Admission")
+	TSoftClassPtr<UInventoryAdmissionWidget> AdmissionWindowClass;
 
 	// Functions
 	UFUNCTION(BlueprintPure, Category = "Invenza|Localization")

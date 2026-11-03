@@ -38,10 +38,10 @@ void UCoreCellWidget::ResetBorderColor()
 		return;
 	}
 
-	Left_Border->SetBrushColor(DefaultBorderColor);
-	Right_Border->SetBrushColor(DefaultBorderColor);
-	Top_Border->SetBrushColor(DefaultBorderColor);
-	BottomBorder->SetBrushColor(DefaultBorderColor);
+	Left_Border->SetBrushColor(ResolveThemeColorForProperty(TEXT("DefaultBorderColor"), DefaultBorderColor));
+	Right_Border->SetBrushColor(ResolveThemeColorForProperty(TEXT("DefaultBorderColor"), DefaultBorderColor));
+	Top_Border->SetBrushColor(ResolveThemeColorForProperty(TEXT("DefaultBorderColor"), DefaultBorderColor));
+	BottomBorder->SetBrushColor(ResolveThemeColorForProperty(TEXT("DefaultBorderColor"), DefaultBorderColor));
 }
 
 FVector2D UCoreCellWidget::GetCurrentSlotSize() const
@@ -70,7 +70,7 @@ void UCoreCellWidget::SetContentImage(UTexture2D* NewTexture)
 	}
 
 	Content_Image->UpdateImage(NewTexture);
-	Content_Image->SetColorAndOpacity(DefaultColorAndOpacity);
+	Content_Image->SetColorAndOpacity(ResolveThemeColorForProperty(TEXT("DefaultColorAndOpacity"), DefaultColorAndOpacity));
 }
 
 void UCoreCellWidget::SetImageRotationAngle(const float Angle)
@@ -92,7 +92,12 @@ void UCoreCellWidget::ApplyDefaultContentImageStyle()
 	}
 
 	Content_Image->UpdateImage(DefaultContent_Image);
-	Content_Image->SetColorAndOpacity(DefaultColorAndOpacity);
+	Content_Image->SetColorAndOpacity(ResolveThemeColorForProperty(TEXT("DefaultColorAndOpacity"), DefaultColorAndOpacity));
 
 	SetImageRotationAngle(0.0f);
+}
+
+void UCoreCellWidget::RefreshThemeAppearance()
+{
+	ResetBorderColor();
 }

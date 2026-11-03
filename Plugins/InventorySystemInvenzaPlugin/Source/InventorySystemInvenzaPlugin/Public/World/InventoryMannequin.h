@@ -9,6 +9,7 @@ class UCapsuleComponent;
 class USkeletalMeshComponent;
 class UInventoryCollectionComponent;
 class UEquipmentComponent;
+class UIInventoryManager;
 class UCharacterInventoryAccessComponent;
 
 /** Stationary example of an NPC whose bag and equipment can be accessed. */
@@ -35,6 +36,9 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
 	TObjectPtr<UInventoryCollectionComponent> InventoryCollection;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
+	TObjectPtr<UIInventoryManager> InventoryManager;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
 	TObjectPtr<UEquipmentComponent> Equipment;

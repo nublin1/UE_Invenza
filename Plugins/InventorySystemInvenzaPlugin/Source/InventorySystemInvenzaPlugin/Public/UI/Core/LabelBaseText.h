@@ -38,6 +38,10 @@ public:
 	UFUNCTION(Category = "Invenza|UI|Core", BlueprintCallable)
 	void UpdateFont(FSlateFontInfo NewFontInfo);
 
+	/** Change appearance without assigning or clearing the current text. */
+	UFUNCTION(Category = "Invenza|UI|Core", BlueprintCallable)
+	void UpdateAppearance(FSlateFontInfo NewFontInfo, FSlateColor NewColor);
+
 	UFUNCTION(Category = "Invenza|UI|Core", BlueprintCallable)
 	void UpdateTextAndFont(FLabelStyle LabelStyle);
 
@@ -59,4 +63,7 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Config")
 	FSlateFontInfo FontInfo;
+
+	// Functions
+	virtual void RefreshThemeAppearance() override;
 };

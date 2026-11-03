@@ -64,6 +64,10 @@ static UInventoryBase* FindEquipmentTransferBag(UInventoryCollectionComponent* C
 			return Bag;
 		}
 	}
+	if (auto* Manager = Collection->GetOwner()->FindComponentByClass<UIInventoryManager>(); Manager && Manager->bUsePortableBackpacks)
+	{
+		return Manager->GetPawnMainInventory();
+	}
 	for (auto* Inventory : Collection->GetActorInventories())
 	{
 		if (IsValid(Inventory) && Inventory->GetInventorySettings().InventoryTag == Settings->MainInvTag &&
@@ -83,7 +87,7 @@ static bool PlanEquipmentTransferPlacement(FEquipmentInventoryTransferState& Sta
 	const auto Settings = Inventory->GetInventorySettings();
 	const auto Meta = IObjectDataProvider::Execute_GetItemRef(Item);
 	const int32 Quantity = IObjectDataProvider::Execute_GetQuantity(Item);
-	if (Quantity <= 0 || State.After.Contains(Item))
+	if (Quantity <= 0 || State.After.Contains(Item) || !Inventory->CanReceiveItem(Item))
 	{
 		return false;
 	}
@@ -181,6 +185,14 @@ static bool PlanEquipmentTransferPlacement(FEquipmentInventoryTransferState& Sta
 bool UIInventoryManager::CheckEquipmentTransfer(FItemMoveData ItemMoveData, bool& OutCanTransfer)
 {
 	OutCanTransfer = false;
+	if (!IsValid(ItemMoveData.TargetInventory) || !ItemMoveData.TargetInventory->CanReceiveTransfer(ItemMoveData))
+	{
+		return true;
+	}
+	if (TryApplyPortableBackpackTransfer(ItemMoveData, true, &OutCanTransfer))
+	{
+		return true;
+	}
 	return TryApplyEquipmentTransfer(ItemMoveData, true, &OutCanTransfer);
 }
 
@@ -281,8 +293,16 @@ bool UIInventoryManager::TryApplyEquipmentTransfer(FItemMoveData Move, bool bOnl
 		}
 	}
 
+	TArray<UInventoryCollectionComponent*> Collections{SourceCollection, TargetCollection};
+	for (auto* CharacterCollection : {SourceCollection, TargetCollection})
+	{
+		if (auto* Bag = FindEquipmentTransferBag(CharacterCollection, GlobalSettings))
+		{
+			Collections.AddUnique(Bag->GetItemCollectionLinked());
+		}
+	}
 	TArray<FEquipmentInventoryTransferState> States;
-	for (auto* Collection : {SourceCollection, TargetCollection})
+	for (auto* Collection : Collections)
 	{
 		for (auto* Inventory : Collection->GetActorInventories())
 		{
@@ -346,15 +366,20 @@ bool UIInventoryManager::TryApplyEquipmentTransfer(FItemMoveData Move, bool bOnl
 		return true;
 	};
 	const bool bReferenceTarget = Move.TargetInventory->GetInventorySettings().bIsReferenceContainer;
+	const auto* PortableItem = Cast<UItemBase>(Move.SourceItem);
 	if (bReferenceTarget && !bTargetGear)
 	{
 		return true;
 	}
-	if (bLeavingOwner)
+	if (bLeavingOwner || (PortableItem && PortableItem->IsPortableInventory() && !bReferenceTarget))
 	{
 		for (auto* Inventory : SourceCollection->GetActorInventories())
 		{
 			Remove(Inventory, Move.SourceItem);
+		}
+		if (bSourceGear)
+		{
+			Remove(FindEquipmentTransferBag(SourceCollection, GlobalSettings), Move.SourceItem);
 		}
 	}
 	else
@@ -391,7 +416,8 @@ bool UIInventoryManager::TryApplyEquipmentTransfer(FItemMoveData Move, bool bOnl
 		const bool bHasPlannedPhysicalLocation = States.ContainsByPredicate(
 			[&](const auto& State)
 			{
-				return State.Inventory->GetItemCollectionLinked() == TargetCollection &&
+				return (State.Inventory->GetItemCollectionLinked() == TargetCollection ||
+					State.Inventory == FindEquipmentTransferBag(TargetCollection, GlobalSettings)) &&
 					   !State.Inventory->GetInventorySettings().bIsReferenceContainer &&
 					   State.After.Contains(Move.SourceItem);
 			});
@@ -408,7 +434,8 @@ bool UIInventoryManager::TryApplyEquipmentTransfer(FItemMoveData Move, bool bOnl
 			!States.ContainsByPredicate(
 				[&](const auto& State)
 				{
-					return State.Inventory->GetItemCollectionLinked() == TargetCollection &&
+					return (State.Inventory->GetItemCollectionLinked() == TargetCollection ||
+					State.Inventory == FindEquipmentTransferBag(TargetCollection, GlobalSettings)) &&
 						   !State.Inventory->GetInventorySettings().bIsReferenceContainer &&
 						   State.Inventory->GetInventorySettings().bAllowItemReferencing &&
 						   State.After.Contains(Move.SourceItem);
@@ -532,6 +559,18 @@ void UIInventoryManager::Server_EquipInventoryItem_Implementation(UInventoryBase
 	if (!Collection || !Collection->GetActorInventories().Contains(Inventory) ||
 		!Collection->ItemHasInventory(Item, Inventory->GetInventoryContainerID()))
 	{
+		return;
+	}
+	if (auto* Portable = Cast<UItemBase>(Item); Portable && Portable->IsPortableInventory())
+	{
+		if (bUnequip)
+		{
+			TryDropPortableBackpack(Portable, Collection);
+		}
+		else
+		{
+			TryEquipPortableBackpack(Portable, Inventory);
+		}
 		return;
 	}
 	if (bUnequip)

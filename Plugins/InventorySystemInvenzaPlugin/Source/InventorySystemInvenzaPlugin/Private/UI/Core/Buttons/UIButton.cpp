@@ -16,11 +16,13 @@ UUIButton::UUIButton() : bIsToggleButton(false), bIsToggleOn(false), DefaultButt
 
 void UUIButton::NativePreConstruct()
 {
-	Super::NativeConstruct();
+	Super::NativePreConstruct();
 
-	if (MainButton)
+	if (MainButton && !bCapturedThemeBackground)
 	{
-		DefaultButtonBackgroundColor = MainButton->GetBackgroundColor();
+		CaptureLocalThemeValues();
+		ResolvedNormalBackground = ResolveThemeWidgetColor(MainButton->GetFName(), TEXT("BackgroundColor"), MainButton->GetBackgroundColor());
+		bCapturedThemeBackground = true;
 	}
 
 	if (MainLabel)
@@ -73,6 +75,7 @@ void UUIButton::NativeDestruct()
 			}
 		}
 	}
+	Super::NativeDestruct();
 }
 
 void UUIButton::SetupInput()
@@ -94,17 +97,27 @@ void UUIButton::ClickButton()
 
 void UUIButton::SetToggleStatus(const bool bNewStatus)
 {
+	if (MainButton && !bCapturedThemeBackground)
+	{
+		CaptureLocalThemeValues();
+		ResolvedNormalBackground = ResolveThemeWidgetColor(MainButton->GetFName(), TEXT("BackgroundColor"), MainButton->GetBackgroundColor());
+		bCapturedThemeBackground = true;
+	}
 	bIsToggleOn = bNewStatus;
 
 	OnToggled.Broadcast(bIsToggleOn);
 
+	if (!MainButton)
+	{
+		return;
+	}
 	if (bIsToggleOn)
 	{
-		MainButton->SetBackgroundColor(ToggleColor);
+		MainButton->SetBackgroundColor(ResolveThemeColorForProperty(TEXT("ToggleColor"), ToggleColor));
 	}
 	else
 	{
-		MainButton->SetBackgroundColor(DefaultButtonBackgroundColor);
+		MainButton->SetBackgroundColor(ResolvedNormalBackground);
 	}
 }
 
@@ -128,16 +141,28 @@ void UUIButton::OnMainButtonClicked()
 		bIsToggleOn = !bIsToggleOn;
 		if (bIsToggleOn)
 		{
-			MainButton->SetBackgroundColor(ToggleColor);
+			MainButton->SetBackgroundColor(ResolveThemeColorForProperty(TEXT("ToggleColor"), ToggleColor));
 		}
 		else
 		{
-			MainButton->SetBackgroundColor(DefaultButtonBackgroundColor);
+			MainButton->SetBackgroundColor(ResolvedNormalBackground);
 		}
 	}
 
 	if (OnButtonClicked.IsBound())
 	{
 		OnButtonClicked.Broadcast(this);
+	}
+}
+
+void UUIButton::RefreshThemeAppearance()
+{
+	if (MainButton)
+	{
+		CaptureLocalThemeValues();
+		ResolvedNormalBackground = ResolveThemeWidgetColor(MainButton->GetFName(), TEXT("BackgroundColor"), MainButton->GetBackgroundColor());
+		bCapturedThemeBackground = true;
+		const auto Selected = ResolveThemeColorForProperty(TEXT("ToggleColor"), ToggleColor);
+		MainButton->SetBackgroundColor(bIsToggleOn ? Selected : ResolvedNormalBackground);
 	}
 }

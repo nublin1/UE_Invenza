@@ -7,6 +7,7 @@
 #include "Engine/DataAsset.h"
 #include "GameplayTagContainer.h"
 #include "UI/Core/Modal/ModalTypes.h"
+#include "Data/Inventory/InventoryTransferTypes.h"
 #include "UI/Controls/ControlsHelpTypes.h"
 #include "InvenzaInventorySettingsAsset.generated.h"
 
@@ -71,6 +72,16 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
 	TSubclassOf<AActor> PickupClass;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Drop", meta = (ClampMin = "0"))
+	float DropGroundTraceHeight = 200.f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Drop", meta = (ClampMin = "0"))
+	float DropGroundTraceDepth = 1000.f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Drop", meta = (ClampMin = "0"))
+	float DropGroundClearance = 2.f;
+
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
 	FDataTableRowHandle CurrencyItemClass;
 
@@ -121,6 +132,9 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Modal|Config")
 	TMap<EObjectInteractionType, FModalAction> ModalActions;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Modal|Take Amount")
+	TMap<EInventoryTakeAmountResult, FText> TakeAmountMessages;
 
 	/*UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Modal")
 	FGameplayTag ResultModal_Yes;

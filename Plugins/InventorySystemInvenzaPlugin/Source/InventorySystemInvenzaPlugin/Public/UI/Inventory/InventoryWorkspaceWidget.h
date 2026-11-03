@@ -7,6 +7,7 @@
 #include "InventoryWorkspaceWidget.generated.h"
 
 class UScrollBox;
+class UVerticalBox;
 class UEditableTextBox;
 class UUIButton;
 class ULabelBaseText;
@@ -37,6 +38,9 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidget), Category = "UI")
 	TObjectPtr<UNamedSlot> PlayerSlot;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UVerticalBox> PlayerInventoryList;
 
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidget), Category = "UI")
 	TObjectPtr<UEditableTextBox> SearchText;
@@ -80,6 +84,11 @@ public:
 
 	UInventoryContainerWidget* ReleasePlayerWidget();
 
+	UFUNCTION(BlueprintCallable, Category = "Inventory Workspace")
+	void SetPlayerWidgets(const TArray<UInventoryContainerWidget*>& Widgets);
+
+	TArray<UInventoryContainerWidget*> ReleasePlayerWidgets();
+
 protected:
 	// Runtime
 	// Properties and variables
@@ -93,6 +102,9 @@ protected:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UInventoryContainerWidget> PlayerWidget;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UInventoryContainerWidget>> PlayerWidgets;
 
 	UPROPERTY(Transient)
 	TMap<TObjectPtr<UUIButton>, TObjectPtr<UInventoryContainerWidget>> CollapseButtons;

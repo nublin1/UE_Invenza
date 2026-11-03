@@ -23,6 +23,7 @@ FInventorySlotBasedSettings FInventorySlotTemplateSettings::ResolveSettings() co
 FInventorySettings FInventoryTemplateSettings::ResolveSettings() const
 {
 	FInventorySettings Result;
+	Result.bReceiveGrantedItems = bReceiveGrantedItems;
 	Result.CustomInventoryID = CustomInventoryID;
 	Result.InventoryTag = InventoryTag;
 	Result.InventoryType = InventoryType;

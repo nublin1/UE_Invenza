@@ -15,6 +15,8 @@
 #include "Engine/Level.h"
 #include "TimerManager.h"
 #include "World/LinkedStorageState.h"
+#include "World/PortableInventoryState.h"
+#include "Data/Items/itemBase.h"
 #include "Data/Settings/LinkedStorageDefinition.h"
 
 FString UInventoryCollectionComponent::GetPersistentOwnerKey() const
@@ -49,6 +51,14 @@ void UInventoryCollectionComponent::SetRuntimeSaveIdentity(const FString& Key)
 {
 	ResolvedSaveKey = Key;
 	bRuntimeSaveActor = true;
+	if (auto* Portable = Cast<APortableInventoryState>(GetOwner()); Portable && Key.StartsWith(TEXT("Portable:")))
+	{
+		FGuid ID;
+		if (FGuid::Parse(Key.RightChop(9), ID))
+		{
+			Portable->SetItemIdentity(ID);
+		}
+	}
 }
 
 FString UInventoryCollectionComponent::GetPersistentInventoryKey(UInventoryBase* Inventory) const
@@ -112,6 +122,8 @@ bool UInventoryCollectionComponent::CapturePersistence(FInventorySavedOwner& Dat
 		Saved.Size = Inventory->GetInventorySize();
 		Saved.Title = Inventory->GetInventorySettings().ContainerTitle;
 		Saved.StartupSettings = Inventory->GetInventorySettings();
+		Saved.bHasAdmissionRules = true;
+		Saved.AdmissionRules = Inventory->GetAdmissionRules();
 	}
 	for (const auto& Entry : InventoryArray.Items)
 	{
@@ -164,6 +176,11 @@ bool UInventoryCollectionComponent::CapturePersistence(FInventorySavedOwner& Dat
 		{
 			continue;
 		}
+		if (PhysicalLocations == 0)
+		{
+			Data.ReferenceItems.Add(MoveTemp(Saved));
+			continue;
+		}
 		if (PhysicalLocations != 1 || Saved.Quantity <= 0 || !Saved.Definition.DataTable ||
 			Saved.Definition.RowName.IsNone())
 		{
@@ -210,6 +227,16 @@ bool UInventoryCollectionComponent::PreparePersistence(const FInventorySavedOwne
 				break;
 			}
 		}
+		if (!Inventory && Saved.StartupSettings.CustomInventoryID == TEXT("PortableBackpackMount"))
+		{
+			FInventoryStartupData Startup;
+			Startup.Settings = Saved.StartupSettings;
+			Inventory = UInventoryBase::CreateInventoryAdvanced(GetOwner(), Startup, GetOwner(), this);
+			if (Inventory)
+			{
+				Plan.CreatedObjects.Emplace(Inventory);
+			}
+		}
 		if (!Inventory)
 		{
 			continue; // Removed inventory definitions retain their items in recovery.
@@ -224,6 +251,7 @@ bool UInventoryCollectionComponent::PreparePersistence(const FInventorySavedOwne
 		auto& Prepared = Plan.Containers.AddDefaulted_GetRef();
 		Prepared.Inventory = Inventory;
 		Prepared.Size = Saved.Size;
+		Prepared.AdmissionRules = Saved.bHasAdmissionRules ? Saved.AdmissionRules : Inventory->GetAdmissionRules();
 		// Older saves without a title should retain the display name configured in the level.
 		Prepared.Title = Saved.Title.IsEmpty() ? Inventory->GetInventorySettings().ContainerTitle : Saved.Title;
 		if (auto* Grid = Cast<USlotbasedInventory>(Inventory))
@@ -330,6 +358,11 @@ bool UInventoryCollectionComponent::PreparePersistence(const FInventorySavedOwne
 			};
 			if (Location.EquipmentSlot.IsValid())
 			{
+				if (Settings.CustomInventoryID == TEXT("PortableBackpackMount") && Container.Slots.Num() == 1)
+				{
+					Container.Slots[0]->InventorySlotInfo.LinkedEquipmentSlot = Location.EquipmentSlot;
+					Container.Slots[0]->InventorySlotInfo.AllowedCategory = Meta.ItemCategory;
+				}
 				const auto* Slot = Container.Slots.FindByPredicate(
 					[&](const auto* Entry)
 					{
@@ -496,6 +529,11 @@ void UInventoryCollectionComponent::CommitPersistence(FInventoryPreparedOwner& P
 	}
 	for (auto& Container : Plan.Containers)
 	{
+		if (!ActorInventories.Contains(Container.Inventory))
+		{
+			ActorInventories.Add(Container.Inventory);
+		}
+		Container.Inventory->ApplyAdmissionRules(Container.AdmissionRules);
 		Container.Inventory->SetInventorySize(Container.Size);
 		if (auto* Grid = Cast<USlotbasedInventory>(Container.Inventory))
 		{
@@ -513,6 +551,21 @@ void UInventoryCollectionComponent::CommitPersistence(FInventoryPreparedOwner& P
 
 void UInventoryCollectionComponent::NotifyPersistenceRestored()
 {
+	for (const auto& Entry : InventoryArray.Items)
+	{
+		if (auto* Item = Cast<UItemBase>(Entry.Item); Item && Item->IsPortableInventory() &&
+			Entry.Locations.Mappings.ContainsByPredicate([](const FItemMapping& Mapping)
+			{
+				return !Mapping.bIsReferenceContainer;
+			}))
+		{
+			if (auto* State = Item->EnsurePortableState())
+			{
+				State->SetCarrier(GetOwner());
+			}
+			Item->RefreshPortableSummary();
+		}
+	}
 	for (const auto& Entry : InventoryArray.Items)
 	{
 		for (const auto& Mapping : Entry.Locations.Mappings)

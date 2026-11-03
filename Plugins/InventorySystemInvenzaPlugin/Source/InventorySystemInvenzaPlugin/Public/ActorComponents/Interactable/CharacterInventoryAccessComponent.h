@@ -30,11 +30,17 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character Inventory")
 	bool bCreateDefaultInventories = false;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character Inventory")
+	bool bUsePortableBackpacks = false;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character Inventory",
 			  meta = (EditCondition = "bCreateDefaultInventories"))
 	TArray<FInitItemsEntry> BagStartingItems;
 
 	// Functions
+	UFUNCTION()
+	void RefreshPortableBackpackAccess(FGameplayTag Slot, UObject* Item);
+
 	UFUNCTION(BlueprintPure, Category = "Character Inventory")
 	UInventoryBase* GetEquipmentInventory() const { return EquipmentInventory; }
 
@@ -56,4 +62,7 @@ protected:
 
 	// Functions
 	virtual void InitializeInteractionComponent() override;
+
+	UFUNCTION()
+	void RefreshManagedInventories();
 };

@@ -14,4 +14,8 @@ public:
 protected:
 	// Runtime
 	FString GameplayTagConfigDirectory;
+
+#if WITH_EDITOR
+	FDelegateHandle ThemeCookDelegate;
+#endif
 };

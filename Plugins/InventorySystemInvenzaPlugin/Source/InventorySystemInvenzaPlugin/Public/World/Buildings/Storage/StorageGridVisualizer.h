@@ -184,7 +184,7 @@ protected:
 	bool UpdateLogsVisual(UObject* Item, UStaticMesh* Mesh, const FBox& OccupiedBounds, const FQuat& Rotation,
 						  int32 Quantity, EStorageMeshAxis MeshLengthAxis);
 	bool UpdateSmallBoxesVisual(UObject* Item, UStaticMesh* Mesh, const FBox& OccupiedBounds, const FQuat& Rotation,
-								int32 Quantity);
+								int32 Quantity, const FVector& MeshScale);
 
 	UFUNCTION()
 	void HandleItemAdded(FItemMapping& Mapping, UObject* Item);

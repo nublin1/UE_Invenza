@@ -3,6 +3,8 @@
 #include "UI/Inventory/Container/DualInventoryWidget.h"
 
 #include "Components/CanvasPanel.h"
+#include "Components/ScrollBox.h"
+#include "Components/ScrollBoxSlot.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Components/PanelWidget.h"
 #include "DragDrop/InvContainerDragDropOperation.h"
@@ -35,21 +37,45 @@ void UDualInventoryWidget::SetLeftInventoryContainer(UInventoryContainerWidget* 
 
 void UDualInventoryWidget::SetRightInventoryContainer(UInventoryContainerWidget* InContainer)
 {
-	if (!RootCanvas || !InContainer)
+	TArray<UInventoryContainerWidget*> Containers;
+	if (InContainer)
 	{
+		Containers.Add(InContainer);
+	}
+	SetPlayerInventories(Containers);
+}
+
+void UDualInventoryWidget::SetPlayerInventories(const TArray<UInventoryContainerWidget*>& Containers)
+{
+	if (!PlayerInventories)
+	{
+		if (RightContainer && !Containers.Contains(RightContainer))
+		{
+			RightContainer->RemoveFromParent();
+		}
+		RightContainer = Containers.IsEmpty() ? nullptr : Containers[0];
+		if (RootCanvas && RightContainer)
+		{
+			RightContainer->RemoveFromParent();
+			RootCanvas->AddChildToCanvas(RightContainer);
+			bRightPinned = true;
+			RightContainer->ReDrawRequest();
+		}
 		return;
 	}
-
-	if (InContainer->GetParent())
+	PlayerInventories->ClearChildren();
+	RightContainer = Containers.IsEmpty() ? nullptr : Containers[0];
+	for (auto* Container : Containers)
 	{
-		InContainer->RemoveFromParent();
+		if (!IsValid(Container) || Container == LeftContainer)
+		{
+			continue;
+		}
+		Container->RemoveFromParent();
+		auto* ScrollSlot = Cast<UScrollBoxSlot>(PlayerInventories->AddChild(Container));
+		ScrollSlot->SetHorizontalAlignment(HAlign_Left);
+		Container->ReDrawRequest();
 	}
-
-	RootCanvas->AddChildToCanvas(InContainer);
-	RightContainer = InContainer;
-	bRightPinned = true;
-
-	RightContainer->ReDrawRequest();
 }
 
 bool UDualInventoryWidget::AddFloatingInventory(UObject* Key, UInventoryContainerWidget* ExistingWidget,
@@ -112,6 +138,14 @@ bool UDualInventoryWidget::RemoveFloatingInventory(UObject* Key)
 
 void UDualInventoryWidget::ClearAll()
 {
+	if (LeftContainer)
+	{
+		LeftContainer->RemoveFromParent();
+	}
+	if (PlayerInventories)
+	{
+		PlayerInventories->ClearChildren();
+	}
 	LeftContainer = nullptr;
 	RightContainer = nullptr;
 

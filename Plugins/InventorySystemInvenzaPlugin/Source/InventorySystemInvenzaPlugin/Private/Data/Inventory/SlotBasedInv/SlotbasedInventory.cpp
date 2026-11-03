@@ -1,6 +1,7 @@
 //  Nublin Studio 2026 All Rights Reserved.
 
 #include "Data/Inventory/SlotBasedInv/SlotbasedInventory.h"
+#include "Data/Items/itemBase.h"
 
 #include "ActorComponents/InventoryCollectionComponent.h"
 #include "Data/Settings/InvenzaInventorySettingsAsset.h"
@@ -73,72 +74,7 @@ UInventoryBase* USlotbasedInventory::DuplicateInventory(UObject* Outer)
 
 void USlotbasedInventory::SortItemsInContainerByName()
 {
-	if (!ItemCollectionLinked)
-	{
-		return;
-	}
-
-	MergeStackableItems();
-
-	auto AllItems = ItemCollectionLinked->GetAllItemsByContainer(InventoryContainerID);
-	TArray<UObject*> SortedItems;
-	SortedItems.Reserve(AllItems.Num());
-
-	for (UObject* Item : AllItems)
-	{
-		if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(Item,
-																			   TEXT("SortItemsInContainerByName")))
-		{
-			continue;
-		}
-
-		UObject* NewItem = IObjectDataProvider::Execute_DuplicateItem(Item);
-		SortedItems.Add(NewItem);
-	}
-
-	for (UObject* Item : AllItems)
-	{
-		if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(Item,
-																			   TEXT("SortItemsInContainerByName")))
-		{
-			continue;
-		}
-
-		HandleRemoveItem(Item, IObjectDataProvider::Execute_GetQuantity(Item));
-	}
-
-	SortedItems.Sort(
-		[](const UObject& A, const UObject& B)
-		{
-			const FString NameA = IObjectDataProvider::Execute_GetItemDisplayText(&A).ToString();
-			const FString NameB = IObjectDataProvider::Execute_GetItemDisplayText(&B).ToString();
-			return NameA.Compare(NameB, ESearchCase::IgnoreCase) < 0;
-		});
-
-	for (int32 i = 0; i < SortedItems.Num(); i++)
-	{
-		UObject* ItemObj = SortedItems[i];
-		if (!UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(ItemObj,
-																			   TEXT("SortItemsInContainerByName")))
-		{
-			continue;
-		}
-
-		FItemMoveData ItemMoveData;
-		ItemMoveData.TargetInventory = this;
-		ItemMoveData.SourceItem = ItemObj;
-
-		const EItemOrientationType InitOrientation = IObjectDataProvider::Execute_GetInitialItemOrientation(ItemObj);
-
-		ItemMoveData.SavedOrientation = InitOrientation;
-		ItemMoveData.TargetOrientation = InitOrientation;
-
-		HandleAddItem(ItemMoveData);
-	}
-
-	NotifyReDrawRequest();
-	OnRep_InventoryTotalWeight();
-	OnRep_InventoryTotalMoney();
+	ReconfigureGrid(InvSize, true);
 }
 
 TArray<UInventorySlotData*> USlotbasedInventory::GetSlotsForItemAt(const FIntPoint& StartPos, UObject* ItemBase,
@@ -220,6 +156,21 @@ void USlotbasedInventory::ReleaseReservation(AActor* Requestor)
 	}
 
 	ReservedSlotsToAdd.Remove(Requestor);
+}
+
+bool USlotbasedInventory::IsSlotReservedForPlacement(const UInventorySlotData* Slot) const
+{
+	for (const auto& Pair : ReservedSlotsToAdd)
+	{
+		for (const FSlotReservationData& Reservation : Pair.Value)
+		{
+			if (Reservation.Slot == Slot)
+			{
+				return true;
+			}
+		}
+	}
+	return false;
 }
 
 bool USlotbasedInventory::ConsumeReserved(AActor* Requestor)
@@ -550,6 +501,16 @@ void USlotbasedInventory::HandleRemoveItem(UObject* Item, int32 RemoveQuantity)
 
 FItemAddResult USlotbasedInventory::HandleAddItem(FItemMoveData ItemMoveData, bool bOnlyCheck)
 {
+	if (!CanReceiveTransfer(ItemMoveData))
+	{
+		return FItemAddResult();
+	}
+
+	if (const auto* Portable = Cast<UItemBase>(ItemMoveData.SourceItem); Portable && !Portable->CanStoreInInventory(this))
+	{
+		return FItemAddResult();
+	}
+
 	if (!ItemMoveData.SourceItem || !UInterfaceUtils::ValidateImplementsInterface<IObjectDataProvider>(
 										ItemMoveData.SourceItem, TEXT("HandleAddItem")))
 	{

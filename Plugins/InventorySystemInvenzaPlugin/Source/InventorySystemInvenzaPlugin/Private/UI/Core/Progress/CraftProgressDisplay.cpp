@@ -9,12 +9,13 @@
 #include "Engine/Font.h"
 #include "UI/Core/LabelBaseText.h"
 #include "Settings/InvenzaInventoryDeveloperSettings.h"
+#include "UI/Theme/InvenzaUIThemeLibrary.h"
+#include "UI/Theme/InvenzaUITheme.h"
 
 UCraftProgressDisplay::UCraftProgressDisplay()
 {
 	const auto* Settings = GetDefault<UInvenzaInventoryDeveloperSettings>();
-	TextStyle.FontInfo =
-		FSlateFontInfo(Settings->DefaultUIFont.LoadSynchronous(), Settings->ProgressFontSize, TEXT("Regular"));
+	TextStyle.FontInfo = FSlateFontInfo(Settings->DefaultUIFont.LoadSynchronous(), Settings->ProgressFontSize, TEXT("Regular"));
 	TextStyle.Color = FSlateColor(Settings->DefaultTextColor);
 }
 
@@ -42,6 +43,25 @@ float UCraftProgressDisplay::GetNormalizedProgress() const
 	return TotalWork > 0.f ? FMath::Clamp(CurrentWork / TotalWork, 0.f, 1.f) : 0.f;
 }
 
+void UCraftProgressDisplay::RefreshThemeAppearance()
+{
+	if (ProgressBar)
+	{
+		ProgressBar->SetFillColorAndOpacity(ResolveThemeColorForProperty(TEXT("FillColor"), FillColor));
+		FProgressBarStyle Style = ProgressBar->GetWidgetStyle();
+		Style.BackgroundImage.TintColor = FSlateColor(ResolveThemeColorForProperty(TEXT("TrackColor"), TrackColor));
+		ProgressBar->SetWidgetStyle(Style);
+	}
+	for (auto* Label : {CurrentValue.Get(), SeparatorSymbol.Get(), MaxValue.Get(), PercentageLabel.Get()})
+	{
+		if (Label)
+		{
+			const auto Style = ResolveThemeStyle(TEXT("TextStyle"), TextStyle);
+			Label->UpdateAppearance(Style.FontInfo, Style.Color);
+		}
+	}
+}
+
 void UCraftProgressDisplay::RefreshDisplay()
 {
 	const bool bShowWorkAmount = !DisplaySettings.bUseProgressBar && !DisplaySettings.bShowPercentage;
@@ -58,10 +78,13 @@ void UCraftProgressDisplay::RefreshDisplay()
 	if (ProgressBar)
 	{
 		ProgressBar->SetIsMarquee(false);
-		ProgressBar->SetFillColorAndOpacity(FillColor);
+		ProgressBar->SetFillColorAndOpacity(ResolveThemeColorForProperty(TEXT("FillColor"), FillColor));
 		FProgressBarStyle Style = ProgressBar->GetWidgetStyle();
-		Style.BackgroundImage.TintColor = FSlateColor(TrackColor);
-		Style.FillImage.TintColor = FSlateColor(FLinearColor::White);
+		Style.BackgroundImage.TintColor = FSlateColor(ResolveThemeColorForProperty(TEXT("TrackColor"), TrackColor));
+		if (!UsesUITheme())
+		{
+			Style.FillImage.TintColor = FSlateColor(FLinearColor::White);
+		}
 		ProgressBar->SetWidgetStyle(Style);
 		ProgressBar->SetPercent(GetNormalizedProgress());
 	}
@@ -69,7 +92,7 @@ void UCraftProgressDisplay::RefreshDisplay()
 	{
 		if (Label)
 		{
-			FLabelStyle Style = TextStyle;
+			FLabelStyle Style = ResolveThemeStyle(TEXT("TextStyle"), TextStyle);
 			Style.Text = Text;
 			Label->UpdateTextAndFont(Style);
 		}

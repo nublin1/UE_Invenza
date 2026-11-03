@@ -42,6 +42,8 @@ protected:
 	UPROPERTY(blueprintReadOnly, Category = "Highlight")
 	EHighlightState CurrentState = EHighlightState::NotAllowed;
 
+	bool bHasHighlightState = false;
+
 	UPROPERTY(EditDefaultsOnly, Category = "Highlight")
 	FLinearColor AllowedColor = FLinearColor::Green;
 
@@ -52,5 +54,6 @@ protected:
 	FLinearColor PartialColor = FLinearColor::Yellow;
 
 	// Functions
+	virtual void RefreshThemeAppearance() override;
 	virtual void SetBordersColor(const FLinearColor& Color);
 };

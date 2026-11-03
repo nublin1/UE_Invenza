@@ -121,8 +121,8 @@ void UModalDialogBase::OnButtonClicked(UUIButton* UIButton)
 	FModalResult Result = *Found;
 
 	UWidget* HeaderContent = Upper_Slot ? Upper_Slot->GetContent() : nullptr;
-	if (HeaderContent && HeaderContent->GetClass()->ImplementsInterface(UModalInterface::StaticClass()) &&
-		UInterfaceUtils::IsFunctionOverridden(HeaderContent, TEXT("GetHeaderResult"), UModalInterface::StaticClass()))
+	// Native interface implementations can share the interface UFunction while overriding its C++ body.
+	if (HeaderContent && HeaderContent->GetClass()->ImplementsInterface(UModalInterface::StaticClass()))
 	{
 		Result.HeaderResult = IModalInterface::Execute_GetHeaderResult(HeaderContent);
 	}

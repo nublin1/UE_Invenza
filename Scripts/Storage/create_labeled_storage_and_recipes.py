@@ -123,14 +123,13 @@ try:
     label_material.set_editor_property('used_with_instanced_static_meshes',True)
     u.MaterialEditingLibrary.recompile_material(label_material)
     save(label_material)
-    bases={}
-    for name in ['Small','Medium','Large']:
-        mesh=import_asset('SM_StorageLabelBox'+name,ART/('SM_StorageLabelBox'+name+'.fbx'),DEST,True)
-        assert len(mesh.get_editor_property('static_materials'))==2,mesh
-        mesh.set_material(0,body)
-        mesh.set_material(1,label_material)
-        save(mesh)
-        bases[name]=mesh
+    mesh=import_asset('SM_StorageLabelBoxMedium',ART/'SM_StorageLabelBoxMedium.fbx',DEST,True)
+    assert len(mesh.get_editor_property('static_materials'))==2,mesh
+    mesh.set_material(0,body)
+    mesh.set_material(1,label_material)
+    save(mesh)
+    common_box=mesh
+    box_labels={}
     rope=import_asset('SM_StorageRopeBundle',ART/'SM_StorageRopeBundle.fbx',DEST,True)
     rope.set_material(0,fiber)
     rope.set_material(1,tie)
@@ -138,18 +137,15 @@ try:
     rows={r['Name']:r for r in item_before}
 
     def make_labeled_box(row_name,icon,size):
-        name='SM_StorageBox_'+row_name
-        path=DEST+'/'+name
-        mesh=u.load_asset(path) if u.EditorAssetLibrary.does_asset_exist(path) else u.EditorAssetLibrary.duplicate_asset(bases[size].get_path_name(),path)
-        assert mesh,path
         mi=load_or_create('MI_StorageLabel_'+row_name,DEST,u.MaterialInstanceConstant,u.MaterialInstanceConstantFactoryNew())
         u.MaterialEditingLibrary.set_material_instance_parent(mi,label_material)
         u.MaterialEditingLibrary.set_material_instance_texture_parameter_value(mi,'ItemIcon',icon)
         save(mi)
-        mesh.set_material(0,body)
-        mesh.set_material(1,mi)
-        save(mesh)
-        return mesh
+        sizes={'Small':(20.14,20.14,25.07),'Medium':(40.14,40.14,40.07),'Large':(80.14,60.14,45.07)}
+        extent=common_box.get_bounds().box_extent
+        scale=u.Vector(*(value/base for value,base in zip(sizes[size],(extent.x*2,extent.y*2,extent.z*2))))
+        box_labels[row_name]=([body,mi],scale)
+        return common_box
 
     def store_row(name,row):
         assert EDIT.set_row_from_text(items,name,row.export_text()),name
@@ -174,6 +170,9 @@ try:
             method=u.StorageMethod.SMALL_BOXES if name in ['Paper','Money'] else u.StorageMethod.SINGLE_MESH
         storage.set_editor_property('storage_method',method)
         storage.set_editor_property('storage_mesh',mesh)
+        if name in box_labels:
+            materials,scale=box_labels[name]
+            storage.set_editor_properties(dict(materials=materials,mesh_scale=scale))
         metadata.set_editor_property('item_storage_data',storage)
         row.set_editor_property('item_meta_data',metadata)
         store_row(name,row)
@@ -189,6 +188,8 @@ try:
         assets=meta.get_editor_property('item_asset_data')
         assets.set_editor_property('icon',icons[name])
         assets.set_editor_property('mesh',mesh)
+        materials,scale=box_labels[name]
+        assets.set_editor_properties(dict(materials=materials,mesh_scale=scale))
         meta.set_editor_property('item_asset_data',assets)
         names=meta.get_editor_property('item_text_data')
         names.set_editor_property('display_name',text('Item.'+name+'.Name',display))
@@ -201,7 +202,7 @@ try:
         trade.set_editor_property('base_price',float(price))
         meta.set_editor_property('item_trade_data',trade)
         storage=meta.get_editor_property('item_storage_data')
-        storage.set_editor_properties(dict(storage_method=u.StorageMethod.SINGLE_MESH,storage_mesh=mesh))
+        storage.set_editor_properties(dict(storage_method=u.StorageMethod.SINGLE_MESH,storage_mesh=mesh,materials=materials,mesh_scale=scale))
         meta.set_editor_property('item_storage_data',storage)
         tag=u.GameplayTag()
         tag.import_text('(TagName="Item.Category.Ingredient")')

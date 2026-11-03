@@ -2,6 +2,7 @@
 
 #include "World/InventoryMannequin.h"
 #include "ActorComponents/InventoryCollectionComponent.h"
+#include "ActorComponents/UIInventoryManager.h"
 #include "ActorComponents/Interactable/CharacterInventoryAccessComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -28,7 +29,10 @@ AInventoryMannequin::AInventoryMannequin()
 	Equipment = CreateDefaultSubobject<UEquipmentComponent>(TEXT("Equipment"));
 
 	InventoryAccess = CreateDefaultSubobject<UCharacterInventoryAccessComponent>(TEXT("InventoryAccess"));
-	InventoryAccess->bCreateDefaultInventories = true;
+	InventoryManager = CreateDefaultSubobject<UIInventoryManager>(TEXT("InventoryManager"));
+	InventoryManager->bUsePortableBackpacks = true;
+	InventoryAccess->bCreateDefaultInventories = false;
+	InventoryAccess->bUsePortableBackpacks = true;
 }
 
 void AInventoryMannequin::OnConstruction(const FTransform& Transform)

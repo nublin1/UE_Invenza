@@ -28,6 +28,13 @@
     {
       "Name": "ControlRig",
       "Enabled": true
+    },
+    {
+      "Name": "DataValidation",
+      "Enabled": true,
+      "TargetAllowList": [
+        "Editor"
+      ]
     }
   ],
   "Modules": [
@@ -35,6 +42,14 @@
       "Name": "InventorySystemInvenzaPlugin",
       "Type": "Runtime",
       "LoadingPhase": "Default",
+      "PlatformAllowList": [
+        "Win64"
+      ]
+    },
+    {
+      "Name": "InvenzaUIThemeEditor",
+      "Type": "Editor",
+      "LoadingPhase": "PostEngineInit",
       "PlatformAllowList": [
         "Win64"
       ]

@@ -1,6 +1,25 @@
 //  Nublin Studio 2026 All Rights Reserved.
 
 #include "InvenzaWidgetEditingLibrary.h"
+#include "ActorComponents/Interactable/PickupComponent.h"
+#include "ActorComponents/InteractionComponent.h"
+#include "Engine/Blueprint.h"
+#include "Engine/SimpleConstructionScript.h"
+#include "Engine/SCS_Node.h"
+#include "UObject/UnrealType.h"
+#include "UObject/StructOnScope.h"
+#include "Data/Inventory/Equipment/EquipmentComponent.h"
+#include "Subsystems/InvenzaSaveSubsystem.h"
+#include "Engine/GameInstance.h"
+#include "Editor.h"
+#include "PlayInEditorDataTypes.h"
+#include "Settings/LevelEditorPlaySettings.h"
+#include "Components/PanelWidget.h"
+#include "ActorComponents/UIInventoryManager.h"
+#include "ActorComponents/InventoryCollectionComponent.h"
+#include "Data/Inventory/InventoryBase.h"
+#include "Data/Items/itemBase.h"
+#include "Data/Inventory/SlotBasedInv/SlotbasedInventory.h"
 #include "Styling/CoreStyle.h"
 
 #include "Blueprint/UserWidget.h"
@@ -26,9 +45,58 @@
 #include "Components/Button.h"
 #include "Engine/World.h"
 #include "UObject/Script.h"
+#include "EdGraph/EdGraph.h"
+#include "EdGraph/EdGraphNode.h"
 #include "Input/DragAndDrop.h"
 
 IMPLEMENT_MODULE(FDefaultModuleImpl, InvenzaUIEditor)
+
+bool UInvenzaWidgetEditingLibrary::PrepareNativeLayoutBlueprint(UBlueprint* Blueprint,
+	const TArray<FName>& FunctionNames, const TArray<FName>& VariableNames, bool bPruneEventGraph,
+	const TArray<FName>& EventNodesToKeep)
+{
+	if (!Blueprint)
+	{
+		return false;
+	}
+	Blueprint->Modify();
+	TArray<UEdGraph*> GraphsToRemove;
+	for (UEdGraph* Graph : Blueprint->FunctionGraphs)
+	{
+		if (Graph && FunctionNames.Contains(Graph->GetFName()))
+		{
+			GraphsToRemove.Add(Graph);
+		}
+	}
+	for (auto* Graph : GraphsToRemove)
+	{
+		FBlueprintEditorUtils::RemoveGraph(Blueprint, Graph, EGraphRemoveFlags::MarkTransient);
+	}
+	for (FName Variable : VariableNames)
+	{
+		FBlueprintEditorUtils::RemoveMemberVariable(Blueprint, Variable);
+	}
+	if (bPruneEventGraph)
+	{
+		for (UEdGraph* Graph : Blueprint->UbergraphPages)
+		{
+			TArray<UEdGraphNode*> NodesToRemove;
+			for (UEdGraphNode* Node : Graph->Nodes)
+			{
+				if (Node && !EventNodesToKeep.Contains(Node->GetFName()))
+				{
+					NodesToRemove.Add(Node);
+				}
+			}
+			for (auto* Node : NodesToRemove)
+			{
+				FBlueprintEditorUtils::RemoveNode(Blueprint, Node, true);
+			}
+		}
+	}
+	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+	return true;
+}
 
 FSlateBrush UInvenzaWidgetEditingLibrary::GetCoreStyleBrush(FName BrushName)
 {
@@ -342,4 +410,194 @@ bool UInvenzaWidgetEditingLibrary::CompletePreviewDrop(UUserWidget* TargetWidget
 	InvenzaWidgetPreviewDrag.Reset();
 	InvenzaWidgetPreviewDragSource.Reset();
 	return bHandled;
+}
+
+UInventoryBase* UInvenzaWidgetEditingLibrary::AddPreviewPlayerStorage(UIInventoryManager* Manager)
+{
+	if (!Manager || !Manager->GetOwner()->HasAuthority() || !Manager->GetPawnMainInventory())
+	{
+		return nullptr;
+	}
+	auto* Collection = Manager->GetOwner()->FindComponentByClass<UInventoryCollectionComponent>();
+	FInventoryStartupData Startup;
+	Startup.Settings = Manager->GetPawnMainInventory()->GetInventorySettings();
+	Startup.Settings.CustomInventoryID = TEXT("PreviewAdditionalStorage");
+	Startup.Settings.InventoryType = EInventoryType::Inventory;
+	Startup.Settings.InventoryTag = FGameplayTag();
+	Startup.Settings.InventorySlotBasedSettings.InitNumberRows = 2;
+	Startup.Settings.InventorySlotBasedSettings.InitNumColumns = 3;
+	Startup.Settings.ContainerTitle = FText::GetEmpty();
+	if (auto* Existing = Collection->GetInventoryByID(Startup.Settings.CustomInventoryID))
+	{
+		return Existing;
+	}
+	auto* Inventory = UInventoryBase::CreateInventoryAdvanced(Manager->GetOwner(), Startup, Manager->GetOwner(), Collection);
+	Collection->AddPawnInventory_Internal(Inventory);
+	return Inventory;
+}
+
+UPanelSlot* UInvenzaWidgetEditingLibrary::InsertTemplateChild(UPanelWidget* Panel, int32 Index, UWidget* Child)
+{
+	if (!IsValid(Panel) || !IsValid(Child))
+	{
+		return nullptr;
+	}
+	Panel->Modify();
+	return Panel->InsertChildAt(Index, Child);
+}
+
+bool UInvenzaWidgetEditingLibrary::StartStandalonePreview()
+{
+	if (!GEditor || GEditor->PlayWorld)
+	{
+		return false;
+	}
+	auto* Settings = DuplicateObject<ULevelEditorPlaySettings>(GetDefault<ULevelEditorPlaySettings>(), GetTransientPackage());
+	Settings->SetPlayNetMode(EPlayNetMode::PIE_Standalone);
+	Settings->SetPlayNumberOfClients(1);
+	Settings->SetRunUnderOneProcess(true);
+	FRequestPlaySessionParams Params;
+	Params.EditorPlaySettings = Settings;
+	Params.bAllowOnlineSubsystem = false;
+	GEditor->RequestPlaySession(Params);
+	return true;
+}
+
+UInvenzaSaveSubsystem* UInvenzaWidgetEditingLibrary::GetPreviewSaveSubsystem(UWorld* World)
+{
+	return World && World->GetGameInstance() ? World->GetGameInstance()->GetSubsystem<UInvenzaSaveSubsystem>() : nullptr;
+}
+
+bool UInvenzaWidgetEditingLibrary::SetEquipmentDefinitionRows(UEquipmentComponent* Equipment,
+	const TArray<FDataTableRowHandle>& Rows)
+{
+	if (!IsValid(Equipment) || !Equipment->GetEquipmentSlotsArray().IsEmpty())
+	{
+		return false;
+	}
+	Equipment->Modify();
+	Equipment->SetSlotDefinitions(Rows);
+	return Equipment->HasSlotDefinitions();
+}
+
+UUserWidget* UInvenzaWidgetEditingLibrary::GetPreviewInventoryUI(UIInventoryManager* Manager)
+{
+	if (!IsValid(Manager))
+	{
+		return nullptr;
+	}
+	const auto* Property = FindFProperty<FInterfaceProperty>(UIInventoryManager::StaticClass(), TEXT("UIInvProvider"));
+	const auto* Interface = Property->ContainerPtrToValuePtr<FScriptInterface>(Manager);
+	return Cast<UUserWidget>(Interface->GetObject());
+}
+
+UActorComponent* UInvenzaWidgetEditingLibrary::AddBlueprintComponent(UBlueprint* Blueprint,
+	TSubclassOf<UActorComponent> ComponentClass, FName Name)
+{
+	if (!Blueprint || !Blueprint->SimpleConstructionScript || !ComponentClass)
+	{
+		return nullptr;
+	}
+	for (auto* Node : Blueprint->SimpleConstructionScript->GetAllNodes())
+	{
+		if (Node->GetVariableName() == Name)
+		{
+			return Node->ComponentTemplate;
+		}
+	}
+	Blueprint->Modify();
+	auto* Node = Blueprint->SimpleConstructionScript->CreateNode(ComponentClass, Name);
+	Blueprint->SimpleConstructionScript->AddNode(Node);
+	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+	return Node->ComponentTemplate;
+}
+
+bool UInvenzaWidgetEditingLibrary::PreviewPickupInput(APawn* Pawn, UPickupComponent* Pickup, bool bPressed,
+	EInteractionType Type)
+{
+	auto* Interaction = Pawn ? Pawn->FindComponentByClass<UInteractionComponent>() : nullptr;
+	if (!Interaction || !IsValid(Pickup) || Pickup->GetWorld() != Pawn->GetWorld())
+	{
+		return false;
+	}
+	// Transient probe: hold a stable focus while exercising the actual input timer and RPC path.
+	FindFProperty<FObjectPropertyBase>(Interaction->GetClass(), TEXT("CameraComponent"))
+		->SetObjectPropertyValue_InContainer(Interaction, nullptr);
+	TGuardValue<bool> ScriptGuard(GAllowActorScriptExecutionInEditor, false);
+	if (bPressed)
+	{
+		auto* Function = Interaction->FindFunctionChecked(TEXT("FoundInteractable"));
+		FStructOnScope Parameters(Function);
+		FindFProperty<FObjectPropertyBase>(Function, TEXT("NewInteractable"))->SetObjectPropertyValue_InContainer(
+			Parameters.GetStructMemory(), Pickup->GetOwner());
+		FindFProperty<FObjectPropertyBase>(Function, TEXT("NewInteractableComp"))->SetObjectPropertyValue_InContainer(
+			Parameters.GetStructMemory(), Pickup);
+		Interaction->ProcessEvent(Function, Parameters.GetStructMemory());
+	}
+	Interaction->ProcessEvent(Interaction->FindFunctionChecked(bPressed ? TEXT("BeginInteract") : TEXT("EndInteract")), &Type);
+	return true;
+}
+
+bool UInvenzaWidgetEditingLibrary::DropPreviewEquippedBackpack(APawn* Pawn)
+{
+	auto* Manager = Pawn ? Pawn->FindComponentByClass<UIInventoryManager>() : nullptr;
+	auto* Equipment = Pawn ? Pawn->FindComponentByClass<UEquipmentComponent>() : nullptr;
+	auto* Collection = Pawn ? Pawn->FindComponentByClass<UInventoryCollectionComponent>() : nullptr;
+	if (!Manager || !Equipment || !Collection)
+	{
+		return false;
+	}
+	for (const auto& Slot : Equipment->GetEquipmentSlotsArray())
+	{
+		auto* Item = Cast<UItemBase>(Slot.EquippedItem);
+		if (!Item || !Item->IsPortableInventory())
+		{
+			continue;
+		}
+		for (auto* Inventory : Collection->GetActorInventories())
+		{
+			if (Inventory && Collection->FindItemMappingByContainerName(Item, Inventory->GetInventoryContainerID()))
+			{
+				TGuardValue<bool> ScriptGuard(GAllowActorScriptExecutionInEditor, false);
+				IInventoryInteractionHandler::Execute_ItemDropRequest(Manager, FItemDropData(Item, Inventory, 1));
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+bool UInvenzaWidgetEditingLibrary::TogglePreviewInventory(APawn* Pawn)
+{
+	auto* Manager = Pawn ? Pawn->FindComponentByClass<UIInventoryManager>() : nullptr;
+	if (!Manager)
+	{
+		return false;
+	}
+	TGuardValue<bool> ScriptGuard(GAllowActorScriptExecutionInEditor, false);
+	Manager->ProcessEvent(Manager->FindFunctionChecked(TEXT("HandleToggleInventory")), nullptr);
+	return true;
+}
+
+bool UInvenzaWidgetEditingLibrary::CompileActorBlueprint(UBlueprint* Blueprint)
+{
+	if (!Blueprint)
+	{
+		return false;
+	}
+	FKismetEditorUtilities::CompileBlueprint(Blueprint);
+	return Blueprint->Status == BS_UpToDate;
+}
+
+AActor* UInvenzaWidgetEditingLibrary::SpawnPreviewActor(UWorld* World, TSubclassOf<AActor> ActorClass,
+	const FTransform& Transform)
+{
+	if (!World || !World->IsGameWorld() || !ActorClass)
+	{
+		return nullptr;
+	}
+	FActorSpawnParameters Parameters;
+	Parameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	TGuardValue<bool> ScriptGuard(GAllowActorScriptExecutionInEditor, false);
+	return World->SpawnActor<AActor>(ActorClass, Transform, Parameters);
 }

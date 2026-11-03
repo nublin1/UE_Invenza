@@ -125,6 +125,12 @@ protected:
 	UFUNCTION()
 	void PlaceMatching();
 
+	UFUNCTION()
+	void PlaceAllowed();
+
+	UFUNCTION()
+	void ShowAdmissionRules();
+
 	UFUNCTION(BlueprintCallable, Category = "Container|Operations")
 	virtual void SortItems();
 

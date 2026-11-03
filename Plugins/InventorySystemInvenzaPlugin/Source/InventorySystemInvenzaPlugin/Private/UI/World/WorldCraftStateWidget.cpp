@@ -7,17 +7,29 @@
 
 UWorldCraftStateWidget::UWorldCraftStateWidget() = default;
 
+void UWorldCraftStateWidget::RefreshThemeAppearance()
+{
+	if (WorldSurface)
+	{
+		WorldSurface->SetBrushColor(ResolveThemeColorForProperty(TEXT("BackgroundColor"), BackgroundColor));
+	}
+	if (WorldFrame)
+	{
+		WorldFrame->SetBrushColor(ResolveThemeColorForProperty(TEXT("FrameColor"), FrameColor));
+	}
+}
+
 void UWorldCraftStateWidget::NativePreConstruct()
 {
 	Super::NativePreConstruct();
 	if (WorldSurface)
 	{
-		WorldSurface->SetBrushColor(BackgroundColor);
+		WorldSurface->SetBrushColor(ResolveThemeColorForProperty(TEXT("BackgroundColor"), BackgroundColor));
 		WorldSurface->SetPadding(ContentPadding);
 	}
 	if (WorldFrame)
 	{
-		WorldFrame->SetBrushColor(FrameColor);
+		WorldFrame->SetBrushColor(ResolveThemeColorForProperty(TEXT("FrameColor"), FrameColor));
 	}
 	SetProgressDisplaySettings(ProgressSettings);
 }

@@ -98,6 +98,13 @@ public:
 
 	static bool IsWithinInteractionDistance(const AActor* Interactor, const UInteractableComponent* Target);
 
+	/** Starts the same timed protocol for focused players and explicitly targeted server AI. */
+	UFUNCTION(BlueprintCallable, Category = "Interaction")
+	void RequestInteraction(UInteractableComponent* Target, EInteractionType Type);
+
+	/** One-shot authorization for the inventory dispatcher, valid only inside the approved callback. */
+	bool ConsumeApprovedInteraction(UInteractableComponent* Target, EInteractionType Type);
+
 	/** Registers a successfully opened server-side interaction, including AI interactions. */
 	void TrackActiveInteraction(UInteractableComponent* Target, EInteractionType Type);
 
@@ -119,6 +126,10 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction|Trace")
 	float InteractionCheckDistance;
+
+	/** Time allowed for a completion request after the server hold interval. */
+	UPROPERTY(EditDefaultsOnly, Category = "Interaction|Network", meta = (ClampMin = "0.25"))
+	float CompletionRequestGracePeriod = 2.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction|Trace")
 	TEnumAsByte<ECollisionChannel> TraceChannel;
@@ -165,6 +176,15 @@ protected:
 	FTimerHandle InteractionRangeTimer;
 
 	FTimerHandle InteractionInitTimer;
+	FTimerHandle ServerCompletionTimer;
+	uint32 LastAcceptedBeginSerial = 0;
+	double ServerInteractionStartTime = 0.0;
+	float ServerInteractionDuration = 0.f;
+	bool bAwaitingCompletion = false;
+	bool bCompletionRequested = false;
+	bool bServerSessionCompleted = true;
+	bool bExecutingApprovedInteraction = false;
+	bool bApprovedInteractionConsumed = false;
 
 	// Functions
 	void StartInteractionRangeTimer();
@@ -172,6 +192,11 @@ protected:
 	void CheckInteractionRange();
 
 	void CompleteInteraction(bool bNotify);
+
+	void FinishServerInteraction();
+
+	UFUNCTION(Server, Reliable)
+	void Server_BeginInteraction(UInteractableComponent* Target, EInteractionType Type, uint32 Serial);
 
 	UFUNCTION(Server, Reliable)
 	void Server_TrackInteraction(UInteractableComponent* Target, EInteractionType Type, uint32 Serial);

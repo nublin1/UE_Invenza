@@ -47,6 +47,7 @@ Refer to the Invenza documentation for detailed setup and customization options.
 - [Подключение к другому проекту](Docs/ru/ProjectIntegration.md)
 - [Настройка управления](Docs/ru/InputConfiguration.md)
 - [Предметы и контейнеры в мире](Docs/ru/WorldContainers.md)
+- [Разрешённые предметы хранилища](Docs/ru/StorageAdmission.md) — [English](Docs/en/StorageAdmission.md)
 - [Общий доступ к хранилищам](Docs/ru/StorageAccessPoint.md)
 - [Манекен и обмен с другим персонажем](Docs/ru/CharacterInventoryExchange.md)
 - [Все разделы документации](Docs/ru/README.md)

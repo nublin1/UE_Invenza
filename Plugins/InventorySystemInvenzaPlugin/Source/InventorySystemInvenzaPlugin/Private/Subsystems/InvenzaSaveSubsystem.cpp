@@ -3,6 +3,8 @@
 #include "Subsystems/InvenzaSaveSubsystem.h"
 #include "UObject/Package.h"
 #include "ActorComponents/InventoryCollectionComponent.h"
+#include "World/PortableInventoryState.h"
+#include "Components/PrimitiveComponent.h"
 #include "Data/Settings/LinkedStorageDefinition.h"
 #include "World/LinkedStorageState.h"
 #include "ActorComponents/InteractionComponent.h"
@@ -128,11 +130,18 @@ TArray<FInventorySaveSlotInfo> UInvenzaSaveSubsystem::GetSaveSlots() const
 TArray<FInventorySaveSlotInfo> UInvenzaSaveSubsystem::GetSaveSlotsForWorld(const FString& WorldPackage) const
 {
 	TArray<FInventorySaveSlotInfo> Result;
-	TArray<FString> Names{TEXT("Quick"),   TEXT("Manual1"), TEXT("Manual2"),
-						  TEXT("Manual3"), TEXT("Exit"),	TEXT("Shutdown")};
-	for (int32 Index = 0; Index < FMath::Clamp(GetDefault<UInvenzaSaveSettings>()->AutoSaveCount, 1, 10); ++Index)
+	TArray<FString> Names{TEXT("Quick"), TEXT("Manual1"), TEXT("Manual2"), TEXT("Manual3")};
+	const auto* Settings = GetDefault<UInvenzaSaveSettings>();
+	if (Settings->bSaveOnExit)
 	{
-		Names.Add(FString::Printf(TEXT("Auto%d"), Index));
+		Names.Append({TEXT("Exit"), TEXT("Shutdown")});
+	}
+	if (Settings->bAutoSave)
+	{
+		for (int32 Index = 0; Index < FMath::Clamp(Settings->AutoSaveCount, 1, 10); ++Index)
+		{
+			Names.Add(FString::Printf(TEXT("Auto%d"), Index));
+		}
 	}
 	for (const auto& Name : Names)
 	{
@@ -266,6 +275,7 @@ void UInvenzaSaveSubsystem::RegisterCollection(UInventoryCollectionComponent* Co
 		RetainedPickups.Empty();
 		SessionWorld = Collection->GetWorld();
 		bAutoLoadAttempted = false;
+		bStartupLoadFailed = false;
 		bSuppressExitSave = false;
 		LastSnapshot = nullptr;
 		ChangeRevision = 0;
@@ -287,7 +297,7 @@ void UInvenzaSaveSubsystem::RegisterCollection(UInventoryCollectionComponent* Co
 
 void UInvenzaSaveSubsystem::UnregisterCollection(UInventoryCollectionComponent* Collection, EEndPlayReason::Type Reason)
 {
-	if (!Collection || Collection->GetWorld() != SessionWorld.Get())
+	if (!Collection || !Collections.Contains(Collection) || Collection->GetWorld() != SessionWorld.Get())
 	{
 		return;
 	}
@@ -311,6 +321,29 @@ void UInvenzaSaveSubsystem::UnregisterCollection(UInventoryCollectionComponent* 
 	}
 	RestoredOwners.Remove(Collection->GetPersistentOwnerKey());
 	Collections.Remove(Collection);
+}
+
+void UInvenzaSaveSubsystem::ForgetPortableOwner(UInventoryCollectionComponent* Collection)
+{
+	if (!Collection || !Collection->GetOwner()->HasAuthority() ||
+		!Collection->GetOwner()->IsA<APortableInventoryState>())
+	{
+		return;
+	}
+	const auto Key = Collection->GetPersistentOwnerKey();
+	Collection->OnActorInventoriesChanged.RemoveDynamic(this, &ThisClass::CollectionChanged);
+	Collection->OnInventoryItemsChanged.RemoveDynamic(this, &ThisClass::InventoryChanged);
+	Collections.Remove(Collection);
+	RetainedOwners.Remove(Key);
+	RestoredOwners.Remove(Key);
+	if (LastSnapshot)
+	{
+		LastSnapshot->Owners.RemoveAll([&Key](const FInventorySavedOwner& Owner)
+		{
+			return Owner.Key == Key;
+		});
+	}
+	MarkSessionChanged();
 }
 
 void UInvenzaSaveSubsystem::NotifyPlayerReady()
@@ -342,6 +375,11 @@ void UInvenzaSaveSubsystem::TryStartupLoad()
 		{
 			continue;
 		}
+		if (const auto* Manager = Collection->GetOwner()->FindComponentByClass<UIInventoryManager>();
+			Manager && !Manager->IsInventoryInitializationComplete())
+		{
+			return;
+		}
 		if (const auto* Pawn = Cast<APawn>(Collection->GetOwner()); Pawn && Pawn->IsPlayerControlled())
 		{
 			bPlayerReady |= !Collection->GetActorInventories().IsEmpty();
@@ -363,7 +401,15 @@ void UInvenzaSaveSubsystem::TryStartupLoad()
 	{
 		bAutoLoadAttempted = true;
 		TStrongObjectPtr<UInvenzaSaveGame> Latest(ReadLatest());
-		if (PendingTravelSave && PendingTravelSave->WorldPackage == WorldKey())
+		if (PendingNewGameWorld == WorldKey())
+		{
+			PendingNewGameWorld.Empty();
+			PendingTravelSave = nullptr;
+			PlaythroughID = FGuid::NewGuid();
+			Revision = FMath::Max(Revision, Latest.IsValid() ? Latest->Revision : 0);
+			SetStatus(Settings->GetSaveText(TEXT("FreshStart")));
+		}
+		else if (PendingTravelSave && PendingTravelSave->WorldPackage == WorldKey())
 		{
 			TStrongObjectPtr<UInvenzaSaveGame> Selected(PendingTravelSave);
 			PendingTravelSave = nullptr;
@@ -375,6 +421,7 @@ void UInvenzaSaveSubsystem::TryStartupLoad()
 			}
 			else
 			{
+				bStartupLoadFailed = true;
 				UE_LOG(LogTemp, Warning, TEXT("Menu load failed: %s"), *Error);
 				SetStatus(Settings->GetSaveText(TEXT("LoadFailed")));
 			}
@@ -387,7 +434,7 @@ void UInvenzaSaveSubsystem::TryStartupLoad()
 		}
 		else if (Settings->bAutoLoad && Latest.IsValid())
 		{
-			LoadSession(TEXT("Continue"));
+			bStartupLoadFailed = !LoadSession(TEXT("Continue"));
 		}
 		if (Settings->bAutoSave)
 		{
@@ -425,6 +472,28 @@ void UInvenzaSaveSubsystem::TryStartupLoad()
 				Collection->CommitPersistence(Plan);
 				RestoredOwners.Add(Saved->Key);
 				Collection->NotifyPersistenceRestored();
+			}
+		}
+	}
+	if (!bStartupLoadFailed)
+	{
+		// A saved owner is restored before its manager is allowed to grant anything.
+		const auto ReadyCollections = Collections.Array();
+		for (const auto& Weak : ReadyCollections)
+		{
+			auto* Collection = Weak.Get();
+			if (!Collection)
+			{
+				continue;
+			}
+			const FString Key = Collection->GetPersistentOwnerKey();
+			const bool bRestored = RestoredOwners.Contains(Key);
+			if (bRestored || !RetainedOwners.Contains(Key))
+			{
+				if (auto* Manager = Collection->GetOwner()->FindComponentByClass<UIInventoryManager>())
+				{
+					Manager->ResolveStartingResources(bRestored);
+				}
 			}
 		}
 	}
@@ -490,6 +559,12 @@ UInvenzaSaveGame* UInvenzaSaveSubsystem::CaptureSnapshot(FString& Error)
 			continue;
 		}
 		FInventorySavedOwner Owner;
+		if (const auto* Manager = Collection->GetOwner()->FindComponentByClass<UIInventoryManager>();
+			Manager && Manager->HasPendingStartingResources())
+		{
+			Error = TEXT("Starting items are pending delivery; retry their placement before saving");
+			return nullptr;
+		}
 		if (!Collection->CapturePersistence(Owner, Error))
 		{
 			return nullptr;
@@ -527,12 +602,15 @@ UInvenzaSaveGame* UInvenzaSaveSubsystem::CaptureSnapshot(FString& Error)
 	{
 		if (!Pickup.bDestroyed)
 		{
-			if (Instances.Contains(Pickup.Item.InstanceID))
+			for (const auto& Item : Pickup.GetSavedItems())
 			{
-				Error = TEXT("Item is present in both a pickup and an inventory");
-				return nullptr;
+				if (Instances.Contains(Item.InstanceID))
+				{
+					Error = TEXT("Item is present in both a pickup and an inventory");
+					return nullptr;
+				}
+				Instances.Add(Item.InstanceID);
 			}
-			Instances.Add(Pickup.Item.InstanceID);
 		}
 	}
 	return Save;
@@ -623,7 +701,7 @@ void UInvenzaSaveSubsystem::SaveCompleted(const FString& Slot, int32 UserIndex, 
 
 void UInvenzaSaveSubsystem::AutoSave()
 {
-	if (ChangeRevision == SavedChangeRevision || !CanManageSession())
+	if (!GetDefault<UInvenzaSaveSettings>()->bAutoSave || ChangeRevision == SavedChangeRevision || !CanManageSession())
 	{
 		return;
 	}
@@ -633,7 +711,7 @@ void UInvenzaSaveSubsystem::AutoSave()
 
 bool UInvenzaSaveSubsystem::SaveBeforeExit()
 {
-	if (!CanManageSession() || !GetDefault<UInvenzaSaveSettings>()->bSaveOnExit)
+	if (!CanManageSession())
 	{
 		return true;
 	}
@@ -641,6 +719,10 @@ bool UInvenzaSaveSubsystem::SaveBeforeExit()
 	{
 		SetStatus(GetDefault<UInvenzaSaveSettings>()->GetSaveText(TEXT("WaitBeforeExit")));
 		return false;
+	}
+	if (!GetDefault<UInvenzaSaveSettings>()->bSaveOnExit)
+	{
+		return true;
 	}
 	const bool bSuccess = SaveSession(TEXT("Exit"), false);
 	if (bSuccess)
@@ -814,6 +896,10 @@ bool UInvenzaSaveSubsystem::ApplySnapshot(const UInvenzaSaveGame* Snapshot, FStr
 				auto* Inventory = UInventoryBase::CreateInventoryAdvanced(Actor, Startup, Actor, Collection);
 				if (Inventory)
 				{
+					if (Actor->IsA<APortableInventoryState>())
+					{
+						Inventory->SetInventoryContainerID(Saved.Key + TEXT(":Contents"));
+					}
 					Inventory->SetInventorySize(SavedInventory.Size);
 					Collection->AddPawnInventory_Internal(Inventory);
 					if (auto* Grid = Cast<USlotbasedInventory>(Inventory))
@@ -848,6 +934,100 @@ bool UInvenzaSaveSubsystem::ApplySnapshot(const UInvenzaSaveGame* Snapshot, FStr
 		RollbackSpawns();
 		return false;
 	}
+	TMap<FGuid, UObject*> PreparedItems;
+	for (const auto& Plan : Plans)
+	{
+		for (const auto& Entry : Plan.Entries)
+		{
+			if (const auto* Item = Cast<UItemBase>(Entry.Item))
+			{
+				PreparedItems.Add(Item->GetPersistentInstanceID(), Entry.Item);
+			}
+		}
+	}
+	for (const auto& SavedOwner : Snapshot->Owners)
+	{
+		auto* Plan = Plans.FindByPredicate([&](const auto& Candidate)
+		{
+			return Candidate.Collection->GetPersistentOwnerKey() == SavedOwner.Key;
+		});
+		if (!Plan)
+		{
+			continue;
+		}
+		TSet<FString> ReferencedPortableOwners;
+		for (const auto& PhysicalItem : SavedOwner.Items)
+		{
+			const auto* RootItem = Cast<UItemBase>(PreparedItems.FindRef(PhysicalItem.InstanceID));
+			if (RootItem && RootItem->IsPortableInventory() && PhysicalItem.Locations.ContainsByPredicate(
+				[](const auto& Location)
+				{
+					return Location.EquipmentSlot.IsValid();
+				}))
+			{
+				ReferencedPortableOwners.Add(TEXT("Portable:") + PhysicalItem.InstanceID.ToString());
+			}
+		}
+		for (const auto& SavedReference : SavedOwner.ReferenceItems)
+		{
+			UObject* Item = PreparedItems.FindRef(SavedReference.InstanceID);
+			const auto* PhysicalPlan = Plans.FindByPredicate([&](const auto& Candidate)
+			{
+				return Candidate.Entries.ContainsByPredicate([&](const auto& Entry)
+				{
+					return Entry.Item == Item && Entry.Locations.Mappings.ContainsByPredicate([](const auto& Mapping)
+					{
+						return !Mapping.bIsReferenceContainer;
+					});
+				});
+			});
+			if (!Item || !PhysicalPlan ||
+				!ReferencedPortableOwners.Contains(PhysicalPlan->Collection->GetPersistentOwnerKey()))
+			{
+				continue;
+			}
+			FInventoryEntry Entry;
+			Entry.Item = Item;
+			for (const auto& Location : SavedReference.Locations)
+			{
+				for (const auto& Container : Plan->Containers)
+				{
+					auto Settings = Container.Inventory->GetInventorySettings();
+					const FString Key = !Settings.CustomInventoryID.IsEmpty() ? TEXT("Custom:") + Settings.CustomInventoryID :
+						Plan->Collection->GetPersistentInventoryKey(Container.Inventory);
+					if (Key != Location.InventoryKey || !Settings.bIsReferenceContainer)
+					{
+						continue;
+					}
+					for (auto* Slot : Container.Slots)
+					{
+						const bool bOccupied = Plan->Entries.ContainsByPredicate([&](const auto& Existing)
+						{
+							return Existing.Locations.Mappings.ContainsByPredicate([&](const auto& Mapping)
+							{
+								return Mapping.OccupiedSlots.Contains(Slot);
+							});
+						});
+						if (Slot && !bOccupied && Slot->InventorySlotInfo.CellPosition == Location.Cell &&
+							(!Slot->InventorySlotInfo.AllowedCategory.IsValid() ||
+							 IObjectDataProvider::Execute_GetItemRef(Item).ItemCategory.MatchesTag(Slot->InventorySlotInfo.AllowedCategory)))
+						{
+							FItemMapping Mapping;
+							Mapping.InventoryID = Container.Inventory->GetInventoryContainerID();
+							Mapping.bIsReferenceContainer = true;
+							Mapping.ItemOrientation = Location.Orientation;
+							Mapping.OccupiedSlots.Add(Slot);
+							Entry.Locations.Mappings.Add(Mapping);
+						}
+					}
+				}
+			}
+			if (!Entry.Locations.Mappings.IsEmpty())
+			{
+				Plan->Entries.Add(MoveTemp(Entry));
+			}
+		}
+	}
 	// All data is prepared. Close interactions before replacing references held by their widgets.
 	for (TActorIterator<APawn> It(GetWorld()); It; ++It)
 	{
@@ -865,13 +1045,40 @@ bool UInvenzaSaveSubsystem::ApplySnapshot(const UInvenzaSaveGame* Snapshot, FStr
 			return false;
 		}
 	}
+	for (const auto& Plan : PickupPlans)
+	{
+		if (!IsValid(Plan.Component) || !IsValid(Plan.Component->GetOwner()) ||
+			Plan.Component->GetOwner()->IsActorBeingDestroyed())
+		{
+			Error = TEXT("Pickup was destroyed while closing an interaction");
+			RollbackSpawns();
+			return false;
+		}
+	}
 	for (auto& Plan : Plans)
 	{
 		Plan.Collection->CommitPersistence(Plan);
 	}
 	for (auto& Plan : PickupPlans)
 	{
-		Plan.Component->RestorePersistentItem(Plan.Item.Get());
+		TArray<UObject*> Items;
+		for (const auto& Item : Plan.Items)
+		{
+			Items.Add(Item.Get());
+		}
+		Plan.Component->RestorePersistentItems(Items, Plan.bIsBundle);
+		auto* Actor = Plan.Component->GetOwner();
+		Actor->SetActorTransform(Plan.Transform, false, nullptr, ETeleportType::TeleportPhysics);
+		TInlineComponentArray<UPrimitiveComponent*> Primitives(Actor);
+		for (auto* Primitive : Primitives)
+		{
+			if (Primitive->IsSimulatingPhysics())
+			{
+				Primitive->SetPhysicsLinearVelocity(FVector::ZeroVector);
+				Primitive->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
+			}
+		}
+		Actor->ForceNetUpdate();
 	}
 	RetainedPickups.Empty();
 	for (const auto& Saved : Snapshot->Pickups)
@@ -895,7 +1102,12 @@ bool UInvenzaSaveSubsystem::ApplySnapshot(const UInvenzaSaveGame* Snapshot, FStr
 	for (auto& Plan : Plans)
 	{
 		Plan.Collection->NotifyPersistenceRestored();
+		if (auto* Manager = Plan.Collection->GetOwner()->FindComponentByClass<UIInventoryManager>())
+		{
+			Manager->ResolveStartingResources(true);
+		}
 	}
+	bStartupLoadFailed = false;
 	LastSnapshot = DuplicateObject<UInvenzaSaveGame>(Snapshot, this);
 	PlaythroughID = Snapshot->PlaythroughID;
 	Revision = FMath::Max(Revision, Snapshot->Revision);
@@ -968,9 +1180,12 @@ bool UInvenzaSaveSubsystem::ApplyTrustedOwner(AActor* Requestor, const FInventor
 	{
 		if (auto* Pickup = Weak.Get())
 		{
-			if (auto* Item = Cast<UItemBase>(Pickup->PeekItemData()))
+			for (auto* Object : Pickup->GetPickupItems())
 			{
-				OtherIDs.Add(Item->GetPersistentInstanceID());
+				if (auto* Item = Cast<UItemBase>(Object))
+				{
+					OtherIDs.Add(Item->GetPersistentInstanceID());
+				}
 			}
 		}
 	}
@@ -978,7 +1193,10 @@ bool UInvenzaSaveSubsystem::ApplyTrustedOwner(AActor* Requestor, const FInventor
 	{
 		if (!Pair.Value.bDestroyed)
 		{
-			OtherIDs.Add(Pair.Value.Item.InstanceID);
+			for (const auto& Item : Pair.Value.GetSavedItems())
+			{
+				OtherIDs.Add(Item.InstanceID);
+			}
 		}
 	}
 	for (const auto* Items : {&Owner.Items, &Owner.RecoveryItems})
@@ -1007,6 +1225,20 @@ bool UInvenzaSaveSubsystem::ApplyTrustedOwner(AActor* Requestor, const FInventor
 		return false;
 	}
 	DataToApply.Crafting = CurrentState.Crafting;
+	// Trusted item submissions never grant permission to rewrite server admission rules.
+	for (auto& Submitted : DataToApply.Inventories)
+	{
+		for (const auto& Current : CurrentState.Inventories)
+		{
+			if (Submitted.Key == Current.Key)
+			{
+				Submitted.bHasAdmissionRules = Current.bHasAdmissionRules;
+				Submitted.AdmissionRules = Current.AdmissionRules;
+				Submitted.StartupSettings = Current.StartupSettings;
+				break;
+			}
+		}
+	}
 	FInventoryPreparedOwner Plan;
 	if (!Collection->PreparePersistence(DataToApply, Plan, Error, true))
 	{
@@ -1164,5 +1396,42 @@ bool UInvenzaSaveSubsystem::RetryRecovery()
 	}
 	SetStatus(FText::Format(GetDefault<UInvenzaSaveSettings>()->GetSaveText(TEXT("RecoveryRemaining")),
 							GetRecoveryItems().Num()));
+	return true;
+}
+
+bool UInvenzaSaveSubsystem::StartNewGame(const TSoftObjectPtr<UWorld>& World)
+{
+	if (!GetWorld() || GetWorld()->GetNetMode() == NM_Client || bBusy || World.IsNull())
+	{
+		return false;
+	}
+	const FString Target = World.ToSoftObjectPath().GetLongPackageName();
+	if (!FPackageName::DoesPackageExist(Target))
+	{
+		SetStatus(GetDefault<UInvenzaSaveSettings>()->GetSaveText(TEXT("LoadFailed")));
+		return false;
+	}
+	PendingNewGameWorld = Target;
+	PendingTravelSave = nullptr;
+	bSuppressExitSave = true;
+	QueuedSaveSlots.Empty();
+	if (SessionWorld.IsValid())
+	{
+		SessionWorld->GetTimerManager().ClearTimer(AutoSaveTimer);
+		SessionWorld->GetTimerManager().ClearTimer(StartupTimer);
+	}
+	if (GetWorld()->GetNetMode() == NM_ListenServer || GetWorld()->GetNetMode() == NM_DedicatedServer)
+	{
+		if (!GetWorld()->ServerTravel(Target + TEXT("?listen")))
+		{
+			PendingNewGameWorld.Empty();
+			bSuppressExitSave = false;
+			return false;
+		}
+	}
+	else
+	{
+		UGameplayStatics::OpenLevel(this, FName(Target));
+	}
 	return true;
 }

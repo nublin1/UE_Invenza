@@ -25,6 +25,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "UI|Input")
 	void ReleaseUIInput(UObject* RequestOwner);
 
+	TArray<UObject*> GetUIInputRequestOwners() const;
+
 protected:
 	// Runtime
 	// Properties and variables

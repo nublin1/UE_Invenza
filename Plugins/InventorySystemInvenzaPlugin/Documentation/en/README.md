@@ -8,16 +8,22 @@ Start with the [overview](GettingStartedOverview.md), then integrate the plugin 
 
 - [Integrating into another project](ProjectIntegration.md)
 - [Input configuration](InputConfiguration.md)
+- [Shared UI theme](UITheme.md)
 - [Controls help](ControlsHelp.md)
 - [Main menu](FrontendMenu.md)
+- [Primary Layout and layer diagnostics](UILayout.md)
 - [Saving and loading](InventorySaving.md)
+- [Read-only list view for any container](InventoryListView.md)
+- [Withdraw a selected amount from storage](TakeItemAmount.md)
 
 ## World objects and inventory access
 
 - [Pickups and ordinary containers](WorldContainers.md)
+- [Storage admission rules](StorageAdmission.md)
 - [Base storage access points](StorageAccessPoint.md)
 - [Linked shared and personal chests](LinkedStorage.md)
 - [Mannequin and character inventory exchange](CharacterInventoryExchange.md)
+- [Portable backpack inventories](PortableBackpacks.md)
 - [Active interaction distance](InteractionDistance.md)
 
 ## Production and visual storage

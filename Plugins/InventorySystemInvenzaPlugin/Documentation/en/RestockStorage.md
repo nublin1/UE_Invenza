@@ -10,6 +10,14 @@ Blueprint API: `UIInventoryManager.TransferMatchingItems(SourceInventory, Target
 
 To add the action to a custom operations panel, use a Core button named `Button_PlaceMatching`; `UInventoryContainerWidget` binds it automatically. The current tooltip is in `WBP_Inventory_OperationsPanel`. `PlaceMatchingLabel` uses `+=`; its font and color are controlled by the operations panel's `Restock Label Style`, defaulting to Roboto.
 
+## Transfers by admission rules
+
+Restocking respects [storage admission rules](StorageAdmission.md). An existing blocked item does not permit additional quantities to enter storage.
+
+The separate Move permitted items button also transfers allowed types not yet present in storage. It can fill empty storage; `+=` transfers nothing into an empty target. Both operations respect cell requirements, weight, capacity and reservations.
+
+Blueprint API: `UIInventoryManager.TransferAllowedItems(SourceInventory, TargetInventory)`. Use a Core button named `Button_PlaceAllowed` in a custom panel. `Button_AdmissionRules` opens the rule tree.
+
 Test: `Invenza.Inventory.TransferMatchingItems`.
 
 Historical automation names in this guide refer to checks whose source files were removed at the owner's request. They are not available in the current distribution; use the described manual scenarios.

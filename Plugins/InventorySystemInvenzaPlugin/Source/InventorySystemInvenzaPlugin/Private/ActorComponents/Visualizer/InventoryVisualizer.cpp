@@ -1,6 +1,7 @@
 ﻿//  Nublin Studio 2026 All Rights Reserved.
 
 #include "ActorComponents/Visualizer/InventoryVisualizer.h"
+#include "Utility/InvenzayUtility.h"
 
 #include "ActorComponents/InventoryCollectionComponent.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -227,7 +228,8 @@ void UInventoryVisualizer::AddItemVisual(FItemMapping& ItemSlots, UObject* Item)
 		return;
 	}
 
-	UStaticMesh* SM_Item = IObjectDataProvider::Execute_GetItemRef(Item).ItemAssetData.Mesh;
+	const auto Assets = IObjectDataProvider::Execute_GetItemRef(Item).ItemAssetData;
+	UStaticMesh* SM_Item = Assets.Mesh;
 	if (!SM_Item)
 	{
 		return;
@@ -238,6 +240,8 @@ void UInventoryVisualizer::AddItemVisual(FItemMapping& ItemSlots, UObject* Item)
 
 	NewItemMesh->SetupAttachment(ParentMeshPtr, CachedSlots[FreeIndex].SocketName);
 	NewItemMesh->SetRelativeTransform(FTransform::Identity);
+	NewItemMesh->SetRelativeScale3D(Assets.MeshScale);
+	UInvenzayUtility::ApplyMaterialOverrides(NewItemMesh, Assets.Materials);
 	NewItemMesh->RegisterComponent();
 
 	TrackedVisuals.Add(Item, NewItemMesh);
